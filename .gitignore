@@ -177,3 +177,4 @@ references
 *.pt
 *.npz
 *.mp3
+config.py

@@ -43,15 +43,7 @@ def get_tag_object_corners(tag_center, tag_size):
     corners[:, 1] += tag_center[1]
     return corners
 
-def get_camera_pose(cap: cv2.VideoCapture):
-    if not cap.isOpened():
-        print("Cannot open camera")
-        exit()
-
-    ret, frame = cap.read()
-    if not ret:
-        return None, None
-
+def get_camera_pose(frame: cv2.typing.MatLike):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     tags = detector.detect(gray)
 
@@ -100,6 +92,33 @@ def get_camera_pose(cap: cv2.VideoCapture):
     else:
         print("No object points found.")
         return None, None
+
+def get_point_3d_place(point: np.ndarray, Z0: float, camera_pos: np.ndarray = None, R: np.ndarray = None, cap: cv2.VideoCapture = None):
+    if camera_pos is None or R is None:
+        if cap is None:
+            raise ValueError("Either camera_pos and R must be provided or a VideoCapture object must be given.")
+        camera_pos, R = get_camera_pose(cap)
+    t_world, R_world = camera_pos, R
+    # Step 1: undistort & normalize
+    norm = cv2.undistortPoints(point, K, dist)
+    x, y = norm[0][0]
+    ray_cam = np.array([x, y, 1.0])
+
+    if R_world is None or t_world is None:
+        print("Camera pose not found.")
+        return None
+
+    print(R_world, ray_cam)
+
+    # Step 2: transform to the world
+    ray_world = R_world @ ray_cam.T
+    ray_world /= np.linalg.norm(ray_world)
+    cam_world = t_world.flatten()
+
+    # Step 3: intersect with Z = Z0
+    s = (Z0 - cam_world[2]) / ray_world[2]
+    point_world = cam_world + s * ray_world
+    return point_world
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
