@@ -22,26 +22,27 @@ K = calib["camera_matrix"]
 dist = calib["dist_coeffs"]
 
 # --- AprilTag Detector ---
-detector = Detector(families="tag16h5",
+detector = Detector(
+    families="tag16h5",
     nthreads=1,
     quad_decimate=1,
     quad_sigma=1.2,
     refine_edges=1,
     decode_sharpening=0,
-    debug=0)
+    debug=0,
+)
+
 
 # --- Utilities ---
 def get_tag_object_corners(tag_center, tag_size):
     s = tag_size / 2
-    corners = np.array([
-        [-s, -s, 0],
-        [ s, -s, 0],
-        [ s,  s, 0],
-        [-s,  s, 0]
-    ], dtype=np.float32)
+    corners = np.array(
+        [[-s, -s, 0], [s, -s, 0], [s, s, 0], [-s, s, 0]], dtype=np.float32
+    )
     corners[:, 0] += tag_center[0]
     corners[:, 1] += tag_center[1]
     return corners
+
 
 def get_camera_pose(frame: cv2.typing.MatLike):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -54,10 +55,11 @@ def get_camera_pose(frame: cv2.typing.MatLike):
         if tag.tag_id >= 8:
             continue
         print(f"Detected tag {tag.tag_id}")
-        world_corners = get_tag_object_corners(KNOWN_TAG_POSITIONS[tag.tag_id], TAG_SIZE)
+        world_corners = get_tag_object_corners(
+            KNOWN_TAG_POSITIONS[tag.tag_id], TAG_SIZE
+        )
         object_points.append(world_corners)
         image_points.append(tag.corners.astype(np.float32))
-
 
         # Annotate tag
         for i in range(4):
@@ -66,14 +68,21 @@ def get_camera_pose(frame: cv2.typing.MatLike):
             cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
         center = tuple(tag.center.astype(int))
         cv2.circle(frame, center, 4, (0, 0, 255), -1)
-        cv2.putText(frame, f"ID: {tag.tag_id}", (center[0] + 5, center[1] - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+        cv2.putText(
+            frame,
+            f"ID: {tag.tag_id}",
+            (center[0] + 5, center[1] - 5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 0, 0),
+            1,
+        )
 
     cv2.imshow("AprilTags", frame)
 
     if len(object_points) < 6:
-            print("Not enough tags detected.")
-            return None, None
+        print("Not enough tags detected.")
+        return None, None
 
     if object_points:
         obj_pts = np.concatenate(object_points, axis=0)
@@ -93,10 +102,19 @@ def get_camera_pose(frame: cv2.typing.MatLike):
         print("No object points found.")
         return None, None
 
-def get_point_3d_place(point: np.ndarray, Z0: float, camera_pos: np.ndarray = None, R: np.ndarray = None, cap: cv2.VideoCapture = None):
+
+def get_point_3d_place(
+    point: np.ndarray,
+    Z0: float,
+    camera_pos: np.ndarray = None,
+    R: np.ndarray = None,
+    cap: cv2.VideoCapture = None,
+):
     if camera_pos is None or R is None:
         if cap is None:
-            raise ValueError("Either camera_pos and R must be provided or a VideoCapture object must be given.")
+            raise ValueError(
+                "Either camera_pos and R must be provided or a VideoCapture object must be given."
+            )
         camera_pos, R = get_camera_pose(cap)
     t_world, R_world = camera_pos, R
     # Step 1: undistort & normalize
@@ -119,6 +137,7 @@ def get_point_3d_place(point: np.ndarray, Z0: float, camera_pos: np.ndarray = No
     s = (Z0 - cam_world[2]) / ray_world[2]
     point_world = cam_world + s * ray_world
     return point_world
+
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)

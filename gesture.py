@@ -7,30 +7,39 @@ from accelerate import infer_auto_device_map
 from torchvision import transforms
 from transform import ToNumpy, HandleGestureDataset, ExtractKeypoints, hands
 
-train_transform = transforms.Compose([
-    transforms.RandomRotation((-90, 90)),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    ToNumpy(),
-    ExtractKeypoints(hands),
-    HandleGestureDataset(),
-    transforms.ToTensor(),
-])
+train_transform = transforms.Compose(
+    [
+        transforms.RandomRotation((-90, 90)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        ToNumpy(),
+        ExtractKeypoints(hands),
+        HandleGestureDataset(),
+        transforms.ToTensor(),
+    ]
+)
 
-eval_transform = transforms.Compose([
-    ExtractKeypoints(hands),
-    HandleGestureDataset(),
-    transforms.ToTensor(),
-])
+eval_transform = transforms.Compose(
+    [
+        ExtractKeypoints(hands),
+        HandleGestureDataset(),
+        transforms.ToTensor(),
+    ]
+)
+
 
 class GestureClassifier(nn.Module):
     def __init__(self):
         super(GestureClassifier, self).__init__()
         # Define convolution and pooling layers
-        self.conv = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=2, padding=1, stride=1)
+        self.conv = nn.Conv2d(
+            in_channels=1, out_channels=1, kernel_size=2, padding=1, stride=1
+        )
         self.pooling = nn.MaxPool2d(kernel_size=2, stride=1)
         # Fully connected layers
-        self.fc1 = nn.Linear(40, 64)  # Adjusted to match the output shape after conv and pooling
+        self.fc1 = nn.Linear(
+            40, 64
+        )  # Adjusted to match the output shape after conv and pooling
         self.fc2 = nn.Linear(64, 4)
         self.output = nn.Softmax(dim=1)
         self.dropout = nn.Dropout(0.7)
@@ -41,7 +50,9 @@ class GestureClassifier(nn.Module):
 
         # Loop over the 5 slices in the input
         for i in range(5):
-            slice = x[:, :, i, :].unsqueeze(1)  # Extract the i-th slice and add channel dimension
+            slice = x[:, :, i, :].unsqueeze(
+                1
+            )  # Extract the i-th slice and add channel dimension
             conv_out = self.conv(slice)
             pool_out = self.pooling(conv_out)
             slices.append(pool_out)
@@ -65,7 +76,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 epochs = 10
 
-if os.path.exists('assets/gesture_classifier.pth'):
-    model.load_state_dict(torch.load('assets/gesture_classifier.pth'))
+if os.path.exists("assets/gesture_classifier.pth"):
+    model.load_state_dict(torch.load("assets/gesture_classifier.pth"))
 else:
-    print('No model found, please train first')
+    print("No model found, please train first")

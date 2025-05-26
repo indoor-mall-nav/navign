@@ -12,13 +12,13 @@ import pygame
 
 from remote import run_remote_response
 
-interstices = np.load('camera_calibration_output.npz')
+interstices = np.load("camera_calibration_output.npz")
 
 K = interstices["camera_matrix"]
 dist = interstices["dist_coeffs"]
 Z0 = 0.0
 
-model = YOLO('yolo12l.pt')
+model = YOLO("yolo12l.pt")
 
 cap = cv2.VideoCapture(0)
 
@@ -32,15 +32,19 @@ while True:
 
     detections = model(image)
 
-    content = ''
+    content = ""
 
     loc, pos = get_camera_pose(cap)
 
     points_3d = []
 
     for result in detections:
-        xyxy = result.boxes.xyxy  # top-left-x, top-left-y, bottom-right-x, bottom-right-y
-        names = [result.names[cls.item()] for cls in result.boxes.cls.int()]  # class name of each box
+        xyxy = (
+            result.boxes.xyxy
+        )  # top-left-x, top-left-y, bottom-right-x, bottom-right-y
+        names = [
+            result.names[cls.item()] for cls in result.boxes.cls.int()
+        ]  # class name of each box
         confs = result.boxes.conf  # confidence score of each box
 
         print(f"xyxy: {xyxy}, names: {names}, confs: {confs}")
@@ -65,14 +69,14 @@ while True:
 
     result = generate_local_response(content)
 
-    if result == '<remote>':
+    if result == "<remote>":
         result = run_remote_response(content)
 
-    if os.path.exists('output.mp3'):
-        os.remove('output.mp3')
+    if os.path.exists("output.mp3"):
+        os.remove("output.mp3")
 
-    communicate = edge_tts.Communicate(result, 'en-GB-SoniaNeural')
-    communicate.save_sync('output.mp3')
+    communicate = edge_tts.Communicate(result, "en-GB-SoniaNeural")
+    communicate.save_sync("output.mp3")
 
     pygame.init()
     pygame.mixer.init()
