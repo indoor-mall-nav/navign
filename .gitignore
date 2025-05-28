@@ -178,3 +178,5 @@ references
 *.npz
 *.mp3
 config.py
+*.pth
+assets

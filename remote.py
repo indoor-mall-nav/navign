@@ -1,8 +1,7 @@
 import requests
 from openai import OpenAI
-
 from config import OPENAI_KEY, DEEPSEEK_KEY
-from local import prompt
+from shared import prompt
 
 
 def is_chatgpt_api_available():
@@ -13,7 +12,7 @@ def is_chatgpt_api_available():
     country = geo_response.json().get("country_name")
 
     # Step 2: Check against OpenAI's supported regions
-    unsupported_countries = ["China", "Hong Kong", "Macau"]
+    unsupported_countries = ["China", "Hong Kong", "Macau", "Russia", "Belarus", "Iran", "Syria", "North Korea", "Cuba"]
     return country not in unsupported_countries
 
 
@@ -26,8 +25,11 @@ def get_appropriate_client() -> tuple[OpenAI, str]:
         ), "deepseek-chat"
 
 
-def run_remote_response(content: str) -> str:
+def run_remote_response(env: str, user: str) -> str:
     client, model = get_appropriate_client()
+
+    content = 'The environment involves following surroundings:\n' + env + \
+        f'\nThe user is asking: {user}\n'
 
     response = client.chat.completions.create(
         model=model,

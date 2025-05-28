@@ -17,19 +17,13 @@ KNOWN_TAG_POSITIONS = {
 }
 
 # --- Load camera intrinsics ---
-calib = np.load("camera_calibration_output.npz")
+calib = np.load("assets/interstices.npz")
 K = calib["camera_matrix"]
 dist = calib["dist_coeffs"]
 
 # --- AprilTag Detector ---
 detector = Detector(
-    families="tag16h5",
-    nthreads=1,
-    quad_decimate=1,
-    quad_sigma=1.2,
-    refine_edges=1,
-    decode_sharpening=0,
-    debug=0,
+    families="tag36h11",
 )
 
 
@@ -142,6 +136,7 @@ def get_point_3d_place(
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     while True:
-        camera_pos, R = get_camera_pose(cap)
+        ret, frame = cap.read()
+        camera_pos, R = get_camera_pose(frame)
         if camera_pos is not None:
             break

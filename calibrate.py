@@ -62,13 +62,13 @@ if object_points and image_points:
         object_points, image_points, gray.shape[::-1], None, None
     )
     np.savez(
-        "camera_calibration_output.npz",
+        "assets/interstices.npz",
         camera_matrix=camera_matrix,
         dist_coeffs=dist_coeffs,
         rvecs=rvecs,
         tvecs=tvecs,
     )
-    print("Calibration complete. Parameters saved to 'camera_calibration_output.npz'.")
+    print("Calibration complete. Parameters saved to 'assets/interstices.npz'.")
 
 cap.release()
 cv2.destroyAllWindows()
