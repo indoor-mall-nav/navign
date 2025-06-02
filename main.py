@@ -21,7 +21,7 @@ try:
         keyword_index = porcupine.process(pcm)
         if keyword_index >= 0:
             print(f"Wake word detected! (index {keyword_index})")
-            play_audio("We are ready to assist you. Please showcase the environment around you.")
+            # play_audio("We are ready to assist you. Please showcase the environment around you.")
             audio = record_audio()
             user_request = recognize_audio(audio)
             print(f"User request: {user_request}")
@@ -36,7 +36,7 @@ try:
 
             content = ""
 
-            t_world, R_world = get_camera_pose(cap)
+            t_world, R_world = get_camera_pose(image)
 
             points_3d = []
 
@@ -46,7 +46,7 @@ try:
 
             for u, v, name, conf in objects:
                 pt = get_point_3d_place(
-                    np.array([[[u, v]]], dtype=np.float32), Z0, t_world, R_world
+                    np.array([[[u, v]]], dtype=np.float32), Z0, camera_pos=t_world, R=R_world
                 )
                 points_3d.append(pt)
                 if conf < 0.6:

@@ -100,16 +100,9 @@ def get_camera_pose(frame: cv2.typing.MatLike):
 def get_point_3d_place(
     point: np.ndarray,
     Z0: float,
-    camera_pos: np.ndarray = None,
-    R: np.ndarray = None,
-    cap: cv2.VideoCapture = None,
+    camera_pos: np.ndarray,
+    R: np.ndarray,
 ):
-    if camera_pos is None or R is None:
-        if cap is None:
-            raise ValueError(
-                "Either camera_pos and R must be provided or a VideoCapture object must be given."
-            )
-        camera_pos, R = get_camera_pose(cap)
     t_world, R_world = camera_pos, R
     # Step 1: undistort & normalize
     norm = cv2.undistortPoints(point, K, dist)

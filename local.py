@@ -19,7 +19,7 @@ def generate_local_response(content: str, user: str) -> str:
                 "role": "user",
                 "content": message
                 + f"Now the user is asking: {user}\n"
-                + f"You should be aware that you may be unable to solve this question. If you don't think yourself able to solve the user's problem, please output the special token <remote> instead of returning other sentences.",
+                # + f"You should be aware that you may be unable to solve this question. If you don't think yourself able to solve the user's problem, please output the special token <remote> instead of returning other sentences.",
             }
         ],
         tokenize=False,

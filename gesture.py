@@ -70,8 +70,10 @@ class GestureClassifier(nn.Module):
 
 
 model = GestureClassifier()
-device = infer_auto_device_map(model)
-model.to(device)
+# device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+device = 'cpu'
+model = model.to(device)
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 epochs = 10

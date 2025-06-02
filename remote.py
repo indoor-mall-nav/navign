@@ -6,9 +6,9 @@ from shared import prompt
 
 def is_chatgpt_api_available():
     # Step 1: Geolocate the IP address
-    geo_response = requests.get("https://ipapi.co/json/")
+    geo_response = requests.get("https://api.ip.sb/geoip")
     if geo_response.status_code != 200:
-        raise Exception("Failed to retrieve geolocation data.")
+        return True
     country = geo_response.json().get("country_name")
 
     # Step 2: Check against OpenAI's supported regions
@@ -18,7 +18,7 @@ def is_chatgpt_api_available():
 
 def get_appropriate_client() -> tuple[OpenAI, str]:
     if is_chatgpt_api_available():
-        return OpenAI(api_key=OPENAI_KEY), "4o"
+        return OpenAI(api_key=OPENAI_KEY), "gpt-4o"
     else:
         return OpenAI(
             api_key=DEEPSEEK_KEY, base_url="https://api.deepseek.com"
@@ -31,16 +31,11 @@ def run_remote_response(env: str, user: str) -> str:
     content = 'The environment involves following surroundings:\n' + env + \
         f'\nThe user is asking: {user}\n'
 
-    response = client.chat.completions.create(
+    response = client.responses.create(
         model=model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": content},
-        ],
-        max_tokens=1024,
-        temperature=0.7,
+        input=prompt + content + "\n" + "Now, please provide a response to the user's question.\n",
     )
 
-    result = response.choices[0].message["content"].strip()
+    result = response.output_text
 
     return result
