@@ -1,15 +1,9 @@
-import time
-import wave
-from datetime import datetime
-
 import numpy as np
 import torch
-from pyaudio import Stream
 from transformers import AutoModelForCTC, AutoProcessor
 import pyaudio
 
 from gesture import device
-from waking import stream
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
