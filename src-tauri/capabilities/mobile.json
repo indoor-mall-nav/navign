@@ -8,6 +8,8 @@
     "main"
   ],
   "permissions": [
-    "biometric:default"
+    "biometric:default",
+    "blec:default",
+    "core:default"
   ]
 }

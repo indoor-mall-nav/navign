@@ -27,4 +27,5 @@ tauri-plugin-blec = "0.7.0"
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"
 tauri-plugin-biometric = "2"
-
+#tauri-plugin-nfc = "2"
+#tauri-plugin-gyroscope = { path = "../../tauri-plugin-gyroscope" }
