@@ -10,6 +10,13 @@
   "permissions": [
     "biometric:default",
     "blec:default",
-    "core:default"
+    "core:default",
+    "http:default",
+    "nfc:default",
+    "geolocation:default",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "geolocation:allow-get-current-position",
+    "geolocation:allow-watch-position"
   ]
 }
