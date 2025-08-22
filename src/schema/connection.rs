@@ -1,18 +1,23 @@
-use serde::{Serialize, Deserialize};
 use bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Connection {
     _id: ObjectId,
-    entity: ObjectId, // Reference to the Entity
+    /// Reference to the Entity
+    entity: ObjectId,
     name: String,
     description: Option<String>,
     r#type: ConnectionType,
-    source_area: ObjectId, // Reference to the source Area
-    target_area: ObjectId, // Reference to the target Area
+    /// List of Area IDs that this connection links
+    connected_areas: Vec<ObjectId>,
+    /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
+    available_period: Vec<(i64, i64)>,
+    tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// Represents the type of connection between areas or entities.
 pub enum ConnectionType {
     /// A connection that allows people to pass through, such as a door or gate.
     /// Usually involve authentication or access control.
@@ -27,5 +32,5 @@ pub enum ConnectionType {
     /// There is a dedicated transportation system that connects different terminals or areas.
     Rail,
     /// Shuttle bus.
-    Shuttle
+    Shuttle,
 }

@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entity {
@@ -7,8 +7,8 @@ pub struct Entity {
     r#type: EntityType,
     name: String,
     description: Option<String>,
-    longitude_range: (f64, f64), // (min_longitude, max_longitude)
-    latitude_range: (f64, f64),  // (min_latitude, max_latitude)
+    longitude_range: (f64, f64),        // (min_longitude, max_longitude)
+    latitude_range: (f64, f64),         // (min_latitude, max_latitude)
     altitude_range: Option<(f64, f64)>, // (min_altitude, max_altitude)
     nation: Option<String>,
     region: Option<String>,

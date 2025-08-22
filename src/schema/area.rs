@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Area {
@@ -7,7 +7,9 @@ pub struct Area {
     entity: ObjectId, // Reference to the Entity
     name: String,
     description: Option<String>,
-    floor: Option<Floor>, // Floor number or name
+    /// Unique identifier for the area for displaying in the beacon name.
+    beacon_code: String,
+    floor: Option<Floor>,     // Floor number or name
     polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
 }
 
