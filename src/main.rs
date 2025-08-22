@@ -1,18 +1,19 @@
 mod database;
 mod schema;
+mod shared;
 
+use crate::schema::{Area, Beacon, Connection, Entity, Merchant, Service};
+use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{
-    http::{Method, StatusCode},
-    routing::{get, post},
     Router,
+    http::{Method, StatusCode},
+    routing::{delete, get, post, put},
 };
-use log::{info, LevelFilter};
-use simple_logger::SimpleLogger;
-use std::sync::{Arc, Mutex};
-use axum::extract::State;
 use bson::doc;
+use log::{LevelFilter, info};
 use mongodb::Database;
+use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
 
 async fn root() -> impl IntoResponse {
@@ -32,7 +33,7 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 
 #[derive(Clone)]
 pub(crate) struct AppState {
-    db: Database
+    db: Database,
 }
 
 #[tokio::main]
@@ -49,6 +50,31 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health_check))
+        .route("/api/beacon", get(Beacon::get_handler))
+        .route("/api/beacon/{id}", get(Beacon::get_one_handler))
+        .route("/api/beacon", post(Beacon::create_handler))
+        .route("/api/beacon", put(Beacon::update_handler))
+        .route("/api/beacon/{id}", delete(Beacon::delete_handler))
+        .route("/api/area", get(Area::get_handler))
+        .route("/api/area/{id}", get(Area::get_one_handler))
+        .route("/api/area", post(Area::create_handler))
+        .route("/api/area", put(Area::update_handler))
+        .route("/api/area/{id}", delete(Area::delete_handler))
+        .route("/api/entity", get(Entity::get_handler))
+        .route("/api/entity/{id}", get(Entity::get_one_handler))
+        .route("/api/entity", post(Entity::create_handler))
+        .route("/api/entity", put(Entity::update_handler))
+        .route("/api/entity/{id}", delete(Entity::delete_handler))
+        .route("/api/merchant", get(Merchant::get_handler))
+        .route("/api/merchant/{id}", get(Merchant::get_one_handler))
+        .route("/api/merchant", post(Merchant::create_handler))
+        .route("/api/merchant", put(Merchant::update_handler))
+        .route("/api/merchant/{id}", delete(Merchant::delete_handler))
+        .route("/api/connection", get(Connection::get_handler))
+        .route("/api/connection/{id}", get(Connection::get_one_handler))
+        .route("/api/connection", post(Connection::create_handler))
+        .route("/api/connection", put(Connection::update_handler))
+        .route("/api/connection/{id}", delete(Connection::delete_handler))
         .layer(cors)
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;

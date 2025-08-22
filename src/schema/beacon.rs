@@ -1,3 +1,4 @@
+use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
@@ -6,8 +7,6 @@ pub struct Beacon {
     _id: ObjectId,
     /// Reference to the Entity
     entity: ObjectId,
-    /// Unique identifier for the beacon, typically a UUID or similar
-    beacon_id: String,
     /// Reference to the Area where the beacon is located
     area: ObjectId,
     /// Optional reference to the Merchant associated with the beacon.
@@ -20,11 +19,9 @@ pub struct Beacon {
     /// where `<area_id>` is the ID of the area and `<beacon_id>` is the unique identifier of the beacon.
     /// They are incremental value from 0 and, the area id uses 2-byte hex encoding,
     /// whereas the beacon id uses 4-byte hex encoding.
-    ssid: String,
+    name: String,
     /// The displaying name of the beacon, which can be used for user-friendly identification.
     /// This can be the name of the area, merchant, or a custom name.
-    name: Option<String>,
-    /// The description of the beacon, which can provide additional context or information.
     description: Option<String>,
     /// The type of the beacon, which can indicate its purpose or functionality.
     r#type: BeaconType,
@@ -47,4 +44,38 @@ pub enum BeaconType {
     Security,
     /// A beacon that is used for other purposes not covered by the above categories.
     Other,
+}
+
+impl Service for Beacon {
+    fn get_id(&self) -> String {
+        self._id.to_hex()
+    }
+
+    fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn set_id(&mut self, id: String) {
+        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
+    }
+
+    fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    fn get_description(&self) -> Option<String> {
+        self.description.clone()
+    }
+
+    fn set_description(&mut self, description: Option<String>) {
+        self.description = description;
+    }
+
+    fn get_collection_name() -> &'static str {
+        "beacons"
+    }
+
+    fn require_unique_name() -> bool {
+        true
+    }
 }

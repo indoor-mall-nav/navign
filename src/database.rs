@@ -1,13 +1,16 @@
-use std::str::FromStr;
 use anyhow::Result;
-use std::time::Duration;
 use log::info;
-use mongodb::{Client, Database};
 use mongodb::options::{ClientOptions, ServerAddress};
+use mongodb::{Client, Database};
+use std::str::FromStr;
+use std::time::Duration;
 
 pub(crate) async fn connect_with_db() -> Result<Database> {
     dotenv::dotenv()?;
-    info!("Connecting to database with url {}", std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string()));
+    info!(
+        "Connecting to database with url {}",
+        std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string())
+    );
     let mut options = ClientOptions::default();
     options.max_pool_size = Some(8);
     options.min_pool_size = Some(2);

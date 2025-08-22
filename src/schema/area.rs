@@ -1,3 +1,5 @@
+use crate::schema::service::Service;
+use async_trait::async_trait;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
@@ -27,4 +29,39 @@ pub enum FloorType {
     Floor,
     /// Universal basement
     Basement,
+}
+
+#[async_trait]
+impl Service for Area {
+    fn get_id(&self) -> String {
+        self._id.to_hex()
+    }
+
+    fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn set_id(&mut self, id: String) {
+        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
+    }
+
+    fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    fn get_description(&self) -> Option<String> {
+        self.description.clone()
+    }
+
+    fn set_description(&mut self, description: Option<String>) {
+        self.description = description;
+    }
+
+    fn get_collection_name() -> &'static str {
+        "areas"
+    }
+
+    fn require_unique_name() -> bool {
+        false
+    }
 }
