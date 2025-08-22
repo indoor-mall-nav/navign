@@ -1,7 +1,7 @@
-use crate::AppState;
 use crate::shared::ReadQuery;
+use crate::AppState;
 use async_trait::async_trait;
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use bson::doc;
@@ -9,16 +9,25 @@ use bson::oid::ObjectId;
 use futures::stream::TryStreamExt;
 use log::info;
 use mongodb::{Collection, Database};
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchQueryParams<'a> {
+    pattern: &'a str,
+    page: u64,
+    limit: u64,
+    sort: Option<&'a str>,
+    asc: bool,
+    case_insensitive: bool,
+    entity: &'a str,
+}
+
 #[async_trait]
-#[allow(dead_code)]
 pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     fn get_id(&self) -> String;
     fn get_name(&self) -> String;
-    fn set_id(&mut self, id: String);
     fn set_name(&mut self, name: String);
     fn get_description(&self) -> Option<String>;
     fn set_description(&mut self, description: Option<String>);
@@ -70,7 +79,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     {
         let collection: Collection<Self> = db.collection(Self::get_collection_name());
         let options = mongodb::options::FindOptions::builder()
-            .skip(page * limit)
+            .skip((page - 1) * limit)
             .limit(limit as i64)
             .sort(sort.map(|s| {
                 if asc {
@@ -89,13 +98,13 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         Self: Sized,
     {
         let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        if Self::require_unique_name() {
-            if let Some(existing) = Self::get_one_by_name(db, &self.get_name()).await? {
-                return Err(mongodb::error::Error::custom(format!(
-                    "An item with the name '{}' already exists.",
-                    existing.get_name()
-                )));
-            }
+        if Self::require_unique_name()
+            && let Some(existing) = Self::get_one_by_name(db, &self.get_name()).await?
+        {
+            return Err(mongodb::error::Error::custom(format!(
+                "An item with the name '{}' already exists.",
+                existing.get_name()
+            )));
         }
         let result = collection.insert_one(self.clone()).await;
         match result {
@@ -117,7 +126,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         Self: Sized,
     {
         let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let oid = ObjectId::parse_str(&self.get_id()).map_err(|_| {
+        let oid = ObjectId::parse_str(self.get_id()).map_err(|_| {
             mongodb::error::Error::custom("Invalid ObjectId format for update".to_string())
         })?;
         let result = collection
@@ -196,12 +205,15 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
 
     async fn search_and_page_by_name_pattern(
         db: &Database,
-        pattern: &str,
-        page: u64,
-        limit: u64,
-        sort: Option<&str>,
-        asc: bool,
-        case_insensitive: bool,
+        SearchQueryParams {
+            pattern,
+            page,
+            limit,
+            sort,
+            asc,
+            case_insensitive,
+            entity, // Not used in this trait, but kept for compatibility
+        }: SearchQueryParams<'_>,
     ) -> Result<Vec<Self>, mongodb::error::Error>
     where
         Self: Sized,
@@ -209,15 +221,22 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         let collection: Collection<Self> = db.collection(Self::get_collection_name());
         let options = if case_insensitive { "i" } else { "" };
 
+        if ObjectId::parse_str(entity).is_err() {
+            return Err(mongodb::error::Error::custom(
+                "Invalid ObjectId format for entity".to_string(),
+            ));
+        }
+
         let filter = doc! {
             "name": {
                 "$regex": pattern,
                 "$options": options
-            }
+            },
+            "entity": ObjectId::parse_str(entity).expect("Invalid ObjectId format for entity")
         };
 
         let find_options = mongodb::options::FindOptions::builder()
-            .skip(page * limit)
+            .skip((page - 1) * limit)
             .limit(limit as i64)
             .sort(sort.map(|s| {
                 if asc {
@@ -281,6 +300,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
             asc,
             case_sensitive,
         }): Query<ReadQuery>,
+        Path(entity): Path<String>,
     ) -> impl IntoResponse {
         info!(
             "Handling GET request for services with query: {:?} in collection {}",
@@ -300,12 +320,15 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         );
         match Self::search_and_page_by_name_pattern(
             db,
-            query.as_str(),
-            page,
-            limit,
-            sort,
-            asc,
-            case_sensitive,
+            SearchQueryParams {
+                pattern: &query,
+                page,
+                limit,
+                sort,
+                asc,
+                case_insensitive: !case_sensitive,
+                entity: entity.as_str(),
+            },
         )
         .await
         {
@@ -325,11 +348,11 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
 
     async fn get_one_handler(
         State(state): State<AppState>,
-        axum::extract::Path(id): axum::extract::Path<String>,
+        Path(id): Path<(String, String)>,
     ) -> impl IntoResponse {
-        info!("Handling GET request for service with ID: {}", id);
+        info!("Handling GET request for service with ID: {:?}", id);
         let db = &state.db;
-        match Self::get_one_by_id(db, &id).await {
+        match Self::get_one_by_id(db, &id.1).await {
             Some(service) => (StatusCode::OK, axum::Json(json!(service))),
             None => (
                 StatusCode::NOT_FOUND,
@@ -382,10 +405,10 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
 
     async fn delete_handler(
         State(state): State<AppState>,
-        axum::extract::Path(id): axum::extract::Path<String>,
+        Path(id): Path<(String, String)>,
     ) -> impl IntoResponse {
         let db = &state.db;
-        match Self::delete_by_id(db, &id).await {
+        match Self::delete_by_id(db, &id.0).await {
             Ok(_) => (
                 StatusCode::NO_CONTENT,
                 axum::Json(json!({ "status": "deleted" })),

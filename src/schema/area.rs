@@ -18,10 +18,11 @@ pub struct Area {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Floor {
     r#type: FloorType,
-    name: String,
+    name: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum FloorType {
     /// European/UK style, e.g., "Ground," "First," "Second"
     Level,
@@ -39,10 +40,6 @@ impl Service for Area {
 
     fn get_name(&self) -> String {
         self.name.clone()
-    }
-
-    fn set_id(&mut self, id: String) {
-        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
     }
 
     fn set_name(&mut self, name: String) {

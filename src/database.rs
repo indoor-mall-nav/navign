@@ -18,13 +18,13 @@ pub(crate) async fn connect_with_db() -> Result<Database> {
     options.max_connecting = Some(10);
     options.connect_timeout = Some(Duration::from_secs(10));
     options.server_selection_timeout = Some(Duration::from_secs(10));
-    options.app_name = Some("indoor_mall_nav".to_string());
+    options.app_name = Some("indoor-mall-nav".to_string());
     let host = std::env::var("MONGODB_HOST").unwrap_or_else(|_| "localhost:27017".to_string());
     let host = ServerAddress::from_str(&host)?;
     options.hosts = vec![host];
     let client = Client::with_options(options)?;
     info!("Connected to MongoDB server successfully.");
-    let db_name = std::env::var("MONGODB_DB_NAME").unwrap_or("indoor_mall_nav".to_string());
+    let db_name = std::env::var("MONGODB_DB_NAME").unwrap_or("indoor-mall-nav".to_string());
     info!("Using database: {}", db_name);
     let db = client.database(&db_name);
     Ok(db)

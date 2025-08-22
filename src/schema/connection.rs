@@ -11,13 +11,22 @@ pub struct Connection {
     description: Option<String>,
     r#type: ConnectionType,
     /// List of Area IDs that this connection links
-    connected_areas: Vec<ObjectId>,
+    /// Format: Vec<(ObjectId, f64, f64)>
+    /// where ObjectId is the ID of the area, and f64 values are coordinates (x, y)
+    /// representing the connection's position in the area.
+    /// The coordinates are relative to the area polygon.
+    /// For example, if the connection is a gate between two areas, the coordinates
+    /// would represent the position of the gate in the first area.
+    /// If the connection is a rail or shuttle, the coordinates would represent the
+    /// position of the rail or shuttle stop in the first area.
+    connected_areas: Vec<(ObjectId, f64, f64)>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     available_period: Vec<(i64, i64)>,
     tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 /// Represents the type of connection between areas or entities.
 pub enum ConnectionType {
     /// A connection that allows people to pass through, such as a door or gate.
@@ -43,10 +52,6 @@ impl Service for Connection {
 
     fn get_name(&self) -> String {
         self.name.clone()
-    }
-
-    fn set_id(&mut self, id: String) {
-        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
     }
 
     fn set_name(&mut self, name: String) {

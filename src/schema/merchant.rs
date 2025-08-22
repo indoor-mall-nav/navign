@@ -20,6 +20,7 @@ pub struct Merchant {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum MerchantType {
     Food {
         /// Type of cuisine, e.g., `Italian`, `Chinese`.
@@ -49,6 +50,7 @@ pub enum MerchantType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum FoodType {
     Restaurant(FoodCuisine),
     Cafe,
@@ -59,6 +61,7 @@ pub enum FoodType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum FoodCuisine {
     Italian,
     Chinese {
@@ -81,6 +84,7 @@ pub enum FoodCuisine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
+#[serde(rename_all = "camelCase")]
 pub enum ChineseFoodCuisine {
     Cantonese,
     Sichuan,
@@ -94,6 +98,7 @@ pub enum ChineseFoodCuisine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
+#[serde(rename_all = "camelCase")]
 pub enum MerchantStyle {
     Store,
     Kiosk,
@@ -109,10 +114,6 @@ impl Service for Merchant {
 
     fn get_name(&self) -> String {
         self.name.clone()
-    }
-
-    fn set_id(&mut self, id: String) {
-        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
     }
 
     fn set_name(&mut self, name: String) {

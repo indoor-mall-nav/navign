@@ -11,3 +11,4 @@ pub use connection::Connection;
 pub use entity::Entity;
 pub use merchant::Merchant;
 pub use service::Service;
+pub(crate) use entity::EntityServiceAddons;

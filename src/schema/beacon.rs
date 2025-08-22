@@ -11,6 +11,8 @@ pub struct Beacon {
     area: ObjectId,
     /// Optional reference to the Merchant associated with the beacon.
     merchant: Option<ObjectId>,
+    /// Optional reference to the Connection associated with the beacon.
+    connection: Option<ObjectId>,
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     /// Format:
     /// ```
@@ -27,9 +29,20 @@ pub struct Beacon {
     r#type: BeaconType,
     /// The location of the beacon, represented as a pair of coordinates (longitude, latitude).
     location: (f64, f64),
+    device: BeaconDevice,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum BeaconDevice {
+    Esp32,
+    Esp32C3,
+    Esp32S3,
+    Esp32C6,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 /// Represents the type of beacon, which can indicate its purpose or functionality.
 pub enum BeaconType {
     /// A beacon that is used for navigation or location-based services.
@@ -54,11 +67,7 @@ impl Service for Beacon {
     fn get_name(&self) -> String {
         self.name.clone()
     }
-
-    fn set_id(&mut self, id: String) {
-        self._id = ObjectId::parse_str(&id).expect("Invalid ObjectId format");
-    }
-
+    
     fn set_name(&mut self, name: String) {
         self.name = name;
     }
