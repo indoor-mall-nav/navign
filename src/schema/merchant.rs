@@ -1,10 +1,12 @@
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use crate::schema::polygon::line::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Merchant {
-    _id: ObjectId,
+    #[serde(rename = "_id")]
+    id: ObjectId,
     name: String,
     description: Option<String>,
     chain: Option<String>, // Name of the chain if part of a chain store series
@@ -12,15 +14,20 @@ pub struct Merchant {
     beacon_code: String,   // Unique identifier for the merchant for displaying in the beacon name
     area: ObjectId,
     r#type: MerchantType,
+    /// Hex color code for UI representation,
+    /// e.g., `#00704a` for Starbucks green,
+    /// whereas `#ffc72c` for McDonald's yellow.
+    color: Option<String>,
     /// List of tags for categorization, e.g., "food", "electronics", "clothing"
     /// Tags can be used for search and filtering
     tags: Vec<String>,
     location: (f64, f64),
     style: MerchantStyle,
+    polygon: Path
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum MerchantType {
     Food {
         /// Type of cuisine, e.g., `Italian`, `Chinese`.
@@ -29,19 +36,22 @@ pub enum MerchantType {
         r#type: FoodType,
     },
     Electronics {
-        is_mobile: bool,      // Whether it specializes in mobile devices
-        is_computer: bool,    // Whether it specializes in computers
-        is_accessories: bool, // Whether it sells accessories
+        mobile: bool,      // Whether it sells in mobile devices
+        computer: bool,    // Whether it sells in computers
+        accessories: bool, // Whether it sells accessories
     },
     Clothing {
-        is_menswear: bool,      // Whether it's menswear
-        is_womenswear: bool,    // Whether it's womenswear
-        is_childrenswear: bool, // Whether it's childrenswear
+        menswear: bool,      // Whether it's menswear
+        womenswear: bool,    // Whether it's womenswear
+        childrenswear: bool, // Whether it's childrenswear
     },
     Supermarket,
     Health,
     Entertainment,
-    Service,
+    Facility {
+        /// Type of facility, e.g., `Restroom`, `ATM`.
+        r#type: FacilityType,
+    },
     /// The room is, for example, a hotel room, office room, or meeting room.
     /// It may or may not use authentication or access control, but it only has several doors
     /// that can be used to enter or exit the room.
@@ -50,7 +60,16 @@ pub enum MerchantType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
+pub enum FacilityType {
+    Restroom,
+    Atm,
+    InformationDesk,
+    Other, // For any other type not listed
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub enum FoodType {
     Restaurant(FoodCuisine),
     Cafe,
@@ -61,7 +80,7 @@ pub enum FoodType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum FoodCuisine {
     Italian,
     Chinese {
@@ -84,7 +103,7 @@ pub enum FoodCuisine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum ChineseFoodCuisine {
     Cantonese,
     Sichuan,
@@ -98,7 +117,7 @@ pub enum ChineseFoodCuisine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum MerchantStyle {
     Store,
     Kiosk,
@@ -109,7 +128,7 @@ pub enum MerchantStyle {
 
 impl Service for Merchant {
     fn get_id(&self) -> String {
-        self._id.to_hex()
+        self.id.to_hex()
     }
 
     fn get_name(&self) -> String {

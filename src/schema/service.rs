@@ -25,6 +25,7 @@ pub struct SearchQueryParams<'a> {
 }
 
 #[async_trait]
+#[allow(dead_code)]
 pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     fn get_id(&self) -> String;
     fn get_name(&self) -> String;

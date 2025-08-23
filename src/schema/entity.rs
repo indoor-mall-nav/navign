@@ -11,7 +11,8 @@ use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entity {
-    _id: ObjectId,
+    #[serde(rename = "_id")]
+    id: ObjectId,
     r#type: EntityType,
     name: String,
     description: Option<String>,
@@ -48,7 +49,7 @@ pub struct EntityQuery {
 #[async_trait]
 impl Service for Entity {
     fn get_id(&self) -> String {
-        self._id.to_hex()
+        self.id.to_hex()
     }
 
     fn get_name(&self) -> String {

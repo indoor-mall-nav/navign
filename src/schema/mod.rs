@@ -4,6 +4,8 @@ pub mod connection;
 pub mod entity;
 pub mod merchant;
 pub(crate) mod service;
+pub mod authentication;
+pub mod polygon;
 
 pub use area::Area;
 pub use beacon::Beacon;

@@ -2,17 +2,19 @@ use crate::schema::service::Service;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use crate::schema::polygon::line::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Area {
-    _id: ObjectId,
+    #[serde(rename = "_id")]
+    id: ObjectId,
     entity: ObjectId, // Reference to the Entity
     name: String,
     description: Option<String>,
     /// Unique identifier for the area for displaying in the beacon name.
     beacon_code: String,
     floor: Option<Floor>,     // Floor number or name
-    polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
+    polygon: Path, // List of (x, y) pairs of coordinates
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -35,7 +37,7 @@ pub enum FloorType {
 #[async_trait]
 impl Service for Area {
     fn get_id(&self) -> String {
-        self._id.to_hex()
+        self.id.to_hex()
     }
 
     fn get_name(&self) -> String {

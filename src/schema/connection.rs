@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Connection {
-    _id: ObjectId,
+    #[serde(rename = "_id")]
+    id: ObjectId,
     /// Reference to the Entity
     entity: ObjectId,
     name: String,
@@ -26,7 +27,7 @@ pub struct Connection {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 /// Represents the type of connection between areas or entities.
 pub enum ConnectionType {
     /// A connection that allows people to pass through, such as a door or gate.
@@ -47,7 +48,7 @@ pub enum ConnectionType {
 
 impl Service for Connection {
     fn get_id(&self) -> String {
-        self._id.to_hex()
+        self.id.to_hex()
     }
 
     fn get_name(&self) -> String {

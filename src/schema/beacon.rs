@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Beacon {
-    _id: ObjectId,
+    #[serde(rename = "_id")]
+    id: ObjectId,
     /// Reference to the Entity
     entity: ObjectId,
     /// Reference to the Area where the beacon is located
@@ -42,7 +43,7 @@ pub enum BeaconDevice {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 /// Represents the type of beacon, which can indicate its purpose or functionality.
 pub enum BeaconType {
     /// A beacon that is used for navigation or location-based services.
@@ -61,7 +62,7 @@ pub enum BeaconType {
 
 impl Service for Beacon {
     fn get_id(&self) -> String {
-        self._id.to_hex()
+        self.id.to_hex()
     }
 
     fn get_name(&self) -> String {
