@@ -13,7 +13,9 @@
     "lint:fix": "oxlint --fix"
   },
   "dependencies": {
+    "@iconify-icons/mdi": "^1.2.48",
     "@iconify/icons-mdi": "^1.2.48",
+    "@iconify/json": "^2.2.377",
     "@mnlphlp/plugin-blec": "^0.7.0",
     "@tailwindcss/vite": "^4.1.12",
     "@tauri-apps/api": "^2.8.0",
@@ -24,8 +26,10 @@
     "@tauri-apps/plugin-opener": "^2.5.0",
     "@vueuse/core": "^13.7.0",
     "@vueuse/math": "^13.7.0",
+    "geojson": "^0.5.0",
     "konva": "^9.3.22",
     "lucide-vue-next": "^0.540.0",
+    "maplibre-gl": "^5.6.2",
     "motion-v": "^1.7.0",
     "oxlint": "^1.12.0",
     "pinia": "^3.0.3",
@@ -35,7 +39,8 @@
     "tailwindcss": "^4.1.12",
     "vconsole": "^3.15.1",
     "vue": "^3.5.18",
-    "vue-konva": "^3.2.2"
+    "vue-konva": "^3.2.2",
+    "vue-maplibre-gl": "^5.5.9"
   },
   "devDependencies": {
     "@iconify/vue": "^5.0.0",
