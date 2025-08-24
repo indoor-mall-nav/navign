@@ -19,6 +19,17 @@ export interface Merchant {
   tags: string[];
   location: [number, number];
   style: MerchantStyle;
+  polygon: [number, number][];
+  website?: string | null;
+  phone?: string;
+  email?: string | null;
+  opening_hours: ([number, number] | [])[]; // milliseconds from midnight, e.g., [[36000000, 72000000]] for 10:00-20:00
+  images: string[]; // URLs to images
+  social_media: {
+    platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'tiktok' | 'wechat' | 'weibo' | 'rednote' | 'bluesky' | 'reddit' | 'discord' | 'whatsapp' | 'telegram' | string;
+    handle: string; // e.g., "@merchant" or "merchantPage"
+    url?: string; // Full URL to the social media page
+  }[]
 }
 
 export type MerchantType =

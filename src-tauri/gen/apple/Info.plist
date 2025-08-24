@@ -6,5 +6,9 @@
     <string>Authenticate with biometric</string>
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>The App uses Bluetooth to communicate with BLE devices</string>
+    <key>NSLocationWhenInUseDescription</key>
+    <string>The App uses your location to find out the nearest mall available for navigation</string>
+    <key>NFCReaderUsageDescription</key>
+    <string>The App uses NFC to scan NFC tags to find out the nearest mall available for navigation</string>
   </dict>
 </plist>

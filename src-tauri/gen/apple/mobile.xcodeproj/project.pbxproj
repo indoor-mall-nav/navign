@@ -24,7 +24,7 @@
 
 /* Begin PBXFileReference section */
 		09C94EBEA2859AEFD7E57896 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		0F3DAABC0F3014B7D4BA3CA0 /* mobile_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; name = mobile_iOS.app; path = mobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1714BEC9E96A91810A49D208 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		1D35DDCE2E56056D0046E297 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		2F64922EAAC2B89DE84A5C39 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
@@ -139,7 +139,7 @@
 		E7EDF9843499667DC918B3AE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0F3DAABC0F3014B7D4BA3CA0 /* mobile_iOS.app */,
+				0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -174,7 +174,7 @@
 			packageProductDependencies = (
 			);
 			productName = mobile_iOS;
-			productReference = 0F3DAABC0F3014B7D4BA3CA0 /* mobile_iOS.app */;
+			productReference = 0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -261,6 +261,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = mobile_iOS/mobile_iOS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = X6G3LQC8AA;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -421,6 +422,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = mobile_iOS/mobile_iOS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = X6G3LQC8AA;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (

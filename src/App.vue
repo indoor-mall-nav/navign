@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-import { type Status } from "@tauri-apps/plugin-biometric";
+import {authenticate, type Status } from "@tauri-apps/plugin-biometric";
 import { type BleDevice, startScan, stopScan } from "@mnlphlp/plugin-blec";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import { baseUrl } from "@/lib/shared.ts";
 import { Area, Beacon, Entity } from "@/schema";
 import { useSessionStore } from "@/states/session.ts";
 import { getIcon, Icon, loadIcon } from "@iconify/vue";
-import { useImage } from "vue-konva";
+import { RouterView } from 'vue-router'
 
 const greetMsg = ref("");
 const name = ref("");
@@ -105,20 +105,26 @@ function rssiToDistance(
 }
 
 async function getGeolocation() {
-  try {
+  // try {
+    console.log("Checking permissions...");
     const permission = await checkPermissions();
+    console.log("Current permissions:", permission);
     if (permission.location !== "granted") {
-      const request = await requestPermissions(["location"]);
+      console.log("Requesting permissions...");
+      const request = await requestPermissions(["location", "coarseLocation"]);
+      console.log("Permission request result:", request);
       if (request.location !== "granted") {
         greetMsg.value = "Location permission is required to proceed.";
         return;
       }
     }
-  } catch (error) {
-    greetMsg.value = `Error obtaining geolocation: ${error}`;
-  }
+  // } catch (error) {
+  //   greetMsg.value = `Error obtaining geolocation: ${error}`;
+  // }
+  console.log("Requesting geolocation...");
   try {
     const position = await getCurrentPosition();
+    console.log(position)
     geolocation.value = [position.coords.latitude, position.coords.longitude];
     greetMsg.value = `Geolocation obtained: ${geolocation.value}`;
   } catch (_) {
@@ -130,6 +136,14 @@ async function getGeolocation() {
 
 async function startTask() {
   greetMsg.value = "Scanning Started";
+  await authenticate("Please authenticate to start scanning")
+    .then((res) => {
+      console.log("Authentication successful:", res);
+    })
+    .catch((err) => {
+      console.error("Authentication failed:", err);
+      greetMsg.value = "Authentication failed. Cannot start scanning.";
+    });
   await startScan(
     async (result) => {
       devices.value = result
@@ -260,6 +274,7 @@ const stageSize = ref({
 
 <template>
   <main class="container">
+    <RouterView />
     <p class="text-2xl text-center mt-16">Indoor Mall Nav System</p>
     <div class="mx-6">
       To get started with, please allow us to locate your device to find which
