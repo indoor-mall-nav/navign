@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Merchant } from "@/schema";
 import { Icon } from "@iconify/vue";
-import { toRefs, ref } from "vue";
+import { toRefs } from "vue";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatMerchantType } from "@/lib/structure/merchant.ts";
-import { openUrl } from '@tauri-apps/plugin-opener'
 
 const props = defineProps<{
   merchant: Merchant;
@@ -14,12 +20,13 @@ const props = defineProps<{
 
 const { merchant } = toRefs(props);
 
-function generateSocialMediaUrl(
-  media: Merchant["social_media"][0],
-): { type: "url" | "qrcode"; url?: string } {
-  const handle = media.handle.replace(/^@/, ''); // Remove leading '@' if present
+function generateSocialMediaUrl(media: Merchant["social_media"][0]): {
+  type: "url" | "qrcode";
+  url?: string;
+} {
+  const handle = media.handle.replace(/^@/, ""); // Remove leading '@' if present
   if (!handle) {
-    return { type: "url", url: '#' }; // Fallback to direct URL if handle is empty
+    return { type: "url", url: "#" }; // Fallback to direct URL if handle is empty
   }
   if (media.url) {
     return { type: "url", url: media.url };
@@ -40,7 +47,7 @@ function generateSocialMediaUrl(
     case "telegram":
       return { type: "url", url: `https://t.me/${handle}` };
     default:
-      return { type: "url", url: '#' }; // Fallback to direct URL
+      return { type: "url", url: "#" }; // Fallback to direct URL
   }
 }
 
@@ -63,7 +70,9 @@ function processOpeningHours(opening_hours: [number, number] | []): string {
   return `${startDate.toLocaleTimeString([], options)} – ${endDate.toLocaleTimeString([], options)}`;
 }
 
-function processTodayOpeningHours(opening_hours: ([number, number] | [])[]): string {
+function processTodayOpeningHours(
+  opening_hours: ([number, number] | [])[],
+): string {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
   if (dayOfWeek < opening_hours.length) {
@@ -87,9 +96,27 @@ function processTodayOpeningHours(opening_hours: ([number, number] | [])[]): str
           {{ formatMerchantType(merchant.type) }}
         </span>
         <Separator orientation="vertical" class="mx-1" />
+        <!-- if during operation hours, show green dot, else red dot -->
         <span class="font-medium">
-          {{ new Date().toLocaleDateString(undefined, { weekday: 'long' }) }}:
-          {{ processTodayOpeningHours(merchant.opening_hours) }}
+          <span
+            v-if="
+              new Date().getHours() >=
+                (merchant.opening_hours[new Date().getDay()]?.[0] ?? 86400000) /
+                  3600000 &&
+              new Date().getHours() <
+                (merchant.opening_hours[new Date().getDay()]?.[1] ?? 0) /
+                  3600000
+            "
+            class="text-green-600 dark:text-green-400"
+          >
+            Open
+          </span>
+          <span
+            v-else
+            class="text-red-600 dark:text-red-400"
+          >
+            Currently Closed, Today: {{ processTodayOpeningHours(merchant.opening_hours) }}
+          </span>
         </span>
       </p>
     </CardContent>
@@ -99,18 +126,52 @@ function processTodayOpeningHours(opening_hours: ([number, number] | [])[]): str
           <Icon icon="tabler:map-pin" class="w-5 h-5 mr-2" />
           Goto
         </Button>
-        <Button v-if="merchant.email" variant="link" size="icon" class="mb-2" @click="openUrl(`mailto:${merchant.email}`)">
+        <Button
+          v-if="merchant.email"
+          variant="link"
+          size="icon"
+          class="mb-2"
+          @click="openUrl(`mailto:${merchant.email}`)"
+        >
           <Icon icon="tabler:mail" class="w-5 h-5 mr-2" />
         </Button>
-        <Button v-if="merchant.phone" variant="link" size="icon" class="mb-2" @click="openUrl(`tel:${merchant.phone}`)">
+        <Button
+          v-if="merchant.phone"
+          variant="link"
+          size="icon"
+          class="mb-2"
+          @click="openUrl(`tel:${merchant.phone}`)"
+        >
           <Icon icon="tabler:phone" class="w-5 h-5 mr-2" />
         </Button>
-        <Button v-if="merchant.website" variant="link" size="icon" class="mb-2" @click="openUrl(merchant.website)">
+        <Button
+          v-if="merchant.website"
+          variant="link"
+          size="icon"
+          class="mb-2"
+          @click="openUrl(merchant.website)"
+        >
           <Icon icon="tabler:world" class="w-5 h-5 mr-2" />
         </Button>
-        <Button v-for="(social, index) in merchant.social_media.map(x => ({...x, ...generateSocialMediaUrl(x)}))" :key="index" variant="link" size="icon"
-          class="mb-2" @click="social.type === 'url' ? openUrl(social.url ?? '#') : alert(`WeChat QR Code: ${social.url}`)">
-          <Icon :icon="`tabler:brand-${social.platform}`" class="w-5 h-5 mr-2" />
+        <Button
+          v-for="(social, index) in merchant.social_media.map((x) => ({
+            ...x,
+            ...generateSocialMediaUrl(x),
+          }))"
+          :key="index"
+          variant="link"
+          size="icon"
+          class="mb-2"
+          @click="
+            social.type === 'url'
+              ? openUrl(social.url ?? '#')
+              : alert(`WeChat QR Code: ${social.url}`)
+          "
+        >
+          <Icon
+            :icon="`tabler:brand-${social.platform}`"
+            class="w-5 h-5 mr-2"
+          />
         </Button>
       </div>
     </CardAction>
