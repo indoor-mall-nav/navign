@@ -28,7 +28,10 @@ use esp_hal::{
     time,
     timer::timg::TimerGroup,
     chip,
+    gpio::{Output, OutputConfig},
+    delay::Delay
 };
+use esp_hal::gpio::Level;
 use esp_println::println;
 use esp_wifi::{ble::controller::BleConnector, init};
 
@@ -38,7 +41,24 @@ esp_bootloader_esp_idf::esp_app_desc!();
 fn main() -> ! {
     esp_println::logger::init_logger_from_env();
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
-    let peripherals = esp_hal::init(config);
+    let mut peripherals = esp_hal::init(config);
+
+    let mut led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
+
+    let mut human_body = Input::new(peripherals.GPIO6, InputConfig::default());
+
+    println!("Hello, world!");
+
+    println!("Result LED now is {:?}", led.is_set_high());
+    led.set_high();
+    println!("Result LED now is {:?}", led.is_set_high());
+
+    for _i in 0..9 {
+        led.toggle();
+        Delay::new().delay_millis(100);
+    }
+
+    led.set_high();
 
     esp_alloc::heap_allocator!(size: 72 * 1024);
 
@@ -83,7 +103,6 @@ fn main() -> ! {
         println!("{:?}", ble.cmd_set_le_advertise_enable(true));
 
         println!("started advertising");
-
         let mut rf = |_offset: usize, data: &mut [u8]| {
             data[..36].copy_from_slice(&b"Hello Bare-Metal BLE"[..]);
             17
@@ -131,6 +150,8 @@ fn main() -> ! {
 
         loop {
             let mut notification = None;
+
+            println!("human body is {:?}", human_body.is_high());
 
             if button.is_low() && debounce_cnt > 0 {
                 debounce_cnt -= 1;
