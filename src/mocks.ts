@@ -1,4 +1,4 @@
-import type { Merchant } from "@/schema";
+import type { Area, Merchant } from "@/schema";
 
 export const mockMerchants: Merchant[] = [
   {
@@ -569,3 +569,197 @@ export const polygonMock = [
     strokeWidth: 1,
   },
 ];
+
+export const mockAreas = [
+  {
+    "_id": {
+      "$oid": "68a83067bdfa76608b934ae9"
+    },
+    "entity": {
+      "$oid": "68a8301fbdfa76608b934ae1"
+    },
+    "name": "Library & Multimedia Building F2 Main Corridor",
+    "description": null,
+    "beacon_code": "02",
+    "floor": {
+      "type": "floor",
+      "name": 2
+    },
+    "polygon": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        75
+      ],
+      [
+        5,
+        75
+      ],
+      [
+        5,
+        70
+      ],
+      [
+        45,
+        70
+      ],
+      [
+        45,
+        72
+      ],
+      [
+        48,
+        72
+      ],
+      [
+        48,
+        66
+      ],
+      [
+        5,
+        66
+      ],
+      [
+        5,
+        40
+      ],
+      [
+        30,
+        40
+      ],
+      [
+        30,
+        36
+      ],
+      [
+        5,
+        36
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        0
+      ]
+    ],
+  } as Area,
+  {
+    "_id": {
+      "$oid": "68a83067bdfa76608b934aea"
+    },
+    "entity": {
+      "$oid": "68a8301fbdfa76608b934ae1"
+    },
+    "name": "Library & Multimedia Building F3 Main Corridor",
+    "description": null,
+    "beacon_code": "03",
+    "floor": {
+      "type": "floor",
+      "name": 3
+    },
+    "polygon": [
+      [
+        0,
+        60
+      ],
+      [
+        0,
+        75
+      ],
+      [
+        5,
+        75
+      ],
+      [
+        5,
+        70
+      ],
+      [
+        45,
+        70
+      ],
+      [
+        45,
+        72
+      ],
+      [
+        48,
+        72
+      ],
+      [
+        48,
+        66
+      ],
+      [
+        5,
+        66
+      ],
+      [
+        5,
+        60
+      ]
+    ],
+  } as Area,
+  {
+    "_id": {
+      "$oid": "68a83067bdfa76608b934aeb"
+    },
+    "entity": {
+      "$oid": "68a8301fbdfa76608b934ae1"
+    },
+    "name": "Library & Multimedia Building F4 Main Corridor",
+    "description": null,
+    "beacon_code": "04",
+    "floor": {
+      "type": "floor",
+      "name": 4
+    },
+    "polygon": [
+      [
+        0,
+        60
+      ],
+      [
+        0,
+        75
+      ],
+      [
+        5,
+        75
+      ],
+      [
+        5,
+        70
+      ],
+      [
+        45,
+        70
+      ],
+      [
+        45,
+        72
+      ],
+      [
+        48,
+        72
+      ],
+      [
+        48,
+        66
+      ],
+      [
+        5,
+        66
+      ],
+      [
+        5,
+        60
+      ]
+    ],
+  } as Area
+]
