@@ -11,6 +11,8 @@
 #![no_std]
 #![no_main]
 
+mod crypto;
+
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
@@ -19,6 +21,7 @@ use bleps::{
     gatt, Ble, HciConnector,
 };
 use esp_alloc as _;
+use esp_alloc::heap_allocator;
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -60,9 +63,10 @@ fn main() -> ! {
 
     led.set_high();
 
-    esp_alloc::heap_allocator!(size: 72 * 1024);
+    heap_allocator!(size: 72 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
+    let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
 
     let esp_wifi_ctrl = init(timg0.timer0, Rng::new(peripherals.RNG)).unwrap();
 
