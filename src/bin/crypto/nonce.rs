@@ -1,6 +1,6 @@
+use core::fmt::Write;
 use esp_hal::rng::Rng;
 use heapless::String;
-use core::fmt::Write;
 
 #[derive(Debug, Clone)]
 pub struct Nonce(pub [u8; 16]);
@@ -36,7 +36,7 @@ impl Nonce {
         }
         let mut bytes = [0u8; 16];
         for i in 0..16 {
-            let byte_str = &s[i*2..i*2+2];
+            let byte_str = &s[i * 2..i * 2 + 2];
             if let Ok(byte) = u8::from_str_radix(byte_str, 16) {
                 bytes[i] = byte;
             } else {

@@ -11,8 +11,8 @@
 #![no_std]
 #![no_main]
 
-mod crypto;
 mod ble;
+mod crypto;
 
 use bleps::{
     ad_structure::{
@@ -24,18 +24,18 @@ use bleps::{
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
+use esp_hal::gpio::Level;
 use esp_hal::{
+    chip,
     clock::CpuClock,
+    delay::Delay,
     gpio::{Input, InputConfig, Pull},
+    gpio::{Output, OutputConfig},
     main,
     rng::Rng,
     time,
     timer::timg::TimerGroup,
-    chip,
-    gpio::{Output, OutputConfig},
-    delay::Delay
 };
-use esp_hal::gpio::Level;
 use esp_println::println;
 use esp_wifi::{ble::controller::BleConnector, init};
 

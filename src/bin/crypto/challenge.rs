@@ -1,7 +1,7 @@
+use super::nonce::Nonce;
 use esp_hal::rng::Rng;
 use esp_hal::sha::Digest;
 use sha2::Sha256;
-use super::nonce::Nonce;
 
 #[derive(Debug, Clone)]
 pub struct Challenge {
@@ -32,7 +32,7 @@ impl Challenge {
 }
 
 pub struct ChallengeManager {
-    rng: Rng
+    rng: Rng,
 }
 
 impl ChallengeManager {
