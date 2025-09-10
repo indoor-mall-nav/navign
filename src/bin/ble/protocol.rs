@@ -4,6 +4,14 @@ use heapless::Vec;
 
 const MAX_PACKET_SIZE: usize = 512;
 
+const NONCE_REQUEST: u8 = 0x01;
+const NONCE_RESPONSE: u8 = 0x02;
+const PROOF_SUBMISSION: u8 = 0x03;
+const UNLOCK_RESULT: u8 = 0x04;
+
+const UNLOCK_FAILURE: u8 = 0x00;
+const UNLOCK_SUCCESS: u8 = 0x01;
+
 pub struct BleProtocolHandler {
     receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
     send_buffer: Vec<u8, MAX_PACKET_SIZE>,
@@ -23,13 +31,13 @@ impl BleProtocolHandler {
         match message {
             BleMessage::NonceRequest => {
                 self.send_buffer
-                    .push(0x01)
+                    .push(NONCE_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::NonceResponse(nonce) => {
                 self.send_buffer
-                    .push(0x02)
+                    .push(NONCE_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
                     .extend_from_slice(nonce.as_bytes())
@@ -38,7 +46,7 @@ impl BleProtocolHandler {
 
             BleMessage::ProofSubmission(proof) => {
                 self.send_buffer
-                    .push(0x03)
+                    .push(PROOF_SUBMISSION)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
                     .extend_from_slice(&proof.challenge_hash)
@@ -56,10 +64,10 @@ impl BleProtocolHandler {
 
             BleMessage::UnlockResult(success) => {
                 self.send_buffer
-                    .push(0x04)
+                    .push(UNLOCK_RESULT)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
-                    .push(if *success { 0x01 } else { 0x00 })
+                    .push(if *success { UNLOCK_SUCCESS } else { UNLOCK_FAILURE })
                     .map_err(|_| BleError::BufferFull)?;
             }
         }
@@ -78,9 +86,9 @@ impl BleProtocolHandler {
         }
 
         match self.receive_buffer[0] {
-            0x01 => Ok(BleMessage::NonceRequest),
+            NONCE_REQUEST => Ok(BleMessage::NonceRequest),
 
-            0x02 => {
+            NONCE_RESPONSE => {
                 if self.receive_buffer.len() != 1 + 16 {
                     return Err(BleError::ParseError);
                 }
@@ -89,7 +97,7 @@ impl BleProtocolHandler {
                 Ok(BleMessage::NonceResponse(Nonce::from_bytes(&nonce_bytes)))
             }
 
-            0x03 => {
+            PROOF_SUBMISSION => {
                 if self.receive_buffer.len() != 1 + 32 + 64 + 8 + 8 {
                     return Err(BleError::ParseError);
                 }
@@ -108,13 +116,13 @@ impl BleProtocolHandler {
                 }))
             }
 
-            0x04 => {
+            UNLOCK_RESULT => {
                 if self.receive_buffer.len() != 2 {
                     return Err(BleError::ParseError);
                 }
                 let success = match self.receive_buffer[1] {
-                    0x00 => false,
-                    0x01 => true,
+                    UNLOCK_FAILURE => false,
+                    UNLOCK_SUCCESS => true,
                     _ => return Err(BleError::ParseError),
                 };
                 Ok(BleMessage::UnlockResult(success))
