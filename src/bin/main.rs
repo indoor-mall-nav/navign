@@ -12,6 +12,7 @@
 #![no_main]
 
 mod crypto;
+mod ble;
 
 use bleps::{
     ad_structure::{

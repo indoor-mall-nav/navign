@@ -2,7 +2,7 @@ use esp_hal::rng::Rng;
 use heapless::String;
 use core::fmt::Write;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Nonce(pub [u8; 16]);
 
 impl Nonce {
@@ -16,6 +16,10 @@ impl Nonce {
 
     pub fn as_bytes(&self) -> &[u8; 16] {
         &self.0
+    }
+
+    pub fn from_bytes(bytes: &[u8; 16]) -> Self {
+        Nonce(*bytes)
     }
 
     pub fn to_hex(&self) -> String<32> {
