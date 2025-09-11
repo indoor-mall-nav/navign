@@ -1,4 +1,5 @@
 use super::nonce::Nonce;
+use core::fmt::Debug;
 use esp_hal::rng::Rng;
 use esp_hal::sha::Digest;
 use sha2::Sha256;
@@ -31,7 +32,9 @@ impl Challenge {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct ChallengeManager {
+    /// The `rng` has implemented the `Copy` trait, so it's safe to have an instance of it here.
     rng: Rng,
 }
 
@@ -40,7 +43,14 @@ impl ChallengeManager {
         Self { rng }
     }
 
-    pub fn get_rng(&mut self) -> &mut Rng {
-        &mut self.rng
+    pub fn generate_challenge(&mut self, timestamp: u64, server_signature: [u8; 64]) -> Challenge {
+        let nonce = Nonce::generate(&mut self.rng);
+        Challenge::new(nonce, timestamp, server_signature)
+    }
+}
+
+impl Debug for ChallengeManager {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ChallengeManager").finish()
     }
 }

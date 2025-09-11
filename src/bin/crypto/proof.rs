@@ -1,7 +1,6 @@
 use super::challenge::Challenge;
 use super::error::CryptoError;
 use esp_hal::sha::Digest;
-use esp_storage::FlashStorage;
 use heapless::Vec;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::VerifyingKey;

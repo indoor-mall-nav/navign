@@ -1,16 +1,7 @@
 use super::super::crypto::{Nonce, Proof};
+use super::constants::*;
 use super::{BleError, BleMessage};
 use heapless::Vec;
-
-const MAX_PACKET_SIZE: usize = 512;
-
-const NONCE_REQUEST: u8 = 0x01;
-const NONCE_RESPONSE: u8 = 0x02;
-const PROOF_SUBMISSION: u8 = 0x03;
-const UNLOCK_RESULT: u8 = 0x04;
-
-const UNLOCK_FAILURE: u8 = 0x00;
-const UNLOCK_SUCCESS: u8 = 0x01;
 
 pub struct BleProtocolHandler {
     receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
@@ -67,7 +58,11 @@ impl BleProtocolHandler {
                     .push(UNLOCK_RESULT)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
-                    .push(if *success { UNLOCK_SUCCESS } else { UNLOCK_FAILURE })
+                    .push(if *success {
+                        UNLOCK_SUCCESS
+                    } else {
+                        UNLOCK_FAILURE
+                    })
                     .map_err(|_| BleError::BufferFull)?;
             }
         }
@@ -89,25 +84,40 @@ impl BleProtocolHandler {
             NONCE_REQUEST => Ok(BleMessage::NonceRequest),
 
             NONCE_RESPONSE => {
-                if self.receive_buffer.len() != 1 + 16 {
+                if self.receive_buffer.len() != NONCE_RESPONSE_LENGTH {
                     return Err(BleError::ParseError);
                 }
-                let mut nonce_bytes = [0u8; 16];
-                nonce_bytes.copy_from_slice(&self.receive_buffer[1..17]);
+                let mut nonce_bytes = [0u8; NONCE_LENGTH];
+                nonce_bytes.copy_from_slice(
+                    &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + NONCE_LENGTH],
+                );
                 Ok(BleMessage::NonceResponse(Nonce::from_bytes(&nonce_bytes)))
             }
 
             PROOF_SUBMISSION => {
-                if self.receive_buffer.len() != 1 + 32 + 64 + 8 + 8 {
+                if self.receive_buffer.len() != PROOF_SUBMISSION_LENGTH {
                     return Err(BleError::ParseError);
                 }
-                let mut challenge_hash = [0u8; 32];
-                challenge_hash.copy_from_slice(&self.receive_buffer[1..33]);
-                let mut device_signature = [0u8; 64];
-                device_signature.copy_from_slice(&self.receive_buffer[33..97]);
-                let timestamp =
-                    u64::from_be_bytes(self.receive_buffer[97..105].try_into().unwrap());
-                let counter = u64::from_be_bytes(self.receive_buffer[105..113].try_into().unwrap());
+                let mut challenge_hash = [0u8; CHALLENGE_HASH_LENGTH];
+                challenge_hash.copy_from_slice(
+                    &self.receive_buffer
+                        [CHALLENGE_HASH_OFFSET..CHALLENGE_HASH_OFFSET + CHALLENGE_HASH_LENGTH],
+                );
+                let mut device_signature = [0u8; DEVICE_SIGNATURE_LENGTH];
+                device_signature.copy_from_slice(
+                    &self.receive_buffer[DEVICE_SIGNATURE_OFFSET
+                        ..DEVICE_SIGNATURE_OFFSET + DEVICE_SIGNATURE_LENGTH],
+                );
+                let timestamp = u64::from_be_bytes(
+                    self.receive_buffer[TIMESTAMP_OFFSET..TIMESTAMP_OFFSET + TIMESTAMP_LENGTH]
+                        .try_into()
+                        .unwrap(),
+                );
+                let counter = u64::from_be_bytes(
+                    self.receive_buffer[COUNTER_OFFSET..COUNTER_OFFSET + COUNTER_LENGTH]
+                        .try_into()
+                        .unwrap(),
+                );
                 Ok(BleMessage::ProofSubmission(Proof {
                     challenge_hash,
                     device_signature,
@@ -117,7 +127,7 @@ impl BleProtocolHandler {
             }
 
             UNLOCK_RESULT => {
-                if self.receive_buffer.len() != 2 {
+                if self.receive_buffer.len() != UNLOCK_RESULT_LENGTH {
                     return Err(BleError::ParseError);
                 }
                 let success = match self.receive_buffer[1] {

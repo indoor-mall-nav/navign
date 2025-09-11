@@ -1,15 +1,16 @@
+use crate::ble::constants::NONCE_LENGTH;
 use core::fmt::Write;
 use esp_hal::rng::Rng;
 use heapless::String;
 
 #[derive(Debug, Clone)]
-pub struct Nonce(pub [u8; 16]);
+pub struct Nonce([u8; 16]);
 
 impl Nonce {
     pub fn generate(rng: &mut Rng) -> Self {
         let mut nonce = [0u8; 16];
-        for i in 0..16 {
-            nonce[i] = rng.random() as u8;
+        for item in nonce.iter_mut() {
+            *item = rng.random() as u8;
         }
         Nonce(nonce)
     }
@@ -53,8 +54,8 @@ impl From<[u8; 16]> for Nonce {
     }
 }
 
-impl Into<[u8; 16]> for Nonce {
-    fn into(self) -> [u8; 16] {
-        self.0
+impl From<Nonce> for [u8; 16] {
+    fn from(nonce: Nonce) -> Self {
+        nonce.0
     }
 }

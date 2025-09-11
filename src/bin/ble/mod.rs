@@ -1,6 +1,9 @@
-mod protocol;
+pub(super) mod constants;
+mod manager;
+pub(crate) mod protocol;
 
 use super::crypto::{Nonce, Proof};
+use bleps::gatt;
 
 #[derive(Debug, Clone)]
 pub enum BleMessage {
@@ -12,6 +15,7 @@ pub enum BleMessage {
 
 #[derive(Debug)]
 pub enum BleError {
+    SetupFailed,
     NotConnected,
     SendFailed,
     ReceiveFailed,
