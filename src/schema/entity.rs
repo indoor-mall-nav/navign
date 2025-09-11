@@ -1,13 +1,13 @@
+use crate::AppState;
+use crate::schema::service::Service;
 use async_trait::async_trait;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use bson::doc;
-use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use futures::TryStreamExt;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
-use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entity {
@@ -77,9 +77,11 @@ impl Service for Entity {
     }
 }
 
-
 #[async_trait]
-pub(crate) trait EntityServiceAddons where Self: Sized + Send + Sync + Service {
+pub(crate) trait EntityServiceAddons
+where
+    Self: Sized + Send + Sync + Service,
+{
     async fn search_entity_by_fields(
         db: &Database,
         nation: Option<String>,
@@ -118,7 +120,6 @@ pub(crate) trait EntityServiceAddons where Self: Sized + Send + Sync + Service {
         Ok(entities)
     }
 
-
     async fn search_entity_handler(
         State(db): State<AppState>,
         Query(entity_query): Query<EntityQuery>,
@@ -131,15 +132,9 @@ pub(crate) trait EntityServiceAddons where Self: Sized + Send + Sync + Service {
             longitude,
             latitude,
         } = entity_query;
-        match Self::search_entity_by_fields(
-            &db.db,
-            nation,
-            region,
-            city,
-            name,
-            longitude,
-            latitude,
-        ).await {
+        match Self::search_entity_by_fields(&db.db, nation, region, city, name, longitude, latitude)
+            .await
+        {
             Ok(entities) => axum::Json(entities),
             Err(e) => {
                 eprintln!("Error searching entities: {}", e);

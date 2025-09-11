@@ -1,7 +1,7 @@
+use crate::schema::polygon::line::Path;
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use crate::schema::polygon::line::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Merchant {
@@ -23,7 +23,12 @@ pub struct Merchant {
     tags: Vec<String>,
     location: (f64, f64),
     style: MerchantStyle,
-    polygon: Path
+    polygon: Vec<(f64, f64)>,          // List of (x, y) pairs of coordinates
+    available_period: Vec<(i64, i64)>, // List of (start_time, end_time) in milliseconds on a 24-hour clock
+    email: Option<String>,
+    phone: Option<String>,
+    website: Option<String>,
+    social_media: Vec<SocialMedia>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -114,6 +119,33 @@ pub enum ChineseFoodCuisine {
     Ningbo,
     Northern,
     Other, // For any other type not listed
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SocialMedia {
+    platform: SocialMediaPlatform,
+    handle: String,      // e.g., @starbucks
+    url: Option<String>, // e.g., https://www.instagram.com/starbucks
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SocialMediaPlatform {
+    Facebook,
+    Twitter,
+    Instagram,
+    LinkedIn,
+    TikTok,
+    WeChat,
+    Weibo,
+    Bilibili,
+    RedNote,
+    Reddit,
+    Discord,
+    Bluesky,
+    WhatsApp,
+    Telegram,
+    Other(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]

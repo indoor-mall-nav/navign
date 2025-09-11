@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct XYNode {
@@ -29,8 +29,12 @@ impl FromStr for XYNode {
         if parts.len() != 2 {
             return Err("Invalid format".to_string());
         }
-        let x = parts[0].parse::<f64>().map_err(|_| "Invalid x value".to_string())?;
-        let y = parts[1].parse::<f64>().map_err(|_| "Invalid y value".to_string())?;
+        let x = parts[0]
+            .parse::<f64>()
+            .map_err(|_| "Invalid x value".to_string())?;
+        let y = parts[1]
+            .parse::<f64>()
+            .map_err(|_| "Invalid y value".to_string())?;
         Ok(XYNode { x, y })
     }
 }
@@ -50,8 +54,12 @@ impl FromStr for RThetaNode {
         if parts.len() != 2 {
             return Err("Invalid format".to_string());
         }
-        let r = parts[0].parse::<f64>().map_err(|_| "Invalid r value".to_string())?;
-        let theta = parts[1].parse::<f64>().map_err(|_| "Invalid theta value".to_string())?;
+        let r = parts[0]
+            .parse::<f64>()
+            .map_err(|_| "Invalid r value".to_string())?;
+        let theta = parts[1]
+            .parse::<f64>()
+            .map_err(|_| "Invalid theta value".to_string())?;
         Ok(RThetaNode { r, theta })
     }
 }
@@ -110,28 +118,28 @@ impl Node {
             Node::RTheta(node) => node.clone(),
         }
     }
-    
+
     pub fn as_xy(&self) -> &XYNode {
         match self {
             Node::XY(node) => node,
             Node::RTheta(_) => panic!("Node is not in XY format"),
         }
     }
-    
+
     pub fn as_rtheta(&self) -> &RThetaNode {
         match self {
             Node::XY(_) => panic!("Node is not in RTheta format"),
             Node::RTheta(node) => node,
         }
     }
-    
+
     pub fn as_xy_mut(&mut self) -> &mut XYNode {
         match self {
             Node::XY(node) => node,
             Node::RTheta(_) => panic!("Node is not in XY format"),
         }
     }
-    
+
     pub fn as_rtheta_mut(&mut self) -> &mut RThetaNode {
         match self {
             Node::XY(_) => panic!("Node is not in RTheta format"),
@@ -195,7 +203,10 @@ mod tests {
 
     #[test]
     fn test_rtheta_to_xy_conversion() {
-        let rtheta_node = RThetaNode { r: 2.0, theta: 90.0 };
+        let rtheta_node = RThetaNode {
+            r: 2.0,
+            theta: 90.0,
+        };
         let xy_node: XYNode = rtheta_node.clone().into();
         assert!((xy_node.x - 0.0).abs() < 1e-6);
         assert!((xy_node.y - 2.0).abs() < 1e-6);
@@ -210,7 +221,10 @@ mod tests {
         let xy_node = Node::XY(XYNode { x: 3.0, y: 4.0 });
         assert_eq!(format!("{}", xy_node), "(3.00,4.00)");
 
-        let rtheta_node = Node::RTheta(RThetaNode { r: 5.0, theta: 53.13 });
+        let rtheta_node = Node::RTheta(RThetaNode {
+            r: 5.0,
+            theta: 53.13,
+        });
         assert_eq!(format!("{}", rtheta_node), "(5.00:53.13)");
     }
 
@@ -225,7 +239,13 @@ mod tests {
     fn test_rthetanode_fromstr() {
         let s = "(5.0:53.13)";
         let node: RThetaNode = s.parse().unwrap();
-        assert_eq!(node, RThetaNode { r: 5.0, theta: 53.13 });
+        assert_eq!(
+            node,
+            RThetaNode {
+                r: 5.0,
+                theta: 53.13
+            }
+        );
     }
 
     #[test]
@@ -236,6 +256,12 @@ mod tests {
 
         let s_rtheta = "(5.0:53.13)";
         let node_rtheta: Node = s_rtheta.parse().unwrap();
-        assert_eq!(node_rtheta, Node::RTheta(RThetaNode { r: 5.0, theta: 53.13 }));
+        assert_eq!(
+            node_rtheta,
+            Node::RTheta(RThetaNode {
+                r: 5.0,
+                theta: 53.13
+            })
+        );
     }
 }

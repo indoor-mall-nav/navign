@@ -1,6 +1,8 @@
 mod database;
+mod kernel;
 mod schema;
 mod shared;
+mod certification;
 
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
@@ -15,6 +17,7 @@ use log::{LevelFilter, info};
 use mongodb::Database;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
+use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -45,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(tower_http::cors::Any);
     info!("Cors layer configured.");
+    ensure_key();
     let db = database::connect_with_db().await?;
     let state = AppState { db };
     let app = Router::new()
@@ -52,12 +56,18 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health_check))
         .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
         .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
-        .route("/api/entities/{eid}/beacons/{id}", get(Beacon::get_one_handler))
+        .route(
+            "/api/entities/{eid}/beacons/{id}",
+            get(Beacon::get_one_handler),
+        )
         .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
         .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
         .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
         .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))
-        .route("/api/entities/{eid}/beacons/{id}", delete(Beacon::delete_handler))
+        .route(
+            "/api/entities/{eid}/beacons/{id}",
+            delete(Beacon::delete_handler),
+        )
         .route("/api/entities/{eid}/areas", get(Area::get_handler))
         .route("/api/entities/{eid}/areas/", get(Area::get_handler))
         .route("/api/entities/{eid}/areas/{id}", get(Area::get_one_handler))
@@ -65,7 +75,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/entities/{eid}/areas", put(Area::update_handler))
         .route("/api/entities/{eid}/areas/", post(Area::create_handler))
         .route("/api/entities/{eid}/areas/", put(Area::update_handler))
-        .route("/api/entities/{eid}/areas/{id}", delete(Area::delete_handler))
+        .route(
+            "/api/entities/{eid}/areas/{id}",
+            delete(Area::delete_handler),
+        )
         .route("/api/entities", get(Entity::search_entity_handler))
         .route("/api/entities/", get(Entity::search_entity_handler))
         .route("/api/entities/{id}", get(Entity::get_one_handler))
@@ -76,20 +89,62 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/entities/{id}", delete(Entity::delete_handler))
         .route("/api/entities/{eid}/merchants", get(Merchant::get_handler))
         .route("/api/entities/{eid}/merchants/", get(Merchant::get_handler))
-        .route("/api/entities/{eid}/merchants/{id}", get(Merchant::get_one_handler))
-        .route("/api/entities/{eid}/merchants", post(Merchant::create_handler))
-        .route("/api/entities/{eid}/merchants", put(Merchant::update_handler))
-        .route("/api/entities/{eid}/merchants/", post(Merchant::create_handler))
-        .route("/api/entities/{eid}/merchants/", put(Merchant::update_handler))
-        .route("/api/entities/{eid}/merchants/{id}", delete(Merchant::delete_handler))
-        .route("/api/entities/{eid}/connections", get(Connection::get_handler))
-        .route("/api/entities/{eid}/connections/", get(Connection::get_handler))
-        .route("/api/entities/{eid}/connections/{id}", get(Connection::get_one_handler))
-        .route("/api/entities/{eid}/connections", post(Connection::create_handler))
-        .route("/api/entities/{eid}/connections", put(Connection::update_handler))
-        .route("/api/entities/{eid}/connections/", post(Connection::create_handler))
-        .route("/api/entities/{eid}/connections/", put(Connection::update_handler))
-        .route("/api/entities/{eid}/connections/{id}", delete(Connection::delete_handler))
+        .route(
+            "/api/entities/{eid}/merchants/{id}",
+            get(Merchant::get_one_handler),
+        )
+        .route(
+            "/api/entities/{eid}/merchants",
+            post(Merchant::create_handler),
+        )
+        .route(
+            "/api/entities/{eid}/merchants",
+            put(Merchant::update_handler),
+        )
+        .route(
+            "/api/entities/{eid}/merchants/",
+            post(Merchant::create_handler),
+        )
+        .route(
+            "/api/entities/{eid}/merchants/",
+            put(Merchant::update_handler),
+        )
+        .route(
+            "/api/entities/{eid}/merchants/{id}",
+            delete(Merchant::delete_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections",
+            get(Connection::get_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections/",
+            get(Connection::get_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections/{id}",
+            get(Connection::get_one_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections",
+            post(Connection::create_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections",
+            put(Connection::update_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections/",
+            post(Connection::create_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections/",
+            put(Connection::update_handler),
+        )
+        .route(
+            "/api/entities/{eid}/connections/{id}",
+            delete(Connection::delete_handler),
+        )
         .layer(cors)
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;

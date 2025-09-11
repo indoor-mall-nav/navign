@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Authentication {
-
-}
+pub struct Authentication {}

@@ -68,7 +68,7 @@ impl Service for Beacon {
     fn get_name(&self) -> String {
         self.name.clone()
     }
-    
+
     fn set_name(&mut self, name: String) {
         self.name = name;
     }

@@ -1,6 +1,6 @@
-use std::fmt::{Display, Formatter};
-use serde::{Deserialize, Serialize};
 use crate::schema::polygon::node::Node;
+use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LineTo {
@@ -77,8 +77,8 @@ impl Display for Path {
 
 #[cfg(test)]
 mod tests {
-    use crate::schema::polygon::node::XYNode;
     use super::*;
+    use crate::schema::polygon::node::XYNode;
     #[test]
     fn test_line_to_display() {
         let line_to = LineTo {
@@ -153,6 +153,9 @@ mod tests {
                 }),
             ],
         };
-        assert_eq!(path.to_string(), "\\draw (0.00,0.00) to[in=45.00, out=30.00] (3.00,4.00) arc (5.00:0.00:90.00);");
+        assert_eq!(
+            path.to_string(),
+            "\\draw (0.00,0.00) to[in=45.00, out=30.00] (3.00,4.00) arc (5.00:0.00:90.00);"
+        );
     }
 }

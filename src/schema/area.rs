@@ -1,8 +1,8 @@
+use crate::schema::polygon::line::Path;
 use crate::schema::service::Service;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use crate::schema::polygon::line::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Area {
@@ -14,7 +14,7 @@ pub struct Area {
     /// Unique identifier for the area for displaying in the beacon name.
     beacon_code: String,
     floor: Option<Floor>,     // Floor number or name
-    polygon: Path, // List of (x, y) pairs of coordinates
+    polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
