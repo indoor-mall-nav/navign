@@ -17,7 +17,7 @@ use log::{LevelFilter, info};
 use mongodb::Database;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
-use crate::certification::ensure_key;
+// use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(tower_http::cors::Any);
     info!("Cors layer configured.");
-    ensure_key();
+    // ensure_key();
     let db = database::connect_with_db().await?;
     let state = AppState { db };
     let app = Router::new()
