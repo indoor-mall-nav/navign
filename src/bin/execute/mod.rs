@@ -1,23 +1,44 @@
+use crate::crypto::proof::ProofManager;
+use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
+use esp_hal::rng::Rng;
+use crate::shared::CryptoError;
 
 #[derive(Debug)]
-pub struct ExecuteBuffer<'a> {
+pub struct BeaconState<'a> {
     pub human_sensor: Input<'a>,
     pub relay: Output<'a>,
     pub open: Output<'a>,
+    pub unlock_attempts: u8,
+    pub nonce_manager: NonceManager<32>,
+    pub proof_manager: ProofManager,
     pub last_open: u64,
     pub last_relay_on: u64,
 }
 
-impl<'a> ExecuteBuffer<'a> {
-    pub fn new(human_sensor: Input<'a>, relay: Output<'a>, open: Output<'a>) -> Self {
+impl<'a> BeaconState<'a> {
+    pub fn new(
+        private_key: [u8; 32],
+        human_sensor: Input<'a>,
+        relay: Output<'a>,
+        open: Output<'a>,
+    ) -> Self {
         Self {
             human_sensor,
             relay,
             open,
+            nonce_manager: NonceManager::<32>::new(),
+            proof_manager: ProofManager::new(private_key),
+            unlock_attempts: 0,
             last_open: 0,
             last_relay_on: 0,
         }
+    }
+
+    pub fn set_server_public_key(&mut self, public_key: [u8; 64]) -> Result<(), ()> {
+        self.proof_manager
+            .set_server_public_key(public_key)
+            .map_err(|_| ())
     }
 
     pub fn set_open(&mut self, state: bool, current: u64) {
@@ -31,7 +52,7 @@ impl<'a> ExecuteBuffer<'a> {
     /// During the window, if human sensor is triggered, keep it open and close it 3 seconds after last trigger.
     /// If human sensor is not triggered, close it after 5 seconds.
     /// This is used for running in a loop.
-    pub fn execute(&mut self, time: u64) {
+    pub fn check_executors(&mut self, time: u64) {
         if self.open.is_set_high() {
             if self.human_sensor.is_high() {
                 self.last_open = time;
@@ -49,5 +70,35 @@ impl<'a> ExecuteBuffer<'a> {
             // This is an illegal case, and we need to turn off the relay immediately.
             self.relay.set_low();
         }
+    }
+
+    pub fn validate_proof(
+        &mut self,
+        proof: &crate::crypto::proof::Proof,
+        current_timestamp: u64,
+    ) -> Result<(), CryptoError> {
+        if self.unlock_attempts >= 5 && current_timestamp - proof.timestamp < 300_000 {
+            return Err(CryptoError::RateLimited);
+        }
+
+        if self.nonce_manager.check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp) == false {
+            self.unlock_attempts += 1;
+            return Err(CryptoError::ReplayDetected);
+        }
+
+        match self.proof_manager.validate_proof(proof) {
+            Ok(_) => {
+                self.unlock_attempts = 0;
+                Ok(())
+            }
+            Err(e) => {
+                self.unlock_attempts += 1;
+                Err(e)
+            }
+        }
+    }
+    
+    pub fn generate_nonce(&mut self, rng: &mut Rng) -> crate::crypto::nonce::Nonce {
+        self.nonce_manager.generate_nonce(rng)
     }
 }

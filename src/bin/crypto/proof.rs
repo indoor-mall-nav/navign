@@ -1,5 +1,5 @@
 use super::challenge::Challenge;
-use super::error::CryptoError;
+use crate::shared::CryptoError;
 use esp_hal::sha::Digest;
 use heapless::Vec;
 use p256::ecdsa::signature::{Signer, Verifier};
@@ -15,18 +15,21 @@ pub struct Proof {
     pub counter: u64,
 }
 
+#[derive(Debug)]
 pub struct ProofManager {
     device_private_key: [u8; 32],
     server_public_key: Option<VerifyingKey>,
     counter: u64,
+    unlock_attempts: u8,
 }
 
 impl ProofManager {
-    pub fn new(private_key: [u8; 32], counter: u64) -> Self {
+    pub fn new(private_key: [u8; 32]) -> Self {
         Self {
             device_private_key: private_key,
             server_public_key: None,
-            counter,
+            counter: 0,
+            unlock_attempts: 0,
         }
     }
 
@@ -67,7 +70,7 @@ impl ProofManager {
         })
     }
 
-    pub fn validate_proof(&self, proof: &Proof) -> Result<(), CryptoError> {
+    pub fn validate_proof(&mut self, proof: &Proof) -> Result<(), CryptoError> {
         let mut challenge_data = Vec::<u8, 128>::new();
 
         challenge_data
@@ -86,9 +89,10 @@ impl ProofManager {
 
         let signature = p256::ecdsa::Signature::from_bytes(&proof.device_signature.into())
             .map_err(|_| CryptoError::InvalidSignature)?;
+
         self.server_public_key
             .as_ref()
-            .ok_or(CryptoError::InvalidSignature)?
+            .ok_or(CryptoError::ServerPublicKeyNotSet)?
             .verify(&hashed, &signature)
             .map_err(|_| CryptoError::VerificationFailed)
     }

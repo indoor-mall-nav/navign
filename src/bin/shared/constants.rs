@@ -15,6 +15,7 @@ pub const DEVICE_SIGNATURE_LENGTH: usize = 64;
 pub const TIMESTAMP_LENGTH: usize = 8;
 pub const COUNTER_LENGTH: usize = 8;
 pub const UNLOCK_LENGTH: usize = 1;
+pub const UNLOCK_REASON_LENGTH: usize = 1;
 
 pub const NONCE_REQUEST_LENGTH: usize = IDENTIFIER_LENGTH;
 pub const NONCE_RESPONSE_LENGTH: usize = IDENTIFIER_LENGTH + NONCE_LENGTH;
@@ -23,7 +24,7 @@ pub const PROOF_SUBMISSION_LENGTH: usize = IDENTIFIER_LENGTH
     + DEVICE_SIGNATURE_LENGTH
     + TIMESTAMP_LENGTH
     + COUNTER_LENGTH;
-pub const UNLOCK_RESULT_LENGTH: usize = IDENTIFIER_LENGTH + UNLOCK_LENGTH;
+pub const UNLOCK_RESULT_LENGTH: usize = IDENTIFIER_LENGTH + UNLOCK_LENGTH + UNLOCK_REASON_LENGTH;
 
 pub const NONCE_OFFSET: usize = IDENTIFIER_LENGTH;
 pub const CHALLENGE_HASH_OFFSET: usize = IDENTIFIER_LENGTH;
@@ -37,3 +38,5 @@ pub const SERVICE_UUID: &'static str = "ab1ffeae-127c-422f-8e8d-1590229f67c0";
 pub const NONCE_CHAR_UUID: &'static str = "49e595a0-3e9a-4831-8a3d-c63818783144";
 pub const PROOF_CHAR_UUID: &'static str = "9f3e943e-153e-441e-9d5e-3f0da83edc6f";
 pub const UNLOCK_CHAR_UUID: &'static str = "d2b0f2e4-3c3a-4e5f-8e1d-7f4b6c8e9a0b";
+
+pub const MAX_ATTEMPTS: u8 = 5;

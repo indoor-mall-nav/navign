@@ -1,6 +1,7 @@
 use super::super::crypto::{Nonce, Proof};
-use super::constants::*;
-use super::{BleError, BleMessage};
+use crate::shared::constants::*;
+pub(crate) use super::BleMessage;
+use crate::shared::{BleError, CryptoError};
 use heapless::Vec;
 
 pub struct BleProtocolHandler {
@@ -53,7 +54,7 @@ impl BleProtocolHandler {
                     .map_err(|_| BleError::BufferFull)?;
             }
 
-            BleMessage::UnlockResult(success) => {
+            BleMessage::UnlockResult(success, reason) => {
                 self.send_buffer
                     .push(UNLOCK_RESULT)
                     .map_err(|_| BleError::BufferFull)?;
@@ -63,6 +64,9 @@ impl BleProtocolHandler {
                     } else {
                         UNLOCK_FAILURE
                     })
+                    .map_err(|_| BleError::BufferFull)?;
+                self.send_buffer
+                    .push(reason.map(|x| x.serialize()).unwrap_or(0x00))
                     .map_err(|_| BleError::BufferFull)?;
             }
         }
@@ -135,7 +139,12 @@ impl BleProtocolHandler {
                     UNLOCK_SUCCESS => true,
                     _ => return Err(BleError::ParseError),
                 };
-                Ok(BleMessage::UnlockResult(success))
+                let reason = if self.receive_buffer[2] == 0x00 {
+                    None
+                } else {
+                    CryptoError::deserialize(self.receive_buffer[2])
+                };
+                Ok(BleMessage::UnlockResult(success, reason))
             }
 
             _ => Err(BleError::ParseError),
