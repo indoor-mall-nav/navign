@@ -1,6 +1,6 @@
 use super::super::crypto::{Nonce, Proof};
-use crate::shared::constants::*;
 pub(crate) use super::BleMessage;
+use crate::shared::constants::*;
 use crate::shared::{BleError, CryptoError};
 use heapless::Vec;
 

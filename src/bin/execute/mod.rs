@@ -1,12 +1,12 @@
+use crate::ble::protocol::BleProtocolHandler;
+use crate::crypto::challenge::{Challenge, ChallengeManager};
 use crate::crypto::proof::ProofManager;
+use crate::crypto::Nonce;
+use crate::shared::constants::MAX_ATTEMPTS;
+use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
 use esp_hal::rng::Rng;
-use crate::ble::protocol::BleProtocolHandler;
-use crate::crypto::challenge::{Challenge, ChallengeManager};
-use crate::crypto::Nonce;
-use crate::shared::{BleError, CryptoError};
-use crate::shared::constants::MAX_ATTEMPTS;
 
 #[derive(Debug)]
 pub struct BeaconState<'a> {
@@ -90,7 +90,10 @@ impl<'a> BeaconState<'a> {
             return Err(CryptoError::RateLimited);
         }
 
-        if !self.nonce_manager.check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp) {
+        if !self
+            .nonce_manager
+            .check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp)
+        {
             self.unlock_attempts += 1;
             return Err(CryptoError::ReplayDetected);
         }
@@ -106,16 +109,22 @@ impl<'a> BeaconState<'a> {
             }
         }
     }
-    
+
     pub fn generate_nonce(&mut self, rng: &mut Rng) -> Nonce {
         self.nonce_manager.generate_nonce(rng)
     }
 
-    pub fn serialize_message(&mut self, message: &crate::ble::protocol::BleMessage) -> Result<&[u8], BleError> {
+    pub fn serialize_message(
+        &mut self,
+        message: &crate::ble::protocol::BleMessage,
+    ) -> Result<&[u8], BleError> {
         self.buffer.serialize_message(message)
     }
 
-    pub fn deserialize_message(&mut self, data: &[u8]) -> Result<crate::ble::protocol::BleMessage, BleError> {
+    pub fn deserialize_message(
+        &mut self,
+        data: &[u8],
+    ) -> Result<crate::ble::protocol::BleMessage, BleError> {
         self.buffer.deserialize_message(data)
     }
 }

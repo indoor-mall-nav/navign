@@ -14,12 +14,16 @@
 pub(crate) mod ble;
 pub(crate) mod crypto;
 pub(crate) mod execute;
+mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
-mod internet;
 
-use core::cell::RefCell;
+use crate::ble::BleMessage;
 use crate::execute::BeaconState;
+use crate::shared::constants::{
+    DEVICE_RESPONSE_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH,
+    UNLOCK_RESULT_LENGTH,
+};
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
@@ -27,6 +31,7 @@ use bleps::{
     attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
 };
+use core::cell::RefCell;
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
@@ -41,11 +46,9 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_println::println;
-use esp_wifi::{ble::controller::BleConnector, init};
-use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::wifi::event::wifi_event_action_tx_status_t;
-use crate::ble::BleMessage;
-use crate::shared::constants::{DEVICE_RESPONSE_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
+use esp_wifi::wifi::{AuthMethod, Configuration};
+use esp_wifi::{ble::controller::BleConnector, init};
 use reqwless::client::HttpClient;
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -83,20 +86,17 @@ fn main() -> ! {
 
     let now = || time::Instant::now().duration_since_epoch().as_millis();
 
-    let (mut wifi_controller, interfaces) = esp_wifi::wifi::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
+    let (mut wifi_controller, interfaces) =
+        esp_wifi::wifi::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
     let mut devices = interfaces.sta;
     let iface = smoltcp::iface::Interface::new(
-        smoltcp::iface::Config::new(
-            smoltcp::wire::HardwareAddress::Ethernet(
-                smoltcp::wire::EthernetAddress::from_bytes(&devices.mac_address()),
-            )
-        ),
+        smoltcp::iface::Config::new(smoltcp::wire::HardwareAddress::Ethernet(
+            smoltcp::wire::EthernetAddress::from_bytes(&devices.mac_address()),
+        )),
         &mut devices,
         smoltcp::time::Instant::from_micros(
-            time::Instant::now()
-                .duration_since_epoch()
-                .as_micros() as i64,
-        )
+            time::Instant::now().duration_since_epoch().as_micros() as i64,
+        ),
     );
 
     let wifi_config = Configuration::Client(esp_wifi::wifi::ClientConfiguration {
@@ -106,7 +106,7 @@ fn main() -> ! {
         ..Default::default()
     });
 
-    let wifi_res =wifi_controller.set_configuration(&wifi_config).ok();
+    let wifi_res = wifi_controller.set_configuration(&wifi_config).ok();
 
     if let Err(e) = wifi_controller.start() {
         println!("Failed to start WiFi: {:?}", e);
@@ -222,7 +222,9 @@ fn main() -> ! {
 
             // Handle nonce requests
             let mut nonce_request = [0u8; NONCE_REQUEST_LENGTH];
-            if let Some(1) = srv.get_characteristic_value(nonce_characteristic_handle, 0, &mut nonce_request) {
+            if let Some(1) =
+                srv.get_characteristic_value(nonce_characteristic_handle, 0, &mut nonce_request)
+            {
                 let message = executor.deserialize_message(&nonce_request).ok();
                 if let Some(BleMessage::NonceRequest) = message {
                     let challenge = executor.generate_nonce(&mut rng);
@@ -241,7 +243,9 @@ fn main() -> ! {
             }
 
             let mut proof_submission = [0u8; PROOF_SUBMISSION_LENGTH];
-            if let Some(1) = srv.get_characteristic_value(proof_characteristic_handle, 0, &mut proof_submission) {
+            if let Some(1) =
+                srv.get_characteristic_value(proof_characteristic_handle, 0, &mut proof_submission)
+            {
                 let message = executor.deserialize_message(&proof_submission).ok();
                 if let Some(BleMessage::ProofSubmission(proof)) = message {
                     let current_timestamp = now();
@@ -252,7 +256,8 @@ fn main() -> ! {
                         }
                         Err(e) => (false, Some(e)),
                     };
-                    let response = ble::protocol::BleMessage::UnlockResult(unlock_result.0, unlock_result.1);
+                    let response =
+                        ble::protocol::BleMessage::UnlockResult(unlock_result.0, unlock_result.1);
                     let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
                         let notification = NotificationData::new(proof_characteristic_handle, data);

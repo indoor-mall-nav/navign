@@ -1,5 +1,5 @@
-use heapless::index_map::FnvIndexMap;
 use crate::crypto::Nonce;
+use heapless::index_map::FnvIndexMap;
 
 #[derive(Debug)]
 pub struct NonceManager<const N: usize> {
@@ -42,7 +42,9 @@ impl<const N: usize> NonceManager<N> {
                 Err(_) => {
                     // If the map is full, remove the oldest entry
                     self.remove_oldest_challenge_hash();
-                    self.used_challenge_hashes.insert(challenge_hash, timestamp).ok();
+                    self.used_challenge_hashes
+                        .insert(challenge_hash, timestamp)
+                        .ok();
                 }
             }
             true
@@ -62,7 +64,7 @@ impl<const N: usize> NonceManager<N> {
             self.used_challenge_hashes.remove(&oldest_key);
         }
     }
-    
+
     pub fn generate_nonce(&mut self, rng: &mut esp_hal::rng::Rng) -> Nonce {
         Nonce::generate(rng)
     }
