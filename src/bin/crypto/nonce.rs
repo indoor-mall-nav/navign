@@ -1,6 +1,7 @@
 use crate::shared::constants::NONCE_LENGTH;
 use core::fmt::Write;
 use esp_hal::rng::Rng;
+use esp_println::println;
 use heapless::String;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -10,6 +11,7 @@ impl Nonce {
     pub fn generate(rng: &mut Rng) -> Self {
         let mut nonce = [0u8; NONCE_LENGTH];
         for item in nonce.iter_mut() {
+            println!("Generating random byte...");
             *item = rng.random() as u8;
         }
         Nonce(nonce)

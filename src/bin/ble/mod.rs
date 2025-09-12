@@ -3,7 +3,6 @@ pub(crate) mod protocol;
 
 use super::crypto::{Nonce, Proof};
 use crate::shared::CryptoError;
-use bleps::gatt;
 
 #[derive(Debug, Clone)]
 pub enum BleMessage {

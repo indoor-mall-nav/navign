@@ -16,13 +16,15 @@ pub(crate) mod crypto;
 pub(crate) mod execute;
 pub(crate) mod shared;
 pub(crate) mod storage;
+mod internet;
 
+use core::cell::RefCell;
 use crate::execute::BeaconState;
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
     },
-    attribute_server::{AttributeServer, NotificationData, WorkResult},
+    attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
 };
 use esp_alloc as _;
@@ -31,7 +33,6 @@ use esp_backtrace as _;
 use esp_hal::gpio::Level;
 use esp_hal::{
     clock::CpuClock,
-    delay::Delay,
     gpio::{Input, InputConfig, Pull},
     gpio::{Output, OutputConfig},
     main,
@@ -41,9 +42,11 @@ use esp_hal::{
 };
 use esp_println::println;
 use esp_wifi::{ble::controller::BleConnector, init};
+use esp_wifi::wifi::{AuthMethod, Configuration};
+use esp_wifi::wifi::event::wifi_event_action_tx_status_t;
 use crate::ble::BleMessage;
-use crate::ble::protocol::BleProtocolHandler;
-use crate::shared::constants::{NONCE_REQUEST_LENGTH, PROOF_SUBMISSION_LENGTH};
+use crate::shared::constants::{NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
+use reqwless::client::HttpClient;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -59,14 +62,14 @@ fn main() -> ! {
 
     let human_body = Input::new(peripherals.GPIO6, InputConfig::default());
 
-    let mut executor = BeaconState::new([0u8; 32], human_body, trigger, led);
-
-    heap_allocator!(size: 72 * 1024);
+    heap_allocator!(size: 128 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
 
     let mut rng = Rng::new(peripherals.RNG);
+
+    let mut executor = BeaconState::new([0u8; 32], human_body, trigger, led, rng.clone());
 
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
 
@@ -74,11 +77,46 @@ fn main() -> ! {
 
     let button = Input::new(peripherals.GPIO9, config);
 
-    let mut debounce_cnt = 500;
+    let debounce_cnt = 500;
 
     let mut bluetooth = peripherals.BT;
 
     let now = || time::Instant::now().duration_since_epoch().as_millis();
+
+    let (mut wifi_controller, interfaces) = esp_wifi::wifi::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
+    let mut devices = interfaces.sta;
+    let iface = smoltcp::iface::Interface::new(
+        smoltcp::iface::Config::new(
+            smoltcp::wire::HardwareAddress::Ethernet(
+                smoltcp::wire::EthernetAddress::from_bytes(&devices.mac_address()),
+            )
+        ),
+        &mut devices,
+        smoltcp::time::Instant::from_micros(
+            time::Instant::now()
+                .duration_since_epoch()
+                .as_micros() as i64,
+        )
+    );
+
+    let wifi_config = Configuration::Client(esp_wifi::wifi::ClientConfiguration {
+        ssid: "ssid".into(),
+        password: "password".into(),
+        auth_method: AuthMethod::WPAWPA2Personal,
+        ..Default::default()
+    });
+
+    let wifi_res =wifi_controller.set_configuration(&wifi_config).ok();
+
+    if let Err(e) = wifi_controller.start() {
+        println!("Failed to start WiFi: {:?}", e);
+    } else {
+        println!("WiFi started");
+    }
+
+    wifi_controller.connect().ok();
+
+    #[allow(clippy::never_loop)]
     loop {
         executor.check_executors(now());
         let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow());
@@ -101,13 +139,35 @@ fn main() -> ! {
 
         println!("Started advertising.");
 
+        #[allow(unused_mut)]
         let mut gatt_attributes: &[Attribute] = &[];
         // Here it would be defined in `gatt!` macro, but we need to inform the lsp to recognize them.
         let nonce_characteristic_notify_enable_handle = 0x00u16;
         let nonce_characteristic_handle = 0x00u16;
         let proof_characteristic_handle = 0x00u16;
         let unlock_characteristic_handle = 0x00u16;
-        let mut protocol = BleProtocolHandler::new();
+
+        let mut wf_nonce_request = |offset: usize, data: &[u8]| {};
+
+        let mut rf_nonce_response = |offset: usize, buffer: &mut [u8]| -> usize {
+            // Check the length of the buffer
+            if buffer.len() != NONCE_RESPONSE_LENGTH {
+                0
+            } else {
+                NONCE_RESPONSE_LENGTH
+            }
+        };
+
+        let mut wf_proof_submission = |offset: usize, data: &[u8]| {};
+
+        let mut rf_unlock_result = |offset: usize, buffer: &mut [u8]| -> usize {
+            // Check the length of the buffer
+            if buffer.len() != UNLOCK_RESULT_LENGTH {
+                0
+            } else {
+                UNLOCK_RESULT_LENGTH
+            }
+        };
 
         gatt!([service {
             uuid: "ab1ffeae-127c-422f-8e8d-1590229f67c0",
@@ -116,23 +176,25 @@ fn main() -> ! {
                     name: "nonce_characteristic",
                     uuid: "49e595a0-3e9a-4831-8a3d-c63818783144",
                     notify: true,
-                    // read: rf_nonce_response,
-                    // write: wf_nonce_request,
+                    read: rf_nonce_response,
+                    write: wf_nonce_request,
                 },
                 characteristic {
                     name: "proof_characteristic",
                     uuid: "9f3e943e-153e-441e-9d5e-3f0da83edc6f",
                     notify: false,
-                    // write: wf_proof_submission,
+                    write: wf_proof_submission,
                 },
                 characteristic {
                     name: "unlock_characteristic",
                     uuid: "d2b0f2e4-3c3a-4e5f-8e1d-7f4b6c8e9a0b",
                     notify: false,
-                    // read: rf_unlock_result,
+                    read: rf_unlock_result,
                 },
             ],
         },]);
+
+        println!("GATT service registered.");
 
         let mut no_rng = bleps::no_rng::NoRng;
         let mut srv = AttributeServer::new(&mut ble, &mut gatt_attributes, &mut no_rng);
@@ -143,13 +205,13 @@ fn main() -> ! {
             // Handle nonce requests
             let mut nonce_request = [0u8; NONCE_REQUEST_LENGTH];
             if let Some(1) = srv.get_characteristic_value(nonce_characteristic_handle, 0, &mut nonce_request) {
-                let message = protocol.deserialize_message(&nonce_request).ok();
-                if let Some(ble::protocol::BleMessage::NonceRequest) = message {
-                    let nonce = executor.generate_nonce(&mut rng);
-                    let response = ble::protocol::BleMessage::NonceResponse(nonce);
-                    let result = protocol.serialize_message(&response).ok();
+                let message = executor.deserialize_message(&nonce_request).ok();
+                if let Some(BleMessage::NonceRequest) = message {
+                    let challenge = executor.generate_nonce(&mut rng);
+                    let response = BleMessage::NonceResponse(challenge);
+                    let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
-                        let notification = NotificationData::new(nonce_characteristic_handle, &data);
+                        let notification = NotificationData::new(nonce_characteristic_handle, data);
                         match srv.do_work_with_notification(Some(notification)) {
                             Ok(_) => {}
                             Err(err) => {
@@ -162,20 +224,20 @@ fn main() -> ! {
 
             let mut proof_submission = [0u8; PROOF_SUBMISSION_LENGTH];
             if let Some(1) = srv.get_characteristic_value(proof_characteristic_handle, 0, &mut proof_submission) {
-                let message = protocol.deserialize_message(&proof_submission).ok();
-                if let Some(ble::protocol::BleMessage::ProofSubmission(proof)) = message {
+                let message = executor.deserialize_message(&proof_submission).ok();
+                if let Some(BleMessage::ProofSubmission(proof)) = message {
                     let current_timestamp = now();
                     let unlock_result = match executor.validate_proof(&proof, current_timestamp) {
                         Ok(_) => {
-                            executor.open.set_high();
+                            executor.set_open(true, now());
                             (true, None)
                         }
                         Err(e) => (false, Some(e)),
                     };
                     let response = ble::protocol::BleMessage::UnlockResult(unlock_result.0, unlock_result.1);
-                    let result = protocol.serialize_message(&response).ok();
+                    let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
-                        let notification = NotificationData::new(proof_characteristic_handle, &data);
+                        let notification = NotificationData::new(proof_characteristic_handle, data);
                         match srv.do_work_with_notification(Some(notification)) {
                             Ok(_) => {}
                             Err(err) => {

@@ -20,7 +20,6 @@ pub struct ProofManager {
     device_private_key: [u8; 32],
     server_public_key: Option<VerifyingKey>,
     counter: u64,
-    unlock_attempts: u8,
 }
 
 impl ProofManager {
@@ -29,7 +28,6 @@ impl ProofManager {
             device_private_key: private_key,
             server_public_key: None,
             counter: 0,
-            unlock_attempts: 0,
         }
     }
 

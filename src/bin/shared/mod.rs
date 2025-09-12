@@ -13,19 +13,6 @@ pub enum CryptoError {
 }
 
 impl CryptoError {
-    pub fn message(&self) -> &str {
-        match self {
-            Self::InvalidSignature => "Invalid signature",
-            Self::InvalidKey => "Invalid key",
-            Self::InvalidNonce => "Invalid nonce",
-            Self::VerificationFailed => "Verification failed",
-            Self::BufferFull => "Buffer full",
-            Self::RateLimited => "Rate limited",
-            Self::ReplayDetected => "Replay detected",
-            Self::ServerPublicKeyNotSet => "Server public key not set",
-        }
-    }
-
     pub fn serialize(&self) -> u8 {
         match self {
             Self::InvalidSignature => 0x01,
@@ -55,6 +42,7 @@ impl CryptoError {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub enum BleError {
     SetupFailed,
     NotConnected,

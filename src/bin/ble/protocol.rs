@@ -4,6 +4,7 @@ pub(crate) use super::BleMessage;
 use crate::shared::{BleError, CryptoError};
 use heapless::Vec;
 
+#[derive(Debug)]
 pub struct BleProtocolHandler {
     receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
     send_buffer: Vec<u8, MAX_PACKET_SIZE>,

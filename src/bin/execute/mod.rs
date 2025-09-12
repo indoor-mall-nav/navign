@@ -2,7 +2,11 @@ use crate::crypto::proof::ProofManager;
 use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
 use esp_hal::rng::Rng;
-use crate::shared::CryptoError;
+use crate::ble::protocol::BleProtocolHandler;
+use crate::crypto::challenge::{Challenge, ChallengeManager};
+use crate::crypto::Nonce;
+use crate::shared::{BleError, CryptoError};
+use crate::shared::constants::MAX_ATTEMPTS;
 
 #[derive(Debug)]
 pub struct BeaconState<'a> {
@@ -11,7 +15,9 @@ pub struct BeaconState<'a> {
     pub open: Output<'a>,
     pub unlock_attempts: u8,
     pub nonce_manager: NonceManager<32>,
+    pub challenge_manager: ChallengeManager,
     pub proof_manager: ProofManager,
+    pub buffer: BleProtocolHandler,
     pub last_open: u64,
     pub last_relay_on: u64,
 }
@@ -22,6 +28,7 @@ impl<'a> BeaconState<'a> {
         human_sensor: Input<'a>,
         relay: Output<'a>,
         open: Output<'a>,
+        rng: Rng,
     ) -> Self {
         Self {
             human_sensor,
@@ -30,6 +37,8 @@ impl<'a> BeaconState<'a> {
             nonce_manager: NonceManager::<32>::new(),
             proof_manager: ProofManager::new(private_key),
             unlock_attempts: 0,
+            buffer: BleProtocolHandler::new(),
+            challenge_manager: ChallengeManager::new(rng),
             last_open: 0,
             last_relay_on: 0,
         }
@@ -77,11 +86,11 @@ impl<'a> BeaconState<'a> {
         proof: &crate::crypto::proof::Proof,
         current_timestamp: u64,
     ) -> Result<(), CryptoError> {
-        if self.unlock_attempts >= 5 && current_timestamp - proof.timestamp < 300_000 {
+        if self.unlock_attempts >= MAX_ATTEMPTS && current_timestamp - proof.timestamp < 300_000 {
             return Err(CryptoError::RateLimited);
         }
 
-        if self.nonce_manager.check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp) == false {
+        if !self.nonce_manager.check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp) {
             self.unlock_attempts += 1;
             return Err(CryptoError::ReplayDetected);
         }
@@ -98,7 +107,15 @@ impl<'a> BeaconState<'a> {
         }
     }
     
-    pub fn generate_nonce(&mut self, rng: &mut Rng) -> crate::crypto::nonce::Nonce {
+    pub fn generate_nonce(&mut self, rng: &mut Rng) -> Nonce {
         self.nonce_manager.generate_nonce(rng)
+    }
+
+    pub fn serialize_message(&mut self, message: &crate::ble::protocol::BleMessage) -> Result<&[u8], BleError> {
+        self.buffer.serialize_message(message)
+    }
+
+    pub fn deserialize_message(&mut self, data: &[u8]) -> Result<crate::ble::protocol::BleMessage, BleError> {
+        self.buffer.deserialize_message(data)
     }
 }

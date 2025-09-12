@@ -22,22 +22,6 @@ impl<const N: usize> NonceManager<N> {
         }
     }
 
-    /// Check if the nonce is valid (not used before and within the time window).
-    /// If valid, mark it as used.
-    pub fn check_and_mark_nonce(&mut self, nonce: Nonce, timestamp: u64) -> bool {
-        // Clean up old nonces
-        self.clear_expired(timestamp);
-
-        if self.used_nonces.contains_key(&nonce) {
-            // Nonce has been used before
-            false
-        } else {
-            // Mark nonce as used
-            self.used_nonces.insert(nonce, timestamp).ok();
-            true
-        }
-    }
-
     /// Check if the challenge hash is valid (not used before and within the time window).
     /// If valid, mark it as used.
     pub fn check_and_mark_challenge_hash(
@@ -71,12 +55,6 @@ impl<const N: usize> NonceManager<N> {
             .retain(|_, &mut ts| current_timestamp.saturating_sub(ts) <= 180_000);
         self.used_challenge_hashes
             .retain(|_, &mut ts| current_timestamp.saturating_sub(ts) <= 180_000);
-    }
-
-    pub fn remove_oldest_nonce(&mut self) {
-        if let Some(oldest_key) = self.used_nonces.keys().next().cloned() {
-            self.used_nonces.remove(&oldest_key);
-        }
     }
 
     pub fn remove_oldest_challenge_hash(&mut self) {
