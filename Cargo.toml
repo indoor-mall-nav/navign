@@ -25,3 +25,8 @@ sha1 = "0.10.6"
 bcrypt = "0.17.1"
 lazy_static = "1.5.0"
 uuid = { version = "1.18.1", features = ["v4"] }
+p256 = { version = "0.13.2", features = ["ecdsa"] }
+sha2 = "0.10.9"
+jwt = "0.16.0"
+rsa = "0.9.8"
+serde-big-array = "0.5.1"
