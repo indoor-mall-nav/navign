@@ -111,11 +111,9 @@ function processTodayOpeningHours(
           >
             Open
           </span>
-          <span
-            v-else
-            class="text-red-600 dark:text-red-400"
-          >
-            Currently Closed, Today: {{ processTodayOpeningHours(merchant.opening_hours) }}
+          <span v-else class="text-red-600 dark:text-red-400">
+            Currently Closed, Today:
+            {{ processTodayOpeningHours(merchant.opening_hours) }}
           </span>
         </span>
       </p>

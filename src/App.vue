@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-import {authenticate, type Status } from "@tauri-apps/plugin-biometric";
+import { authenticate, type Status } from "@tauri-apps/plugin-biometric";
 import { type BleDevice, startScan, stopScan } from "@mnlphlp/plugin-blec";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import { baseUrl } from "@/lib/shared.ts";
 import { Area, Beacon, Entity } from "@/schema";
 import { useSessionStore } from "@/states/session.ts";
 import { getIcon, Icon, loadIcon } from "@iconify/vue";
-import { RouterView } from 'vue-router'
+import { RouterView } from "vue-router";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -84,9 +84,9 @@ function getIconImage(icon: string): Promise<{
 
 const getLocationIcon = async () => {
   if (locationImage.value.url) return locationImage.value;
-  console.log(await loadIcon('mdi:map-marker-radius'), 'here');
+  console.log(await loadIcon("mdi:map-marker-radius"), "here");
   const icon = await getIconImage("mdi:map-marker-radius");
-  console.log(icon, 'icon');
+  console.log(icon, "icon");
   locationImage.value = icon;
   return icon;
 };
@@ -106,25 +106,25 @@ function rssiToDistance(
 
 async function getGeolocation() {
   // try {
-    console.log("Checking permissions...");
-    const permission = await checkPermissions();
-    console.log("Current permissions:", permission);
-    if (permission.location !== "granted") {
-      console.log("Requesting permissions...");
-      const request = await requestPermissions(["location", "coarseLocation"]);
-      console.log("Permission request result:", request);
-      if (request.location !== "granted") {
-        greetMsg.value = "Location permission is required to proceed.";
-        return;
-      }
+  console.log("Checking permissions...");
+  const permission = await checkPermissions();
+  console.log("Current permissions:", permission);
+  if (permission.location !== "granted") {
+    console.log("Requesting permissions...");
+    const request = await requestPermissions(["location", "coarseLocation"]);
+    console.log("Permission request result:", request);
+    if (request.location !== "granted") {
+      greetMsg.value = "Location permission is required to proceed.";
+      return;
     }
+  }
   // } catch (error) {
   //   greetMsg.value = `Error obtaining geolocation: ${error}`;
   // }
   console.log("Requesting geolocation...");
   try {
     const position = await getCurrentPosition();
-    console.log(position)
+    console.log(position);
     geolocation.value = [position.coords.latitude, position.coords.longitude];
     greetMsg.value = `Geolocation obtained: ${geolocation.value}`;
   } catch (_) {
@@ -286,7 +286,9 @@ const stageSize = ref({
         placeholder="Enter entity name (e.g., mall, store)"
         class="mt-4"
       />
-      <Button @click="requestEntity" v-if="!entity">Get Entity <Icon icon="mdi:map-marker-radius"/></Button>
+      <Button @click="requestEntity" v-if="!entity"
+        >Get Entity <Icon icon="mdi:map-marker-radius"
+      /></Button>
 
       <Dialog>
         <DialogTrigger as-child>

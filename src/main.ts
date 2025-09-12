@@ -4,8 +4,8 @@ import "./index.css";
 import VConsole from "vconsole";
 import VueKonva from "vue-konva";
 import { createPinia } from "pinia";
-import router from '@/router'
-import i18n from '@/i18n'
+import router from "@/router";
+import i18n from "@/i18n";
 import VueMaplibreGl from "vue-maplibre-gl";
 
 new VConsole();

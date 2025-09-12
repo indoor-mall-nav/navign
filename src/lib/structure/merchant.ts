@@ -1,4 +1,9 @@
-import type { MerchantType, FoodCuisine, ChineseFoodCuisine, FoodType } from "@/schema";
+import type {
+  MerchantType,
+  FoodCuisine,
+  ChineseFoodCuisine,
+  FoodType,
+} from "@/schema";
 
 /**
  * Formats a MerchantType for English display
@@ -6,23 +11,23 @@ import type { MerchantType, FoodCuisine, ChineseFoodCuisine, FoodType } from "@/
  * @returns A human-readable English string representation
  */
 export function formatMerchantType(type: MerchantType): string {
-  if (typeof type === 'string') {
+  if (typeof type === "string") {
     return formatSimpleType(type);
   }
 
-  if ('food' in type) {
+  if ("food" in type) {
     return formatFoodType(type.food);
   }
 
-  if ('electronics' in type) {
+  if ("electronics" in type) {
     return formatElectronicsType(type.electronics);
   }
 
-  if ('clothing' in type) {
+  if ("clothing" in type) {
     return formatClothingType(type.clothing);
   }
 
-  return 'Unknown';
+  return "Unknown";
 }
 
 /**
@@ -30,12 +35,12 @@ export function formatMerchantType(type: MerchantType): string {
  */
 function formatSimpleType(type: string): string {
   const typeMap: Record<string, string> = {
-    supermarket: 'Supermarket',
-    health: 'Health & Medical',
-    entertainment: 'Entertainment',
-    service: 'Service',
-    room: 'Room',
-    other: 'Other'
+    supermarket: "Supermarket",
+    health: "Health & Medical",
+    entertainment: "Entertainment",
+    service: "Service",
+    room: "Room",
+    other: "Other",
   };
 
   return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1);
@@ -44,11 +49,14 @@ function formatSimpleType(type: string): string {
 /**
  * Formats food merchant types with cuisine and type details
  */
-function formatFoodType(food: { cuisine: FoodCuisine | null; type: FoodType }): string {
+function formatFoodType(food: {
+  cuisine: FoodCuisine | null;
+  type: FoodType;
+}): string {
   const foodTypeStr = formatFoodTypeOnly(food.type);
   const cuisineStr = food.cuisine ? formatCuisine(food.cuisine) : null;
 
-  if (cuisineStr && foodTypeStr.toLowerCase() !== 'restaurant') {
+  if (cuisineStr && foodTypeStr.toLowerCase() !== "restaurant") {
     return `${cuisineStr} ${foodTypeStr}`;
   } else if (cuisineStr) {
     return `${cuisineStr} Restaurant`;
@@ -61,72 +69,77 @@ function formatFoodType(food: { cuisine: FoodCuisine | null; type: FoodType }): 
  * Formats the food type portion only
  */
 function formatFoodTypeOnly(foodType: FoodType): string {
-  if (typeof foodType === 'string') {
+  if (typeof foodType === "string") {
     const typeMap: Record<string, string> = {
-      cafe: 'Cafe',
-      fastFood: 'Fast Food',
-      bakery: 'Bakery',
-      bar: 'Bar',
-      other: 'Restaurant'
+      cafe: "Cafe",
+      fastFood: "Fast Food",
+      bakery: "Bakery",
+      bar: "Bar",
+      other: "Restaurant",
     };
-    return typeMap[foodType] || 'Restaurant';
+    return typeMap[foodType] || "Restaurant";
   }
 
-  if ('restaurant' in foodType) {
-    return 'Restaurant';
+  if ("restaurant" in foodType) {
+    return "Restaurant";
   }
 
-  return 'Restaurant';
+  return "Restaurant";
 }
 
 /**
  * Formats cuisine types with specific details
  */
 function formatCuisine(cuisine: FoodCuisine): string {
-  if (typeof cuisine === 'string') {
+  if (typeof cuisine === "string") {
     const cuisineMap: Record<string, string> = {
-      italian: 'Italian',
-      indian: 'Indian',
-      american: 'American',
-      japanese: 'Japanese',
-      korean: 'Korean',
-      french: 'French',
-      thai: 'Thai',
-      mexican: 'Mexican',
-      mediterranean: 'Mediterranean',
-      spanish: 'Spanish',
-      vietnamese: 'Vietnamese',
-      middleEastern: 'Middle Eastern',
-      african: 'African'
+      italian: "Italian",
+      indian: "Indian",
+      american: "American",
+      japanese: "Japanese",
+      korean: "Korean",
+      french: "French",
+      thai: "Thai",
+      mexican: "Mexican",
+      mediterranean: "Mediterranean",
+      spanish: "Spanish",
+      vietnamese: "Vietnamese",
+      middleEastern: "Middle Eastern",
+      african: "African",
     };
-    return cuisineMap[cuisine] || cuisine.charAt(0).toUpperCase() + cuisine.slice(1);
+    return (
+      cuisineMap[cuisine] || cuisine.charAt(0).toUpperCase() + cuisine.slice(1)
+    );
   }
 
-  if ('chinese' in cuisine) {
+  if ("chinese" in cuisine) {
     return formatChineseCuisine(cuisine.chinese);
   }
 
-  if ('other' in cuisine) {
+  if ("other" in cuisine) {
     return cuisine.other;
   }
 
-  return 'International';
+  return "International";
 }
 
 /**
  * Formats Chinese cuisine with regional specifics
  */
-function formatChineseCuisine(chinese: { cuisine: ChineseFoodCuisine; specific: string | null }): string {
+function formatChineseCuisine(chinese: {
+  cuisine: ChineseFoodCuisine;
+  specific: string | null;
+}): string {
   const regionMap: Record<ChineseFoodCuisine, string> = {
-    cantonese: 'Cantonese',
-    sichuan: 'Sichuan',
-    hunan: 'Hunan',
-    jiangxi: 'Jiangxi',
-    shanghai: 'Shanghai',
-    hangzhou: 'Hangzhou',
-    ningbo: 'Ningbo',
-    northern: 'Northern Chinese',
-    other: 'Chinese'
+    cantonese: "Cantonese",
+    sichuan: "Sichuan",
+    hunan: "Hunan",
+    jiangxi: "Jiangxi",
+    shanghai: "Shanghai",
+    hangzhou: "Hangzhou",
+    ningbo: "Ningbo",
+    northern: "Northern Chinese",
+    other: "Chinese",
   };
 
   const regionStr = regionMap[chinese.cuisine];
@@ -148,18 +161,18 @@ function formatElectronicsType(electronics: {
 }): string {
   const categories: string[] = [];
 
-  if (electronics.is_mobile) categories.push('Mobile Devices');
-  if (electronics.is_computer) categories.push('Computers');
-  if (electronics.is_accessories) categories.push('Accessories');
+  if (electronics.is_mobile) categories.push("Mobile Devices");
+  if (electronics.is_computer) categories.push("Computers");
+  if (electronics.is_accessories) categories.push("Accessories");
 
   if (categories.length === 0) {
-    return 'Electronics Store';
+    return "Electronics Store";
   } else if (categories.length === 1) {
     return `${categories[0]} Store`;
   } else if (categories.length === 2) {
-    return `${categories.join(' & ')} Store`;
+    return `${categories.join(" & ")} Store`;
   } else {
-    return 'Electronics Store';
+    return "Electronics Store";
   }
 }
 
@@ -178,13 +191,13 @@ function formatClothingType(clothing: {
   if (clothing.is_childrenswear) demographics.push("Children's");
 
   if (demographics.length === 0) {
-    return 'Clothing Store';
+    return "Clothing Store";
   } else if (demographics.length === 1) {
     return `${demographics[0]} Clothing`;
   } else if (demographics.length === 2) {
-    return `${demographics.join(' & ')} Clothing`;
+    return `${demographics.join(" & ")} Clothing`;
   } else {
-    return 'Family Clothing Store';
+    return "Family Clothing Store";
   }
 }
 
@@ -194,23 +207,23 @@ function formatClothingType(clothing: {
  * @returns A short category string
  */
 export function getMerchantCategory(type: MerchantType): string {
-  if (typeof type === 'string') {
+  if (typeof type === "string") {
     return type.charAt(0).toUpperCase() + type.slice(1);
   }
 
-  if ('food' in type) {
-    return 'Food & Dining';
+  if ("food" in type) {
+    return "Food & Dining";
   }
 
-  if ('electronics' in type) {
-    return 'Electronics';
+  if ("electronics" in type) {
+    return "Electronics";
   }
 
-  if ('clothing' in type) {
-    return 'Fashion';
+  if ("clothing" in type) {
+    return "Fashion";
   }
 
-  return 'Other';
+  return "Other";
 }
 
 /**
@@ -226,14 +239,14 @@ export function getMerchantTypeDetails(type: MerchantType): {
 } {
   const displayName = formatMerchantType(type);
 
-  if (typeof type === 'string') {
+  if (typeof type === "string") {
     return {
       category: formatSimpleType(type),
-      displayName
+      displayName,
     };
   }
 
-  if ('food' in type) {
+  if ("food" in type) {
     const details: string[] = [];
     if (type.food.cuisine) {
       details.push(`Cuisine: ${formatCuisine(type.food.cuisine)}`);
@@ -241,43 +254,45 @@ export function getMerchantTypeDetails(type: MerchantType): {
     details.push(`Type: ${formatFoodTypeOnly(type.food.type)}`);
 
     return {
-      category: 'Food & Dining',
+      category: "Food & Dining",
       subcategory: formatFoodTypeOnly(type.food.type),
       details,
-      displayName
+      displayName,
     };
   }
 
-  if ('electronics' in type) {
+  if ("electronics" in type) {
     const details: string[] = [];
-    if (type.electronics.is_mobile) details.push('Mobile Devices');
-    if (type.electronics.is_computer) details.push('Computers');
-    if (type.electronics.is_accessories) details.push('Accessories');
+    if (type.electronics.is_mobile) details.push("Mobile Devices");
+    if (type.electronics.is_computer) details.push("Computers");
+    if (type.electronics.is_accessories) details.push("Accessories");
 
     return {
-      category: 'Electronics',
-      subcategory: 'Electronics Store',
-      details: details.length > 0 ? [`Categories: ${details.join(', ')}`] : undefined,
-      displayName
+      category: "Electronics",
+      subcategory: "Electronics Store",
+      details:
+        details.length > 0 ? [`Categories: ${details.join(", ")}`] : undefined,
+      displayName,
     };
   }
 
-  if ('clothing' in type) {
+  if ("clothing" in type) {
     const details: string[] = [];
     if (type.clothing.is_menswear) details.push("Men's");
     if (type.clothing.is_womenswear) details.push("Women's");
     if (type.clothing.is_childrenswear) details.push("Children's");
 
     return {
-      category: 'Fashion',
-      subcategory: 'Clothing Store',
-      details: details.length > 0 ? [`Target: ${details.join(', ')}`] : undefined,
-      displayName
+      category: "Fashion",
+      subcategory: "Clothing Store",
+      details:
+        details.length > 0 ? [`Target: ${details.join(", ")}`] : undefined,
+      displayName,
     };
   }
 
   return {
-    category: 'Other',
-    displayName
+    category: "Other",
+    displayName,
   };
 }
