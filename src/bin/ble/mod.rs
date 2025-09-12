@@ -6,6 +6,8 @@ use crate::shared::CryptoError;
 
 #[derive(Debug, Clone)]
 pub enum BleMessage {
+    DeviceInquiry,
+    DeviceResponse([u8; 12]), // 12-byte MongoDB ObjectId
     NonceRequest,
     NonceResponse(Nonce),
     ProofSubmission(Proof),

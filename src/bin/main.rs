@@ -45,7 +45,7 @@ use esp_wifi::{ble::controller::BleConnector, init};
 use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::wifi::event::wifi_event_action_tx_status_t;
 use crate::ble::BleMessage;
-use crate::shared::constants::{NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
+use crate::shared::constants::{DEVICE_RESPONSE_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
 use reqwless::client::HttpClient;
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -147,6 +147,17 @@ fn main() -> ! {
         let proof_characteristic_handle = 0x00u16;
         let unlock_characteristic_handle = 0x00u16;
 
+        let mut wf_device_inquiry = |offset: usize, data: &[u8]| {};
+
+        let mut rf_device_response = |offset: usize, buffer: &mut [u8]| -> usize {
+            // Check the length of the buffer
+            if buffer.len() != DEVICE_RESPONSE_LENGTH {
+                0
+            } else {
+                DEVICE_RESPONSE_LENGTH
+            }
+        };
+
         let mut wf_nonce_request = |offset: usize, data: &[u8]| {};
 
         let mut rf_nonce_response = |offset: usize, buffer: &mut [u8]| -> usize {
@@ -170,8 +181,15 @@ fn main() -> ! {
         };
 
         gatt!([service {
-            uuid: "ab1ffeae-127c-422f-8e8d-1590229f67c0",
+            uuid: "134b1d88-cd91-8134-3e94-5c4052743845",
             characteristics: [
+                characteristic {
+                    name: "device_characteristic",
+                    uuid: "99d92823-9e38-72ff-6cf1-d2d593316af8",
+                    notify: true,
+                    read: rf_device_response,
+                    write: wf_device_inquiry,
+                },
                 characteristic {
                     name: "nonce_characteristic",
                     uuid: "49e595a0-3e9a-4831-8a3d-c63818783144",
@@ -181,13 +199,13 @@ fn main() -> ! {
                 },
                 characteristic {
                     name: "proof_characteristic",
-                    uuid: "9f3e943e-153e-441e-9d5e-3f0da83edc6f",
+                    uuid: "9f3e943e-153e-23e2-9d5e-3f0da83edc6f",
                     notify: false,
                     write: wf_proof_submission,
                 },
                 characteristic {
                     name: "unlock_characteristic",
-                    uuid: "d2b0f2e4-3c3a-4e5f-8e1d-7f4b6c8e9a0b",
+                    uuid: "d2b0f2e4-6c3a-4e5f-8e1d-7f4b6c8e9a0b",
                     notify: false,
                     read: rf_unlock_result,
                 },

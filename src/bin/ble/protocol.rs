@@ -22,6 +22,21 @@ impl BleProtocolHandler {
         self.send_buffer.clear();
 
         match message {
+            BleMessage::DeviceInquiry => {
+                self.send_buffer
+                    .push(DEVICE_INQUIRY)
+                    .map_err(|_| BleError::BufferFull)?;
+            }
+
+            BleMessage::DeviceResponse(object_id) => {
+                self.send_buffer
+                    .push(DEVICE_RESPONSE)
+                    .map_err(|_| BleError::BufferFull)?;
+                self.send_buffer
+                    .extend_from_slice(object_id)
+                    .map_err(|_| BleError::BufferFull)?;
+            }
+
             BleMessage::NonceRequest => {
                 self.send_buffer
                     .push(NONCE_REQUEST)
@@ -86,6 +101,19 @@ impl BleProtocolHandler {
         }
 
         match self.receive_buffer[0] {
+            DEVICE_INQUIRY => Ok(BleMessage::DeviceInquiry),
+
+            DEVICE_RESPONSE => {
+                if self.receive_buffer.len() != DEVICE_RESPONSE_LENGTH {
+                    return Err(BleError::ParseError);
+                }
+                let mut object_id = [0u8; DEVICE_LENGTH];
+                object_id.copy_from_slice(
+                    &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + DEVICE_LENGTH],
+                );
+                Ok(BleMessage::DeviceResponse(object_id))
+            }
+
             NONCE_REQUEST => Ok(BleMessage::NonceRequest),
 
             NONCE_RESPONSE => {
