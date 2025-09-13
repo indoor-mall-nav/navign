@@ -22,9 +22,9 @@ impl BleProtocolHandler {
         self.send_buffer.clear();
 
         match message {
-            BleMessage::DeviceInquiry => {
+            BleMessage::DeviceRequest => {
                 self.send_buffer
-                    .push(DEVICE_INQUIRY)
+                    .push(DEVICE_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
             }
 
@@ -52,9 +52,9 @@ impl BleProtocolHandler {
                     .map_err(|_| BleError::BufferFull)?;
             }
 
-            BleMessage::ProofSubmission(proof) => {
+            BleMessage::UnlockRequest(proof) => {
                 self.send_buffer
-                    .push(PROOF_SUBMISSION)
+                    .push(UNLOCK_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
                     .extend_from_slice(&proof.challenge_hash)
@@ -70,9 +70,9 @@ impl BleProtocolHandler {
                     .map_err(|_| BleError::BufferFull)?;
             }
 
-            BleMessage::UnlockResult(success, reason) => {
+            BleMessage::UnlockResponse(success, reason) => {
                 self.send_buffer
-                    .push(UNLOCK_RESULT)
+                    .push(UNLOCK_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
                     .push(if *success {
@@ -101,7 +101,7 @@ impl BleProtocolHandler {
         }
 
         match self.receive_buffer[0] {
-            DEVICE_INQUIRY => Ok(BleMessage::DeviceInquiry),
+            DEVICE_REQUEST => Ok(BleMessage::DeviceRequest),
 
             DEVICE_RESPONSE => {
                 if self.receive_buffer.len() != DEVICE_RESPONSE_LENGTH {
@@ -127,8 +127,8 @@ impl BleProtocolHandler {
                 Ok(BleMessage::NonceResponse(Nonce::from_bytes(&nonce_bytes)))
             }
 
-            PROOF_SUBMISSION => {
-                if self.receive_buffer.len() != PROOF_SUBMISSION_LENGTH {
+            UNLOCK_REQUEST => {
+                if self.receive_buffer.len() != UNLOCK_REQUEST_LENGTH {
                     return Err(BleError::ParseError);
                 }
                 let mut challenge_hash = [0u8; CHALLENGE_HASH_LENGTH];
@@ -151,7 +151,7 @@ impl BleProtocolHandler {
                         .try_into()
                         .unwrap(),
                 );
-                Ok(BleMessage::ProofSubmission(Proof {
+                Ok(BleMessage::UnlockRequest(Proof {
                     challenge_hash,
                     device_signature,
                     timestamp,
@@ -159,8 +159,8 @@ impl BleProtocolHandler {
                 }))
             }
 
-            UNLOCK_RESULT => {
-                if self.receive_buffer.len() != UNLOCK_RESULT_LENGTH {
+            UNLOCK_RESPONSE => {
+                if self.receive_buffer.len() != UNLOCK_RESPONSE_LENGTH {
                     return Err(BleError::ParseError);
                 }
                 let success = match self.receive_buffer[1] {
@@ -173,7 +173,7 @@ impl BleProtocolHandler {
                 } else {
                     CryptoError::deserialize(self.receive_buffer[2])
                 };
-                Ok(BleMessage::UnlockResult(success, reason))
+                Ok(BleMessage::UnlockResponse(success, reason))
             }
 
             _ => Err(BleError::ParseError),

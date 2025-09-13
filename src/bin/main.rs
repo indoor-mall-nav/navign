@@ -20,7 +20,7 @@ pub(crate) mod storage;
 
 use crate::ble::BleMessage;
 use crate::execute::BeaconState;
-use crate::shared::constants::{NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
+use crate::shared::constants::{DEVICE_REQUEST_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, UNLOCK_REQUEST_LENGTH, UNLOCK_RESPONSE_LENGTH};
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
@@ -64,7 +64,7 @@ fn main() -> ! {
 
     let human_body = Input::new(peripherals.GPIO6, InputConfig::default());
 
-    heap_allocator!(size: 128 * 1024);
+    heap_allocator!(size: 192 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
@@ -151,10 +151,23 @@ fn main() -> ! {
         #[allow(unused_mut)]
         let mut gatt_attributes: &[Attribute] = &[];
         // Here it would be defined in `gatt!` macro, but we need to inform the lsp to recognize them.
+        let device_characteristic_notify_enable_handle = 0x00u16;
+        let device_characteristic_handle = 0x00u16;
         let nonce_characteristic_notify_enable_handle = 0x00u16;
         let nonce_characteristic_handle = 0x00u16;
-        let proof_characteristic_handle = 0x00u16;
+        let unlock_characteristic_notify_enable_handle = 0x00u16;
         let unlock_characteristic_handle = 0x00u16;
+
+        let mut wf_device_request = |offset: usize, data: &[u8]| {};
+
+        let mut rf_device_response = |offset: usize, buffer: &mut [u8]| -> usize {
+            // Check the length of the buffer
+            if buffer.len() != NONCE_RESPONSE_LENGTH {
+                0
+            } else {
+                NONCE_RESPONSE_LENGTH
+            }
+        };
 
         let mut wf_nonce_request = |offset: usize, data: &[u8]| {};
 
@@ -171,10 +184,10 @@ fn main() -> ! {
 
         let mut rf_unlock_response = |offset: usize, buffer: &mut [u8]| -> usize {
             // Check the length of the buffer
-            if buffer.len() != UNLOCK_RESULT_LENGTH {
+            if buffer.len() != UNLOCK_RESPONSE_LENGTH {
                 0
             } else {
-                UNLOCK_RESULT_LENGTH
+                UNLOCK_RESPONSE_LENGTH
             }
         };
 
@@ -211,6 +224,26 @@ fn main() -> ! {
 
         loop {
             executor.check_executors(now());
+
+            let mut device_request = [0u8; DEVICE_REQUEST_LENGTH];
+            if let Some(1) =
+                srv.get_characteristic_value(device_characteristic_handle, 0, &mut device_request)
+            {
+                let message = executor.deserialize_message(&device_request).ok();
+                if let Some(BleMessage::DeviceRequest) = message {
+                    let response = BleMessage::DeviceResponse(device_id.clone());
+                    let result = executor.serialize_message(&response).ok();
+                    if let Some(data) = result {
+                        let notification = NotificationData::new(device_characteristic_notify_enable_handle, data);
+                        match srv.do_work_with_notification(Some(notification)) {
+                            Ok(_) => {}
+                            Err(err) => {
+                                println!("{:?}", err);
+                            }
+                        }
+                    }
+                }
+            }
             // Handle nonce requests
             let mut nonce_request = [0u8; NONCE_REQUEST_LENGTH];
             if let Some(1) =
@@ -222,7 +255,7 @@ fn main() -> ! {
                     let response = BleMessage::NonceResponse(challenge);
                     let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
-                        let notification = NotificationData::new(nonce_characteristic_handle, data);
+                        let notification = NotificationData::new(nonce_characteristic_notify_enable_handle, data);
                         match srv.do_work_with_notification(Some(notification)) {
                             Ok(_) => {}
                             Err(err) => {
@@ -233,12 +266,12 @@ fn main() -> ! {
                 }
             }
 
-            let mut proof_submission = [0u8; PROOF_SUBMISSION_LENGTH];
+            let mut proof_submission = [0u8; UNLOCK_REQUEST_LENGTH];
             if let Some(1) =
-                srv.get_characteristic_value(proof_characteristic_handle, 0, &mut proof_submission)
+                srv.get_characteristic_value(unlock_characteristic_handle, 0, &mut proof_submission)
             {
                 let message = executor.deserialize_message(&proof_submission).ok();
-                if let Some(BleMessage::ProofSubmission(proof)) = message {
+                if let Some(BleMessage::UnlockRequest(proof)) = message {
                     let current_timestamp = now();
                     let unlock_result = match executor.validate_proof(&proof, current_timestamp) {
                         Ok(_) => {
@@ -248,10 +281,10 @@ fn main() -> ! {
                         Err(e) => (false, Some(e)),
                     };
                     let response =
-                        ble::protocol::BleMessage::UnlockResult(unlock_result.0, unlock_result.1);
+                        BleMessage::UnlockResponse(unlock_result.0, unlock_result.1);
                     let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
-                        let notification = NotificationData::new(proof_characteristic_handle, data);
+                        let notification = NotificationData::new(unlock_characteristic_notify_enable_handle, data);
                         match srv.do_work_with_notification(Some(notification)) {
                             Ok(_) => {}
                             Err(err) => {

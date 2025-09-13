@@ -7,6 +7,7 @@ use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
 use esp_hal::rng::Rng;
+use esp_println::println;
 
 #[derive(Debug)]
 pub struct BeaconState<'a> {
@@ -20,16 +21,19 @@ pub struct BeaconState<'a> {
     pub buffer: BleProtocolHandler,
     pub last_open: u64,
     pub last_relay_on: u64,
+    pub triggered: bool,
 }
 
 impl<'a> BeaconState<'a> {
     pub fn new(
         private_key: [u8; 32],
         human_sensor: Input<'a>,
-        relay: Output<'a>,
-        open: Output<'a>,
+        mut relay: Output<'a>,
+        mut open: Output<'a>,
         rng: Rng,
     ) -> Self {
+        relay.set_low();
+        open.set_low();
         Self {
             human_sensor,
             relay,
@@ -41,6 +45,7 @@ impl<'a> BeaconState<'a> {
             challenge_manager: ChallengeManager::new(rng),
             last_open: 0,
             last_relay_on: 0,
+            triggered: false
         }
     }
 
@@ -62,22 +67,29 @@ impl<'a> BeaconState<'a> {
     /// If human sensor is not triggered, close it after 5 seconds.
     /// This is used for running in a loop.
     pub fn check_executors(&mut self, time: u64) {
-        if self.open.is_set_high() {
-            if self.human_sensor.is_high() {
+        if time % 500 == 0 {
+            println!("Checking executors at time: {}", time);
+            println!("Open state: {}", self.open.is_set_high());
+            println!("Human sensor state: {}", self.human_sensor.is_high());
+            println!("Last open time: {}", self.last_open);
+            println!("Relay state: {}", self.relay.is_set_high());
+            println!("Last relay on time: {}", self.last_relay_on);
+        }
+        if self.open.is_set_high() && !self.triggered {
+            if self.human_sensor.is_high() && self.relay.is_set_low() {
+                self.relay.set_high();
                 self.last_open = time;
+                self.triggered = true;
             }
-            if time - self.last_open > 5000 {
+            if time - self.last_open > 10_000 {
                 self.open.set_low();
             }
+
         }
 
-        if self.relay.is_set_high() && time - self.last_relay_on > 1000 {
+        if self.relay.is_set_high() && time - self.last_relay_on > 5_000 {
             self.relay.set_low();
-        }
-
-        if self.open.is_set_high() && self.relay.is_set_high() {
-            // This is an illegal case, and we need to turn off the relay immediately.
-            self.relay.set_low();
+            self.open.set_low();
         }
     }
 
