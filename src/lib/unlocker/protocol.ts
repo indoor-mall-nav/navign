@@ -1,3 +1,5 @@
+import { ObjectId } from "@/schema";
+
 /**
  * Protocol definitions for the Unlocker service.
  *
@@ -54,6 +56,25 @@ export enum UnlockerError {
   SERVER_PUBLIC_KEY_NOT_SET = 0x08,
 }
 
+export enum DeviceCapability {
+  UNLOCK_GATE = 1 << 0,
+  ENVIRONMENTAL_DATA = 1 << 1,
+  RSSI_CALIBRATION = 1 << 2,
+}
+
+export enum DeviceType {
+  MERCHANT,
+  PATHWAY,
+  CONNECTION,
+  TURNSTILE,
+}
+
+export interface InquiryResult {
+  type: DeviceType;
+  capabilities: DeviceCapability[];
+  id: ObjectId;
+}
+
 export const UNLOCKER_SERVICE_UUID = "134b1d88-cd91-8134-3e94-5c4052743845";
 export const DEVICE_CHARACTERISTIC_UUID =
   "99d92823-9e38-72ff-6cf1-d2d593316af8";
@@ -67,16 +88,41 @@ export function createNonceRequestPacket(): Uint8Array {
   return new Uint8Array([UnlockerProtocol.NONCE_REQUEST]);
 }
 
-// Example function to create an unlock command packet
-export function createUnlockCommandPacket(unlock: boolean): Uint8Array {
-  const unlockFlag = unlock ? 0x01 : 0x00;
-  return new Uint8Array([UnlockerProtocol.UNLOCK_COMMAND, unlockFlag]);
-}
-
 // Example function to parse a nonce response packet
 export function parseNonceResponsePacket(data: Uint8Array): Uint8Array | null {
   if (data[0] === UnlockerProtocol.NONCE_RESPONSE && data.length === 17) {
     return data.slice(1); // Return the 16-byte nonce
+  }
+  return null;
+}
+
+export function parseInquiryResponsePacket(
+  data: Uint8Array,
+): InquiryResult | null {
+  if (data[0] === UnlockerProtocol.DEVICE_RESPONSE && data.length === 27) {
+    const type = data[1] as DeviceType;
+    const capabilitiesByte = data[2];
+    const capabilities: DeviceCapability[] = [];
+    if (capabilitiesByte & DeviceCapability.UNLOCK_GATE) {
+      capabilities.push(DeviceCapability.UNLOCK_GATE);
+    }
+    if (capabilitiesByte & DeviceCapability.ENVIRONMENTAL_DATA) {
+      capabilities.push(DeviceCapability.ENVIRONMENTAL_DATA);
+    }
+    if (capabilitiesByte & DeviceCapability.RSSI_CALIBRATION) {
+      capabilities.push(DeviceCapability.RSSI_CALIBRATION);
+    }
+    const objectIdBytes = data.slice(3, 27);
+    const objectId = {
+      $oid: Array.from(objectIdBytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(""),
+    };
+    return {
+      type,
+      capabilities,
+      id: objectId,
+    } as InquiryResult;
   }
   return null;
 }

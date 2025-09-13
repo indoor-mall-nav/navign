@@ -51,10 +51,11 @@ pub struct BeaconInformation {
 
 pub async fn fetch_beacon_information(
     beacon_id: &str,
+    entity_id: &str,
     user_token: &str,
 ) -> Result<BeaconInformation> {
     match reqwest::Client::new()
-        .get(BASE_URL.to_string() + "api/unlocker/beacons/" + beacon_id)
+        .get(BASE_URL.to_string() + "api/entity/" + entity_id + "/hello/beacons/" + beacon_id)
         .header("Authorization", format!("Bearer {}", user_token))
         .send()
         .await

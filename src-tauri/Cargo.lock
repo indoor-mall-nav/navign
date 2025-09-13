@@ -2504,6 +2504,8 @@ dependencies = [
  "chrono",
  "digest",
  "p256",
+ "rand 0.9.2",
+ "rand_core 0.9.3",
  "rsa",
  "serde",
  "serde-big-array",
@@ -2518,6 +2520,7 @@ dependencies = [
  "tauri-plugin-http",
  "tauri-plugin-nfc",
  "tauri-plugin-opener",
+ "tokio",
 ]
 
 [[package]]

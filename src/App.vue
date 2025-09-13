@@ -29,6 +29,7 @@ import { Area, Beacon, Entity } from "@/schema";
 import { useSessionStore } from "@/states/session.ts";
 import { getIcon, Icon, loadIcon } from "@iconify/vue";
 import { RouterView } from "vue-router";
+import { unlockDevice } from "@/lib/unlocker";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -147,7 +148,7 @@ async function startTask() {
   await startScan(
     async (result) => {
       devices.value = result
-        .filter((x) => x.name.startsWith("BEACON"))
+        .filter((x) => x.name.includes("BEACON"))
         .map((x) => ({
           ...x,
           distance: rssiToDistance(x.rssi),
@@ -317,25 +318,7 @@ const stageSize = ref({
         <CardTitle>Active Area</CardTitle>
         <CardDescription>{{ activeArea.name }}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <v-stage
-          :config="stageSize"
-          v-if="polygonConfig.points.length > 0"
-          class="h-96"
-        >
-          <v-layer>
-            <v-line :config="polygonConfig" />
-            <v-image
-              v-if="locationImage.path"
-              :config="{
-                x: (activeBeaconDesc?.location[0] ?? 0) * 2,
-                y: (activeBeaconDesc?.location[1] ?? 0) * 2,
-                image: locationImage.path[0],
-              }"
-            />
-          </v-layer>
-        </v-stage>
-      </CardContent>
+      <CardContent> </CardContent>
     </Card>
     <!--    <Button @click="startTask">Start Scanning</Button>-->
     <!--    {{ // JSON.stringify(devices.map((x) => x.name).filter(Boolean)) }}-->
@@ -347,12 +330,11 @@ const stageSize = ref({
       </CardHeader>
       <CardContent>
         <p>RSSI: {{ device.rssi }}</p>
-        <p>Distance: {{ device.distance.toFixed(2) }} m</p>
         <p>UUID: {{ JSON.stringify(device.serviceData) }}</p>
         <p>Manufacturer Data: {{ JSON.stringify(device.manufacturerData) }}</p>
       </CardContent>
       <CardAction>
-        <Button>Connect</Button>
+        <Button @click="unlockDevice(device)">Unlock</Button>
       </CardAction>
     </Card>
     <Card class="mx-2" v-if="switchEntities && entities.length > 0">

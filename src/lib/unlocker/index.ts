@@ -1,6 +1,7 @@
-import { type BleDevice, connect, send, read } from "@mnlphlp/plugin-blec";
+import { type BleDevice, connect, read, send } from "@mnlphlp/plugin-blec";
 import { invoke } from "@tauri-apps/api/core";
 import * as protocol from "./protocol";
+import { DeviceCapability } from "./protocol";
 import { authenticate, type AuthOptions } from "@tauri-apps/plugin-biometric";
 
 export interface Challenge {
@@ -27,8 +28,16 @@ export interface DeviceProof {
   counter: number;
 }
 
-async function unlockDevice(device: BleDevice) {
+export async function unlockDevice(device: BleDevice) {
   try {
+    if (device.name !== "NAVIGN-BEACON") {
+      throw new Error("Unsupported device");
+    }
+
+    if (device.rssi < -70) {
+      throw new Error("Device is out of range");
+    }
+
     // Stage 0: Connect to the device
     await connect(device.address, () => {
       console.log("Device disconnected");
@@ -44,16 +53,20 @@ async function unlockDevice(device: BleDevice) {
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Inquiry request sent");
-    const deviceResponse = await read(
+    const inquiryResult = await read(
       protocol.DEVICE_CHARACTERISTIC_UUID,
       protocol.UNLOCKER_SERVICE_UUID,
     );
-    console.log("Device response received:", deviceResponse);
-    if (deviceResponse.length !== 17 || deviceResponse[0] !== 0x01) {
-      throw new Error("Invalid device response");
+    console.log("Inquiry response received:", inquiryResult);
+    const result = protocol.parseInquiryResponsePacket(inquiryResult);
+    if (!result) {
+      throw new Error("Invalid inquiry response");
     }
-    const objectId = deviceResponse.slice(1);
-    console.log("Object ID:", Buffer.from(objectId).toString("hex"));
+    console.log("Inquiry result:", result);
+    const objectId = result.id.$oid;
+    if (!result.capabilities.includes(DeviceCapability.UNLOCK_GATE)) {
+      throw new Error("Device does not support unlocking");
+    }
 
     // Stage 2: Request a nonce from the device.
     const nonceRequest = protocol.createNonceRequestPacket();

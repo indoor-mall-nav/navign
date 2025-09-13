@@ -34,6 +34,9 @@ rsa = "0.9.8"
 chrono = "0.4.42"
 serde-big-array = "0.5.1"
 digest = { version = "0.10.7", features = ["mac", "std"] }
+rand = "0.9.2"
+rand_core = { version = "0.9.3", features = ["std", "os_rng"] }
+tokio = { version = "1.47.1", features = ["sync"] }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"

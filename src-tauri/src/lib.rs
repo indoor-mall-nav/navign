@@ -1,8 +1,10 @@
 use crate::unlocker::{Challenge, DeviceProof, Unlocker};
-use anyhow::Result;
 use base64::Engine;
-use std::sync::Mutex;
-use tauri::State;
+use p256::ecdsa::{SigningKey, VerifyingKey};
+use p256::elliptic_curve::rand_core::OsRng;
+use std::sync::Arc;
+use tauri::{Manager, State};
+use tokio::sync::Mutex;
 
 pub(crate) mod api;
 pub(crate) mod shared;
@@ -19,29 +21,38 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 async fn request_challenge(
-    state: State<'_, Mutex<Unlocker>>,
+    state: State<'_, Arc<Mutex<Unlocker>>>,
     nonce: String,
+    entity: String,
     beacon: String,
-) -> Result<Challenge> {
-    let nonce =
-        TryInto::<[u8; 16]>::try_into(base64::engine::general_purpose::STANDARD.decode(nonce)?)
-            .map_err(|_| anyhow::anyhow!("Invalid nonce length"))?;
-    state
+) -> Result<Challenge, ()> {
+    let nonce = TryInto::<[u8; 16]>::try_into(
+        base64::engine::general_purpose::STANDARD
+            .decode(nonce)
+            .map_err(|_| ())?,
+    )
+    .map_err(|_| ())?;
+    let result = state
         .lock()
-        .map_err(|e| anyhow::anyhow!("Could not get the state manager."))?
-        .request_unlock(nonce, beacon)
         .await
+        .request_unlock(nonce, entity, beacon)
+        .await
+        .map_err(|_| ())?;
+
+    Ok(result)
 }
 
 #[tauri::command]
 async fn generate_device_proof(
-    state: State<'_, Mutex<Unlocker>>,
+    state: State<'_, Arc<Mutex<Unlocker>>>,
     challenge: Challenge,
-) -> Result<DeviceProof> {
-    state
+) -> Result<DeviceProof, ()> {
+    let result = state
         .lock()
-        .map_err(|e| anyhow::anyhow!("Could not get the state manager."))?
+        .await
         .generate_device_proof(&challenge)
+        .map_err(|_| ())?;
+    Ok(result)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -50,6 +61,14 @@ pub fn run() {
         .setup(|app| {
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
+            let example_public_key = [0u8; 32];
+            let state = Arc::new(Mutex::new(Unlocker::new(
+                SigningKey::random(&mut OsRng),
+                (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+                "example_user".to_string(),
+                "example_token".to_string(),
+            )));
+            app.manage(state);
             #[cfg(mobile)]
             app.handle().plugin(tauri_plugin_biometric::init())?;
             #[cfg(mobile)]
@@ -63,6 +82,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![request_challenge])
+        .invoke_handler(tauri::generate_handler![generate_device_proof])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

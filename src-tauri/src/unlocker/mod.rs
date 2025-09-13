@@ -56,14 +56,20 @@ impl Unlocker {
         &self.user_token
     }
 
-    pub async fn request_unlock(&self, nonce: [u8; 16], beacon: String) -> Result<Challenge> {
+    pub async fn request_unlock(
+        &self,
+        nonce: [u8; 16],
+        entity: String,
+        beacon: String,
+    ) -> Result<Challenge> {
         let device_timestamp = chrono::Utc::now().timestamp() as u64;
         let beacon_information =
-            fetch_beacon_information(beacon.as_str(), &self.user_token).await?;
+            fetch_beacon_information(beacon.as_str(), entity.as_str(), &self.user_token).await?;
         // beacon timestamp regards the epoch time as 0 in its clock, so we need to add the epoch time to it.
         let timestamp = beacon_information
             .epoch_time
-            .saturating_add(beacon_information.major as u64);
+            .checked_add(device_timestamp)
+            .ok_or_else(|| anyhow::anyhow!("Timestamp overflow"))?;
         request_unlock_permission(nonce, beacon, timestamp, &self.user_token).await
     }
 
