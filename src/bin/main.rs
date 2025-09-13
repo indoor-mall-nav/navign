@@ -48,6 +48,8 @@ use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
 use smoltcp::iface::{SocketSet, SocketStorage};
 use blocking_network_stack::Stack;
+use heapless::Vec;
+use crate::shared::{DeviceCapability, DeviceType};
 // use reqwless::client::
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -83,7 +85,10 @@ fn main() -> ! {
 
     let debounce_cnt = 500;
 
-    let device_id = b"68a47c2a7f3f39855509523f";
+    let device_id = b"68a84b6ebdfa76608b934b0a";
+    let device_type = DeviceType::Merchant;
+    let mut capabilities = Vec::<DeviceCapability, 3>::new();
+    capabilities.push(DeviceCapability::UnlockGate).unwrap();
 
     let mut bluetooth = peripherals.BT;
 
@@ -127,6 +132,7 @@ fn main() -> ! {
 
     #[allow(clippy::never_loop)]
     loop {
+        executor.set_open(true, now());
         executor.check_executors(now());
         let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow());
         let hci = HciConnector::new(connector, now);
@@ -231,7 +237,7 @@ fn main() -> ! {
             {
                 let message = executor.deserialize_message(&device_request).ok();
                 if let Some(BleMessage::DeviceRequest) = message {
-                    let response = BleMessage::DeviceResponse(device_id.clone());
+                    let response = BleMessage::DeviceResponse(device_type, capabilities.clone(), device_id.clone());
                     let result = executor.serialize_message(&response).ok();
                     if let Some(data) = result {
                         let notification = NotificationData::new(device_characteristic_notify_enable_handle, data);

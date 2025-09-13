@@ -1,7 +1,7 @@
 use super::super::crypto::{Nonce, Proof};
 pub(crate) use super::BleMessage;
 use crate::shared::constants::*;
-use crate::shared::{BleError, CryptoError};
+use crate::shared::{BleError, CryptoError, DeviceCapability, DeviceType};
 use heapless::Vec;
 
 #[derive(Debug)]
@@ -28,9 +28,15 @@ impl BleProtocolHandler {
                     .map_err(|_| BleError::BufferFull)?;
             }
 
-            BleMessage::DeviceResponse(object_id) => {
+            BleMessage::DeviceResponse(device_type, capabilities, object_id) => {
                 self.send_buffer
                     .push(DEVICE_RESPONSE)
+                    .map_err(|_| BleError::BufferFull)?;
+                self.send_buffer
+                    .push(device_type.serialize())
+                    .map_err(|_| BleError::BufferFull)?;
+                self.send_buffer
+                    .push(DeviceCapability::serialize(&capabilities))
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer
                     .extend_from_slice(object_id)
@@ -107,11 +113,16 @@ impl BleProtocolHandler {
                 if self.receive_buffer.len() != DEVICE_RESPONSE_LENGTH {
                     return Err(BleError::ParseError);
                 }
-                let mut object_id = [0u8; DEVICE_LENGTH];
+                let device_type_byte = &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + DEVICE_TYPE_LENGTH];
+                let device_type = DeviceType::deserialize(device_type_byte[0])
+                    .ok_or(BleError::ParseError)?;
+                let capability_byte = &self.receive_buffer[DEVICE_CAPABILITY_OFFSET..DEVICE_CAPABILITY_OFFSET + DEVICE_CAPABILITY_LENGTH];
+                let capabilities = crate::shared::DeviceCapability::deserialize(capability_byte[0]);
+                let mut object_id = [0u8; DEVICE_ID_LENGTH];
                 object_id.copy_from_slice(
-                    &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + DEVICE_LENGTH],
+                    &self.receive_buffer[DEVICE_ID_OFFSET..DEVICE_ID_OFFSET + DEVICE_ID_LENGTH],
                 );
-                Ok(BleMessage::DeviceResponse(object_id))
+                Ok(BleMessage::DeviceResponse(device_type, capabilities, object_id))
             }
 
             NONCE_REQUEST => Ok(BleMessage::NonceRequest),
