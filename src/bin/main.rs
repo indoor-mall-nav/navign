@@ -20,18 +20,15 @@ pub(crate) mod storage;
 
 use crate::ble::BleMessage;
 use crate::execute::BeaconState;
-use crate::shared::constants::{
-    DEVICE_RESPONSE_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH,
-    UNLOCK_RESULT_LENGTH,
-};
+use crate::shared::constants::{NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, PROOF_SUBMISSION_LENGTH, UNLOCK_RESULT_LENGTH};
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
     },
     attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
+    attribute::Attribute
 };
-use core::cell::RefCell;
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
@@ -45,11 +42,13 @@ use esp_hal::{
     time,
     timer::timg::TimerGroup,
 };
+use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_println::println;
-use esp_wifi::wifi::event::wifi_event_action_tx_status_t;
 use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
-use reqwless::client::HttpClient;
+use smoltcp::iface::{SocketSet, SocketStorage};
+use blocking_network_stack::Stack;
+// use reqwless::client::
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -72,7 +71,9 @@ fn main() -> ! {
 
     let mut rng = Rng::new(peripherals.RNG);
 
-    let mut executor = BeaconState::new([0u8; 32], human_body, trigger, led, rng.clone());
+    let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
+
+    let mut executor = BeaconState::new(private_key, human_body, trigger, led, rng.clone());
 
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
 
@@ -82,22 +83,28 @@ fn main() -> ! {
 
     let debounce_cnt = 500;
 
+    let device_id = b"68a47c2a7f3f39855509523f";
+
     let mut bluetooth = peripherals.BT;
 
     let now = || time::Instant::now().duration_since_epoch().as_millis();
 
     let (mut wifi_controller, interfaces) =
         esp_wifi::wifi::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
-    let mut devices = interfaces.sta;
+    let mut device = interfaces.sta;
     let iface = smoltcp::iface::Interface::new(
         smoltcp::iface::Config::new(smoltcp::wire::HardwareAddress::Ethernet(
-            smoltcp::wire::EthernetAddress::from_bytes(&devices.mac_address()),
+            smoltcp::wire::EthernetAddress::from_bytes(&device.mac_address()),
         )),
-        &mut devices,
+        &mut device,
         smoltcp::time::Instant::from_micros(
             time::Instant::now().duration_since_epoch().as_micros() as i64,
         ),
     );
+
+    let mut socket_set_entries: [SocketStorage; 3] = Default::default();
+    let mut socket_set = SocketSet::new(&mut socket_set_entries[..]);
+    let mut dhcp_socket = smoltcp::socket::dhcpv4::Socket::new();
 
     let wifi_config = Configuration::Client(esp_wifi::wifi::ClientConfiguration {
         ssid: "ssid".into(),
@@ -115,6 +122,8 @@ fn main() -> ! {
     }
 
     wifi_controller.connect().ok();
+
+    let stack = Stack::new(iface, device, socket_set, now, rng.random());
 
     #[allow(clippy::never_loop)]
     loop {
@@ -147,17 +156,6 @@ fn main() -> ! {
         let proof_characteristic_handle = 0x00u16;
         let unlock_characteristic_handle = 0x00u16;
 
-        let mut wf_device_inquiry = |offset: usize, data: &[u8]| {};
-
-        let mut rf_device_response = |offset: usize, buffer: &mut [u8]| -> usize {
-            // Check the length of the buffer
-            if buffer.len() != DEVICE_RESPONSE_LENGTH {
-                0
-            } else {
-                DEVICE_RESPONSE_LENGTH
-            }
-        };
-
         let mut wf_nonce_request = |offset: usize, data: &[u8]| {};
 
         let mut rf_nonce_response = |offset: usize, buffer: &mut [u8]| -> usize {
@@ -169,9 +167,9 @@ fn main() -> ! {
             }
         };
 
-        let mut wf_proof_submission = |offset: usize, data: &[u8]| {};
+        let mut wf_unlock_request = |offset: usize, data: &[u8]| {};
 
-        let mut rf_unlock_result = |offset: usize, buffer: &mut [u8]| -> usize {
+        let mut rf_unlock_response = |offset: usize, buffer: &mut [u8]| -> usize {
             // Check the length of the buffer
             if buffer.len() != UNLOCK_RESULT_LENGTH {
                 0
@@ -187,8 +185,7 @@ fn main() -> ! {
                     name: "device_characteristic",
                     uuid: "99d92823-9e38-72ff-6cf1-d2d593316af8",
                     notify: true,
-                    read: rf_device_response,
-                    write: wf_device_inquiry,
+                    value: device_id,
                 },
                 characteristic {
                     name: "nonce_characteristic",
@@ -198,16 +195,11 @@ fn main() -> ! {
                     write: wf_nonce_request,
                 },
                 characteristic {
-                    name: "proof_characteristic",
-                    uuid: "9f3e943e-153e-23e2-9d5e-3f0da83edc6f",
-                    notify: false,
-                    write: wf_proof_submission,
-                },
-                characteristic {
                     name: "unlock_characteristic",
                     uuid: "d2b0f2e4-6c3a-4e5f-8e1d-7f4b6c8e9a0b",
-                    notify: false,
-                    read: rf_unlock_result,
+                    notify: true,
+                    read: rf_unlock_response,
+                    write: wf_unlock_request,
                 },
             ],
         },]);
@@ -219,7 +211,6 @@ fn main() -> ! {
 
         loop {
             executor.check_executors(now());
-
             // Handle nonce requests
             let mut nonce_request = [0u8; NONCE_REQUEST_LENGTH];
             if let Some(1) =

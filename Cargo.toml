@@ -31,28 +31,23 @@ esp-wifi = { version = "0.15.0", features = [
   "smoltcp",
   "wifi",
 ] }
-smoltcp = { version = "0.12.0", default-features = false, features = [
-  "medium-ethernet",
-  "multicast",
-  "proto-dhcpv4",
-  "proto-dns",
-  "proto-ipv4",
-  "socket-dns",
-  "socket-icmp",
-  "socket-raw",
-  "socket-tcp",
-  "socket-udp",
-] }
+smoltcp = { version = "0.12.0", default-features = false, features = ["medium-ethernet", "multicast", "proto-dhcpv4", "proto-dns", "proto-ipv4", "socket-dns", "socket-icmp", "socket-raw", "socket-tcp", "socket-udp", "socket-dhcpv4"] }
+esp-mbedtls = { git = "https://github.com/esp-rs/esp-mbedtls.git", features = ["esp32c3"] }
 esp-backtrace = { version = "0.17.0", features = ["esp32c3", "println", "panic-handler"] }
 esp-println = { version = "0.15.0", features = ["auto", "esp32c3", "log-04"] }
 cfg-if = "1.0.1"
 heapless = { version = "0.9.1" }
-hex = { version = "0.4.3", default-features = false }
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 p256 = { version = "0.13.2", default-features = false, features = ["sha256", "ecdsa"] }
 sha2 = { version = "0.10.9", default-features = false }
 esp-storage = { version = "0.7.0", features = ["esp32c3"] }
-reqwless = "0.13.0"
-embedded-nal-async = "0.8.0"
+reqwless = { version = "0.13.0", features = ["log"] }
+serde-json-core = { version = "0.6.0", features = ["heapless"] }
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+embedded-nal = "0.9.0"
+nb = "1.1.0"
+futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"] }
+blocking-network-stack = { git = "https://github.com/bjoernQ/blocking-network-stack.git", rev = "b3ecefc222d8806edd221f266999ca339c52d34e" }
 
 
 
