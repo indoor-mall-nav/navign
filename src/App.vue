@@ -137,6 +137,7 @@ async function getGeolocation() {
 
 async function startTask() {
   greetMsg.value = "Scanning Started";
+  console.log("Starting authentication...");
   await authenticate("Please authenticate to start scanning")
     .then((res) => {
       console.log("Authentication successful:", res);
@@ -147,6 +148,7 @@ async function startTask() {
     });
   await startScan(
     async (result) => {
+      console.log('devices', result.filter(x => x.name.includes('BEACON')))
       devices.value = result
         .filter((x) => x.name.includes("BEACON"))
         .map((x) => ({
@@ -323,7 +325,7 @@ const stageSize = ref({
     <!--    <Button @click="startTask">Start Scanning</Button>-->
     <!--    {{ // JSON.stringify(devices.map((x) => x.name).filter(Boolean)) }}-->
     <!--    {{ JSON.stringify(geolocation) }}-->
-    <Card v-for="device in [] as BleDevice[]" :key="device.name">
+    <Card v-for="device in devices" :key="device.name">
       <CardHeader>
         <CardTitle>{{ device.name }}</CardTitle>
         <CardDescription>{{ device.address }}</CardDescription>

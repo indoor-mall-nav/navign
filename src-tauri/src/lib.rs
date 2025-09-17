@@ -64,7 +64,7 @@ pub fn run() {
             let example_public_key = [0u8; 32];
             let state = Arc::new(Mutex::new(Unlocker::new(
                 SigningKey::random(&mut OsRng),
-                (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+                (*SigningKey::random(&mut OsRng).verifying_key()),
                 "example_user".to_string(),
                 "example_token".to_string(),
             )));

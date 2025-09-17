@@ -39,22 +39,25 @@ export async function unlockDevice(device: BleDevice) {
     }
 
     // Stage 0: Connect to the device
+    console.log("Connecting to device:", device);
+
     await connect(device.address, () => {
       console.log("Device disconnected");
     });
     console.log("Connected to device");
 
     // Stage 1: Inquire device about its ObjectId.
+    console.log('Sending device inquiry request...', protocol.UNLOCKER_CHARACTERISTIC_UUID);
     const deviceInquiry = new Uint8Array([0x01]);
     await send(
-      protocol.DEVICE_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       deviceInquiry,
-      "withResponse",
+      "withoutResponse",
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Inquiry request sent");
     const inquiryResult = await read(
-      protocol.DEVICE_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Inquiry response received:", inquiryResult);
@@ -71,14 +74,14 @@ export async function unlockDevice(device: BleDevice) {
     // Stage 2: Request a nonce from the device.
     const nonceRequest = protocol.createNonceRequestPacket();
     await send(
-      protocol.NONCE_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       nonceRequest,
       "withResponse",
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Nonce request sent");
     const nonceResponse = await read(
-      protocol.NONCE_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Nonce response received:", nonceResponse);
@@ -129,14 +132,14 @@ export async function unlockDevice(device: BleDevice) {
       BigInt(proof.counter),
     );
     await send(
-      protocol.PROOF_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       proofPacket,
       "withResponse",
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Proof submission sent");
     const proofResponse = await read(
-      protocol.PROOF_CHARACTERISTIC_UUID,
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
       protocol.UNLOCKER_SERVICE_UUID,
     );
     console.log("Proof response received:", proofResponse);

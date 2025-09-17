@@ -76,12 +76,8 @@ export interface InquiryResult {
 }
 
 export const UNLOCKER_SERVICE_UUID = "134b1d88-cd91-8134-3e94-5c4052743845";
-export const DEVICE_CHARACTERISTIC_UUID =
+export const UNLOCKER_CHARACTERISTIC_UUID =
   "99d92823-9e38-72ff-6cf1-d2d593316af8";
-export const NONCE_CHARACTERISTIC_UUID = "49e595a0-3e9a-4831-8a3d-c63818783144";
-export const PROOF_CHARACTERISTIC_UUID = "9f3e943e-153e-23e2-9d5e-3f0da83edc6f";
-export const UNLOCK_CHARACTERISTIC_UUID =
-  "d2b0f2e4-6c3a-4e5f-8e1d-7f4b6c8e9a0b";
 
 // Example function to create a nonce request packet
 export function createNonceRequestPacket(): Uint8Array {
