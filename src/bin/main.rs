@@ -10,6 +10,7 @@
 
 #![no_std]
 #![no_main]
+extern crate alloc;
 
 pub(crate) mod ble;
 pub(crate) mod crypto;
@@ -18,9 +19,11 @@ mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
+use alloc::rc::Rc;
+use core::cell::RefCell;
 use crate::ble::BleMessage;
 use crate::execute::BeaconState;
-use crate::shared::constants::{DEVICE_REQUEST_LENGTH, NONCE_REQUEST_LENGTH, NONCE_RESPONSE_LENGTH, UNLOCK_REQUEST_LENGTH, UNLOCK_RESPONSE_LENGTH};
+use crate::shared::constants::*;
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
@@ -29,6 +32,7 @@ use bleps::{
     gatt, Ble, HciConnector,
     attribute::Attribute
 };
+use bleps::attribute_server::WorkResult;
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
@@ -49,6 +53,7 @@ use esp_wifi::{ble::controller::BleConnector, init};
 use smoltcp::iface::{SocketSet, SocketStorage};
 use blocking_network_stack::Stack;
 use heapless::Vec;
+use crate::ble::protocol::BleProtocolHandler;
 use crate::shared::{DeviceCapability, DeviceType};
 // use reqwless::client::
 
@@ -76,6 +81,8 @@ fn main() -> ! {
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
     let mut executor = BeaconState::new(private_key, human_body, trigger, led, rng.clone());
+    
+    let mut executor = Rc::new(RefCell::new(executor));
 
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
 
@@ -132,8 +139,7 @@ fn main() -> ! {
 
     #[allow(clippy::never_loop)]
     loop {
-        executor.set_open(true, now());
-        executor.check_executors(now());
+        Rc::clone(&executor).borrow_mut().check_executors(now());
         let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow());
         let hci = HciConnector::new(connector, now);
         let mut ble = Ble::new(&hci);
@@ -157,68 +163,62 @@ fn main() -> ! {
         #[allow(unused_mut)]
         let mut gatt_attributes: &[Attribute] = &[];
         // Here it would be defined in `gatt!` macro, but we need to inform the lsp to recognize them.
-        let device_characteristic_notify_enable_handle = 0x00u16;
-        let device_characteristic_handle = 0x00u16;
-        let nonce_characteristic_notify_enable_handle = 0x00u16;
-        let nonce_characteristic_handle = 0x00u16;
-        let unlock_characteristic_notify_enable_handle = 0x00u16;
-        let unlock_characteristic_handle = 0x00u16;
+        let unlock_service_notify_enable_handle = 0x00u16;
+        let unlock_service_handle = 0x00u16;
 
-        let mut wf_device_request = |offset: usize, data: &[u8]| {};
-
-        let mut rf_device_response = |offset: usize, buffer: &mut [u8]| -> usize {
-            // Check the length of the buffer
-            if buffer.len() != NONCE_RESPONSE_LENGTH {
-                0
-            } else {
-                NONCE_RESPONSE_LENGTH
-            }
+        let mut wf = |offset: usize, data: &[u8]| {
+            println!("Write at offset {}: {:x?}", offset, data);
+            Rc::clone(&executor).borrow_mut().buffer.store_message(data).ok();
         };
 
-        let mut wf_nonce_request = |offset: usize, data: &[u8]| {};
-
-        let mut rf_nonce_response = |offset: usize, buffer: &mut [u8]| -> usize {
+        let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
             // Check the length of the buffer
-            if buffer.len() != NONCE_RESPONSE_LENGTH {
-                0
-            } else {
-                NONCE_RESPONSE_LENGTH
+            let identifier = buffer.get(0).copied().unwrap_or(0);
+            let expected_length = match identifier {
+                DEVICE_REQUEST => {
+                    DEVICE_REQUEST_LENGTH
+                }
+                DEVICE_RESPONSE => {
+                    DEVICE_RESPONSE_LENGTH
+                }
+                NONCE_REQUEST => {
+                    NONCE_REQUEST_LENGTH
+                }
+                NONCE_RESPONSE => {
+                    NONCE_RESPONSE_LENGTH
+                }
+                UNLOCK_REQUEST => {
+                    UNLOCK_REQUEST_LENGTH
+                }
+                UNLOCK_RESPONSE => {
+                    UNLOCK_RESPONSE_LENGTH
+                }
+                _ => 0
+            };
+            if buffer.len() < expected_length {
+                println!("Buffer too small: expected {}, got {}", expected_length, buffer.len());
+                return 0;
             }
-        };
 
-        let mut wf_unlock_request = |offset: usize, data: &[u8]| {};
-
-        let mut rf_unlock_response = |offset: usize, buffer: &mut [u8]| -> usize {
-            // Check the length of the buffer
-            if buffer.len() != UNLOCK_RESPONSE_LENGTH {
-                0
-            } else {
-                UNLOCK_RESPONSE_LENGTH
+            if buffer.len() > MAX_PACKET_SIZE {
+                println!("Buffer too large: expected at most {}, got {}", MAX_PACKET_SIZE, buffer.len());
+                return 0;
             }
+
+            println!("Read at offset {}: {:x?}", offset, &buffer[..expected_length]);
+            expected_length
         };
 
         gatt!([service {
             uuid: "134b1d88-cd91-8134-3e94-5c4052743845",
             characteristics: [
                 characteristic {
-                    name: "device_characteristic",
+                    name: "unlock_service",
+                    description: "Unlock Service",
                     uuid: "99d92823-9e38-72ff-6cf1-d2d593316af8",
                     notify: true,
-                    value: device_id,
-                },
-                characteristic {
-                    name: "nonce_characteristic",
-                    uuid: "49e595a0-3e9a-4831-8a3d-c63818783144",
-                    notify: true,
-                    read: rf_nonce_response,
-                    write: wf_nonce_request,
-                },
-                characteristic {
-                    name: "unlock_characteristic",
-                    uuid: "d2b0f2e4-6c3a-4e5f-8e1d-7f4b6c8e9a0b",
-                    notify: true,
-                    read: rf_unlock_response,
-                    write: wf_unlock_request,
+                    read: rf,
+                    write: wf,
                 },
             ],
         },]);
@@ -229,75 +229,61 @@ fn main() -> ! {
         let mut srv = AttributeServer::new(&mut ble, &mut gatt_attributes, &mut no_rng);
 
         loop {
-            executor.check_executors(now());
+            let mut instance = Rc::clone(&executor);
+            instance.borrow_mut().check_executors(now());
 
-            let mut device_request = [0u8; DEVICE_REQUEST_LENGTH];
+            let mut notification = None;
+            let mut receive_buffer = [0u8; MAX_PACKET_SIZE];
+            let mut send_buffer = [0u8; MAX_PACKET_SIZE];
+
             if let Some(1) =
-                srv.get_characteristic_value(device_characteristic_handle, 0, &mut device_request)
+                srv.get_characteristic_value(unlock_service_notify_enable_handle, 0, &mut receive_buffer)
             {
-                let message = executor.deserialize_message(&device_request).ok();
-                if let Some(BleMessage::DeviceRequest) = message {
-                    let response = BleMessage::DeviceResponse(device_type, capabilities.clone(), device_id.clone());
-                    let result = executor.serialize_message(&response).ok();
-                    if let Some(data) = result {
-                        let notification = NotificationData::new(device_characteristic_notify_enable_handle, data);
-                        match srv.do_work_with_notification(Some(notification)) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                println!("{:?}", err);
+                println!("Device request notify enabled: {:x?}", receive_buffer);
+                if receive_buffer[0] != 0x00 {
+                    println!("Device request received raw: {:x?}", receive_buffer);
+                }
+                let message = instance.borrow_mut().deserialize_message(None).ok();
+                println!("Request received: {:?}", message);
+                let response: Option<BleMessage> = match message {
+                    Some(BleMessage::DeviceRequest) => {
+                        let result = (device_type, capabilities.clone(), device_id.clone());
+                        Some(result.into())
+                    }
+                    Some(BleMessage::NonceRequest) => {
+                        let nonce = instance.borrow_mut().generate_nonce(&mut rng);
+                        Some(nonce.into())
+                    }
+                    Some(BleMessage::UnlockRequest(ref proof)) => {
+                        let unlock_result = match instance.borrow_mut().validate_proof(&proof, now()) {
+                            Ok(_) => {
+                                instance.borrow_mut().set_open(true, now());
+                                (true, None)
                             }
-                        }
+                            Err(e) => (false, Some(e)),
+                        };
+                        Some(unlock_result.into())
+                    }
+                    _ => None
+                };
+                if let Some(resp) = response {
+                    let result = instance.borrow_mut().serialize_message(&resp).ok();
+                    if let Some(data) = result {
+                        send_buffer.fill(0);
+                        send_buffer[..data.len()].copy_from_slice(&data);
+                        notification = Some(NotificationData::new(unlock_service_handle, &send_buffer));
                     }
                 }
             }
-            // Handle nonce requests
-            let mut nonce_request = [0u8; NONCE_REQUEST_LENGTH];
-            if let Some(1) =
-                srv.get_characteristic_value(nonce_characteristic_handle, 0, &mut nonce_request)
-            {
-                let message = executor.deserialize_message(&nonce_request).ok();
-                if let Some(BleMessage::NonceRequest) = message {
-                    let challenge = executor.generate_nonce(&mut rng);
-                    let response = BleMessage::NonceResponse(challenge);
-                    let result = executor.serialize_message(&response).ok();
-                    if let Some(data) = result {
-                        let notification = NotificationData::new(nonce_characteristic_notify_enable_handle, data);
-                        match srv.do_work_with_notification(Some(notification)) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                println!("{:?}", err);
-                            }
-                        }
+
+            match srv.do_work_with_notification(notification) {
+                Ok(res) => {
+                    if let WorkResult::GotDisconnected = res {
+                        break;
                     }
                 }
-            }
-
-            let mut proof_submission = [0u8; UNLOCK_REQUEST_LENGTH];
-            if let Some(1) =
-                srv.get_characteristic_value(unlock_characteristic_handle, 0, &mut proof_submission)
-            {
-                let message = executor.deserialize_message(&proof_submission).ok();
-                if let Some(BleMessage::UnlockRequest(proof)) = message {
-                    let current_timestamp = now();
-                    let unlock_result = match executor.validate_proof(&proof, current_timestamp) {
-                        Ok(_) => {
-                            executor.set_open(true, now());
-                            (true, None)
-                        }
-                        Err(e) => (false, Some(e)),
-                    };
-                    let response =
-                        BleMessage::UnlockResponse(unlock_result.0, unlock_result.1);
-                    let result = executor.serialize_message(&response).ok();
-                    if let Some(data) = result {
-                        let notification = NotificationData::new(unlock_characteristic_notify_enable_handle, data);
-                        match srv.do_work_with_notification(Some(notification)) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                println!("{:?}", err);
-                            }
-                        }
-                    }
+                Err(err) => {
+                    println!("{:?}", err);
                 }
             }
         }

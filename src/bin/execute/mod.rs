@@ -2,7 +2,7 @@ use crate::ble::protocol::BleProtocolHandler;
 use crate::crypto::challenge::{Challenge, ChallengeManager};
 use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
-use crate::shared::constants::MAX_ATTEMPTS;
+use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
 use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
@@ -17,8 +17,8 @@ pub struct BeaconState<'a> {
     pub unlock_attempts: u8,
     pub nonce_manager: NonceManager<32>,
     pub challenge_manager: ChallengeManager,
-    pub proof_manager: ProofManager,
     pub buffer: BleProtocolHandler,
+    pub proof_manager: ProofManager,
     pub last_open: u64,
     pub last_relay_on: u64,
     pub triggered: bool,
@@ -67,7 +67,7 @@ impl<'a> BeaconState<'a> {
     /// If human sensor is not triggered, close it after 5 seconds.
     /// This is used for running in a loop.
     pub fn check_executors(&mut self, time: u64) {
-        if time % 500 == 0 {
+        if time % 20000 == 0 {
             println!("Checking executors at time: {}", time);
             println!("Open state: {}", self.open.is_set_high());
             println!("Human sensor state: {}", self.human_sensor.is_high());
@@ -129,13 +129,13 @@ impl<'a> BeaconState<'a> {
     pub fn serialize_message(
         &mut self,
         message: &crate::ble::protocol::BleMessage,
-    ) -> Result<&[u8], BleError> {
+    ) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
         self.buffer.serialize_message(message)
     }
 
     pub fn deserialize_message(
         &mut self,
-        data: &[u8],
+        data: Option<&[u8]>,
     ) -> Result<crate::ble::protocol::BleMessage, BleError> {
         self.buffer.deserialize_message(data)
     }

@@ -6,104 +6,110 @@ use heapless::Vec;
 
 #[derive(Debug)]
 pub struct BleProtocolHandler {
-    receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
     send_buffer: Vec<u8, MAX_PACKET_SIZE>,
+    receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
 }
 
 impl BleProtocolHandler {
     pub fn new() -> Self {
         Self {
-            receive_buffer: Vec::new(),
-            send_buffer: Vec::new(),
+            send_buffer: Vec::<u8, MAX_PACKET_SIZE>::new(),
+            receive_buffer: Vec::<u8, MAX_PACKET_SIZE>::new(),
         }
     }
-
-    pub fn serialize_message(&mut self, message: &BleMessage) -> Result<&[u8], BleError> {
-        self.send_buffer.clear();
-
+    
+    pub fn store_message(&mut self, data: &[u8]) -> Result<(), BleError> {
+        self.receive_buffer.clear();
+        self.receive_buffer
+            .extend_from_slice(data)
+            .map_err(|_| BleError::BufferFull)
+    }
+    
+    pub fn serialize_message(&mut self, message: &BleMessage) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
+        let buffer = &mut self.send_buffer;
         match message {
             BleMessage::DeviceRequest => {
-                self.send_buffer
+                buffer
                     .push(DEVICE_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::DeviceResponse(device_type, capabilities, object_id) => {
-                self.send_buffer
+                buffer
                     .push(DEVICE_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .push(device_type.serialize())
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .push(DeviceCapability::serialize(&capabilities))
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(object_id)
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::NonceRequest => {
-                self.send_buffer
+                buffer
                     .push(NONCE_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::NonceResponse(nonce) => {
-                self.send_buffer
+                buffer
                     .push(NONCE_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(nonce.as_bytes())
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::UnlockRequest(proof) => {
-                self.send_buffer
+                buffer
                     .push(UNLOCK_REQUEST)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(&proof.challenge_hash)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(&proof.device_signature)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(&proof.timestamp.to_be_bytes())
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .extend_from_slice(&proof.counter.to_be_bytes())
                     .map_err(|_| BleError::BufferFull)?;
             }
 
             BleMessage::UnlockResponse(success, reason) => {
-                self.send_buffer
+                buffer
                     .push(UNLOCK_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .push(if *success {
                         UNLOCK_SUCCESS
                     } else {
                         UNLOCK_FAILURE
                     })
                     .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer
+                buffer
                     .push(reason.map(|x| x.serialize()).unwrap_or(0x00))
                     .map_err(|_| BleError::BufferFull)?;
             }
         }
 
-        Ok(&self.send_buffer)
+        let mut output = [0u8; MAX_PACKET_SIZE];
+        output[..buffer.len()].copy_from_slice(&buffer);
+        Ok(output)
     }
 
-    pub fn deserialize_message(&mut self, data: &[u8]) -> Result<BleMessage, BleError> {
-        self.receive_buffer.clear();
-        self.receive_buffer
-            .extend_from_slice(data)
-            .map_err(|_| BleError::BufferFull)?;
-
-        if self.receive_buffer.is_empty() {
-            return Err(BleError::ParseError);
+    pub fn deserialize_message(&mut self, data: Option<&[u8]>) -> Result<BleMessage, BleError> {
+        if data.is_some() {
+            self.receive_buffer.clear();
+            self.receive_buffer
+                .extend_from_slice(data.unwrap())
+                .map_err(|_| BleError::BufferFull)?;
         }
 
         match self.receive_buffer[0] {

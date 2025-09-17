@@ -1,4 +1,4 @@
-pub const MAX_PACKET_SIZE: usize = 512;
+pub const MAX_PACKET_SIZE: usize = 256;
 
 pub const DEVICE_REQUEST: u8 = 0x01;
 pub const DEVICE_RESPONSE: u8 = 0x02;
