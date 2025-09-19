@@ -25,6 +25,12 @@ impl BleProtocolHandler {
             .map_err(|_| BleError::BufferFull)
     }
     
+    pub fn extract_message(&self) -> [u8; MAX_PACKET_SIZE] {
+        let mut output = [0u8; MAX_PACKET_SIZE];
+        output[..self.send_buffer.len()].copy_from_slice(&self.send_buffer);
+        output
+    }
+    
     pub fn serialize_message(&mut self, message: &BleMessage) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
         let buffer = &mut self.send_buffer;
         match message {

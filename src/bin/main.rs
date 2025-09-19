@@ -18,6 +18,7 @@ pub(crate) mod execute;
 mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
+mod dht;
 
 use alloc::rc::Rc;
 use core::cell::RefCell;
@@ -36,7 +37,7 @@ use bleps::attribute_server::WorkResult;
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
-use esp_hal::gpio::Level;
+use esp_hal::gpio::{Flex, Level};
 use esp_hal::{
     clock::CpuClock,
     gpio::{Input, InputConfig, Pull},
@@ -52,8 +53,11 @@ use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
 use smoltcp::iface::{SocketSet, SocketStorage};
 use blocking_network_stack::Stack;
+use embedded_dht_rs::dht11::Dht11;
+use esp_hal::delay::Delay;
 use heapless::Vec;
 use crate::ble::protocol::BleProtocolHandler;
+use crate::dht::DhtReader;
 use crate::shared::{DeviceCapability, DeviceType};
 // use reqwless::client::
 
@@ -71,6 +75,8 @@ fn main() -> ! {
 
     let human_body = Input::new(peripherals.GPIO6, InputConfig::default());
 
+    let dht11 = Flex::new(peripherals.GPIO4);
+
     heap_allocator!(size: 192 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -80,7 +86,11 @@ fn main() -> ! {
 
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
-    let mut executor = BeaconState::new(private_key, human_body, trigger, led, rng.clone());
+    let mut executor = BeaconState::new(private_key, human_body, trigger, led, rng);
+
+    let delay = Delay::new();
+
+    let mut dht = Dht11::new(dht11, delay);
     
     let mut executor = Rc::new(RefCell::new(executor));
 
@@ -172,41 +182,16 @@ fn main() -> ! {
         };
 
         let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
-            // Check the length of the buffer
-            let identifier = buffer.get(0).copied().unwrap_or(0);
-            let expected_length = match identifier {
-                DEVICE_REQUEST => {
-                    DEVICE_REQUEST_LENGTH
-                }
-                DEVICE_RESPONSE => {
-                    DEVICE_RESPONSE_LENGTH
-                }
-                NONCE_REQUEST => {
-                    NONCE_REQUEST_LENGTH
-                }
-                NONCE_RESPONSE => {
-                    NONCE_RESPONSE_LENGTH
-                }
-                UNLOCK_REQUEST => {
-                    UNLOCK_REQUEST_LENGTH
-                }
-                UNLOCK_RESPONSE => {
-                    UNLOCK_RESPONSE_LENGTH
-                }
+            let target = Rc::clone(&executor).borrow().buffer.extract_message();
+            let length = match target[0] {
+                DEVICE_RESPONSE => DEVICE_RESPONSE_LENGTH,
+                NONCE_RESPONSE => NONCE_RESPONSE_LENGTH,
+                UNLOCK_RESPONSE => UNLOCK_RESPONSE_LENGTH,
                 _ => 0
             };
-            if buffer.len() < expected_length {
-                println!("Buffer too small: expected {}, got {}", expected_length, buffer.len());
-                return 0;
-            }
-
-            if buffer.len() > MAX_PACKET_SIZE {
-                println!("Buffer too large: expected at most {}, got {}", MAX_PACKET_SIZE, buffer.len());
-                return 0;
-            }
-
-            println!("Read at offset {}: {:x?}", offset, &buffer[..expected_length]);
-            expected_length
+            buffer[..length].copy_from_slice(&target[..length]);
+            println!("Read at offset {}: {:x?}", offset, &buffer[..length]);
+            length
         };
 
         gatt!([service {
@@ -229,6 +214,15 @@ fn main() -> ! {
         let mut srv = AttributeServer::new(&mut ble, &mut gatt_attributes, &mut no_rng);
 
         loop {
+            if now() % 50_000 == 5_000 {
+                println!("Reading DHT11 Data...");
+                match dht.read().map(|res| {
+                    println!("Temperature: {}°C, Humidity: {}%", res.temperature, res.humidity);
+                }) {
+                    Ok(_) => {},
+                    Err(e) => println!("Failed to read DHT11 data: {:?}", e),
+                }
+            }
             let mut instance = Rc::clone(&executor);
             instance.borrow_mut().check_executors(now());
 

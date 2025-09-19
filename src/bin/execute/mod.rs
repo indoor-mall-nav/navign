@@ -139,4 +139,8 @@ impl<'a> BeaconState<'a> {
     ) -> Result<crate::ble::protocol::BleMessage, BleError> {
         self.buffer.deserialize_message(data)
     }
+
+    pub fn read_human_sensor(&self) -> bool {
+        self.human_sensor.is_high()
+    }
 }
