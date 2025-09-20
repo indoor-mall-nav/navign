@@ -12,7 +12,7 @@ export interface Challenge {
 }
 
 function uint8ArrayToBase64(uint8Array: Uint8Array): string {
-  if ('toBase64' in uint8Array) {
+  if ("toBase64" in uint8Array) {
     // @ts-ignore
     return uint8Array.toBase64();
   }
@@ -24,7 +24,6 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
 
   return base64String;
 }
-
 
 /**
  * #[derive(Debug, Serialize, Deserialize)]
@@ -107,15 +106,17 @@ export async function unlockDevice(device: BleDevice, entity: string) {
     if (!nonce) {
       throw new Error("Invalid nonce response");
     }
-    console.log("Nonce:", nonce)
+    console.log("Nonce:", nonce);
 
     // Stage 3: Handle the nonce and request a challenge from the backend.
     // This is handled by the Tauri core, so invoke the command.
-    const challengeResponse: Challenge = JSON.parse(await invoke<string>("request_challenge", {
-      beacon: objectId,
-      nonce: uint8ArrayToBase64(nonce),
-      entity: entity,
-    }));
+    const challengeResponse: Challenge = JSON.parse(
+      await invoke<string>("request_challenge", {
+        beacon: objectId,
+        nonce: uint8ArrayToBase64(nonce),
+        entity: entity,
+      }),
+    );
     console.log("Challenge response received:", challengeResponse);
 
     // Stage 4: Biometric authentication.
@@ -136,12 +137,14 @@ export async function unlockDevice(device: BleDevice, entity: string) {
     console.log("Biometric authentication successful");
 
     // Stage 5: Convert the challenge response to a proof submission packet and send it to the device.
-    const proof: DeviceProof = JSON.parse(await invoke<string>("generate_device_proof", {
-      challengeHash: uint8ArrayToBase64(challengeResponse.challengeHash),
-      deviceSignature: uint8ArrayToBase64(challengeResponse.deviceSignature),
-      timestamp: challengeResponse.timestamp.toString(),
-      counter: challengeResponse.counter.toString(),
-    }));
+    const proof: DeviceProof = JSON.parse(
+      await invoke<string>("generate_device_proof", {
+        challengeHash: uint8ArrayToBase64(challengeResponse.challengeHash),
+        deviceSignature: uint8ArrayToBase64(challengeResponse.deviceSignature),
+        timestamp: challengeResponse.timestamp.toString(),
+        counter: challengeResponse.counter.toString(),
+      }),
+    );
     console.log("Device proof generated:", proof);
 
     const proofPacket = protocol.createProofSubmissionPacket(

@@ -87,7 +87,12 @@ export function createNonceRequestPacket(): Uint8Array {
 // Example function to parse a nonce response packet
 export function parseNonceResponsePacket(data: Uint8Array): Uint8Array | null {
   console.log("Nonce response received:", data, "with length", data.length);
-  console.log("Checking data", data[0], data[0] === UnlockerProtocol.NONCE_RESPONSE, data.length);
+  console.log(
+    "Checking data",
+    data[0],
+    data[0] === UnlockerProtocol.NONCE_RESPONSE,
+    data.length,
+  );
   if (data[0] === UnlockerProtocol.NONCE_RESPONSE && data.length >= 17) {
     return data.slice(1, 17);
   }

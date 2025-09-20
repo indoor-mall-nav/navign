@@ -210,7 +210,7 @@ async function startTask() {
           polygonConfig.value.points = area.polygon
             .map(([a, b]) => [a * 2, b * 2])
             .flat(2) as number[];
-          await stopScan()
+          await stopScan();
         }
         // greetMsg.value = `Found ${devices.value.length} beacons.`;
       } else {
@@ -339,7 +339,9 @@ const stageSize = ref({
         <p>Manufacturer Data: {{ JSON.stringify(device.manufacturerData) }}</p>
       </CardContent>
       <CardAction>
-        <Button @click="unlockDevice(device, entity?._id.$oid ?? '')">Unlock</Button>
+        <Button @click="unlockDevice(device, entity?._id.$oid ?? '')"
+          >Unlock</Button
+        >
       </CardAction>
     </Card>
     <Card class="mx-2" v-if="switchEntities && entities.length > 0">

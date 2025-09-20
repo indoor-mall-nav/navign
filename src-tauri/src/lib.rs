@@ -75,7 +75,10 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_nfc::init())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![request_challenge, generate_device_proof])
+        .invoke_handler(tauri::generate_handler![
+            request_challenge,
+            generate_device_proof
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
