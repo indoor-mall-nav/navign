@@ -1,4 +1,3 @@
-use crate::schema::polygon::line::Path;
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};

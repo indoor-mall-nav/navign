@@ -8,7 +8,7 @@ pub struct User {
     #[serde(rename="_id")]
     pub id: ObjectId,
     pub username: String,
-    email: String,
+    pub email: String,
     phone: Option<String>,
     google: Option<String>,
     wechat: Option<String>,

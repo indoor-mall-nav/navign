@@ -1,4 +1,3 @@
-use crate::schema::polygon::line::Path;
 use crate::schema::service::Service;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
