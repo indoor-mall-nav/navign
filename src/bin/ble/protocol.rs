@@ -1,3 +1,4 @@
+use esp_println::println;
 use super::super::crypto::{Nonce, Proof};
 pub(crate) use super::BleMessage;
 use crate::shared::constants::*;
@@ -8,6 +9,7 @@ use heapless::Vec;
 pub struct BleProtocolHandler {
     send_buffer: Vec<u8, MAX_PACKET_SIZE>,
     receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
+    pub processing: bool,
 }
 
 impl BleProtocolHandler {
@@ -15,24 +17,39 @@ impl BleProtocolHandler {
         Self {
             send_buffer: Vec::<u8, MAX_PACKET_SIZE>::new(),
             receive_buffer: Vec::<u8, MAX_PACKET_SIZE>::new(),
+            processing: false
         }
     }
     
+    pub fn has_message(&self) -> bool {
+        !self.receive_buffer.is_empty()
+    }
+
     pub fn store_message(&mut self, data: &[u8]) -> Result<(), BleError> {
         self.receive_buffer.clear();
+        self.processing = false;
         self.receive_buffer
             .extend_from_slice(data)
             .map_err(|_| BleError::BufferFull)
     }
-    
-    pub fn extract_message(&self) -> [u8; MAX_PACKET_SIZE] {
+
+    pub fn extract_message(&mut self) -> [u8; MAX_PACKET_SIZE] {
         let mut output = [0u8; MAX_PACKET_SIZE];
         output[..self.send_buffer.len()].copy_from_slice(&self.send_buffer);
+        self.processing = false;
         output
     }
-    
-    pub fn serialize_message(&mut self, message: &BleMessage) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
+
+    pub fn serialize_message(
+        &mut self,
+        message: &BleMessage,
+    ) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
+        self.send_buffer.clear();
+
         let buffer = &mut self.send_buffer;
+
+        println!("The buffer is {:?}", buffer);
+
         match message {
             BleMessage::DeviceRequest => {
                 buffer
@@ -107,7 +124,16 @@ impl BleProtocolHandler {
 
         let mut output = [0u8; MAX_PACKET_SIZE];
         output[..buffer.len()].copy_from_slice(&buffer);
+        println!("The buffer is {:?}", output);
         Ok(output)
+    }
+    
+    pub fn clear_receive_buffer(&mut self) {
+        self.receive_buffer.clear();
+    }
+    
+    pub fn clear_send_buffer(&mut self) {
+        self.send_buffer.clear();
     }
 
     pub fn deserialize_message(&mut self, data: Option<&[u8]>) -> Result<BleMessage, BleError> {
@@ -118,23 +144,33 @@ impl BleProtocolHandler {
                 .map_err(|_| BleError::BufferFull)?;
         }
 
-        match self.receive_buffer[0] {
+        if self.receive_buffer.is_empty() {
+            return Err(BleError::ParseError);
+        }
+
+        let result = match self.receive_buffer[0] {
             DEVICE_REQUEST => Ok(BleMessage::DeviceRequest),
 
             DEVICE_RESPONSE => {
                 if self.receive_buffer.len() != DEVICE_RESPONSE_LENGTH {
                     return Err(BleError::ParseError);
                 }
-                let device_type_byte = &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + DEVICE_TYPE_LENGTH];
-                let device_type = DeviceType::deserialize(device_type_byte[0])
-                    .ok_or(BleError::ParseError)?;
-                let capability_byte = &self.receive_buffer[DEVICE_CAPABILITY_OFFSET..DEVICE_CAPABILITY_OFFSET + DEVICE_CAPABILITY_LENGTH];
+                let device_type_byte =
+                    &self.receive_buffer[IDENTIFIER_LENGTH..IDENTIFIER_LENGTH + DEVICE_TYPE_LENGTH];
+                let device_type =
+                    DeviceType::deserialize(device_type_byte[0]).ok_or(BleError::ParseError)?;
+                let capability_byte = &self.receive_buffer
+                    [DEVICE_CAPABILITY_OFFSET..DEVICE_CAPABILITY_OFFSET + DEVICE_CAPABILITY_LENGTH];
                 let capabilities = crate::shared::DeviceCapability::deserialize(capability_byte[0]);
                 let mut object_id = [0u8; DEVICE_ID_LENGTH];
                 object_id.copy_from_slice(
                     &self.receive_buffer[DEVICE_ID_OFFSET..DEVICE_ID_OFFSET + DEVICE_ID_LENGTH],
                 );
-                Ok(BleMessage::DeviceResponse(device_type, capabilities, object_id))
+                Ok(BleMessage::DeviceResponse(
+                    device_type,
+                    capabilities,
+                    object_id,
+                ))
             }
 
             NONCE_REQUEST => Ok(BleMessage::NonceRequest),
@@ -200,6 +236,8 @@ impl BleProtocolHandler {
             }
 
             _ => Err(BleError::ParseError),
-        }
+        };
+        self.clear_receive_buffer();
+        result
     }
 }

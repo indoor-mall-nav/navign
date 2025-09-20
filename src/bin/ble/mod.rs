@@ -1,9 +1,9 @@
 mod manager;
 pub(crate) mod protocol;
 
-use heapless::Vec;
 use super::crypto::{Nonce, Proof};
 use crate::shared::{CryptoError, DeviceCapability, DeviceType};
+use heapless::Vec;
 
 #[derive(Debug, Clone)]
 pub enum BleMessage {

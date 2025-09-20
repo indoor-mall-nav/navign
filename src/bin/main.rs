@@ -14,29 +14,36 @@ extern crate alloc;
 
 pub(crate) mod ble;
 pub(crate) mod crypto;
+mod dht;
 pub(crate) mod execute;
 mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
-mod dht;
 
-use alloc::rc::Rc;
-use core::cell::RefCell;
+use crate::ble::protocol::BleProtocolHandler;
 use crate::ble::BleMessage;
+use crate::dht::DhtReader;
 use crate::execute::BeaconState;
 use crate::shared::constants::*;
+use crate::shared::{DeviceCapability, DeviceType};
+use alloc::rc::Rc;
+use bleps::attribute_server::WorkResult;
 use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
     },
+    attribute::Attribute,
     attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
-    attribute::Attribute
 };
-use bleps::attribute_server::WorkResult;
+use blocking_network_stack::Stack;
+use core::cell::RefCell;
+use embedded_dht_rs::dht11::Dht11;
 use esp_alloc as _;
 use esp_alloc::heap_allocator;
 use esp_backtrace as _;
+use esp_hal::delay::Delay;
+use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_hal::gpio::{Flex, Level};
 use esp_hal::{
     clock::CpuClock,
@@ -47,18 +54,11 @@ use esp_hal::{
     time,
     timer::timg::TimerGroup,
 };
-use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_println::println;
 use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
-use smoltcp::iface::{SocketSet, SocketStorage};
-use blocking_network_stack::Stack;
-use embedded_dht_rs::dht11::Dht11;
-use esp_hal::delay::Delay;
 use heapless::Vec;
-use crate::ble::protocol::BleProtocolHandler;
-use crate::dht::DhtReader;
-use crate::shared::{DeviceCapability, DeviceType};
+use smoltcp::iface::{SocketSet, SocketStorage};
 // use reqwless::client::
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -91,7 +91,7 @@ fn main() -> ! {
     let delay = Delay::new();
 
     let mut dht = Dht11::new(dht11, delay);
-    
+
     let mut executor = Rc::new(RefCell::new(executor));
 
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
@@ -178,16 +178,21 @@ fn main() -> ! {
 
         let mut wf = |offset: usize, data: &[u8]| {
             println!("Write at offset {}: {:x?}", offset, data);
-            Rc::clone(&executor).borrow_mut().buffer.store_message(data).ok();
+            Rc::clone(&executor)
+                .borrow_mut()
+                .buffer
+                .store_message(data)
+                .ok();
         };
 
         let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
-            let target = Rc::clone(&executor).borrow().buffer.extract_message();
+            println!("Read at offset {}: {:x?}", offset, buffer);
+            let target = Rc::clone(&executor).borrow_mut().buffer.extract_message();
             let length = match target[0] {
                 DEVICE_RESPONSE => DEVICE_RESPONSE_LENGTH,
                 NONCE_RESPONSE => NONCE_RESPONSE_LENGTH,
                 UNLOCK_RESPONSE => UNLOCK_RESPONSE_LENGTH,
-                _ => 0
+                _ => 0,
             };
             buffer[..length].copy_from_slice(&target[..length]);
             println!("Read at offset {}: {:x?}", offset, &buffer[..length]);
@@ -196,16 +201,14 @@ fn main() -> ! {
 
         gatt!([service {
             uuid: "134b1d88-cd91-8134-3e94-5c4052743845",
-            characteristics: [
-                characteristic {
-                    name: "unlock_service",
-                    description: "Unlock Service",
-                    uuid: "99d92823-9e38-72ff-6cf1-d2d593316af8",
-                    notify: true,
-                    read: rf,
-                    write: wf,
-                },
-            ],
+            characteristics: [characteristic {
+                name: "unlock_service",
+                description: "Unlock Service",
+                uuid: "99d92823-9e38-72ff-6cf1-d2d593316af8",
+                notify: true,
+                read: rf,
+                write: wf,
+            },],
         },]);
 
         println!("GATT service registered.");
@@ -217,9 +220,12 @@ fn main() -> ! {
             if now() % 50_000 == 5_000 {
                 println!("Reading DHT11 Data...");
                 match dht.read().map(|res| {
-                    println!("Temperature: {}°C, Humidity: {}%", res.temperature, res.humidity);
+                    println!(
+                        "Temperature: {}°C, Humidity: {}%",
+                        res.temperature, res.humidity
+                    );
                 }) {
-                    Ok(_) => {},
+                    Ok(_) => {}
                     Err(e) => println!("Failed to read DHT11 data: {:?}", e),
                 }
             }
@@ -230,44 +236,58 @@ fn main() -> ! {
             let mut receive_buffer = [0u8; MAX_PACKET_SIZE];
             let mut send_buffer = [0u8; MAX_PACKET_SIZE];
 
-            if let Some(1) =
-                srv.get_characteristic_value(unlock_service_notify_enable_handle, 0, &mut receive_buffer)
-            {
-                println!("Device request notify enabled: {:x?}", receive_buffer);
-                if receive_buffer[0] != 0x00 {
-                    println!("Device request received raw: {:x?}", receive_buffer);
-                }
-                let message = instance.borrow_mut().deserialize_message(None).ok();
-                println!("Request received: {:?}", message);
-                let response: Option<BleMessage> = match message {
-                    Some(BleMessage::DeviceRequest) => {
-                        let result = (device_type, capabilities.clone(), device_id.clone());
-                        Some(result.into())
-                    }
-                    Some(BleMessage::NonceRequest) => {
-                        let nonce = instance.borrow_mut().generate_nonce(&mut rng);
-                        Some(nonce.into())
-                    }
-                    Some(BleMessage::UnlockRequest(ref proof)) => {
-                        let unlock_result = match instance.borrow_mut().validate_proof(&proof, now()) {
-                            Ok(_) => {
-                                instance.borrow_mut().set_open(true, now());
-                                (true, None)
+            if let Some(result) = srv.get_characteristic_value(
+                unlock_service_notify_enable_handle,
+                0,
+                &mut receive_buffer,
+            ) {
+                if instance.borrow().buffer.has_message() {
+                    let message = instance.borrow_mut().deserialize_message(None).ok();
+                    println!("Request received: {:?}", message);
+                    if true {
+                        println!("Handling message");
+                        instance.borrow_mut().buffer.processing = true;
+                        let response: Option<BleMessage> = match message {
+                            Some(BleMessage::DeviceRequest) => {
+                                let result = (device_type, capabilities.clone(), device_id.clone());
+                                Some(result.into())
                             }
-                            Err(e) => (false, Some(e)),
+                            Some(BleMessage::NonceRequest) => {
+                                let nonce = instance.borrow_mut().generate_nonce(&mut rng);
+                                Some(nonce.into())
+                            }
+                            Some(BleMessage::UnlockRequest(ref proof)) => {
+                                let unlock_result =
+                                    match instance.borrow_mut().validate_proof(&proof, now()) {
+                                        Ok(_) => {
+                                            instance.borrow_mut().set_open(true, now());
+                                            (true, None)
+                                        }
+                                        Err(e) => (false, Some(e)),
+                                    };
+                                Some(unlock_result.into())
+                            }
+                            _ => None,
                         };
-                        Some(unlock_result.into())
-                    }
-                    _ => None
-                };
-                if let Some(resp) = response {
-                    let result = instance.borrow_mut().serialize_message(&resp).ok();
-                    if let Some(data) = result {
-                        send_buffer.fill(0);
-                        send_buffer[..data.len()].copy_from_slice(&data);
-                        notification = Some(NotificationData::new(unlock_service_handle, &send_buffer));
+                        println!("Response: {:?}", response);
+                        if let Some(resp) = response {
+                            let result = instance.borrow_mut().serialize_message(&resp).ok();
+                            println!("Should have response: {:?}", result);
+                            if let Some(data) = result {
+                                send_buffer.fill(0);
+                                send_buffer[..data.len()].copy_from_slice(&data);
+                                notification =
+                                    Some(NotificationData::new(unlock_service_handle, &send_buffer));
+                            }
+                            instance.borrow_mut().buffer.processing = false;
+                            instance.borrow_mut().buffer.clear_receive_buffer();
+                        }
                     }
                 }
+            }
+
+            if notification.is_some() {
+                println!("Notification is {:?}", notification);
             }
 
             match srv.do_work_with_notification(notification) {

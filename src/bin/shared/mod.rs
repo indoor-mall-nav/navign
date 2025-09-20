@@ -22,10 +22,14 @@ impl DeviceCapability {
             capabilities.push(DeviceCapability::UnlockGate).unwrap();
         }
         if byte & (DeviceCapability::EnvironmentalData as u8) != 0 {
-            capabilities.push(DeviceCapability::EnvironmentalData).unwrap();
+            capabilities
+                .push(DeviceCapability::EnvironmentalData)
+                .unwrap();
         }
         if byte & (DeviceCapability::RssiCalibration as u8) != 0 {
-            capabilities.push(DeviceCapability::RssiCalibration).unwrap();
+            capabilities
+                .push(DeviceCapability::RssiCalibration)
+                .unwrap();
         }
         capabilities
     }

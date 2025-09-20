@@ -45,7 +45,7 @@ impl<'a> BeaconState<'a> {
             challenge_manager: ChallengeManager::new(rng),
             last_open: 0,
             last_relay_on: 0,
-            triggered: false
+            triggered: false,
         }
     }
 
@@ -84,7 +84,6 @@ impl<'a> BeaconState<'a> {
             if time - self.last_open > 10_000 {
                 self.open.set_low();
             }
-
         }
 
         if self.relay.is_set_high() && time - self.last_relay_on > 5_000 {

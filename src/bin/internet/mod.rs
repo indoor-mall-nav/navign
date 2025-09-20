@@ -1,14 +1,14 @@
+use crate::crypto::Nonce;
+use crate::shared::constants::NONCE_LENGTH;
 use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use embedded_nal::{AddrType, Dns};
 use esp_hal::rng::Rng;
 use esp_hal::sha::Digest;
-use heapless::{String};
+use heapless::String;
 use p256::ecdsa::signature::Signer;
-use sha2::Sha256;
 use p256::ecdsa::{Signature, SigningKey};
 use serde::{Deserialize, Serialize};
-use crate::crypto::Nonce;
-use crate::shared::constants::NONCE_LENGTH;
+use sha2::Sha256;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequestPayload<'a> {
@@ -25,11 +25,9 @@ pub struct RequestPayload<'a> {
 /// 4. If the signature is valid, the server loads the beacon's status and return a timestamp.
 fn connect_with_server(rng: &mut Rng, device_private_key: SigningKey, beacon_id: &str) {
     let nonce = Nonce::generate(rng);
-    let mut nonce_buffer = [0u8; {NONCE_LENGTH * 2}];
+    let mut nonce_buffer = [0u8; { NONCE_LENGTH * 2 }];
     hex::encode_to_slice(nonce.as_bytes(), &mut nonce_buffer).unwrap();
-    let nonce_hex = unsafe {
-        core::str::from_utf8_unchecked(&nonce_buffer)
-    };
+    let nonce_hex = unsafe { core::str::from_utf8_unchecked(&nonce_buffer) };
 
     let mut hash = Sha256::new();
     hash.update(nonce.as_bytes());
@@ -41,23 +39,22 @@ fn connect_with_server(rng: &mut Rng, device_private_key: SigningKey, beacon_id:
     // Soundness: The output is always valid UTF-8 since it's hex-encoded, so
     // we could safely use `from_utf8_unchecked` here to avoid the overhead of
     // checking it again.
-    let signature_hex = unsafe {
-        core::str::from_utf8_unchecked(&signature_buffer)
-    };
+    let signature_hex = unsafe { core::str::from_utf8_unchecked(&signature_buffer) };
 
     let payload = RequestPayload {
         nonce: nonce_hex,
         device_signature: signature_hex,
     };
 
-    let json_payload = serde_json_core::to_string::<_, { 33 + NONCE_LENGTH * 2 + 128 }>(&payload).unwrap();
+    let json_payload =
+        serde_json_core::to_string::<_, { 33 + NONCE_LENGTH * 2 + 128 }>(&payload).unwrap();
 
     let mut url = String::<64>::new();
-    url.push_str("https://navign.7086cmd.me/api/beacon/").unwrap();
+    url.push_str("https://navign.7086cmd.me/api/beacon/")
+        .unwrap();
     url.push_str(beacon_id).unwrap();
 
     // Now request to the server with `url` and `json_payload`.
-
 }
 
 pub struct ManualDns;
@@ -65,7 +62,11 @@ pub struct ManualDns;
 impl Dns for ManualDns {
     type Error = ();
 
-    fn get_host_by_name(&mut self, host: &str, r#type: AddrType) -> nb::Result<IpAddr, Self::Error> {
+    fn get_host_by_name(
+        &mut self,
+        host: &str,
+        r#type: AddrType,
+    ) -> nb::Result<IpAddr, Self::Error> {
         // Here you would implement your DNS resolution logic.
         // For demonstration purposes, we'll return a fixed IP address.
         if host == "navign.7086cmd.me" {
@@ -79,7 +80,11 @@ impl Dns for ManualDns {
         }
     }
 
-    fn get_host_by_address(&mut self, _addr: IpAddr, _result: &mut [u8]) -> nb::Result<usize, Self::Error> {
+    fn get_host_by_address(
+        &mut self,
+        _addr: IpAddr,
+        _result: &mut [u8],
+    ) -> nb::Result<usize, Self::Error> {
         // Reverse DNS lookup is not implemented in this example.
         Err(nb::Error::Other(()))
     }
