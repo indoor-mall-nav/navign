@@ -1,6 +1,6 @@
 use crate::unlocker::{Challenge, DeviceProof, Unlocker};
 use base64::Engine;
-use p256::ecdsa::{SigningKey, VerifyingKey};
+use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
 use std::sync::Arc;
 use tauri::{Manager, State};
@@ -10,22 +10,13 @@ pub(crate) mod api;
 pub(crate) mod shared;
 pub(crate) mod unlocker;
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    tauri_plugin_blec::check_permissions()
-        .unwrap_or_default()
-        .to_string()
-        + name
-}
-
 #[tauri::command]
 async fn request_challenge(
     state: State<'_, Arc<Mutex<Unlocker>>>,
     nonce: String,
     entity: String,
     beacon: String,
-) -> Result<Challenge, ()> {
+) -> Result<String, ()> {
     let nonce = TryInto::<[u8; 16]>::try_into(
         base64::engine::general_purpose::STANDARD
             .decode(nonce)
@@ -39,20 +30,22 @@ async fn request_challenge(
         .await
         .map_err(|_| ())?;
 
-    Ok(result)
+    let json_result = serde_json::to_string(&result).map_err(|_| ())?;
+    Ok(json_result)
 }
 
 #[tauri::command]
 async fn generate_device_proof(
     state: State<'_, Arc<Mutex<Unlocker>>>,
     challenge: Challenge,
-) -> Result<DeviceProof, ()> {
+) -> Result<String, ()> {
     let result = state
         .lock()
         .await
         .generate_device_proof(&challenge)
         .map_err(|_| ())?;
-    Ok(result)
+    let json_result = serde_json::to_string(&result).map_err(|_| ())?;
+    Ok(json_result)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -61,10 +54,11 @@ pub fn run() {
         .setup(|app| {
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
+            app.handle().plugin(tauri_plugin_notification::init())?;
             let example_public_key = [0u8; 32];
             let state = Arc::new(Mutex::new(Unlocker::new(
                 SigningKey::random(&mut OsRng),
-                (*SigningKey::random(&mut OsRng).verifying_key()),
+                *SigningKey::random(&mut OsRng).verifying_key(),
                 "example_user".to_string(),
                 "example_token".to_string(),
             )));
@@ -81,9 +75,7 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_nfc::init())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
-        .invoke_handler(tauri::generate_handler![request_challenge])
-        .invoke_handler(tauri::generate_handler![generate_device_proof])
+        .invoke_handler(tauri::generate_handler![request_challenge, generate_device_proof])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

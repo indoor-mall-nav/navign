@@ -23,6 +23,7 @@
     "@tauri-apps/plugin-geolocation": "~2",
     "@tauri-apps/plugin-http": "~2",
     "@tauri-apps/plugin-nfc": "~2",
+    "@tauri-apps/plugin-notification": "~2",
     "@tauri-apps/plugin-opener": "^2.5.0",
     "@vee-validate/zod": "^4.15.1",
     "@vitejs/plugin-vue-jsx": "^5.0.1",

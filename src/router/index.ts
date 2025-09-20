@@ -12,9 +12,9 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      name: 'splash',
-      path: '/splashscreen',
-      component: () => import('../views/SplashScreen.vue')
+      name: "splash",
+      path: "/splashscreen",
+      component: () => import("../views/SplashScreen.vue"),
     },
     {
       path: "/about",

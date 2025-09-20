@@ -11,6 +11,21 @@ export interface Challenge {
   counter: bigint;
 }
 
+function uint8ArrayToBase64(uint8Array: Uint8Array): string {
+  if ('toBase64' in uint8Array) {
+    // @ts-ignore
+    return uint8Array.toBase64();
+  }
+  // Convert Uint8Array to a binary string
+  const binaryString = String.fromCharCode.apply(null, Array.from(uint8Array));
+
+  // Encode the binary string to base64
+  const base64String = btoa(binaryString);
+
+  return base64String;
+}
+
+
 /**
  * #[derive(Debug, Serialize, Deserialize)]
  * pub struct DeviceProof {
@@ -28,7 +43,7 @@ export interface DeviceProof {
   counter: number;
 }
 
-export async function unlockDevice(device: BleDevice) {
+export async function unlockDevice(device: BleDevice, entity: string) {
   try {
     if (device.name !== "NAVIGN-BEACON") {
       throw new Error("Unsupported device");
@@ -47,7 +62,10 @@ export async function unlockDevice(device: BleDevice) {
     console.log("Connected to device");
 
     // Stage 1: Inquire device about its ObjectId.
-    console.log('Sending device inquiry request...', protocol.UNLOCKER_CHARACTERISTIC_UUID);
+    console.log(
+      "Sending device inquiry request...",
+      protocol.UNLOCKER_CHARACTERISTIC_UUID,
+    );
     const deviceInquiry = new Uint8Array([0x01]);
     await send(
       protocol.UNLOCKER_CHARACTERISTIC_UUID,
@@ -89,14 +107,15 @@ export async function unlockDevice(device: BleDevice) {
     if (!nonce) {
       throw new Error("Invalid nonce response");
     }
-    console.log("Nonce:", Buffer.from(nonce).toString("hex"));
+    console.log("Nonce:", nonce)
 
     // Stage 3: Handle the nonce and request a challenge from the backend.
     // This is handled by the Tauri core, so invoke the command.
-    const challengeResponse = await invoke<Challenge>("request_challenge", {
-      objectId: Array.from(objectId),
-      nonce: Array.from(nonce),
-    });
+    const challengeResponse: Challenge = JSON.parse(await invoke<string>("request_challenge", {
+      beacon: objectId,
+      nonce: uint8ArrayToBase64(nonce),
+      entity: entity,
+    }));
     console.log("Challenge response received:", challengeResponse);
 
     // Stage 4: Biometric authentication.
@@ -117,12 +136,12 @@ export async function unlockDevice(device: BleDevice) {
     console.log("Biometric authentication successful");
 
     // Stage 5: Convert the challenge response to a proof submission packet and send it to the device.
-    const proof = await invoke<DeviceProof>("generate_device_proof", {
-      challengeHash: Array.from(challengeResponse.challengeHash),
-      deviceSignature: Array.from(challengeResponse.deviceSignature),
+    const proof: DeviceProof = JSON.parse(await invoke<string>("generate_device_proof", {
+      challengeHash: uint8ArrayToBase64(challengeResponse.challengeHash),
+      deviceSignature: uint8ArrayToBase64(challengeResponse.deviceSignature),
       timestamp: challengeResponse.timestamp.toString(),
       counter: challengeResponse.counter.toString(),
-    });
+    }));
     console.log("Device proof generated:", proof);
 
     const proofPacket = protocol.createProofSubmissionPacket(

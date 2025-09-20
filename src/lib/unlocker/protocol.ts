@@ -31,7 +31,7 @@ import { ObjectId } from "@/schema";
  * ALWAYS USE BIG ENDIAN FOR MULTI-BYTE VALUES
  */
 export enum UnlockerProtocol {
-  DEVICE_INQUIRY = 0x01,
+  DEVICE_REQUEST = 0x01,
   DEVICE_RESPONSE = 0x02,
   NONCE_REQUEST = 0x03,
   NONCE_RESPONSE = 0x04,
@@ -86,8 +86,10 @@ export function createNonceRequestPacket(): Uint8Array {
 
 // Example function to parse a nonce response packet
 export function parseNonceResponsePacket(data: Uint8Array): Uint8Array | null {
-  if (data[0] === UnlockerProtocol.NONCE_RESPONSE && data.length === 17) {
-    return data.slice(1); // Return the 16-byte nonce
+  console.log("Nonce response received:", data, "with length", data.length);
+  console.log("Checking data", data[0], data[0] === UnlockerProtocol.NONCE_RESPONSE, data.length);
+  if (data[0] === UnlockerProtocol.NONCE_RESPONSE && data.length >= 17) {
+    return data.slice(1, 17);
   }
   return null;
 }
@@ -95,7 +97,7 @@ export function parseNonceResponsePacket(data: Uint8Array): Uint8Array | null {
 export function parseInquiryResponsePacket(
   data: Uint8Array,
 ): InquiryResult | null {
-  if (data[0] === UnlockerProtocol.DEVICE_RESPONSE && data.length === 27) {
+  if (data[0] === UnlockerProtocol.DEVICE_RESPONSE && data.length >= 27) {
     const type = data[1] as DeviceType;
     const capabilitiesByte = data[2];
     const capabilities: DeviceCapability[] = [];
@@ -127,7 +129,7 @@ export function parseInquiryResponsePacket(
 export function parseUnlockCommandResponsePacket(
   data: Uint8Array,
 ): UnlockerError | null {
-  if (data[0] === UnlockerProtocol.UNLOCK_COMMAND && data.length === 2) {
+  if (data[0] === UnlockerProtocol.UNLOCK_COMMAND && data.length >= 2) {
     return data[2] as UnlockerError;
   }
   return null;

@@ -37,6 +37,7 @@ digest = { version = "0.10.7", features = ["mac", "std"] }
 rand = "0.9.2"
 rand_core = { version = "0.9.3", features = ["std", "os_rng"] }
 tokio = { version = "1.47.1", features = ["sync"] }
+tauri-plugin-notification = "2"
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"
