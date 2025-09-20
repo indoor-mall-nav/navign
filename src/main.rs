@@ -7,16 +7,17 @@ mod certification;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
 use axum::response::IntoResponse;
-use axum::{
-    Router,
-    http::{Method, StatusCode},
-    routing::{delete, get, post, put},
-};
+use axum::{Router, http::{Method, StatusCode}, routing::{delete, get, post, put}, Extension};
 use bson::doc;
 use log::{LevelFilter, info};
 use mongodb::Database;
+use p256::ecdsa;
+use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::rand_core::OsRng;
+use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
+use crate::kernel::beacon::initiate_unlocker;
 // use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
@@ -37,6 +38,14 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 #[derive(Clone)]
 pub(crate) struct AppState {
     db: Database,
+    private_key: SigningKey,
+}
+
+async fn cert(State(state): State<AppState>) -> impl IntoResponse {
+    match state.private_key.verifying_key().to_pkcs1_pem(LineEnding::LF) {
+        Ok(res) => (StatusCode::OK, res),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    }
 }
 
 #[tokio::main]
@@ -50,10 +59,13 @@ async fn main() -> anyhow::Result<()> {
     info!("Cors layer configured.");
     // ensure_key();
     let db = database::connect_with_db().await?;
-    let state = AppState { db };
+    let private_key = SigningKey::random(&mut OsRng);
+    let public_key = private_key.verifying_key();
+    let state = AppState { db, private_key };
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health_check))
+        .route("/cert", get(cert))
         .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
         .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
         .route(
@@ -61,6 +73,7 @@ async fn main() -> anyhow::Result<()> {
             get(Beacon::get_one_handler),
         )
         .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
+        .route("/api/entities/{eid}/beacons/unlocker", post(initiate_unlocker))
         .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
         .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
         .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))

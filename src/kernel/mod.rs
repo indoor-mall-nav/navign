@@ -5,3 +5,4 @@ pub mod totp;
 mod cryptography;
 mod user;
 mod auth;
+mod unlocker;

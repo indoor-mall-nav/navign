@@ -1,8 +1,11 @@
+use axum::Extension;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use crate::AppState;
+use crate::kernel::unlocker::{unlocker_instance, Unlocker};
 use crate::schema::{Beacon, Service, User};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -107,5 +110,19 @@ async fn initiate_authentication(
             format!("Failed to initiate authentication: {}", e),
         )
             .into_response(),
+    }
+}
+
+pub async fn initiate_unlocker(State(state): State<AppState>, axum::Json(unlocker): axum::Json<Unlocker>) -> impl IntoResponse {
+    match unlocker_instance(unlocker, &state.private_key, |_| true, &state.db).await {
+        Ok(challenge) => {
+            match serde_json::to_string(&challenge) {
+                Ok(challenge) => {
+                    (StatusCode::CREATED, challenge)
+                }
+                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+            }
+        }
+        Err(e) => (StatusCode::BAD_REQUEST, e.to_string())
     }
 }
