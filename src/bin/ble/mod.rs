@@ -7,8 +7,8 @@ use heapless::Vec;
 
 #[derive(Debug, Clone)]
 pub enum BleMessage {
-    DeviceRequest,
-    DeviceResponse(DeviceType, Vec<DeviceCapability, 3>, [u8; 24]), // 24-byte MongoDB ObjectId
+    DeviceRequest(u8),
+    DeviceResponse(DeviceType, Vec<DeviceCapability, 3>, [u8; 12]), // 24-byte MongoDB ObjectId
     NonceRequest,
     NonceResponse(Nonce),
     UnlockRequest(Proof),
@@ -27,8 +27,8 @@ impl From<Nonce> for BleMessage {
     }
 }
 
-impl From<(DeviceType, Vec<DeviceCapability, 3>, [u8; 24])> for BleMessage {
-    fn from(value: (DeviceType, Vec<DeviceCapability, 3>, [u8; 24])) -> Self {
+impl From<(DeviceType, Vec<DeviceCapability, 3>, [u8; 12])> for BleMessage {
+    fn from(value: (DeviceType, Vec<DeviceCapability, 3>, [u8; 12])) -> Self {
         BleMessage::DeviceResponse(value.0, value.1, value.2)
     }
 }

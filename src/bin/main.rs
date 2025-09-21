@@ -59,6 +59,7 @@ use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
 use heapless::Vec;
 use smoltcp::iface::{SocketSet, SocketStorage};
+use smoltcp::phy::DeviceCapabilities;
 // use reqwless::client::
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -69,15 +70,19 @@ fn main() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
+    // Initialize pins.
+    let dht11 = Flex::new(peripherals.GPIO4);
+    let button = Input::new(
+        peripherals.GPIO3,
+        InputConfig::default().with_pull(Pull::Down),
+    );
+    let human_body = Input::new(peripherals.GPIO10, InputConfig::default());
+    let trigger = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
     let led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
 
-    let trigger = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
-
-    let human_body = Input::new(peripherals.GPIO6, InputConfig::default());
-
-    let dht11 = Flex::new(peripherals.GPIO4);
-
     heap_allocator!(size: 192 * 1024);
+
+    let server_public_key = [4, 247, 145, 243, 155, 54, 15, 43, 52, 88, 198, 230, 245, 57, 127, 80, 180, 157, 227, 135, 176, 94, 224, 236, 37, 54, 221, 105, 63, 80, 127, 21, 31, 197, 85, 159, 22, 13, 72, 233, 62, 112, 201, 230, 232, 229, 154, 214, 241, 133, 209, 2, 54, 122, 111, 222, 23, 6, 77, 33, 104, 142, 37, 110, 136];
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
@@ -86,7 +91,7 @@ fn main() -> ! {
 
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
-    let mut executor = BeaconState::new(private_key, human_body, trigger, led, rng);
+    let mut executor = BeaconState::new(private_key, button, human_body, trigger, led, rng);
 
     let delay = Delay::new();
 
@@ -94,15 +99,17 @@ fn main() -> ! {
 
     let mut executor = Rc::new(RefCell::new(executor));
 
+    executor
+        .borrow_mut()
+        .set_server_public_key(server_public_key)
+        .unwrap();
+
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
-
-    let config = InputConfig::default().with_pull(Pull::Down);
-
-    let button = Input::new(peripherals.GPIO9, config);
 
     let debounce_cnt = 500;
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
+    println!("Device ID: {:?}", device_id);
     let device_type = DeviceType::Merchant;
     let mut capabilities = Vec::<DeviceCapability, 3>::new();
     capabilities.push(DeviceCapability::UnlockGate).unwrap();
@@ -181,22 +188,26 @@ fn main() -> ! {
             Rc::clone(&executor)
                 .borrow_mut()
                 .buffer
-                .store_message(data)
+                .store_message(data, offset)
                 .ok();
         };
 
         let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
-            println!("Read at offset {}: {:x?}", offset, buffer);
-            let target = Rc::clone(&executor).borrow_mut().buffer.extract_message();
+            let target = Rc::clone(&executor).borrow_mut().buffer.extract_message(offset);
             let length = match target[0] {
                 DEVICE_RESPONSE => DEVICE_RESPONSE_LENGTH,
                 NONCE_RESPONSE => NONCE_RESPONSE_LENGTH,
                 UNLOCK_RESPONSE => UNLOCK_RESPONSE_LENGTH,
                 _ => 0,
             };
-            buffer[..length].copy_from_slice(&target[..length]);
-            println!("Read at offset {}: {:x?}", offset, &buffer[..length]);
-            length
+            let terminus = if offset < length {
+                length
+            } else {
+                return 0;
+            };
+            buffer[..terminus].copy_from_slice(&target[..terminus]);
+            println!("Read at offset {}: {:x?}", offset, &buffer[..terminus]);
+            terminus
         };
 
         gatt!([service {
@@ -244,44 +255,55 @@ fn main() -> ! {
                 if instance.borrow().buffer.has_message() {
                     let message = instance.borrow_mut().deserialize_message(None).ok();
                     println!("Request received: {:?}", message);
-                    if true {
-                        println!("Handling message");
-                        instance.borrow_mut().buffer.processing = true;
-                        let response: Option<BleMessage> = match message {
-                            Some(BleMessage::DeviceRequest) => {
-                                let result = (device_type, capabilities.clone(), device_id.clone());
+                    println!("Handling message");
+                    instance.borrow_mut().buffer.processing = true;
+                    let response: Option<BleMessage> = match message {
+                        Some(BleMessage::DeviceRequest(count)) => {
+                            if usize::from(count) > device_id.len() / 12 {
+                                None
+                            } else {
+                                let result = BleMessage::DeviceResponse(
+                                    device_type,
+                                    capabilities.clone(),
+                                    {
+                                        let mut id = [0u8; 12];
+                                        id.copy_from_slice(device_id[count as usize * 12..(count as usize + 1) * 12].as_ref());
+                                        id
+                                    },
+                                );
                                 Some(result.into())
                             }
-                            Some(BleMessage::NonceRequest) => {
-                                let nonce = instance.borrow_mut().generate_nonce(&mut rng);
-                                Some(nonce.into())
-                            }
-                            Some(BleMessage::UnlockRequest(ref proof)) => {
-                                let unlock_result =
-                                    match instance.borrow_mut().validate_proof(&proof, now()) {
-                                        Ok(_) => {
-                                            instance.borrow_mut().set_open(true, now());
-                                            (true, None)
-                                        }
-                                        Err(e) => (false, Some(e)),
-                                    };
-                                Some(unlock_result.into())
-                            }
-                            _ => None,
-                        };
-                        println!("Response: {:?}", response);
-                        if let Some(resp) = response {
-                            let result = instance.borrow_mut().serialize_message(&resp).ok();
-                            println!("Should have response: {:?}", result);
-                            if let Some(data) = result {
-                                send_buffer.fill(0);
-                                send_buffer[..data.len()].copy_from_slice(&data);
-                                notification =
-                                    Some(NotificationData::new(unlock_service_handle, &send_buffer));
-                            }
-                            instance.borrow_mut().buffer.processing = false;
-                            instance.borrow_mut().buffer.clear_receive_buffer();
                         }
+                        Some(BleMessage::NonceRequest) => {
+                            let nonce = instance.borrow_mut().generate_nonce(&mut rng);
+                            Some(nonce.into())
+                        }
+                        Some(BleMessage::UnlockRequest(ref proof)) => {
+                            let mut cell = instance.borrow_mut();
+                            let unlock_result =
+                                match cell.validate_proof(&proof, now()) {
+                                    Ok(_) => {
+                                        cell.set_open(true, now());
+                                        (true, None)
+                                    }
+                                    Err(e) => (false, Some(e)),
+                                };
+                            Some(unlock_result.into())
+                        }
+                        _ => None,
+                    };
+                    println!("Response: {:?}", response);
+                    if let Some(resp) = response {
+                        let result = instance.borrow_mut().serialize_message(&resp).ok();
+                        println!("Should have response: {:?}", result);
+                        if let Some(data) = result {
+                            send_buffer.fill(0);
+                            send_buffer[..data.len()].copy_from_slice(&data);
+                            notification =
+                                Some(NotificationData::new(unlock_service_handle, &send_buffer));
+                        }
+                        instance.borrow_mut().buffer.processing = false;
+                        instance.borrow_mut().buffer.clear_receive_buffer();
                     }
                 }
             }

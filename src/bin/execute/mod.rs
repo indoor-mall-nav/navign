@@ -11,6 +11,7 @@ use esp_println::println;
 
 #[derive(Debug)]
 pub struct BeaconState<'a> {
+    pub button: Input<'a>,
     pub human_sensor: Input<'a>,
     pub relay: Output<'a>,
     pub open: Output<'a>,
@@ -28,6 +29,7 @@ impl<'a> BeaconState<'a> {
     pub fn new(
         private_key: [u8; 32],
         human_sensor: Input<'a>,
+        button: Input<'a>,
         mut relay: Output<'a>,
         mut open: Output<'a>,
         rng: Rng,
@@ -35,6 +37,7 @@ impl<'a> BeaconState<'a> {
         relay.set_low();
         open.set_low();
         Self {
+            button,
             human_sensor,
             relay,
             open,
@@ -49,7 +52,7 @@ impl<'a> BeaconState<'a> {
         }
     }
 
-    pub fn set_server_public_key(&mut self, public_key: [u8; 64]) -> Result<(), ()> {
+    pub fn set_server_public_key(&mut self, public_key: [u8; 65]) -> Result<(), ()> {
         self.proof_manager
             .set_server_public_key(public_key)
             .map_err(|_| ())
@@ -67,14 +70,24 @@ impl<'a> BeaconState<'a> {
     /// If human sensor is not triggered, close it after 5 seconds.
     /// This is used for running in a loop.
     pub fn check_executors(&mut self, time: u64) {
-        if time % 20000 == 0 {
+        if time % 2000 == 0 {
             println!("Checking executors at time: {}", time);
+            println!("Button state: {}", self.button.is_low());
             println!("Open state: {}", self.open.is_set_high());
             println!("Human sensor state: {}", self.human_sensor.is_high());
             println!("Last open time: {}", self.last_open);
             println!("Relay state: {}", self.relay.is_set_high());
             println!("Last relay on time: {}", self.last_relay_on);
         }
+
+        // if self.button.is_high() {
+        //     println!("Button state: {}", self.button.is_high());
+        //     self.open.set_high();
+        //     self.relay.set_high();
+        //     self.last_open = time;
+        //     self.triggered = true;
+        // }
+
         if self.open.is_set_high() && !self.triggered {
             if self.human_sensor.is_high() && self.relay.is_set_low() {
                 self.relay.set_high();
