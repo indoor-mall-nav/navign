@@ -5,12 +5,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Connection {
     #[serde(rename = "_id")]
-    id: ObjectId,
+    pub id: ObjectId,
     /// Reference to the Entity
-    entity: ObjectId,
-    name: String,
-    description: Option<String>,
-    r#type: ConnectionType,
+    pub entity: ObjectId,
+    pub name: String,
+    pub description: Option<String>,
+    pub r#type: ConnectionType,
     /// List of Area IDs that this connection links
     /// Format: Vec<(ObjectId, f64, f64)>
     /// where ObjectId is the ID of the area, and f64 values are coordinates (x, y)
@@ -20,10 +20,24 @@ pub struct Connection {
     /// would represent the position of the gate in the first area.
     /// If the connection is a rail or shuttle, the coordinates would represent the
     /// position of the rail or shuttle stop in the first area.
-    connected_areas: Vec<(ObjectId, f64, f64)>,
+    pub connected_areas: Vec<(ObjectId, f64, f64)>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
-    available_period: Vec<(i64, i64)>,
-    tags: Vec<String>,
+    pub available_period: Vec<(i64, i64)>,
+    pub tags: Vec<String>,
+}
+
+impl Connection {
+    pub fn get_object_id(&self) -> ObjectId {
+        self.id
+    }
+
+    pub fn get_connected_areas(&self) -> &Vec<(ObjectId, f64, f64)> {
+        &self.connected_areas
+    }
+
+    pub fn get_connection_type(&self) -> &ConnectionType {
+        &self.r#type
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

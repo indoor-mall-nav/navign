@@ -1,15 +1,15 @@
-use std::str::FromStr;
+use crate::kernel::auth::{Authenticator, Token};
+use crate::schema::User;
 use anyhow::anyhow;
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use crate::kernel::auth::{Authenticator, Token};
-use crate::schema::User;
+use std::str::FromStr;
 
 pub struct PasswordAuthenticator {
-    userid: String
+    userid: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,16 +35,26 @@ impl PasswordPayload {
 }
 
 impl<'de> Authenticator<'de, PasswordPayload> for PasswordAuthenticator {
-    async fn authenticate(&self, credential: PasswordPayload, db: &Database) -> anyhow::Result<String> {
+    async fn authenticate(
+        &self,
+        credential: PasswordPayload,
+        db: &Database,
+    ) -> anyhow::Result<String> {
         if !credential.verify_hash() {
             return Err(anyhow!("Hash does not match"));
         }
         let userid = ObjectId::from_str(&credential.userid)?;
-        let user: User = match db.collection("user").find_one(doc! {
-            "_id": userid,
-        }).await.ok().flatten() {
+        let user: User = match db
+            .collection("user")
+            .find_one(doc! {
+                "_id": userid,
+            })
+            .await
+            .ok()
+            .flatten()
+        {
             Some(user) => user,
-            None => return Err(anyhow!("User does not exist"))
+            None => return Err(anyhow!("User does not exist")),
         };
         if user.verify_password(credential.password.as_str()) {
             let token = Token::from(&user);

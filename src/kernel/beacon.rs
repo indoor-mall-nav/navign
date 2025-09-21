@@ -1,12 +1,12 @@
-use axum::Extension;
+use crate::AppState;
+use crate::kernel::unlocker::{Unlocker, unlocker_instance};
+use crate::schema::{Beacon, Service, User};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use bson::oid::ObjectId;
+use log::info;
 use serde::{Deserialize, Serialize};
-use crate::AppState;
-use crate::kernel::unlocker::{unlocker_instance, Unlocker};
-use crate::schema::{Beacon, Service, User};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AuthenticationInstance {
@@ -95,7 +95,10 @@ async fn initiate_authentication(
 
     match result {
         Ok(insert_result) => {
-            let id = insert_result.inserted_id.as_object_id().map(|oid| oid.to_hex());
+            let id = insert_result
+                .inserted_id
+                .as_object_id()
+                .map(|oid| oid.to_hex());
             match id {
                 Some(id) => (axum::http::StatusCode::OK, id).into_response(),
                 None => (
@@ -113,16 +116,16 @@ async fn initiate_authentication(
     }
 }
 
-pub async fn initiate_unlocker(State(state): State<AppState>, axum::Json(unlocker): axum::Json<Unlocker>) -> impl IntoResponse {
+pub async fn initiate_unlocker(
+    State(state): State<AppState>,
+    axum::Json(unlocker): axum::Json<Unlocker>,
+) -> impl IntoResponse {
+    info!("Handling unlock request for instance {:?}", unlocker);
     match unlocker_instance(unlocker, &state.private_key, |_| true, &state.db).await {
-        Ok(challenge) => {
-            match serde_json::to_string(&challenge) {
-                Ok(challenge) => {
-                    (StatusCode::CREATED, challenge)
-                }
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-            }
-        }
-        Err(e) => (StatusCode::BAD_REQUEST, e.to_string())
+        Ok(challenge) => match serde_json::to_string(&challenge) {
+            Ok(challenge) => (StatusCode::CREATED, challenge),
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        },
+        Err(e) => (StatusCode::BAD_REQUEST, e.to_string()),
     }
 }

@@ -1,29 +1,33 @@
-mod google;
 mod github;
-mod wechat;
+mod google;
 mod password;
+mod wechat;
 
+use anyhow::{Result, anyhow};
 use std::env;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use anyhow::{anyhow, Result};
 
-use bson::{doc};
+use crate::schema::User;
+use bson::doc;
 use bson::oid::ObjectId;
 use gravatar::Gravatar;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
-use crate::schema::User;
 
 pub trait Authenticator<'de, T: Sized + Clone + Debug + Serialize + Deserialize<'de>> {
     async fn authenticate(&self, credential: T, db: &Database) -> Result<String>;
 
     async fn username(&self, db: &Database) -> Result<String> {
         let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db.collection("users").find_one(doc!{
-            "_id": id,
-        }).await? {
+        let document: User = match db
+            .collection("users")
+            .find_one(doc! {
+                "_id": id,
+            })
+            .await?
+        {
             Some(doc) => doc,
             None => return Err(anyhow!("User not found")),
         };
@@ -32,9 +36,13 @@ pub trait Authenticator<'de, T: Sized + Clone + Debug + Serialize + Deserialize<
 
     async fn avatar_url(&self, db: &Database) -> Result<String> {
         let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db.collection("users").find_one(doc!{
-            "_id": id,
-        }).await? {
+        let document: User = match db
+            .collection("users")
+            .find_one(doc! {
+                "_id": id,
+            })
+            .await?
+        {
             Some(doc) => doc,
             None => return Err(anyhow!("User not found")),
         };
@@ -60,7 +68,12 @@ impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Ok(encoding_key) = env::var("JWT_SIGN_KEY") {
             let key = EncodingKey::from_secret(encoding_key.as_bytes());
-            write!(f, "{}", jsonwebtoken::encode(&Header::default(), &self, &key).unwrap_or("<Invalid JWT Token>".to_string()))
+            write!(
+                f,
+                "{}",
+                jsonwebtoken::encode(&Header::default(), &self, &key)
+                    .unwrap_or("<Invalid JWT Token>".to_string())
+            )
         } else {
             write!(f, "<Invalid JWT Token>")
         }
@@ -74,7 +87,9 @@ impl FromStr for Token {
         let decoding_key = env::var("JWT_SIGN_KEY")?;
         let key = DecodingKey::from_secret(decoding_key.as_bytes());
         let validation = Validation::default();
-        jsonwebtoken::decode::<Self>(&token, &key, &validation).map(|token| token.claims).map_err(Into::into)
+        jsonwebtoken::decode::<Self>(&token, &key, &validation)
+            .map(|token| token.claims)
+            .map_err(Into::into)
     }
 }
 
@@ -91,7 +106,7 @@ impl From<&User> for Token {
             iat,
             exp,
             jti: token_id,
-            scope: String::from("admin")
+            scope: String::from("admin"),
         }
     }
 }

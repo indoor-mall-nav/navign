@@ -6,20 +6,34 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Area {
     #[serde(rename = "_id")]
-    id: ObjectId,
-    entity: ObjectId, // Reference to the Entity
-    name: String,
-    description: Option<String>,
+    pub id: ObjectId,
+    pub entity: ObjectId, // Reference to the Entity
+    pub name: String,
+    pub description: Option<String>,
     /// Unique identifier for the area for displaying in the beacon name.
-    beacon_code: String,
-    floor: Option<Floor>,     // Floor number or name
-    polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
+    pub beacon_code: String,
+    pub floor: Option<Floor>,     // Floor number or name
+    pub polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
+}
+
+impl Area {
+    pub fn get_object_id(&self) -> ObjectId {
+        self.id
+    }
+
+    pub fn get_floor(&self) -> Option<&Floor> {
+        self.floor.as_ref()
+    }
+
+    pub fn get_polygon(&self) -> &Vec<(f64, f64)> {
+        &self.polygon
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Floor {
-    r#type: FloorType,
-    name: u32,
+    pub r#type: FloorType,
+    pub name: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -1,10 +1,10 @@
-use p256::ecdsa::signature::Signer;
-use p256::ecdsa::SigningKey;
-use p256::PublicKey;
-use serde::{Serialize, Deserialize};
-use serde_big_array::BigArray;
 use anyhow::Result;
 use mongodb::Database;
+use p256::PublicKey;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::signature::Signer;
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserPasswordAuthenticationPayload {
@@ -47,7 +47,13 @@ impl CryptoServer {
     /// Payload -> JSON.stringify -> URL encode -> AES-256-CBC encrypt -> hex encode.
     /// Now it's hex-encoded.
     /// The `hash` is an SHA-256 hash of the payload for integrity verification.
-    pub fn password_jwt_sign(&self, payload: String, hash: String, user_id: &str, database: &Database) -> Result<String> {
+    pub fn password_jwt_sign(
+        &self,
+        payload: String,
+        hash: String,
+        user_id: &str,
+        database: &Database,
+    ) -> Result<String> {
         let payload = hex::decode(payload)?;
         Ok(String::new())
     }
