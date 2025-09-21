@@ -1,7 +1,7 @@
 use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use anyhow::Result;
 use p256::ecdsa::signature::Verifier;
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use sha2::{Digest, Sha256};
@@ -62,15 +62,14 @@ impl Unlocker {
         entity: String,
         beacon: String,
     ) -> Result<Challenge> {
+        println!("Requesting Unlock... Entity: {entity}; beacon: {beacon}");
         let device_timestamp = chrono::Utc::now().timestamp() as u64;
         let beacon_information =
             fetch_beacon_information(beacon.as_str(), entity.as_str(), &self.user_token).await?;
         // beacon timestamp regards the epoch time as 0 in its clock, so we need to add the epoch time to it.
-        let timestamp = beacon_information
-            .epoch_time
-            .checked_add(device_timestamp)
+        let timestamp = device_timestamp.checked_sub(beacon_information.last_boot)
             .ok_or_else(|| anyhow::anyhow!("Timestamp overflow"))?;
-        request_unlock_permission(nonce, beacon, timestamp, &self.user_token).await
+        request_unlock_permission(nonce, entity, beacon, timestamp, &self.user_token).await
     }
 
     fn verify_server_challenge(&self, challenge: &Challenge) -> Result<()> {
@@ -90,9 +89,9 @@ impl Unlocker {
 
     fn hash_challenge(challenge: &Challenge) -> [u8; 32] {
         let mut hasher = Sha256::new();
-        hasher.update(&challenge.nonce);
-        hasher.update(&challenge.timestamp.to_be_bytes());
-        hasher.update(&challenge.server_signature);
+        hasher.update(challenge.nonce);
+        hasher.update(challenge.timestamp.to_be_bytes());
+        hasher.update(challenge.server_signature);
         let result = hasher.finalize();
         let mut hash = [0u8; 32];
         hash.copy_from_slice(&result);
@@ -104,20 +103,9 @@ impl Unlocker {
 
         let challenge_hash = Self::hash_challenge(challenge);
 
-        let mut data_to_sign = Vec::with_capacity(32 + 8 + 8);
-        data_to_sign.extend_from_slice(&challenge_hash);
-        data_to_sign.extend_from_slice(&challenge.timestamp.to_be_bytes());
-        data_to_sign.extend_from_slice(&self.counter.to_be_bytes());
-
-        let mut hasher = Sha256::new();
-        hasher.update(&data_to_sign);
-        let digest = hasher.finalize();
-
-        let signature: Signature = self.device_private_key.sign(&digest);
-
         Ok(DeviceProof {
             challenge_hash,
-            device_signature: signature.to_bytes().into(),
+            device_signature: challenge.server_signature,
             timestamp: challenge.timestamp,
             counter: self.counter,
         })

@@ -6,8 +6,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri_plugin_http::reqwest;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct CustomizedObjectId {
+    #[serde(rename = "$oid")]
+    pub oid: String
+}
+
 pub async fn request_unlock_permission(
     nonce: [u8; 16],
+    entity: String,
     beacon: String,
     timestamp: u64,
     user_token: &str,
@@ -19,17 +26,35 @@ pub async fn request_unlock_permission(
         "timestamp": timestamp
     });
 
+    println!("The body is: {:?}", request_body);
+
+    let url = format!("{}api/entities/{entity}/beacons/unlocker", BASE_URL);
+
+    println!("Making request to: {}", url);
+
+    println!("Hello!");
+
     match reqwest::Client::new()
-        .post(BASE_URL.to_string() + "api/unlocker")
+        .post(url)
         .header("Authorization", format!("Bearer {}", user_token))
+        .header("Content-Type", "application/json")
         .body(request_body.to_string())
         .send()
         .await
     {
         Ok(resp) => {
             if resp.status().is_success() {
-                let challenge: Challenge = resp.json().await?;
-                Ok(challenge)
+                let challenge: reqwest::Result<Challenge> = resp.json().await;
+                match challenge {
+                    Ok(res) => {
+                        println!("Challenge received: {:?}", res);
+                        Ok(res)
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse JSON response: {:?}", e);
+                        Err(anyhow::anyhow!("Failed to parse JSON response: {}", e))
+                    }
+                }
             } else {
                 Err(anyhow::anyhow!(
                     "Failed to request unlock permission: HTTP {}",
@@ -43,10 +68,17 @@ pub async fn request_unlock_permission(
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BeaconInformation {
-    pub uuid: String,
-    pub epoch_time: u64,
-    pub major: u16,
-    pub minor: u16,
+    pub _id: CustomizedObjectId,
+    pub entity: CustomizedObjectId,
+    pub area: CustomizedObjectId,
+    pub merchant: Option<CustomizedObjectId>,
+    pub connection: Option<CustomizedObjectId>,
+    pub name: String,
+    pub description: String,
+    pub r#type: String,
+    pub location: [f64; 2],
+    pub device: String,
+    pub last_boot: u64
 }
 
 pub async fn fetch_beacon_information(
@@ -54,16 +86,24 @@ pub async fn fetch_beacon_information(
     entity_id: &str,
     user_token: &str,
 ) -> Result<BeaconInformation> {
+    let url = format!("{}api/entities/{}/beacons/{}", BASE_URL, entity_id, beacon_id);
+    println!("Making request to: {}", url);
     match reqwest::Client::new()
-        .get(BASE_URL.to_string() + "api/entity/" + entity_id + "/hello/beacons/" + beacon_id)
+        .get(url)
         .header("Authorization", format!("Bearer {}", user_token))
         .send()
         .await
     {
         Ok(resp) => {
             if resp.status().is_success() {
-                let beacon: BeaconInformation = resp.json().await?;
-                Ok(beacon)
+                let result: reqwest::Result<BeaconInformation> = resp.json().await;
+                match result {
+                    Ok(resp) => Ok(resp),
+                    Err(e) => {
+                        eprintln!("Failed to parse JSON response: {:?}", e);
+                        Err(anyhow::anyhow!("Failed to parse JSON response: {}", e))
+                    }
+                }
             } else {
                 Err(anyhow::anyhow!(
                     "Failed to fetch beacon information: HTTP {}",
