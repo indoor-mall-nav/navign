@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { authenticate, type Status } from "@tauri-apps/plugin-biometric";
 import { type BleDevice, startScan, stopScan } from "@mnlphlp/plugin-blec";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ import { Area, Beacon, Entity } from "@/schema";
 import { useSessionStore } from "@/states/session.ts";
 import { getIcon, Icon, loadIcon } from "@iconify/vue";
 import { RouterView } from "vue-router";
-import { unlockDevice } from "@/lib/unlocker";
+import { DeviceProof, unlockDevice } from "@/lib/unlocker";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -276,6 +277,16 @@ const stageSize = ref({
   width: window.innerWidth * 0.9,
   height: window.innerHeight * 0.45,
 });
+
+async function invokeTest1() {
+  console.log("Invoking test 1...");
+  const result: DeviceProof = JSON.parse(await invoke("unlock_door", {
+    beacon: "68a84b6ebdfa76608b934b0a",
+    nonce: "hSFDdCjkp4t5SDroE+Yc5Q==",
+    entity: "68a8301fbdfa76608b934ae1",
+  }));
+  console.log(result, 'ccc', result.challenge_hash, new Uint8Array(result.challenge_hash));
+}
 </script>
 
 <template>
@@ -296,6 +307,7 @@ const stageSize = ref({
         >Get Entity <Icon icon="mdi:map-marker-radius"
       /></Button>
 
+      <Button class="mt-4" @click="invokeTest1">Invoke Test 1</Button>
       <Dialog>
         <DialogTrigger as-child>
           <Button class="mt-4">Start Scanning</Button>

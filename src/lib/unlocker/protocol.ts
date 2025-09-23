@@ -99,10 +99,16 @@ export function parseNonceResponsePacket(data: Uint8Array): Uint8Array | null {
   return null;
 }
 
+// If you have a Uint8Array instead:
+function uint8ArrayToString(uint8Array: Uint8Array) {
+  return String.fromCharCode(...uint8Array);
+}
+
+
 export function parseInquiryResponsePacket(
   data: Uint8Array,
 ): InquiryResult | null {
-  if (data[0] === UnlockerProtocol.DEVICE_RESPONSE && data.length >= 27) {
+  if (data[0] === UnlockerProtocol.DEVICE_RESPONSE && data.length >= 15) {
     const type = data[1] as DeviceType;
     const capabilitiesByte = data[2];
     const capabilities: DeviceCapability[] = [];
@@ -115,19 +121,49 @@ export function parseInquiryResponsePacket(
     if (capabilitiesByte & DeviceCapability.RSSI_CALIBRATION) {
       capabilities.push(DeviceCapability.RSSI_CALIBRATION);
     }
-    const objectIdBytes = data.slice(3, 27);
-    const objectId = {
-      $oid: Array.from(objectIdBytes)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join(""),
-    };
+    const objectIdBytes = data.slice(3, 15);
+    console.log("ObjectId bytes:", objectIdBytes);
+    const objectId = uint8ArrayToString(objectIdBytes);
+    console.log("Parsed ObjectId:", objectId);
     return {
       type,
       capabilities,
-      id: objectId,
+      id: {
+        $oid: objectId
+      },
     } as InquiryResult;
   }
   return null;
+}
+
+export function mergeInquiryResults(
+  results: InquiryResult[],
+): InquiryResult | null {
+  if (results.length === 0) {
+    return null;
+  }
+  if (results.length === 1) {
+    return results[0];
+  }
+  // Merge capabilities
+  const mergedCapabilities = new Set<DeviceCapability>();
+  const mergedType = results[0].type;
+  for (const result of results) {
+    if (result.type !== mergedType) {
+      return null
+    }
+    for (const capability of result.capabilities) {
+      mergedCapabilities.add(capability);
+    }
+  }
+  const mergedObjectId = results.map(x => x.id.$oid).join('');
+  return {
+    type: mergedType,
+    capabilities: Array.from(mergedCapabilities),
+    id: {
+      $oid: mergedObjectId
+    },
+  }
 }
 
 // Example function to parse an unlock command response packet
@@ -147,6 +183,12 @@ export function createProofSubmissionPacket(
   timestamp: bigint,
   counter: bigint,
 ): Uint8Array {
+  console.log("Creating proof submission packet with:", {
+    challengeHash,
+    deviceSignature,
+    timestamp,
+    counter,
+  });
   if (challengeHash.length !== 32 || deviceSignature.length !== 64) {
     throw new Error("Invalid challenge hash or device signature length");
   }

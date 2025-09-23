@@ -1,8 +1,7 @@
-import { type BleDevice, connect, read, send } from "@mnlphlp/plugin-blec";
+import { type BleDevice, connect, read, send, disconnect } from "@mnlphlp/plugin-blec";
 import { invoke } from "@tauri-apps/api/core";
 import * as protocol from "./protocol";
-import { DeviceCapability } from "./protocol";
-import { authenticate, type AuthOptions } from "@tauri-apps/plugin-biometric";
+import { DeviceCapability, mergeInquiryResults } from "./protocol";
 
 export interface Challenge {
   challengeHash: Uint8Array;
@@ -36,14 +35,15 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
  * }
  */
 export interface DeviceProof {
-  challengeHash: Uint8Array;
-  deviceSignature: Uint8Array;
+  challenge_hash: Uint8Array;
+  device_signature: Uint8Array;
   timestamp: number;
   counter: number;
 }
 
 export async function unlockDevice(device: BleDevice, entity: string) {
   try {
+    try {await disconnect();} catch(_) {}
     if (device.name !== "NAVIGN-BEACON") {
       throw new Error("Unsupported device");
     }
@@ -65,23 +65,38 @@ export async function unlockDevice(device: BleDevice, entity: string) {
       "Sending device inquiry request...",
       protocol.UNLOCKER_CHARACTERISTIC_UUID,
     );
-    const deviceInquiry = new Uint8Array([0x01]);
-    await send(
-      protocol.UNLOCKER_CHARACTERISTIC_UUID,
-      deviceInquiry,
-      "withoutResponse",
-      protocol.UNLOCKER_SERVICE_UUID,
-    );
-    console.log("Inquiry request sent");
-    const inquiryResult = await read(
-      protocol.UNLOCKER_CHARACTERISTIC_UUID,
-      protocol.UNLOCKER_SERVICE_UUID,
-    );
-    console.log("Inquiry response received:", inquiryResult);
-    const result = protocol.parseInquiryResponsePacket(inquiryResult);
-    if (!result) {
-      throw new Error("Invalid inquiry response");
+
+    const polls = [0x00, 0x01];
+
+    const results = [];
+
+    for await (let poll of polls) {
+      const deviceInquiry = new Uint8Array([0x01, poll]);
+      await send(
+        protocol.UNLOCKER_CHARACTERISTIC_UUID,
+        deviceInquiry,
+        "withoutResponse",
+        protocol.UNLOCKER_SERVICE_UUID,
+      );
+      console.log("Inquiry request sent");
+      const inquiryResult = await read(
+        protocol.UNLOCKER_CHARACTERISTIC_UUID,
+        protocol.UNLOCKER_SERVICE_UUID,
+      );
+      console.log("Inquiry response received:", inquiryResult);
+      const result = protocol.parseInquiryResponsePacket(inquiryResult);
+      if (!result) {
+        throw new Error("Invalid inquiry response");
+      }
+      results.push(result);
     }
+
+    const result = mergeInquiryResults(results);
+
+    if (!result) {
+      throw new Error("Failed to merge inquiry results");
+    }
+
     console.log("Inquiry result:", result);
     const objectId = result.id.$oid;
     if (!result.capabilities.includes(DeviceCapability.UNLOCK_GATE)) {
@@ -108,48 +123,27 @@ export async function unlockDevice(device: BleDevice, entity: string) {
     }
     console.log("Nonce:", nonce);
 
+    console.log("Requesting challenge from backend...", {
+      beacon: objectId,
+      nonce: uint8ArrayToBase64(nonce),
+      entity: entity,
+    });
+
     // Stage 3: Handle the nonce and request a challenge from the backend.
     // This is handled by the Tauri core, so invoke the command.
-    const challengeResponse: Challenge = JSON.parse(
-      await invoke<string>("request_challenge", {
+    const proof: DeviceProof = JSON.parse(
+      await invoke<string>("unlock_door", {
         beacon: objectId,
         nonce: uint8ArrayToBase64(nonce),
         entity: entity,
       }),
     );
-    console.log("Challenge response received:", challengeResponse);
 
-    // Stage 4: Biometric authentication.
-    const biometricConfig: AuthOptions = {
-      allowDeviceCredential: false,
-      cancelTitle: "Cancel",
-      fallbackTitle: "Use Password",
-      title: "Biometric Authentication",
-      subtitle:
-        "Authenticate to unlock the gateway/entrance, so that we can confirm it's you.",
-      confirmationRequired: true,
-      maxAttemps: 3,
-    };
-    await authenticate(
-      "Authenticate to unlock the gateway/entrance",
-      biometricConfig,
-    );
-    console.log("Biometric authentication successful");
-
-    // Stage 5: Convert the challenge response to a proof submission packet and send it to the device.
-    const proof: DeviceProof = JSON.parse(
-      await invoke<string>("generate_device_proof", {
-        challengeHash: uint8ArrayToBase64(challengeResponse.challengeHash),
-        deviceSignature: uint8ArrayToBase64(challengeResponse.deviceSignature),
-        timestamp: challengeResponse.timestamp.toString(),
-        counter: challengeResponse.counter.toString(),
-      }),
-    );
     console.log("Device proof generated:", proof);
 
     const proofPacket = protocol.createProofSubmissionPacket(
-      new Uint8Array(proof.challengeHash),
-      new Uint8Array(proof.deviceSignature),
+      new Uint8Array(proof.challenge_hash),
+      new Uint8Array(proof.device_signature),
       BigInt(proof.timestamp),
       BigInt(proof.counter),
     );
@@ -159,7 +153,7 @@ export async function unlockDevice(device: BleDevice, entity: string) {
       "withResponse",
       protocol.UNLOCKER_SERVICE_UUID,
     );
-    console.log("Proof submission sent");
+    console.log("Proof submission sent", proofPacket);
     const proofResponse = await read(
       protocol.UNLOCKER_CHARACTERISTIC_UUID,
       protocol.UNLOCKER_SERVICE_UUID,
@@ -178,7 +172,9 @@ export async function unlockDevice(device: BleDevice, entity: string) {
         protocol.renderUnlockerError(unlockStatus),
       );
     }
+    await disconnect();
   } catch (e) {
+    try {await disconnect();} catch(_) {}
     console.error("Error during unlocking process:", e);
   }
 }
