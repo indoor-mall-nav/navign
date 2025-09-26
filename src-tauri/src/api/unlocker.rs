@@ -9,7 +9,7 @@ use tauri_plugin_http::reqwest;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct CustomizedObjectId {
     #[serde(rename = "$oid")]
-    pub oid: String
+    pub oid: String,
 }
 
 pub async fn request_unlock_permission(
@@ -78,7 +78,7 @@ pub struct BeaconInformation {
     pub r#type: String,
     pub location: [f64; 2],
     pub device: String,
-    pub last_boot: u64
+    pub last_boot: u64,
 }
 
 pub async fn fetch_beacon_information(
@@ -86,7 +86,10 @@ pub async fn fetch_beacon_information(
     entity_id: &str,
     user_token: &str,
 ) -> Result<BeaconInformation> {
-    let url = format!("{}api/entities/{}/beacons/{}", BASE_URL, entity_id, beacon_id);
+    let url = format!(
+        "{}api/entities/{}/beacons/{}",
+        BASE_URL, entity_id, beacon_id
+    );
     println!("Making request to: {}", url);
     match reqwest::Client::new()
         .get(url)

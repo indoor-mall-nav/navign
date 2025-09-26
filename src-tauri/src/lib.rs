@@ -3,14 +3,16 @@ use base64::Engine;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use p256::elliptic_curve::rand_core::OsRng;
 use std::sync::Arc;
+use p256::pkcs8::{EncodePrivateKey, LineEnding};
 use tauri::{AppHandle, Manager, State};
-use tokio::sync::Mutex;
-#[cfg(mobile)]
-use tauri_plugin_biometric::BiometricExt;
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
+#[cfg(mobile)]
+use tauri_plugin_biometric::BiometricExt;
+use tokio::sync::Mutex;
 
 pub(crate) mod api;
+pub(crate) mod login;
 pub(crate) mod shared;
 pub(crate) mod unlocker;
 
@@ -30,9 +32,7 @@ async fn unlock_door(
     )
     .map_err(|_| ())?;
     println!("Nonce received: {:?}", nonce);
-    let mut app_state = state
-        .lock()
-        .await;
+    let mut app_state = state.lock().await;
     let challenge = app_state
         .request_unlock(nonce, entity, beacon)
         .await
@@ -51,7 +51,9 @@ async fn unlock_door(
     };
 
     #[cfg(mobile)]
-    app.biometric().authenticate("Please authenticate to unlock".to_string(), auth_options).map_err(|_| ())?;
+    app.biometric()
+        .authenticate("Please authenticate to unlock".to_string(), auth_options)
+        .map_err(|_| ())?;
 
     println!("Biometric authentication passed, generating proof...");
 
@@ -72,9 +74,27 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
             app.handle().plugin(tauri_plugin_notification::init())?;
-            let server_pub_key = [4, 29, 160, 114, 228, 62, 157, 118, 19, 35, 126, 85, 206, 135, 190, 151, 236, 195, 95, 99, 206, 111, 205, 177, 216, 26, 195, 79, 55, 241, 128, 164, 145, 102, 56, 204, 234, 113, 61, 127, 195, 42, 145, 240, 3, 252, 125, 166, 19, 72, 90, 139, 188, 180, 164, 185, 54, 236, 168, 224, 71, 40, 179, 51, 105];
+            if app.path().app_local_data_dir().map(|x| x.join("salt.txt").exists()).unwrap_or(false) {
+                println!("Salt file exists.");
+            } else {
+                let salt = nanoid::nanoid!();
+                std::fs::write(
+                    app.path()
+                        .app_local_data_dir()
+                        .unwrap()
+                        .join("salt.txt"),
+                    salt.as_bytes(),
+                )?;
+            }
+            let path = app.path().app_local_data_dir()?.join("salt.txt");
+            app.handle().plugin(tauri_plugin_stronghold::Builder::with_argon2(&*path).build())?;
+            let server_pub_key = [
+                4, 29, 160, 114, 228, 62, 157, 118, 19, 35, 126, 85, 206, 135, 190, 151, 236, 195,
+                95, 99, 206, 111, 205, 177, 216, 26, 195, 79, 55, 241, 128, 164, 145, 102, 56, 204,
+                234, 113, 61, 127, 195, 42, 145, 240, 3, 252, 125, 166, 19, 72, 90, 139, 188, 180,
+                164, 185, 54, 236, 168, 224, 71, 40, 179, 51, 105,
+            ];
             let state = Arc::new(Mutex::new(Unlocker::new(
-                SigningKey::random(&mut OsRng),
                 VerifyingKey::from_sec1_bytes(&server_pub_key).unwrap(),
                 "7086cmd".to_string(),
                 "example_token".to_string(),
@@ -92,9 +112,7 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_nfc::init())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            unlock_door,
-        ])
+        .invoke_handler(tauri::generate_handler![unlock_door,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

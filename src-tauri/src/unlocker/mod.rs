@@ -1,10 +1,23 @@
+use aes_gcm::aead::Aead;
+use aes_gcm::KeyInit;
 use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use anyhow::Result;
-use p256::ecdsa::signature::Verifier;
+use base64::Engine;
+use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use p256::elliptic_curve::rand_core::OsRng;
+use p256::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey, LineEnding};
+use rsa::pkcs1::{DecodeRsaPublicKey, EncodeRsaPublicKey};
+use rsa::Pkcs1v15Encrypt;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use sha2::{Digest, Sha256};
+use tauri::{AppHandle, Manager};
+use tauri_plugin_stronghold::stronghold::Stronghold;
+#[cfg(mobile)]
+use tauri_plugin_biometric::AuthOptions;
+#[cfg(mobile)]
+use tauri_plugin_biometric::BiometricExt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
@@ -24,7 +37,6 @@ pub struct DeviceProof {
 }
 
 pub struct Unlocker {
-    device_private_key: SigningKey,
     server_public_key: VerifyingKey,
     user_id: String,
     counter: u64,
@@ -34,13 +46,11 @@ pub struct Unlocker {
 
 impl Unlocker {
     pub fn new(
-        device_private_key: SigningKey,
         server_public_key: VerifyingKey,
         user_id: String,
         user_token: String,
     ) -> Self {
         Self {
-            device_private_key,
             server_public_key,
             user_id,
             counter: 0,
@@ -48,12 +58,103 @@ impl Unlocker {
         }
     }
 
-    pub fn get_user_id(&self) -> &str {
+    pub fn user_id(&self) -> &str {
         &self.user_id
     }
 
     pub fn get_user_token(&self) -> &str {
         &self.user_token
+    }
+
+    pub fn set_user_token(&mut self, token: String) {
+        self.user_token = token;
+    }
+
+    pub fn set_user_id(&mut self, user_id: String) {
+        self.user_id = user_id;
+    }
+
+    pub fn ensure_signing_key(&self, handle: AppHandle) -> Result<SigningKey> {
+        #[cfg(mobile)]
+        let auth_options = AuthOptions {
+            allow_device_credential: true,
+            cancel_title: Some("Cancel".to_string()),
+            fallback_title: Some("Use Passcode".to_string()),
+            title: Some("Authenticate to unlock".to_string()),
+            subtitle: Some("Please authenticate to load data".to_string()),
+            confirmation_required: Some(true),
+        };
+
+        #[cfg(mobile)]
+        app.biometric()
+            .authenticate("Please authenticate to load data".to_string(), auth_options)
+            .map_err(|_| ())?;
+
+        let user_device_private_key_path = handle
+            .path()
+            .app_local_data_dir()?
+            .join("holder.db");
+        let client_path = handle
+            .path()
+            .app_local_data_dir()?
+            .join("client.db");
+        let path = client_path.to_string_lossy();
+        if !user_device_private_key_path.exists() {
+            let signing_key = SigningKey::random(&mut OsRng);
+            let der = signing_key.to_pkcs8_der()?;
+            let holder = Stronghold::new(user_device_private_key_path.clone(), der.as_bytes().to_vec())?;
+            holder.load_client(path.as_ref())?.store().insert("private_key".as_bytes().to_vec(), der.as_bytes().to_vec(), None)?;
+            holder.save()?;
+        }
+        let holder = Stronghold::new(user_device_private_key_path.clone(), vec![])?;
+        let key = holder.load_client(path.as_ref())?.store().get("private_key".as_bytes())?.ok_or_else(|| anyhow::anyhow!("No private key found in stronghold")).and_then(|data| {
+            SigningKey::from_pkcs8_der(&data).map_err(|e| anyhow::anyhow!("Failed to parse private key: {}", e))
+        })?;
+        Ok(key)
+    }
+
+    pub fn sign_server_challenge(&self, buffer: [u8; 32], handle: AppHandle) -> Result<[u8; 64]> {
+        let key = self.ensure_signing_key(handle)?;
+        let signature: Signature = key.sign(&buffer);
+        let mut sig_bytes = [0u8; 64];
+        sig_bytes.copy_from_slice(&signature.to_bytes());
+        Ok(sig_bytes)
+    }
+
+    /// Submit server key:
+    /// 1. Get server public certificate for asymmetric encryption for AES key exchange
+    /// 2. Generate AES key (encrypted by server public key) and IV
+    /// 3. Generate device signing key (ECDSA P-256) if not exists
+    /// 4. Return verifying key (public key of device signing key) and encrypted AES key
+    pub fn assemble_verifying_key_packet(&self, server_cert: &[u8], handle: AppHandle) -> Result<String> {
+        let server_public_key = VerifyingKey::from_public_key_der(server_cert)?;
+
+        let aes_key_unencrypted = rand::random::<[u8; 16]>();
+        let aes_iv = rand::random::<[u8; 16]>();
+
+        let rsa_public_key = rsa::RsaPublicKey::from_pkcs1_der(server_cert)?;
+        let encrypted_aes_key = rsa_public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &aes_key_unencrypted)?;
+
+        let device_key = self.ensure_signing_key(handle)?;
+        let public_key_der = device_key.verifying_key().to_public_key_pem(LineEnding::LF)?;
+
+        let encrypted_public_key = aes_gcm::Aes128Gcm::new_from_slice(&aes_key_unencrypted)?
+            .encrypt(
+                aes_gcm::Nonce::from_slice(&aes_iv),
+                public_key_der.as_bytes(),
+            )?;
+
+        let aes_key = base64::engine::general_purpose::STANDARD.encode(encrypted_aes_key);
+        let iv = base64::engine::general_purpose::STANDARD.encode(aes_iv);
+        let public_key = base64::engine::general_purpose::STANDARD.encode(encrypted_public_key);
+
+        let packet = serde_json::json!({
+            "aes_key": aes_key,
+            "aes_iv": iv,
+            "public_key": public_key,
+        });
+
+        Ok(packet.to_string())
     }
 
     pub async fn request_unlock(
@@ -67,7 +168,8 @@ impl Unlocker {
         let beacon_information =
             fetch_beacon_information(beacon.as_str(), entity.as_str(), &self.user_token).await?;
         // beacon timestamp regards the epoch time as 0 in its clock, so we need to add the epoch time to it.
-        let timestamp = device_timestamp.checked_sub(beacon_information.last_boot)
+        let timestamp = device_timestamp
+            .checked_sub(beacon_information.last_boot)
             .ok_or_else(|| anyhow::anyhow!("Timestamp overflow"))?;
         request_unlock_permission(nonce, entity, beacon, timestamp, &self.user_token).await
     }
