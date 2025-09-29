@@ -96,7 +96,8 @@ impl ProofManager {
         self.server_public_key
             .as_ref()
             .ok_or(CryptoError::ServerPublicKeyNotSet)?
-            .verify(&hashed, &signature).map_err(|_| CryptoError::VerificationFailed)
+            .verify(&hashed, &signature)
+            .map_err(|_| CryptoError::VerificationFailed)
     }
 
     pub fn verify_server_challenge(&self, challenge: &Challenge) -> Result<(), CryptoError> {

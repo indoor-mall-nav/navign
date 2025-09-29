@@ -14,19 +14,17 @@ extern crate alloc;
 
 pub(crate) mod ble;
 pub(crate) mod crypto;
-mod dht;
 pub(crate) mod execute;
 mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
-use crate::ble::protocol::BleProtocolHandler;
 use crate::ble::BleMessage;
-use crate::dht::DhtReader;
 use crate::execute::BeaconState;
 use crate::shared::constants::*;
 use crate::shared::{DeviceCapability, DeviceType};
 use alloc::rc::Rc;
+use bleps::att::Uuid;
 use bleps::attribute_server::WorkResult;
 use bleps::{
     ad_structure::{
@@ -54,13 +52,16 @@ use esp_hal::{
     time,
     timer::timg::TimerGroup,
 };
+use esp_hal::ledc::channel::{ChannelHW, ChannelIFace, Number as ChannelNumber};
+use esp_hal::ledc::timer::{Number as TimerNumber, TimerIFace, config::{Config as TimerConfig}};
+use esp_hal::ledc::{Ledc, LowSpeed};
+use esp_hal::ledc::channel::config::{Config as ChannelConfig};
+use esp_hal::ledc::timer::config::Duty;
 use esp_println::println;
 use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
 use heapless::Vec;
 use smoltcp::iface::{SocketSet, SocketStorage};
-use smoltcp::phy::DeviceCapabilities;
-// use reqwless::client::
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -74,15 +75,60 @@ fn main() -> ! {
     let dht11 = Flex::new(peripherals.GPIO4);
     let button = Input::new(
         peripherals.GPIO3,
-        InputConfig::default().with_pull(Pull::Down),
+        InputConfig::default(),
     );
-    let human_body = Input::new(peripherals.GPIO10, InputConfig::default());
-    let trigger = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
-    let led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
+    let mut relay = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
+    let mut led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
+    let human_body = Input::new(peripherals.GPIO1, InputConfig::default());
+    let servo = Output::new(peripherals.GPIO0, Level::Low, OutputConfig::default());
+
+    let mut pwm = Ledc::new(peripherals.LEDC);
+
+    pwm.set_global_slow_clock(esp_hal::ledc::LSGlobalClkSource::APBClk);
+    let mut pwm_channel = pwm.channel::<LowSpeed>(ChannelNumber::Channel1, servo);
+    let mut pwm_timer = pwm.timer::<LowSpeed>(TimerNumber::Timer0);
+
+    println!("{:?}",pwm_timer.configure(TimerConfig {
+        duty: Duty::Duty14Bit,
+        clock_source: esp_hal::ledc::timer::LSClockSource::APBClk,
+        frequency: time::Rate::from_hz(50), // 50
+    }));
+
+    println!("{:?}", pwm_channel.configure(ChannelConfig {
+        timer: &pwm_timer,
+        duty_pct: 0, // Start with 0% duty cycle (off)
+        pin_config: esp_hal::ledc::channel::config::PinConfig::PushPull,
+    }));
+
+    pwm_channel.set_duty(10).unwrap();
+    Delay::new().delay_millis(50u32);
+    pwm_channel.set_duty(7).unwrap();
+    Delay::new().delay_millis(500u32);
+    pwm_channel.set_duty(5).unwrap();
+    Delay::new().delay_millis(50u32);
+    pwm_channel.set_duty(0).unwrap();
+    Delay::new().delay_millis(500u32);
+    pwm_channel.set_duty(5).unwrap();
+    Delay::new().delay_millis(50u32);
+    pwm_channel.set_duty(7).unwrap();
+    Delay::new().delay_millis(500u32);
+    pwm_channel.set_duty(10).unwrap();
+    Delay::new().delay_millis(50u32);
+    pwm_channel.set_duty(0).unwrap();
+    Delay::new().delay_millis(500u32);
+    pwm_channel.set_duty(10).unwrap();
+    Delay::new().delay_millis(50u32);
+    pwm_channel.set_duty(0).unwrap();
+    Delay::new().delay_millis(500u32);
 
     heap_allocator!(size: 192 * 1024);
 
-    let server_public_key = [4, 247, 145, 243, 155, 54, 15, 43, 52, 88, 198, 230, 245, 57, 127, 80, 180, 157, 227, 135, 176, 94, 224, 236, 37, 54, 221, 105, 63, 80, 127, 21, 31, 197, 85, 159, 22, 13, 72, 233, 62, 112, 201, 230, 232, 229, 154, 214, 241, 133, 209, 2, 54, 122, 111, 222, 23, 6, 77, 33, 104, 142, 37, 110, 136];
+    let server_public_key = [
+        4, 247, 145, 243, 155, 54, 15, 43, 52, 88, 198, 230, 245, 57, 127, 80, 180, 157, 227, 135,
+        176, 94, 224, 236, 37, 54, 221, 105, 63, 80, 127, 21, 31, 197, 85, 159, 22, 13, 72, 233,
+        62, 112, 201, 230, 232, 229, 154, 214, 241, 133, 209, 2, 54, 122, 111, 222, 23, 6, 77, 33,
+        104, 142, 37, 110, 136,
+    ];
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
@@ -91,7 +137,12 @@ fn main() -> ! {
 
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
-    let mut executor = BeaconState::new(private_key, button, human_body, trigger, led, rng);
+    // If private key is not set, panic
+    if private_key == [0u8; 32] {
+        panic!("EFUSE BLOCK_KEY0 is not set. Please set it to a valid 32-byte private key.");
+    }
+
+    let executor = BeaconState::new(private_key, button, human_body, relay, led, rng);
 
     let delay = Delay::new();
 
@@ -104,6 +155,10 @@ fn main() -> ! {
         .set_server_public_key(server_public_key)
         .unwrap();
 
+    executor.borrow_mut().set_open(true, 0);
+
+    Delay::new().delay_millis(3_000u32);
+
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
 
     let debounce_cnt = 500;
@@ -113,6 +168,19 @@ fn main() -> ! {
     let device_type = DeviceType::Merchant;
     let mut capabilities = Vec::<DeviceCapability, 3>::new();
     capabilities.push(DeviceCapability::UnlockGate).unwrap();
+
+    let mut uuids = Vec::<Uuid, 4>::new();
+
+    uuids.push(Uuid::Uuid16(0x1819)).unwrap(); // Location and Navigation Service
+    uuids.push(Uuid::Uuid16(0x1821)).unwrap(); // Indoor Positioning Service
+
+    if capabilities.contains(&DeviceCapability::UnlockGate) {
+        uuids.insert(0, Uuid::Uuid16(0x183D)).unwrap(); // Authorization Control Service
+    }
+
+    if capabilities.contains(&DeviceCapability::EnvironmentalData) {
+        uuids.push(Uuid::Uuid16(0x181A)).unwrap(); // Environmental Sensing Service
+    }
 
     let mut bluetooth = peripherals.BT;
 
@@ -166,7 +234,7 @@ fn main() -> ! {
         ble.cmd_set_le_advertising_data(
             create_advertising_data(&[
                 AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-                AdStructure::ServiceUuids16(&[Uuid::Uuid16(0x1809)]),
+                AdStructure::ServiceUuids16(uuids.as_ref()),
                 AdStructure::CompleteLocalName("NAVIGN-BEACON"),
             ])
             .unwrap(),
@@ -193,7 +261,10 @@ fn main() -> ! {
         };
 
         let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
-            let target = Rc::clone(&executor).borrow_mut().buffer.extract_message(offset);
+            let target = Rc::clone(&executor)
+                .borrow_mut()
+                .buffer
+                .extract_message(offset);
             let length = match target[0] {
                 DEVICE_RESPONSE => DEVICE_RESPONSE_LENGTH,
                 NONCE_RESPONSE => NONCE_RESPONSE_LENGTH,
@@ -227,8 +298,11 @@ fn main() -> ! {
         let mut no_rng = bleps::no_rng::NoRng;
         let mut srv = AttributeServer::new(&mut ble, &mut gatt_attributes, &mut no_rng);
 
+        let time_loop_start = now();
+
         loop {
             if now() % 50_000 == 5_000 {
+                Rc::clone(&executor).borrow_mut().set_open(true, now());
                 println!("Reading DHT11 Data...");
                 match dht.read().map(|res| {
                     println!(
@@ -247,7 +321,7 @@ fn main() -> ! {
             let mut receive_buffer = [0u8; MAX_PACKET_SIZE];
             let mut send_buffer = [0u8; MAX_PACKET_SIZE];
 
-            if let Some(result) = srv.get_characteristic_value(
+            if let Some(_) = srv.get_characteristic_value(
                 unlock_service_notify_enable_handle,
                 0,
                 &mut receive_buffer,
@@ -267,7 +341,11 @@ fn main() -> ! {
                                     capabilities.clone(),
                                     {
                                         let mut id = [0u8; 12];
-                                        id.copy_from_slice(device_id[count as usize * 12..(count as usize + 1) * 12].as_ref());
+                                        id.copy_from_slice(
+                                            device_id
+                                                [count as usize * 12..(count as usize + 1) * 12]
+                                                .as_ref(),
+                                        );
                                         id
                                     },
                                 );
@@ -280,14 +358,13 @@ fn main() -> ! {
                         }
                         Some(BleMessage::UnlockRequest(ref proof)) => {
                             let mut cell = instance.borrow_mut();
-                            let unlock_result =
-                                match cell.validate_proof(&proof, now()) {
-                                    Ok(_) => {
-                                        cell.set_open(true, now());
-                                        (true, None)
-                                    }
-                                    Err(e) => (false, Some(e)),
-                                };
+                            let unlock_result = match cell.validate_proof(&proof, now()) {
+                                Ok(_) => {
+                                    cell.set_open(true, now());
+                                    (true, None)
+                                }
+                                Err(e) => (false, Some(e)),
+                            };
                             Some(unlock_result.into())
                         }
                         _ => None,
@@ -321,6 +398,11 @@ fn main() -> ! {
                 Err(err) => {
                     println!("{:?}", err);
                 }
+            }
+
+            if now() - time_loop_start > 300_000 {
+                println!("Restarting advertising to refresh connections.");
+                break;
             }
         }
     }

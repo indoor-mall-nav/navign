@@ -1,5 +1,5 @@
 use crate::ble::protocol::BleProtocolHandler;
-use crate::crypto::challenge::{Challenge, ChallengeManager};
+use crate::crypto::challenge::ChallengeManager;
 use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
 use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
@@ -88,11 +88,10 @@ impl<'a> BeaconState<'a> {
         //     self.triggered = true;
         // }
 
-        if self.open.is_set_high() && !self.triggered {
+        if self.open.is_set_high() {
             if self.human_sensor.is_high() && self.relay.is_set_low() {
                 self.relay.set_high();
-                self.last_open = time;
-                self.triggered = true;
+                self.last_relay_on = time;
             }
             if time - self.last_open > 10_000 {
                 self.open.set_low();
@@ -150,9 +149,5 @@ impl<'a> BeaconState<'a> {
         data: Option<&[u8]>,
     ) -> Result<crate::ble::protocol::BleMessage, BleError> {
         self.buffer.deserialize_message(data)
-    }
-
-    pub fn read_human_sensor(&self) -> bool {
-        self.human_sensor.is_high()
     }
 }

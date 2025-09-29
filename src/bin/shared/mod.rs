@@ -1,8 +1,9 @@
+use bleps::att::Uuid;
 use heapless::Vec;
 
 pub mod constants;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 /// Capabilities that the device can report to the client.
 /// The sum of all capabilities is sent as a single byte.
 pub enum DeviceCapability {

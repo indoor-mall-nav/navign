@@ -54,7 +54,9 @@ impl BleProtocolHandler {
             return Ok(());
         }
         self.processing = false;
-        self.receive_buffer.extend_from_slice(data).map_err(|_| BleError::BufferFull)?;
+        self.receive_buffer
+            .extend_from_slice(data)
+            .map_err(|_| BleError::BufferFull)?;
         Ok(())
     }
 
@@ -65,8 +67,7 @@ impl BleProtocolHandler {
         } else {
             return output;
         };
-        output[..terminal]
-            .copy_from_slice(&self.send_buffer[offset..self.send_buffer_length]);
+        output[..terminal].copy_from_slice(&self.send_buffer[offset..self.send_buffer_length]);
         // Remove those data from the vec
         if terminal > 0 {
             self.send_buffer.drain(0..terminal);
@@ -192,9 +193,7 @@ impl BleProtocolHandler {
         }
 
         let result = match self.receive_buffer[0] {
-            DEVICE_REQUEST => {
-                Ok(BleMessage::DeviceRequest(self.receive_buffer[1]))
-            },
+            DEVICE_REQUEST => Ok(BleMessage::DeviceRequest(self.receive_buffer[1])),
 
             DEVICE_RESPONSE => {
                 if self.receive_buffer.len() != DEVICE_RESPONSE_LENGTH {
