@@ -1,36 +1,37 @@
+use std::path::Display;
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Merchant {
     #[serde(rename = "_id")]
-    id: ObjectId,
-    name: String,
-    description: Option<String>,
-    chain: Option<String>, // Name of the chain if part of a chain store series
-    entity: ObjectId,      // Reference to the Entity
-    beacon_code: String,   // Unique identifier for the merchant for displaying in the beacon name
-    area: ObjectId,
-    r#type: MerchantType,
+    pub id: ObjectId,
+    pub name: String,
+    pub description: Option<String>,
+    pub chain: Option<String>, // Name of the chain if part of a chain store series
+    pub entity: ObjectId,      // Reference to the Entity
+    pub beacon_code: String, // Unique identifier for the merchant for displaying in the beacon name
+    pub area: ObjectId,
+    pub r#type: MerchantType,
     /// Hex color code for UI representation,
     /// e.g., `#00704a` for Starbucks green,
     /// whereas `#ffc72c` for McDonald's yellow.
-    color: Option<String>,
+    pub color: Option<String>,
     /// List of tags for categorization, e.g., "food", "electronics", "clothing"
     /// Tags can be used for search and filtering
-    tags: Vec<String>,
-    location: (f64, f64),
-    style: MerchantStyle,
-    polygon: Vec<(f64, f64)>,          // List of (x, y) pairs of coordinates
-    available_period: Vec<(i64, i64)>, // List of (start_time, end_time) in milliseconds on a 24-hour clock
-    email: Option<String>,
-    phone: Option<String>,
-    website: Option<String>,
-    social_media: Vec<SocialMedia>,
+    pub tags: Vec<String>,
+    pub location: (f64, f64),
+    pub style: MerchantStyle,
+    pub polygon: Option<Vec<(f64, f64)>>, // List of (x, y) pairs of coordinates
+    pub available_period: Option<Vec<(i64, i64)>>, // List of (start_time, end_time) in milliseconds on a 24-hour clock
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub website: Option<String>,
+    pub social_media: Option<Vec<SocialMedia>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum MerchantType {
     Food {
@@ -60,19 +61,75 @@ pub enum MerchantType {
     /// It may or may not use authentication or access control, but it only has several doors
     /// that can be used to enter or exit the room.
     Room,
+    #[default]
     Other, // For any other type not listed
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+impl std::fmt::Display for MerchantType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MerchantType::Food { cuisine, r#type } => {
+                if let Some(cuisine) = cuisine {
+                    write!(f, "{:?} {:?}", r#type, cuisine)
+                } else {
+                    write!(f, "{:?}", r#type)
+                }
+            }
+            MerchantType::Electronics {
+                mobile,
+                computer,
+                accessories,
+            } => {
+                let mut types = vec![];
+                if *mobile {
+                    types.push("Mobile");
+                }
+                if *computer {
+                    types.push("Computer");
+                }
+                if *accessories {
+                    types.push("Accessories");
+                }
+                write!(f, "Electronics ({})", types.join(", "))
+            }
+            MerchantType::Clothing {
+                menswear,
+                womenswear,
+                childrenswear,
+            } => {
+                let mut types = vec![];
+                if *menswear {
+                    types.push("Menswear");
+                }
+                if *womenswear {
+                    types.push("Womenswear");
+                }
+                if *childrenswear {
+                    types.push("Childrenswear");
+                }
+                write!(f, "Clothing ({})", types.join(", "))
+            }
+            MerchantType::Supermarket => write!(f, "Supermarket"),
+            MerchantType::Health => write!(f, "Health"),
+            MerchantType::Entertainment => write!(f, "Entertainment"),
+            MerchantType::Facility { r#type } => write!(f, "Facility ({:?})", r#type),
+            MerchantType::Room => write!(f, "Room"),
+            MerchantType::Other => write!(f, "Other"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum FacilityType {
     Restroom,
     Atm,
     InformationDesk,
+    #[default]
     Other, // For any other type not listed
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum FoodType {
     Restaurant(FoodCuisine),
@@ -80,6 +137,7 @@ pub enum FoodType {
     FastFood,
     Bakery,
     Bar,
+    #[default]
     Other, // For any other type not listed
 }
 
@@ -106,7 +164,13 @@ pub enum FoodCuisine {
     Other(String), // For any other type not listed
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
+impl Default for FoodCuisine {
+    fn default() -> Self {
+        FoodCuisine::Other("Unknown".to_string())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum ChineseFoodCuisine {
     Cantonese,
@@ -117,10 +181,11 @@ pub enum ChineseFoodCuisine {
     Hangzhou,
     Ningbo,
     Northern,
+    #[default]
     Other, // For any other type not listed
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct SocialMedia {
     platform: SocialMediaPlatform,
     handle: String,      // e.g., @starbucks
@@ -147,9 +212,16 @@ pub enum SocialMediaPlatform {
     Other(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
+impl Default for SocialMediaPlatform {
+    fn default() -> Self {
+        SocialMediaPlatform::Other("Unknown".to_string())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum MerchantStyle {
+    #[default]
     Store,
     Kiosk,
     PopUp,

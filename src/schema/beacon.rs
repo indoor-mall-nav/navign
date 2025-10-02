@@ -31,7 +31,7 @@ pub struct Beacon {
     /// The location of the beacon, represented as a pair of coordinates (longitude, latitude).
     location: (f64, f64),
     device: BeaconDevice,
-    pub last_boot: u64,
+    pub last_boot: Option<u64>,
 }
 
 impl Beacon {

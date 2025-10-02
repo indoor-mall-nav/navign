@@ -1,8 +1,9 @@
+use std::fmt::{Display, Formatter};
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Connection {
     #[serde(rename = "_id")]
     pub id: ObjectId,
@@ -22,7 +23,7 @@ pub struct Connection {
     /// position of the rail or shuttle stop in the first area.
     pub connected_areas: Vec<(ObjectId, f64, f64)>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
-    pub available_period: Vec<(i64, i64)>,
+    pub available_period: Vec<(i32, i32)>,
     pub tags: Vec<String>,
 }
 
@@ -40,7 +41,7 @@ impl Connection {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Eq, Copy)]
 #[serde(rename_all = "kebab-case")]
 /// Represents the type of connection between areas or entities.
 pub enum ConnectionType {
@@ -48,6 +49,7 @@ pub enum ConnectionType {
     /// Usually involve authentication or access control.
     Gate,
     /// A connection that allows people to move between different areas, such as a hallway or corridor.
+    #[default]
     Escalator,
     /// A connection that allows people to move between different levels, such as stairs or elevators.
     Elevator,
@@ -58,6 +60,19 @@ pub enum ConnectionType {
     Rail,
     /// Shuttle bus.
     Shuttle,
+}
+
+impl Display for ConnectionType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionType::Gate => write!(f, "gate"),
+            ConnectionType::Escalator => write!(f, "escalator"),
+            ConnectionType::Elevator => write!(f, "elevator"),
+            ConnectionType::Stairs => write!(f, "stairs"),
+            ConnectionType::Rail => write!(f, "rail"),
+            ConnectionType::Shuttle => write!(f, "shuttle"),
+        }
+    }
 }
 
 impl Service for Connection {

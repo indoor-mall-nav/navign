@@ -35,3 +35,5 @@ reqwest = "0.12.23"
 sqlx = "0.8.6"
 jsonwebtoken = "9.3.1"
 gravatar = "0.2.0"
+bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }
+

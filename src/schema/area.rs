@@ -1,9 +1,10 @@
+use std::fmt::{Display, Formatter};
 use crate::schema::service::Service;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Area {
     #[serde(rename = "_id")]
     pub id: ObjectId,
@@ -30,21 +31,42 @@ impl Area {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Floor {
     pub r#type: FloorType,
     pub name: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum FloorType {
     /// European/UK style, e.g., "Ground," "First," "Second"
     Level,
     /// US style, e.g., "1st," "2nd," "3rd"
+    #[default]
     Floor,
     /// Universal basement
     Basement,
+}
+
+impl Display for FloorType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FloorType::Level => write!(f, "Level"),
+            FloorType::Floor => write!(f, "Floor"),
+            FloorType::Basement => write!(f, "Basement"),
+        }
+    }
+}
+
+impl Display for Floor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.r#type {
+            FloorType::Level => write!(f, "L{}", self.name),
+            FloorType::Floor => write!(f, "{}F", self.name),
+            FloorType::Basement => write!(f, "B{}", self.name),
+        }
+    }
 }
 
 #[async_trait]

@@ -30,9 +30,12 @@ pub async fn unlocker_instance(
         None => anyhow::bail!("Beacon not found"),
     };
     info!("Beacon instance: {:?}", beacon_instance);
-    info!("Beacon last boot: {}", beacon_instance.last_boot);
+    info!("Beacon last boot: {:?}", beacon_instance.last_boot);
     info!("Unlocker timestamp: {}", unlocker.timestamp);
-    let timestamp_login = match unlocker.timestamp.checked_add(beacon_instance.last_boot) {
+    let timestamp_login = match unlocker
+        .timestamp
+        .checked_add(beacon_instance.last_boot.unwrap_or(0))
+    {
         Some(timestamp) => timestamp,
         None => anyhow::bail!("Can not add beacon"),
     };
