@@ -246,7 +246,7 @@ mod tests {
     use futures::executor::block_on;
     use mongodb::Client;
     use tokio::runtime::Runtime;
-    use crate::kernel::route::utils::connectivity::{ConnectivityGraph, ConnectivityLimits};
+    use crate::kernel::route::utils::connectivity::{AgentInstance, ConnectWithInstance, ConnectivityGraph, ConnectivityLimits};
     use super::*;
     #[test]
     fn test() {
@@ -263,12 +263,25 @@ mod tests {
                     elevator: true,
                     ..Default::default()
                 });
+                let agent_inst = area.agent_instance(&alloc, ConnectivityLimits {
+                    elevator: true,
+                    ..Default::default()
+                });
+                if let Some(agent_instance) = agent_inst {
+                    println!("Agent Instance:\n{agent_instance}\n\n");
+                }
                 println!("{area}");
                 for (arr, conn_type, x, y) in graph {
                     println!("- Connects with {} as {conn_type} at ({x}, {y})", arr.name);
                 }
                 println!();
             }
+
+            // let [departure, _, arrival] = entity.areas.as_slice() else {
+            //     panic!("Wrong!")
+            // };
+            //
+            // departure.find_path(arrival, &alloc);
         }
 
         Runtime::new().unwrap().block_on(inner())

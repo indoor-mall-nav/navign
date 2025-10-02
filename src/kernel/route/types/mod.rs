@@ -28,7 +28,7 @@ pub trait IntoIn<'a, T> {
     fn into_in(self, allocator: &'a bumpalo::Bump) -> T;
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash)]
 /// Ported from <https://github.com/oxc-project/oxc/blob/main/crates/oxc_span/src/atom.rs>
 pub struct Atom<'a>(&'a str);
 
