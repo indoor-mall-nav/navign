@@ -1,10 +1,12 @@
-use std::collections::HashMap;
 use crate::kernel::route::types::area::Area;
+use crate::kernel::route::types::{Atom, CloneIn};
 use crate::schema::connection::ConnectionType;
 use bumpalo::boxed::Box;
 use bumpalo::collections::Vec;
 use bumpalo::Bump;
-use crate::kernel::route::types::{Atom, CloneIn};
+use std::collections::{BinaryHeap, HashMap, HashSet};
+use log::info;
+use crate::kernel::route::types::entity::Entity;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ConnectivityLimits {
@@ -23,12 +25,14 @@ impl Default for ConnectivityLimits {
     }
 }
 
+pub type ConnectivityNode<'a> = (Box<'a, Area<'a>>, Atom<'a>, ConnectionType, f64, f64);
+
 pub trait ConnectivityGraph<'a>: Sized {
     fn connectivity_graph(
         &self,
         alloc: &'a Bump,
         limits: ConnectivityLimits,
-    ) -> Vec<'a, (Box<'a, Self>, ConnectionType, f64, f64)>;
+    ) -> Vec<'a, ConnectivityNode<'a>>;
 }
 
 impl<'a> ConnectivityGraph<'a> for Area<'a> {
@@ -36,23 +40,24 @@ impl<'a> ConnectivityGraph<'a> for Area<'a> {
         &self,
         alloc: &'a Bump,
         limits: ConnectivityLimits,
-    ) -> Vec<'a, (Box<'a, Area<'a>>, ConnectionType, f64, f64)> {
+    ) -> Vec<'a, ConnectivityNode<'a>> {
         Vec::from_iter_in(
-            self.connections.iter().flat_map(|conn| {
-                Vec::from_iter_in(
-                    conn.connected_area_from(self, alloc)
-                        .into_iter()
-                        .map(|(area, x, y)| (area, *conn.r#type.as_ref(), x, y)),
-                    alloc,
-                )
-            }).filter(|(_, conn_type, _, _)| {
-                match conn_type {
+            self.connections
+                .iter()
+                .flat_map(|conn| {
+                    Vec::from_iter_in(
+                        conn.connected_area_from(self, alloc)
+                            .into_iter()
+                            .map(|(area, x, y)| (area, conn.database_id, *conn.r#type.as_ref(), x, y)),
+                        alloc,
+                    )
+                })
+                .filter(|(_, _, conn_type, _, _)| match conn_type {
                     ConnectionType::Elevator => limits.elevator,
                     ConnectionType::Escalator => limits.escalator,
                     ConnectionType::Stairs => limits.stairs,
-                    _ => true
-                }
-            }),
+                    _ => true,
+                }),
             alloc,
         )
     }
@@ -63,103 +68,245 @@ impl<'a> ConnectivityGraph<'a> for Area<'a> {
 /// So you need to define an agent area that is the fourth floor of the building, and
 /// the connectivity graph will be calculated from that area, not the whole building.
 pub trait AgentInstance<'a>: Sized + ConnectivityGraph<'a> {
-    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<Box<'a, Self>>;
+    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<(Box<'a, Self>, Atom<'a>)>;
 }
 
 impl<'a> AgentInstance<'a> for Area<'a> {
-    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<Box<'a, Self>> {
+    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<(Box<'a, Self>, Atom<'a>)> {
         let graph = self.connectivity_graph(alloc, limits);
-        // All nodes point to only one area (not self); can have multiple elements in `graph`, but its area is the same.
+        // Only one node, which points to only one area (not self).
         if graph.is_empty() {
             return None;
         }
-        // Get areas accessible
-        let areas_set = Vec::from_iter_in(
-            graph.iter().map(|(area, _, _, _)| area.database_id.to_string()).collect::<std::collections::HashSet<_>>(),
-            alloc,
-        );
-        if areas_set.len() != 1 || areas_set[0] == self.database_id.to_string() {
-            return None;
-        }
-        Some(Box::new_in(
-            graph.first().unwrap().0.as_ref().clone_in(alloc),
-            alloc,
-        ))
-    }
-}
 
-pub trait ConnectWithInstance<'a>: Sized + ConnectivityGraph<'a> + AgentInstance<'a> {
-    fn get_identifier(&self) -> Atom<'a>;
-
-    fn reconstruct_path(
-        &self,
-        parent_map: HashMap<Atom<'a>, Atom<'a>>,
-        start_id: Atom<'a>,
-        end_id: Atom<'a>,
-    ) -> std::vec::Vec<Atom<'a>> {
-        let mut path = std::vec::Vec::new();
-        let mut current_id = end_id;
-
-        path.push(current_id);
-
-        while current_id != start_id {
-            if let Some(parent_id) = parent_map.get(&current_id) {
-                path.push(*parent_id);
-                current_id = *parent_id;
-            } else {
-                // No path found
-                return vec![];
+        if graph.len() == 1 {
+            let (area, conn_id, _, _, _) = &graph[0];
+            let area = area.as_ref();
+            if area.database_id != self.database_id {
+                return Some((Box::new_in(area.clone_in(alloc), alloc), *conn_id));
             }
         }
 
-        path.reverse();
-        path
+        None
     }
+}
 
-    fn find_path(&'a self, terminus: &'a Self, alloc: &'a Bump) -> Option<std::vec::Vec<Atom<'a>>> {
-        let start_id = self.get_identifier();
-        let terminus_id = terminus.get_identifier();
+/// Simplified priority node for pathfinding: lower distance = higher priority
+#[derive(Debug, Clone)]
+struct PathNode<'a> {
+    area_id: Atom<'a>,
+    distance: u64,
+    x: f64,
+    y: f64,
+}
 
-        if start_id == terminus_id {
-            return Some(vec![start_id]);
+impl<'a> PartialEq for PathNode<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl<'a> Eq for PathNode<'a> {}
+
+impl<'a> PartialOrd for PathNode<'a> {
+    #[allow(clippy::non_canonical_partial_ord_impl)]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.distance.partial_cmp(&other.distance)?.reverse())
+    }
+}
+
+impl<'a> Ord for PathNode<'a> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other)
+            .unwrap_or(std::cmp::Ordering::Greater)
+    }
+}
+
+/// Utils: Manhattan distance
+fn manhattan_distance(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
+    (x1 - x2).abs() + (y1 - y2).abs()
+}
+
+pub trait Contiguous<'a> {
+    fn is_contiguous(
+        &self,
+        other: &Self,
+        alloc: &'a Bump,
+        limits: ConnectivityLimits,
+    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>>;
+}
+
+impl<'a> Contiguous<'a> for Area<'a> {
+    fn is_contiguous(
+        &self,
+        other: &Self,
+        alloc: &'a Bump,
+        limits: ConnectivityLimits,
+    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>> {
+        let start_id = self.database_id;
+        let terminus_id = other.database_id;
+
+        let start_neighbors = self.connectivity_graph(alloc, limits);
+        for (neighbor, node, _, _, _) in start_neighbors.iter() {
+            if neighbor.database_id == terminus_id {
+                return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *node)], alloc));
+            }
         }
 
-        let mut queue = std::collections::VecDeque::new();
-        let mut visited = std::collections::HashSet::new();
-        let mut parent_map = HashMap::new();
+        let start_agent = self.agent_instance(alloc, limits);
+        let terminus_agent = other.agent_instance(alloc, limits);
 
-        queue.push_back(start_id);
-        visited.insert(start_id);
+        if let Some((start_agent, connectivity)) = start_agent.as_ref()
+            && start_agent.database_id == terminus_id
+        {
+            return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *connectivity)], alloc));
+        }
 
-        while let Some(current_id) = queue.pop_front() {
-            let current_area = if current_id == self.get_identifier() {
-                self
-            } else if current_id == terminus.get_identifier() {
-                terminus
-            } else {
-                continue; // In a full implementation, you'd look up the area by ID
+        if let Some((terminus_agent, connectivity)) = terminus_agent.as_ref()
+            && terminus_agent.database_id == start_id
+        {
+            return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *connectivity)], alloc));
+        }
+
+        if let (Some((start_agent, start_connectivity)), Some((terminus_agent, terminus_connectivity))) =
+            (start_agent.as_ref(), terminus_agent.as_ref())
+            && start_agent.database_id == terminus_agent.database_id
+        {
+            let intermediate_id = start_agent.database_id.clone();
+            return Some(Vec::from_iter_in(
+                vec![(start_id, Atom::new_in(&alloc)), (intermediate_id, *start_connectivity), (terminus_id, *terminus_connectivity)],
+                alloc,
+            ));
+        }
+
+        None
+    }
+}
+
+fn reconstruct_path<'a>(
+    came_from: &HashMap<Atom<'a>, (Atom<'a>, Atom<'a>)>,
+    current: Atom<'a>,
+    alloc: &'a Bump,
+) -> Vec<'a, (Atom<'a>, Atom<'a>)> {
+    let mut total_path = Vec::new_in(alloc);
+    let mut total_connectivity = Vec::new_in(alloc);
+    total_path.push(current);
+    let mut current = current;
+    while let Some((prev, conn)) = came_from.get(&current) {
+        total_path.push(*prev);
+        total_connectivity.push(*conn);
+        current = *prev;
+    }
+    total_connectivity.push(Atom::new_in(alloc)); // Starting point has no connectivity
+    total_path.reverse();
+    total_connectivity.reverse();
+    Vec::from_iter_in(
+        total_path.into_iter().zip(total_connectivity),
+        alloc,
+    )
+}
+
+pub trait ConnectWithInstance<'a>: Sized {
+    fn get_areas(&self) -> &[Box<'a, Area<'a>>];
+
+    fn find_path(
+        &self,
+        departure: Atom<'a>,
+        departure_point: (f64, f64),
+        arrival: Atom<'a>,
+        limits: ConnectivityLimits,
+        alloc: &'a Bump,
+    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>> {
+        let departure_area = self
+            .get_areas()
+            .iter()
+            .find(|area| area.database_id == departure)?;
+        let arrival_area = self
+            .get_areas()
+            .iter()
+            .find(|area| area.database_id == arrival)?;
+
+        if departure_area.database_id == arrival_area.database_id {
+            return Some(Vec::from_iter_in(vec![(departure_area.database_id, Atom::new_in(&alloc))], alloc));
+        }
+
+        if let Some(quick_path) = departure_area.is_contiguous(arrival_area, alloc, limits) {
+            return Some(quick_path);
+        }
+
+        let area_map = self
+            .get_areas()
+            .iter()
+            .map(|area| (area.database_id, area.as_ref()))
+            .collect::<HashMap<_, _>>();
+
+        let mut heap = BinaryHeap::new();
+        let mut visited = HashSet::new();
+        let mut parent_map: HashMap<Atom<'a>, (Atom<'a>, Atom<'a>)> = HashMap::new();
+        let mut distance_map = HashMap::new();
+
+        heap.push(PathNode {
+            area_id: departure_area.database_id,
+            distance: 0,
+            x: departure_point.0,
+            y: departure_point.1,
+        });
+        distance_map.insert(departure_area.database_id, 0);
+
+        while let Some(PathNode {
+            area_id: current_area,
+            distance: current_distance,
+            x,
+            y,
+        }) = heap.pop()
+        {
+            if visited.contains(&current_area) {
+                continue;
+            }
+            visited.insert(current_area);
+
+            if current_area == arrival_area.database_id {
+                return Some(reconstruct_path(&parent_map, current_area, alloc));
+            }
+
+            let current_area = match area_map.get(&current_area) {
+                Some(area) => area,
+                None => continue,
             };
 
-            for (neighbor_area, _, _, _) in current_area.connectivity_graph(alloc, ConnectivityLimits::default()) {
-                let neighbor_id = neighbor_area.get_identifier();
-                if !visited.contains(&neighbor_id) {
-                    visited.insert(neighbor_id);
-                    parent_map.insert(neighbor_id, current_id);
-                    queue.push_back(neighbor_id);
+            for (neighbor, connectivity, _, conn_x, conn_y) in
+                current_area.connectivity_graph(alloc, limits).iter()
+            {
+                let neighbor_id = neighbor.database_id;
+                if visited.contains(&neighbor_id) {
+                    continue;
+                }
 
-                    if neighbor_id == terminus_id {
-                        return Some(self.reconstruct_path(parent_map, start_id, terminus_id));
-                    }
+                let neighbor_loc = (*conn_x, *conn_y);
+                let edge_distance = manhattan_distance(x, y, neighbor_loc.0, neighbor_loc.1);
+                let tentative_distance = current_distance + edge_distance as u64;
+
+                if !distance_map.contains_key(&neighbor_id)
+                    || tentative_distance < *distance_map.get(&neighbor_id).unwrap()
+                {
+                    parent_map.insert(neighbor_id, (current_area.database_id, *connectivity));
+                    distance_map.insert(neighbor_id, tentative_distance);
+                    heap.push(PathNode {
+                        area_id: neighbor_id,
+                        distance: tentative_distance,
+                        x: neighbor_loc.0,
+                        y: neighbor_loc.1,
+                    });
                 }
             }
         }
 
-        None // No path found
+        None
     }
 }
 
-impl<'a> ConnectWithInstance<'a> for Area<'a> {
-    fn get_identifier(&self) -> Atom<'a> {
-        self.database_id.clone()
+impl<'a> ConnectWithInstance<'a> for Entity<'a> {
+    fn get_areas(&self) -> &[Box<'a, Area<'a>>] {
+        &self.areas
     }
 }

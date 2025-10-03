@@ -42,6 +42,13 @@ impl<'a> Atom<'a> {
     }
 }
 
+impl<'a> Atom<'a> {
+    pub fn new_in(allocator: &'a bumpalo::Bump) -> Self {
+        let s = allocator.alloc_str("");
+        Self(s)
+    }
+}
+
 impl<'a, 'b> CloneIn<'b> for Atom<'a> {
     type Cloned = Atom<'b>;
     fn clone_in(&self, allocator: &'b bumpalo::Bump) -> Atom<'b> {

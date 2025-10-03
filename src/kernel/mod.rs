@@ -1,8 +1,8 @@
-mod route;
-mod auth;
+pub mod route;
+pub mod auth;
 pub mod beacon;
-mod cryptography;
+pub mod cryptography;
 pub mod instruction;
 pub mod totp;
-mod unlocker;
-mod user;
+pub mod unlocker;
+pub mod user;

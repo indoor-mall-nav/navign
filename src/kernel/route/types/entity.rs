@@ -22,6 +22,7 @@ use std::rc::Rc;
 pub struct Entity<'a> {
     pub r#type: EntityType,
     pub name: Atom<'a>,
+    /// TODO: use HashMap instead.
     pub areas: Vec<'a, Box<'a, Area<'a>>>,
     pub(crate) database_id: Atom<'a>,
     phantom: std::marker::PhantomData<&'a ()>,
@@ -244,12 +245,16 @@ impl<'a> Entity<'a> {
 #[cfg(test)]
 mod tests {
     use futures::executor::block_on;
+    use log::{warn, LevelFilter};
     use mongodb::Client;
+    use simple_logger::SimpleLogger;
     use tokio::runtime::Runtime;
     use crate::kernel::route::utils::connectivity::{AgentInstance, ConnectWithInstance, ConnectivityGraph, ConnectivityLimits};
     use super::*;
     #[test]
     fn test() {
+        log::set_boxed_logger(std::boxed::Box::new(SimpleLogger::new()))
+            .map(|()| log::set_max_level(LevelFilter::Info)).unwrap();
         async fn inner() {
             let alloc = Bump::default();
             let db = Client::with_uri_str("mongodb://localhost:27017")
@@ -267,21 +272,29 @@ mod tests {
                     elevator: true,
                     ..Default::default()
                 });
-                if let Some(agent_instance) = agent_inst {
-                    println!("Agent Instance:\n{agent_instance}\n\n");
+                if let Some((agent_instance, _)) = agent_inst {
+                    info!("Agent Instance:\n{agent_instance}\n\n");
                 }
-                println!("{area}");
-                for (arr, conn_type, x, y) in graph {
-                    println!("- Connects with {} as {conn_type} at ({x}, {y})", arr.name);
+                info!("{area}");
+                for (arr, _, conn_type, x, y) in graph {
+                    info!("- Connects with {} as {conn_type} at ({x}, {y})", arr.name);
                 }
-                println!();
             }
 
-            // let [departure, _, arrival] = entity.areas.as_slice() else {
-            //     panic!("Wrong!")
-            // };
-            //
-            // departure.find_path(arrival, &alloc);
+            let ent = entity.clone_in(&alloc);
+
+            let [departure, _, arrival] = ent.areas.as_slice() else {
+                panic!("Wrong!")
+            };
+
+            warn!("Start.");
+
+            let result = ent.find_path(departure.database_id, (0f64, 0f64), arrival.database_id, ConnectivityLimits {
+                elevator: false,
+                ..Default::default()
+            }, &alloc);
+
+            info!("Route: {:?}", result);
         }
 
         Runtime::new().unwrap().block_on(inner())

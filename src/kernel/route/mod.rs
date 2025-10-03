@@ -1,4 +1,4 @@
-mod types;
-mod instructions;
-mod interarea;
-mod utils;
+pub mod types;
+pub mod instructions;
+pub mod interarea;
+pub mod utils;
