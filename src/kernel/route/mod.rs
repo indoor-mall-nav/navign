@@ -25,19 +25,18 @@ pub fn route_merchant(departure_merchant: &str, arrival_merchant: &str, entity_i
     let departure = match merchants.iter().find(|m| m.id.to_hex() == departure_merchant) {
         Some(m) => m,
         None => return Err(NavigationError::InvalidDeparture),
-    };
+    }.clone();
     let arrival = match merchants.iter().find(|m| m.id.to_hex() == arrival_merchant) {
         Some(m) => m,
         None => return Err(NavigationError::InvalidArrival),
-    };
-    let entity = match types::entity::Entity::convert_area_in(&alloc, entity_id, areas, connections, merchants).await {
+    }.clone();
+    let entity = match types::entity::Entity::convert_area_in(&alloc, entity_id, areas, connections, merchants) {
         Some(e) => e,
         None => return Err(NavigationError::InvalidArrival),
     };
     println!("Routing within entity: {}", entity.name);
     let dep_area = departure.area.to_hex();
     let arr_area = arrival.area.to_hex();
-    println!("Routing from merchant {} in area {} to merchant {} in area {} within entity {}", departure_merchant, dep_area, arrival_merchant, arr_area, entity_id);
     let src = (departure.location.0, departure.location.1, Atom::from_in(dep_area, &alloc));
     println!("Source location: {:?}", src);
     let dest = (arrival.location.0, arrival.location.1, Atom::from_in(arr_area, &alloc));
@@ -74,7 +73,6 @@ pub async fn find_route(
             axum::Json(json!({"error": "Missing 'from' or 'to' parameter"})),
         );
     }
-    let local = tokio::task::LocalSet::new();
     let entity = match Entity::get_one_by_id(&state.db, entity.as_str()).await {
         Some(e) => e,
         None => {
@@ -102,5 +100,5 @@ pub async fn find_route(
             }
             Err(e) => (StatusCode::BAD_REQUEST, axum::Json(json!({"error": e}))),
         }
-    }).await;
+    }).await
 }

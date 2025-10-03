@@ -95,7 +95,7 @@ impl<'a> IntoIn<'a, crate::schema::entity::Entity> for Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    pub async fn convert_area_in(
+    pub fn convert_area_in(
         alloc: &'a Bump,
         entity: crate::schema::Entity,
         area_list: std::vec::Vec<crate::schema::Area>,
