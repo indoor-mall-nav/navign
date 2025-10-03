@@ -1,7 +1,6 @@
 use crate::kernel::cryptography::UnlockChallenge;
-use crate::schema::{Beacon, Service, User};
+use crate::schema::{Beacon, Service};
 use anyhow::{Result, anyhow};
-use axum::Json;
 use base64::Engine;
 use bson::doc;
 use chrono::Duration;

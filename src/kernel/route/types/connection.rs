@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::area::Area;
-use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
+use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn};
 use crate::schema::connection::ConnectionType;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 

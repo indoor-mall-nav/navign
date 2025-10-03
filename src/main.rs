@@ -9,7 +9,7 @@ use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merch
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{
-    Extension, Router,
+    Router,
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
 };
@@ -17,10 +17,8 @@ use bson::doc;
 use bumpalo::Bump;
 use log::{LevelFilter, info, warn};
 use mongodb::{Client, Database};
-use p256::ecdsa;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
-use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;

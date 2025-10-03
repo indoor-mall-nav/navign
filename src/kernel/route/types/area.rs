@@ -5,7 +5,6 @@ use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::area::Floor;
 use bumpalo::{boxed::Box, collections::Vec, Bump};
 use std::fmt::{Debug, Display, Formatter};
-use crate::kernel::route::utils::connectivity::ConnectivityGraph;
 
 #[derive(Debug)]
 pub struct Area<'a> {

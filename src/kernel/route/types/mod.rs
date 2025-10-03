@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 pub mod area;
-mod connection;
+pub mod connection;
 pub mod entity;
 pub mod merchant;
 

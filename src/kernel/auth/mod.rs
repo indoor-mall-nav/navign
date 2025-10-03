@@ -87,7 +87,7 @@ impl FromStr for Token {
         let decoding_key = env::var("JWT_SIGN_KEY")?;
         let key = DecodingKey::from_secret(decoding_key.as_bytes());
         let validation = Validation::default();
-        jsonwebtoken::decode::<Self>(&token, &key, &validation)
+        jsonwebtoken::decode::<Self>(token, &key, &validation)
             .map(|token| token.claims)
             .map_err(Into::into)
     }

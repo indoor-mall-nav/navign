@@ -5,7 +5,6 @@ use bumpalo::boxed::Box;
 use bumpalo::collections::Vec;
 use bumpalo::Bump;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use log::info;
 use crate::kernel::route::types::entity::Entity;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
@@ -174,7 +173,7 @@ impl<'a> Contiguous<'a> for Area<'a> {
         {
             let intermediate_id = start_agent.database_id.clone();
             return Some(Vec::from_iter_in(
-                vec![(start_id, Atom::new_in(&alloc)), (intermediate_id, *start_connectivity), (terminus_id, *terminus_connectivity)],
+                vec![(start_id, Atom::new_in(alloc)), (intermediate_id, *start_connectivity), (terminus_id, *terminus_connectivity)],
                 alloc,
             ));
         }
@@ -227,7 +226,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             .find(|area| area.database_id == arrival)?;
 
         if departure_area.database_id == arrival_area.database_id {
-            return Some(Vec::from_iter_in(vec![(departure_area.database_id, Atom::new_in(&alloc))], alloc));
+            return Some(Vec::from_iter_in(vec![(departure_area.database_id, Atom::new_in(alloc))], alloc));
         }
 
         if let Some(quick_path) = departure_area.is_contiguous(arrival_area, alloc, limits) {
@@ -308,5 +307,214 @@ pub trait ConnectWithInstance<'a>: Sized {
 impl<'a> ConnectWithInstance<'a> for Entity<'a> {
     fn get_areas(&self) -> &[Box<'a, Area<'a>>] {
         &self.areas
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::kernel::route::types::area::Area;
+    use crate::kernel::route::types::{Dummy, FromIn};
+    use crate::kernel::route::types::connection::Connection;
+    use super::*;
+
+    #[test]
+    fn contiguous_areas_no_agent() {
+        let alloc = Bump::new();
+        let mut area1 = Area::dummy(&alloc);
+        area1.name = Atom::from("Area 1");
+        area1.database_id = Atom::from("area1");
+        let mut area2 = Area::dummy(&alloc);
+        area2.name = Atom::from("Area 2");
+        area2.database_id = Atom::from("area2");
+        let mut area3 = Area::dummy(&alloc);
+        area3.name = Atom::from("Area 3");
+        area3.database_id = Atom::from("area3");
+        let mut area4 = Area::dummy(&alloc);
+        area4.name = Atom::from("Area 4");
+        area4.database_id = Atom::from("area4");
+        let mut conn1 = Connection::dummy(&alloc);
+        conn1.database_id = Atom::from("conn1");
+        conn1.connected_areas.push(
+            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
+        );
+        conn1.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        let mut conn2 = Connection::dummy(&alloc);
+        conn2.database_id = Atom::from("conn2");
+        conn2.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
+        );
+        let mut conn3 = Connection::dummy(&alloc);
+        conn3.database_id = Atom::from("conn3");
+        conn3.connected_areas.push(
+            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
+        );
+        conn3.connected_areas.push(
+            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
+        );
+        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area1.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        let mut entity = Entity::dummy(&alloc);
+        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        let limits = ConnectivityLimits::default();
+        let path = entity.find_path(
+            Atom::from("area1"),
+            (0.0, 0.0),
+            Atom::from("area2"),
+            limits,
+            &alloc,
+        );
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert_eq!(path.len(), 2);
+        assert_eq!(path[0].0, Atom::from("area1"));
+        assert_eq!(path[1].0, Atom::from("area2"));
+        assert_eq!(path[1].1, Atom::from("conn1"));
+    }
+
+    #[test]
+    fn contiguous_areas_terminus_agent() {
+        let alloc = Bump::new();
+        let mut area1 = Area::dummy(&alloc);
+        area1.name = Atom::from("Area 1");
+        area1.database_id = Atom::from("area1");
+        let mut area2 = Area::dummy(&alloc);
+        area2.name = Atom::from("Area 2");
+        area2.database_id = Atom::from("area2");
+        let mut area3 = Area::dummy(&alloc);
+        area3.name = Atom::from("Area 3");
+        area3.database_id = Atom::from("area3");
+        let mut area4 = Area::dummy(&alloc);
+        area4.name = Atom::from("Area 4");
+        area4.database_id = Atom::from("area4");
+        let mut conn1 = Connection::dummy(&alloc);
+        conn1.database_id = Atom::from("conn1");
+        conn1.connected_areas.push(
+            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
+        );
+        conn1.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        let mut conn2 = Connection::dummy(&alloc);
+        conn2.database_id = Atom::from("conn2");
+        conn2.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
+        );
+        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area3.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        let mut entity = Entity::dummy(&alloc);
+        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        let limits = ConnectivityLimits::default();
+        let path = entity.find_path(
+            Atom::from("area3"),
+            (0.0, 0.0),
+            Atom::from("area1"),
+            limits,
+            &alloc,
+        );
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert_eq!(path.len(), 3);
+        assert_eq!(path[0].0, Atom::from("area3"));
+        assert_eq!(path[1].0, Atom::from("area2"));
+        assert_eq!(path[2].0, Atom::from("area1"));
+        assert_eq!(path[1].1, Atom::from("conn2"));
+        assert_eq!(path[2].1, Atom::from("conn1"));
+    }
+
+    #[test]
+    fn dijkstra() {
+        let alloc = Bump::new();
+        let mut area1 = Area::dummy(&alloc);
+        area1.name = Atom::from("Area 1");
+        area1.database_id = Atom::from("area1");
+        let mut area2 = Area::dummy(&alloc);
+        area2.name = Atom::from("Area 2");
+        area2.database_id = Atom::from("area2");
+        let mut area3 = Area::dummy(&alloc);
+        area3.name = Atom::from("Area 3");
+        area3.database_id = Atom::from("area3");
+        let mut area4 = Area::dummy(&alloc);
+        area4.name = Atom::from("Area 4");
+        area4.database_id = Atom::from("area4");
+        let mut conn1 = Connection::dummy(&alloc);
+        conn1.database_id = Atom::from("conn1");
+        conn1.connected_areas.push(
+            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
+        );
+        conn1.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        let mut conn2 = Connection::dummy(&alloc);
+        conn2.database_id = Atom::from("conn2");
+        conn2.connected_areas.push(
+            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
+        );
+        conn2.connected_areas.push(
+            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
+        );
+        let mut conn3 = Connection::dummy(&alloc);
+        conn3.database_id = Atom::from("conn3");
+        conn3.connected_areas.push(
+            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
+        );
+        conn3.connected_areas.push(
+            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
+        );
+        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area1.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area3.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        let mut entity = Entity::dummy(&alloc);
+        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        let limits = ConnectivityLimits::default();
+        let path = entity.find_path(
+            Atom::from("area3"),
+            (0.0, 0.0),
+            Atom::from("area1"),
+            limits,
+            &alloc,
+        );
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert_eq!(path.len(), 3);
+        assert_eq!(path[0].0, Atom::from("area3"));
+        assert_eq!(path[1].0, Atom::from("area2"));
+        assert_eq!(path[2].0, Atom::from("area1"));
+        assert_eq!(path[1].1, Atom::from("conn2"));
+        assert_eq!(path[2].1, Atom::from("conn1"));
     }
 }

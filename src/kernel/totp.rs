@@ -1,8 +1,7 @@
 use anyhow::Result;
 /// Beacon and Server handshake.
 /// 1. The beacon sends its info to the server, and the server compare it with the database.
-/// 2. If the beacon is registered, the server sends back the timestamp back so that the beacon could
-/// adjust its clock.
+/// 2. If the beacon is registered, the server sends back the timestamp back so that the beacon could adjust its clock.
 /// 3. The beacon generates a TOTP code using the shared secret and the timestamp, and send it to the server.
 /// 4. The server verifies the TOTP code, and if it is valid, the server set the beacon ready for unlock.
 ///
@@ -84,7 +83,7 @@ impl BeaconSecret {
         let counter_bytes = counter.to_be_bytes();
 
         // Create HMAC-SHA1 hash
-        let mut mac = Hmac::<Sha1>::new_from_slice(&self.secret.as_bytes())
+        let mut mac = Hmac::<Sha1>::new_from_slice(self.secret.as_bytes())
             .expect("HMAC can take key of any size");
         mac.update(&counter_bytes);
         let result = mac.finalize().into_bytes();
