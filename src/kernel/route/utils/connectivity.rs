@@ -205,6 +205,9 @@ fn reconstruct_path<'a>(
     )
 }
 
+pub type ConnectivityPath<'a> = (Atom<'a>, Atom<'a>);
+type ConnectivityRoute<'a> = Vec<'a, ConnectivityPath<'a>>;
+
 pub trait ConnectWithInstance<'a>: Sized {
     fn get_areas(&self) -> &[Box<'a, Area<'a>>];
 
@@ -215,7 +218,8 @@ pub trait ConnectWithInstance<'a>: Sized {
         arrival: Atom<'a>,
         limits: ConnectivityLimits,
         alloc: &'a Bump,
-    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>> {
+    ) -> Option<ConnectivityRoute<'a>> {
+        println!("Finding path from {} to {}", departure, arrival);
         let departure_area = self
             .get_areas()
             .iter()
@@ -226,10 +230,12 @@ pub trait ConnectWithInstance<'a>: Sized {
             .find(|area| area.database_id == arrival)?;
 
         if departure_area.database_id == arrival_area.database_id {
+            println!("Departure and arrival are in the same area.");
             return Some(Vec::from_iter_in(vec![(departure_area.database_id, Atom::new_in(alloc))], alloc));
         }
 
         if let Some(quick_path) = departure_area.is_contiguous(arrival_area, alloc, limits) {
+            println!("Areas are contiguous.");
             return Some(quick_path);
         }
 

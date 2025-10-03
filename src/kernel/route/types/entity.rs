@@ -97,55 +97,15 @@ impl<'a> IntoIn<'a, crate::schema::entity::Entity> for Entity<'a> {
 impl<'a> Entity<'a> {
     pub async fn convert_area_in(
         alloc: &'a Bump,
-        entity: &str,
-        database: &Database,
+        entity: crate::schema::Entity,
+        area_list: std::vec::Vec<crate::schema::Area>,
+        connection_list: std::vec::Vec<crate::schema::Connection>,
+        merchant_list: std::vec::Vec<crate::schema::Merchant>,
     ) -> Option<Entity<'a>> {
-        info!(
-            "Converting entity with id {} in database {}",
-            entity,
-            database.name()
-        );
-        let target_area = crate::schema::Entity::get_one_by_id(database, entity).await?;
-        let entity_id = ObjectId::parse_str(entity).ok()?;
-        info!("Found entity: {:?}", target_area);
-        let areas =
-            database.collection::<crate::schema::Area>(crate::schema::Area::get_collection_name());
-        info!("Accessed areas collection");
-        let merchants = database
-            .collection::<crate::schema::Merchant>(crate::schema::Merchant::get_collection_name());
-        info!("Accessed merchants collection");
-        let connections = database.collection::<crate::schema::Connection>(
-            crate::schema::Connection::get_collection_name(),
-        );
-        info!("Accessed connections collection");
-        let area_list = areas
-            .find(doc! { "entity": entity_id })
-            .await
-            .ok()?
-            .try_collect::<std::vec::Vec<crate::schema::Area>>()
-            .await
-            .ok()?;
-        info!("Found {} areas", area_list.len());
-        let merchant_list = merchants
-            .find(doc! { "entity": entity_id })
-            .await
-            .ok()?
-            .try_collect::<std::vec::Vec<crate::schema::Merchant>>()
-            .await
-            .ok()?;
-        info!("Found {} merchants", merchant_list.len());
-        let connection_list = connections
-            .find(doc! { "entity": entity_id })
-            .await
-            .ok()?
-            .try_collect::<std::vec::Vec<crate::schema::Connection>>()
-            .await
-            .ok()?;
-        info!("Found {} connections", connection_list.len());
         if area_list.is_empty() || merchant_list.is_empty() || connection_list.is_empty() {
             return None;
         }
-        let mut result = Entity::from_in(target_area, alloc);
+        let mut result = Entity::from_in(entity, alloc);
         info!("Converted entity to internal representation");
         let allocated_areas = Rc::new(RefCell::new(Vec::from_iter_in(
             area_list
@@ -239,64 +199,5 @@ impl<'a> Entity<'a> {
             .ok()?
             .into_inner();
         Some(result)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures::executor::block_on;
-    use log::{warn, LevelFilter};
-    use mongodb::Client;
-    use simple_logger::SimpleLogger;
-    use tokio::runtime::Runtime;
-    use crate::kernel::route::utils::connectivity::{AgentInstance, ConnectWithInstance, ConnectivityGraph, ConnectivityLimits};
-    use super::*;
-    #[test]
-    fn test() {
-        log::set_boxed_logger(std::boxed::Box::new(SimpleLogger::new()))
-            .map(|()| log::set_max_level(LevelFilter::Info)).unwrap();
-        async fn inner() {
-            let alloc = Bump::default();
-            let db = Client::with_uri_str("mongodb://localhost:27017")
-                .await
-                .unwrap()
-                .database("indoor-mall-nav");
-            let entity = Entity::convert_area_in(&alloc, "68a8301fbdfa76608b934ae1", &db).await.unwrap();
-
-            for area in entity.areas.iter() {
-                let graph = area.connectivity_graph(&alloc, ConnectivityLimits {
-                    elevator: true,
-                    ..Default::default()
-                });
-                let agent_inst = area.agent_instance(&alloc, ConnectivityLimits {
-                    elevator: true,
-                    ..Default::default()
-                });
-                if let Some((agent_instance, _)) = agent_inst {
-                    info!("Agent Instance:\n{agent_instance}\n\n");
-                }
-                info!("{area}");
-                for (arr, _, conn_type, x, y) in graph {
-                    info!("- Connects with {} as {conn_type} at ({x}, {y})", arr.name);
-                }
-            }
-
-            let ent = entity.clone_in(&alloc);
-
-            let [departure, _, arrival] = ent.areas.as_slice() else {
-                panic!("Wrong!")
-            };
-
-            warn!("Start.");
-
-            let result = ent.find_path(departure.database_id, (0f64, 0f64), arrival.database_id, ConnectivityLimits {
-                elevator: false,
-                ..Default::default()
-            }, &alloc);
-
-            info!("Route: {:?}", result);
-        }
-
-        Runtime::new().unwrap().block_on(inner())
     }
 }

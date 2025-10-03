@@ -155,4 +155,23 @@ mod tests {
         assert_eq!(results[5].center().0, 2.5);
         assert_eq!(results[5].center().1, 2.5);
     }
+    #[test]
+    fn test2() {
+        let polygon = [
+            (0.0, 60.0),
+            (0.0, 75.0),
+            (5.0, 75.0),
+            (5.0, 70.0),
+            (45.0, 70.0),
+            (45.0, 72.0),
+            (48.0, 72.0),
+            (48.0, 66.0),
+            (5.0, 66.0),
+            (5.0, 60.0),
+        ];
+        let poly = Polygon::from(polygon.as_slice());
+        let array = poly.as_bounded_block_array();
+        let res = array.find_displacement((40.0, 66.0), (2.0, 64.0));
+        assert!(res.is_some());
+    }
 }

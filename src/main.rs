@@ -5,25 +5,29 @@ mod schema;
 mod shared;
 
 use crate::kernel::beacon::initiate_unlocker;
+use crate::kernel::route::{find_route};
+use crate::kernel::route::types::{CloneIn};
+use crate::kernel::route::utils::connectivity::{
+    ConnectWithInstance, ConnectivityGraph, ConnectivityLimits,
+};
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
-use axum::extract::State;
+use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
 use axum::{
-    Router,
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
+    Router,
 };
 use bson::doc;
-use bumpalo::Bump;
-use log::{LevelFilter, info, warn};
-use mongodb::{Client, Database};
+use log::{info, LevelFilter};
+use mongodb::{Database};
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
 use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
-use crate::kernel::route::types::CloneIn;
-use crate::kernel::route::utils::connectivity::{AgentInstance, ConnectWithInstance, ConnectivityGraph};
 // use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
@@ -62,44 +66,7 @@ async fn cert(State(state): State<AppState>) -> impl IntoResponse {
 async fn main() -> anyhow::Result<()> {
     log::set_boxed_logger(Box::new(SimpleLogger::new()))
         .map(|()| log::set_max_level(LevelFilter::Info))?;
-    let alloc = Bump::default();
-    let db = Client::with_uri_str("mongodb://localhost:27017")
-        .await?
-        .database("indoor-mall-nav");
-    let entity = crate::kernel::route::types::entity::Entity::convert_area_in(&alloc, "68a8301fbdfa76608b934ae1", &db).await.unwrap();
 
-    for area in entity.areas.iter() {
-        let graph = area.connectivity_graph(&alloc, crate::kernel::route::utils::connectivity::ConnectivityLimits {
-            elevator: true,
-            ..Default::default()
-        });
-        let agent_inst = area.agent_instance(&alloc, crate::kernel::route::utils::connectivity::ConnectivityLimits {
-            elevator: true,
-            ..Default::default()
-        });
-        if let Some((agent_instance, conn)) = agent_inst {
-            info!("Agent Instance:\n{agent_instance} via {conn}\n\n");
-        }
-        info!("{area}");
-        for (arr, conn, conn_type, x, y) in graph {
-            info!("- Connects with {} as {conn_type} at ({x}, {y}) via {conn}", arr.name);
-        }
-    }
-
-    let ent = entity.clone_in(&alloc);
-
-    let [departure, _, arrival] = ent.areas.as_slice() else {
-        panic!("Wrong!")
-    };
-
-    warn!("Start.");
-
-    let result = ent.find_path(departure.database_id, (30f64, 38f64), arrival.database_id, crate::kernel::route::utils::connectivity::ConnectivityLimits {
-        elevator: false,
-        ..Default::default()
-    }, &alloc);
-
-    info!("Route: {:?}", result);
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::Any)
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
@@ -150,6 +117,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/entities", get(Entity::search_entity_handler))
         .route("/api/entities/", get(Entity::search_entity_handler))
         .route("/api/entities/{id}", get(Entity::get_one_handler))
+        .route("/api/entities/{id}/route", get(find_route))
+        .route("/api/entities/{id}/route/", get(find_route))
         .route("/api/entities", post(Entity::create_handler))
         .route("/api/entities", put(Entity::update_handler))
         .route("/api/entities/", post(Entity::create_handler))

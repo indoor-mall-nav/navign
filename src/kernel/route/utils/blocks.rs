@@ -1,3 +1,4 @@
+use crate::kernel::route::types::CloneIn;
 use std::collections::BTreeSet;
 use std::ops::Index;
 
@@ -7,7 +8,7 @@ pub struct BoundedBlock {
     pub y1: f64,
     pub x2: f64,
     pub y2: f64,
-    pub is_bounded: bool
+    pub is_bounded: bool,
 }
 
 impl BoundedBlock {
@@ -94,13 +95,16 @@ pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T
         self.deaccess(block).and_then(|(x, y)| self.access_up(x, y))
     }
     fn down(&self, block: T) -> Option<T> {
-        self.deaccess(block).and_then(|(x, y)| self.access_down(x, y))
+        self.deaccess(block)
+            .and_then(|(x, y)| self.access_down(x, y))
     }
     fn left(&self, block: T) -> Option<T> {
-        self.deaccess(block).and_then(|(x, y)| self.access_left(x, y))
+        self.deaccess(block)
+            .and_then(|(x, y)| self.access_left(x, y))
     }
     fn right(&self, block: T) -> Option<T> {
-        self.deaccess(block).and_then(|(x, y)| self.access_right(x, y))
+        self.deaccess(block)
+            .and_then(|(x, y)| self.access_right(x, y))
     }
 
     fn fit_up(&self, x: f64, y: f64) -> Option<T> {
@@ -120,13 +124,17 @@ pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T
         (y > 0).then(|| self.access(x, y - 1)).flatten()
     }
     fn access_down(&self, x: usize, y: usize) -> Option<T> {
-        (y + 1 < self.memory_height()).then(|| self.access(x, y + 1)).flatten()
+        (y + 1 < self.memory_height())
+            .then(|| self.access(x, y + 1))
+            .flatten()
     }
     fn access_left(&self, x: usize, y: usize) -> Option<T> {
         (x > 0).then(|| self.access(x - 1, y)).flatten()
     }
     fn access_right(&self, x: usize, y: usize) -> Option<T> {
-        (x + 1 < self.memory_width()).then(|| self.access(x + 1, y)).flatten()
+        (x + 1 < self.memory_width())
+            .then(|| self.access(x + 1, y))
+            .flatten()
     }
 
     fn contiguous_access_matrix(&self, x: usize, y: usize) -> Vec<T> {
@@ -135,9 +143,10 @@ pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T
             self.access_down(x, y),
             self.access_left(x, y),
             self.access_right(x, y),
-        ].into_iter()
-            .flatten()
-            .collect()
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 
@@ -172,17 +181,28 @@ impl<'a> ContiguousBlockArray<BoundedBlock> for BoundedBlockArray<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<'a> {
     pub points: &'a [(f64, f64)],
     /// Sometimes the polygon indicates areas _outside_ the polygon are bounded.
-    pub bounding: bool
+    pub bounding: bool,
+}
+
+impl<'a, 'b: 'a> CloneIn<'b> for Polygon<'a> {
+    type Cloned = Polygon<'b>;
+    fn clone_in(&self, allocator: &'b bumpalo::Bump) -> Polygon<'b> {
+        Polygon {
+            points: allocator.alloc_slice_copy(self.points),
+            bounding: self.bounding,
+        }
+    }
 }
 
 impl<'a> From<Vec<(f64, f64)>> for Polygon<'a> {
     fn from(points: Vec<(f64, f64)>) -> Self {
         Self {
             points: Box::leak(points.into_boxed_slice()),
-            bounding: true
+            bounding: true,
         }
     }
 }
@@ -191,14 +211,21 @@ impl<'a> From<&'a [(f64, f64)]> for Polygon<'a> {
     fn from(points: &'a [(f64, f64)]) -> Self {
         Self {
             points,
-            bounding: true
+            bounding: true,
         }
     }
 }
 
 impl<'a> Polygon<'a> {
     pub fn into_unbound(self) -> Self {
-        Self { bounding: false, ..self }
+        Self {
+            bounding: false,
+            ..self
+        }
+    }
+
+    pub fn new(points: &'a [(f64, f64)], bounding: bool) -> Self {
+        Self { points, bounding }
     }
 
     /// Ray-casting algorithm to determine if a point is inside the polygon
@@ -214,11 +241,7 @@ impl<'a> Polygon<'a> {
             }
             j = i;
         }
-        if self.bounding {
-            inside
-        } else {
-            !inside
-        }
+        if self.bounding { inside } else { !inside }
     }
 
     pub fn get_sorted_coords(&self) -> (Vec<f64>, Vec<f64>) {
@@ -241,7 +264,8 @@ impl<'a> Polygon<'a> {
                     y1: ys[y],
                     x2: xs[x + 1],
                     y2: ys[y + 1],
-                    is_bounded: self.is_point_inside((xs[x] + xs[x + 1]) / 2.0, (ys[y] + ys[y + 1]) / 2.0)
+                    is_bounded: self
+                        .is_point_inside((xs[x] + xs[x + 1]) / 2.0, (ys[y] + ys[y + 1]) / 2.0),
                 };
                 blocks.push(block);
             }
@@ -262,7 +286,13 @@ mod tests {
 
     #[test]
     fn test_bounded_block() {
-        let block = BoundedBlock { x1: 0.0, y1: 0.0, x2: 10.0, y2: 10.0, is_bounded: true };
+        let block = BoundedBlock {
+            x1: 0.0,
+            y1: 0.0,
+            x2: 10.0,
+            y2: 10.0,
+            is_bounded: true,
+        };
         assert_eq!(block.width(), 10.0);
         assert_eq!(block.height(), 10.0);
         assert!(block.is_point_inside(5.0, 5.0));
@@ -271,7 +301,15 @@ mod tests {
 
     #[test]
     fn test_ray_cast() {
-        let polygon = &[(0.0, 0.0), (0.0, 3.0), (1.0, 3.0),  (1.0, 1.0),  (2.0, 1.0),  (2.0, 0.0),  (0.0, 0.0)];
+        let polygon = &[
+            (0.0, 0.0),
+            (0.0, 3.0),
+            (1.0, 3.0),
+            (1.0, 1.0),
+            (2.0, 1.0),
+            (2.0, 0.0),
+            (0.0, 0.0),
+        ];
         let poly = Polygon::from(polygon.as_slice());
         assert!(poly.is_point_inside(0.5, 0.5));
         assert!(poly.is_point_inside(1.5, 0.5));
@@ -280,7 +318,15 @@ mod tests {
 
     #[test]
     fn test_ray_cast_unbound() {
-        let polygon = &[(0.0, 0.0), (0.0, 3.0), (1.0, 3.0),  (1.0, 1.0),  (2.0, 1.0),  (2.0, 0.0),  (0.0, 0.0)];
+        let polygon = &[
+            (0.0, 0.0),
+            (0.0, 3.0),
+            (1.0, 3.0),
+            (1.0, 1.0),
+            (2.0, 1.0),
+            (2.0, 0.0),
+            (0.0, 0.0),
+        ];
         let poly = Polygon::from(polygon.as_slice()).into_unbound();
         assert!(!poly.is_point_inside(0.5, 0.5));
         assert!(!poly.is_point_inside(1.5, 0.5));
@@ -299,10 +345,34 @@ mod tests {
     #[test]
     fn test_bounded_block_array() {
         let blocks = vec![
-            BoundedBlock { x1: 0.0, y1: 0.0, x2: 1.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 0.0, x2: 2.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 0.0, y1: 1.0, x2: 1.0, y2: 2.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 1.0, x2: 2.0, y2: 2.0, is_bounded: false },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 0.0,
+                x2: 1.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 0.0,
+                x2: 2.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 1.0,
+                x2: 1.0,
+                y2: 2.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 1.0,
+                x2: 2.0,
+                y2: 2.0,
+                is_bounded: false,
+            },
         ];
         let array = BoundedBlockArray {
             blocks: &blocks,
@@ -337,10 +407,34 @@ mod tests {
     #[test]
     fn test_bounded_block_array_coords() {
         let blocks = vec![
-            BoundedBlock { x1: 0.0, y1: 0.0, x2: 1.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 0.0, x2: 2.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 0.0, y1: 1.0, x2: 1.0, y2: 2.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 1.0, x2: 2.0, y2: 2.0, is_bounded: false },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 0.0,
+                x2: 1.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 0.0,
+                x2: 2.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 1.0,
+                x2: 1.0,
+                y2: 2.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 1.0,
+                x2: 2.0,
+                y2: 2.0,
+                is_bounded: false,
+            },
         ];
         let array = BoundedBlockArray {
             blocks: &blocks,
@@ -375,7 +469,15 @@ mod tests {
 
     #[test]
     fn test_advanced_polygon_to_bounded_block_array() {
-        let polygon = &[(0.0, 0.0), (0.0, 3.0), (1.0, 3.0),  (1.0, 1.0),  (2.0, 1.0),  (2.0, 0.0),  (0.0, 0.0)];
+        let polygon = &[
+            (0.0, 0.0),
+            (0.0, 3.0),
+            (1.0, 3.0),
+            (1.0, 1.0),
+            (2.0, 1.0),
+            (2.0, 0.0),
+            (0.0, 0.0),
+        ];
         let poly = Polygon::from(polygon.as_slice());
         let array = poly.as_bounded_block_array();
 

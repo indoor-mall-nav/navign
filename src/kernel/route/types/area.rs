@@ -5,6 +5,7 @@ use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::area::Floor;
 use bumpalo::{boxed::Box, collections::Vec, Bump};
 use std::fmt::{Debug, Display, Formatter};
+use crate::kernel::route::utils::blocks::Polygon;
 
 #[derive(Debug)]
 pub struct Area<'a> {
@@ -14,6 +15,7 @@ pub struct Area<'a> {
     pub connections: Vec<'a, Box<'a, Connection<'a>>>,
     pub merchants: Vec<'a, Box<'a, Merchant<'a>>>,
     pub database_id: Atom<'a>,
+    pub polygon: Polygon<'a>,
     phantom: std::marker::PhantomData<&'a ()>,
 }
 
@@ -56,6 +58,7 @@ impl<'a, 'b: 'a> CloneIn<'b> for Area<'a> {
                 allocator,
             ),
             database_id: self.database_id.clone_in(allocator),
+            polygon: self.polygon.clone_in(allocator),
             phantom: std::marker::PhantomData,
         }
     }
@@ -70,6 +73,7 @@ impl<'a> Dummy<'a> for Area<'a> {
             connections: Vec::new_in(allocator),
             merchants: Vec::new_in(allocator),
             database_id: Atom::from_in(bson::oid::ObjectId::new().to_hex(), allocator),
+            polygon: Polygon::default(),
             phantom: std::marker::PhantomData,
         }
     }
@@ -89,6 +93,7 @@ impl<'a> FromIn<'a, crate::schema::area::Area> for Area<'a> {
             connections: Vec::new_in(allocator), // Connections need to be set up separately
             merchants: Vec::new_in(allocator),   // Merchants need to be set up separately
             database_id: Atom::from_in(area.id.to_hex(), allocator),
+            polygon: Polygon::from(area.polygon),
             phantom: std::marker::PhantomData,
         }
     }

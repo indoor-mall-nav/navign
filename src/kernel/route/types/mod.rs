@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use serde::{Deserialize, Serialize};
 
 pub mod area;
 pub mod connection;
@@ -28,7 +29,7 @@ pub trait IntoIn<'a, T> {
     fn into_in(self, allocator: &'a bumpalo::Bump) -> T;
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Serialize, Deserialize)]
 /// Ported from <https://github.com/oxc-project/oxc/blob/main/crates/oxc_span/src/atom.rs>
 pub struct Atom<'a>(&'a str);
 

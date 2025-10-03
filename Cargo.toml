@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.99"
 async-trait = "0.1.89"
-axum = "0.8.4"
+axum = { version = "0.8.6", features = ["default", "macros"] }
 base64 = "0.22.1"
 bson = "2.15.0"
 chrono = "0.4.41"
@@ -36,4 +36,5 @@ sqlx = "0.8.6"
 jsonwebtoken = "9.3.1"
 gravatar = "0.2.0"
 bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }
+bumpalo-herd = "0.1.2"
 
