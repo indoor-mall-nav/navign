@@ -9,7 +9,7 @@ use crate::schema::entity::EntityType;
 use bson::oid::ObjectId;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use futures::TryStreamExt;
-use log::info;
+use log::trace;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
@@ -103,20 +103,20 @@ impl<'a> Entity<'a> {
             return None;
         }
         let mut result = Entity::from_in(entity, alloc);
-        info!("Converted entity to internal representation");
+        trace!("Converted entity to internal representation");
         let allocated_areas = Rc::new(RefCell::new(Vec::from_iter_in(
             area_list
                 .into_iter()
                 .map(|area| Box::new_in(Area::from_in(area, alloc), alloc)),
             alloc,
         )));
-        info!("Converted areas to internal representation");
+        trace!("Converted areas to internal representation");
         let allocated_connections = Vec::from_iter_in(
             connection_list.into_iter().map(|conn| {
-                info!("Processing connection id: {}", conn.id);
+                trace!("Processing connection id: {}", conn.id);
                 let mut areas_map = Vec::new_in(alloc);
                 for (connected_area_id, x, y) in conn.get_connected_areas().iter() {
-                    info!("Processing connected area id: {}", connected_area_id);
+                    trace!("Processing connected area id: {}", connected_area_id);
                     if let Some(connected_area) = Rc::clone(&allocated_areas)
                         .borrow()
                         .iter()
@@ -126,7 +126,7 @@ impl<'a> Entity<'a> {
                         // SAFETY: The pointer is valid as long as allocated_areas is alive
                         let area_ref = unsafe { &*ptr };
                         areas_map.push((Box::new_in(area_ref.clone_in(alloc), alloc), *x, *y));
-                        info!("Connected area found and added: {}", connected_area_id);
+                        trace!("Connected area found and added: {}", connected_area_id);
                     }
                 }
                 let mut target = Box::new_in(Connection::from_in(conn, alloc), alloc);
@@ -135,22 +135,21 @@ impl<'a> Entity<'a> {
             }),
             alloc,
         );
-        println!("{:#?}", allocated_connections);
         for area in allocated_areas.borrow_mut().iter_mut() {
-            info!("Processing area id: {}", area.database_id);
+            trace!("Processing area id: {}", area.database_id);
             let area_id = ObjectId::parse_str(area.database_id.as_str()).ok()?;
             let connections = Vec::from_iter_in(
                 allocated_connections.iter().filter_map(|conn| {
-                    info!("Checking connection id: {}", conn.database_id);
+                    trace!("Checking connection id: {}", conn.database_id);
                     conn.connected_areas
                         .iter()
                         .any(|(a, _, _)| {
                             let a_id = ObjectId::parse_str(a.database_id.as_str()).ok();
-                            info!("Comparing area ids: {} and {:?}", area_id, a_id);
+                            trace!("Comparing area ids: {} and {:?}", area_id, a_id);
                             a_id == Some(area_id)
                         })
                         .then(|| {
-                            info!(
+                            trace!(
                                 "Connection {} belongs to area {}",
                                 conn.database_id, area.database_id
                             );
@@ -162,7 +161,7 @@ impl<'a> Entity<'a> {
                 }),
                 alloc,
             );
-            info!(
+            trace!(
                 "Area {} has {} connections: {:?}",
                 area.database_id,
                 connections.len(),
@@ -172,9 +171,9 @@ impl<'a> Entity<'a> {
             // Merchants are directly filtered from the original list
             let merchants = Vec::from_iter_in(
                 merchant_list.iter().filter_map(|m| {
-                    info!("Checking merchant id: {} with area id: {}", m.id, m.area);
+                    trace!("Checking merchant id: {} with area id: {}", m.id, m.area);
                     if m.area == area_id {
-                        info!("Merchant {} belongs to area {}", m.id, area.database_id);
+                        trace!("Merchant {} belongs to area {}", m.id, area.database_id);
                         Some(Box::new_in(Merchant::from_in(m.clone(), alloc), alloc))
                     } else {
                         None
@@ -182,16 +181,16 @@ impl<'a> Entity<'a> {
                 }),
                 alloc,
             );
-            info!("Area {} has merchants: {:?}", area.database_id, merchants);
+            trace!("Area {} has merchants: {:?}", area.database_id, merchants);
             area.merchants = merchants;
-            info!(
+            trace!(
                 "Area {} has {} connections and {} merchants",
                 area.database_id,
                 area.connections.len(),
                 area.merchants.len()
             );
         }
-        info!("Populated areas with connections and merchants");
+        trace!("Populated areas with connections and merchants");
         result.areas = Rc::try_unwrap(allocated_areas)
             .map_err(|_| ())
             .ok()?

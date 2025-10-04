@@ -1,15 +1,16 @@
+use crate::AppState;
 use crate::kernel::route::instructions::InstructionType;
 use crate::kernel::route::types::{Atom, FromIn};
 use crate::kernel::route::utils::connectivity::ConnectivityLimits;
 use crate::kernel::route::utils::{Navigate, NavigationError};
 use crate::schema::{Area, Connection, Entity, Merchant, Service};
-use crate::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use bson::doc;
 use bumpalo::Bump;
 use futures::TryStreamExt;
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::task::spawn_blocking;
@@ -51,8 +52,8 @@ pub fn route_merchant(
         Some(e) => e,
         None => return Err(NavigationError::InvalidArrival),
     };
-    println!("Entity: {}", entity);
-    println!("Routing within entity: {}", entity.name);
+    trace!("Entity: {}", entity);
+    trace!("Routing within entity: {}", entity.name);
     let dep_area = departure.area.to_hex();
     let arr_area = arrival.area.to_hex();
     let src = (
@@ -60,13 +61,13 @@ pub fn route_merchant(
         departure.location.1,
         Atom::from_in(dep_area, &alloc),
     );
-    println!("Source location: {:?}", src);
+    trace!("Source location: {:?}", src);
     let dest = (
         arrival.location.0,
         arrival.location.1,
         Atom::from_in(arr_area, &alloc),
     );
-    println!("Destination location: {:?}", dest);
+    trace!("Destination location: {:?}", dest);
     entity.navigate(src, dest, limits, &alloc)
 }
 
@@ -74,7 +75,7 @@ pub fn route_merchant(
 pub struct RouteQuery {
     from: Option<String>,
     to: Option<String>,
-    block: Option<String>,
+    disallow: Option<String>,
 }
 
 #[axum::debug_handler]
@@ -83,13 +84,20 @@ pub async fn find_route(
     Path(entity): Path<String>,
     Query(query): Query<RouteQuery>,
 ) -> impl IntoResponse {
-    let RouteQuery { from, to, block } = query;
+    let RouteQuery {
+        from,
+        to,
+        disallow: block,
+    } = query;
     let limits = ConnectivityLimits {
         elevator: block.as_ref().map(|x| !x.contains('e')).unwrap_or(true),
         stairs: block.as_ref().map(|x| !x.contains('s')).unwrap_or(true),
         escalator: block.as_ref().map(|x| !x.contains('c')).unwrap_or(true),
     };
-    println!("Route query: from={:?}, to={:?}, block={:?}, limits={:?}", from, to, block, limits);
+    info!(
+        "Route query: from={:?}, to={:?}, block={:?}, limits={:?}",
+        from, to, block, limits
+    );
     if from.is_none() || to.is_none() {
         return (
             StatusCode::BAD_REQUEST,
@@ -139,7 +147,7 @@ pub async fn find_route(
         );
     }
     spawn_blocking(move || {
-        println!("Starting route computation from {} to {}, entity name: {}, {} areas, {} connections, {} merchants", from.as_ref().unwrap(), to.as_ref().unwrap(), entity.name, areas.len(), connections.len(), merchants.len());
+        trace!("Starting route computation from {} to {}, entity name: {}, {} areas, {} connections, {} merchants", from.as_ref().unwrap(), to.as_ref().unwrap(), entity.name, areas.len(), connections.len(), merchants.len());
         match route_merchant(
             from.unwrap().as_str(),
             to.unwrap().as_str(),

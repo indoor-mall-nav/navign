@@ -4,7 +4,7 @@ use crate::kernel::route::types::entity::Entity;
 use crate::kernel::route::utils::connectivity::{ConnectWithInstance, ConnectivityLimits};
 use crate::kernel::route::utils::displacement::DisplacementRoute;
 use bumpalo::Bump;
-use log::info;
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -90,8 +90,11 @@ impl<'a> Navigate<'a> for Entity<'a> {
         allocator: &'a Bump,
     ) -> NavigationResult {
         if departure.2 == arrival.2 {
-            info!("Finding path inside area {}", departure.2);
-            info!("From ({}, {}) to ({}, {})", departure.0, departure.1, arrival.0, arrival.1);
+            trace!("Finding path inside area {}", departure.2);
+            trace!(
+                "From ({}, {}) to ({}, {})",
+                departure.0, departure.1, arrival.0, arrival.1
+            );
             let area = match self
                 .get_areas()
                 .iter()
@@ -111,7 +114,7 @@ impl<'a> Navigate<'a> for Entity<'a> {
             let instructions = route.as_instructions();
             Ok(instructions)
         } else {
-            info!(
+            trace!(
                 "Finding path from area {} to area {}",
                 departure.2, arrival.2
             );
@@ -126,14 +129,14 @@ impl<'a> Navigate<'a> for Entity<'a> {
                 Some(conn) => conn,
                 None => return Err(NavigationError::NoRoute),
             };
-            info!("Connectivity Path: {connectivity:?}");
+            trace!("Connectivity Path: {connectivity:?}");
             let conns = connectivity.into_iter().collect::<Vec<_>>();
             let (mut target_x, mut target_y) = (departure.0, departure.1);
             for window in conns.windows(2) {
                 let [(area_src_id, _), (area_dest_id, conn_dest_id)] = window else {
                     return Err(NavigationError::Other("Unexpected window size".to_string()));
                 };
-                println!(
+                trace!(
                     "From area {area_src_id} via connection {conn_dest_id} to area {area_dest_id}"
                 );
                 let area_src = match self
@@ -168,14 +171,14 @@ impl<'a> Navigate<'a> for Entity<'a> {
                         ));
                     }
                 };
-                println!(
+                trace!(
                     "  Walking inside area {area_src_id} from ({target_x}, {target_y}) to ({x}, {y})"
                 );
                 let inner_route = area_src
                     .polygon
                     .as_bounded_block_array()
                     .find_displacement((target_x, target_y), (x, y));
-                println!("  Inner route: {inner_route:?}");
+                trace!("  Inner route: {inner_route:?}");
                 (_, target_x, target_y) = match conn
                     .connected_areas
                     .iter()
@@ -189,7 +192,7 @@ impl<'a> Navigate<'a> for Entity<'a> {
                     }
                 };
                 if let Some(inner_route) = inner_route {
-                    println!(
+                    trace!(
                         "  Inner route instructions: {:?}",
                         inner_route.as_instructions()
                     );
@@ -210,7 +213,7 @@ impl<'a> Navigate<'a> for Entity<'a> {
                 Some(area) => area,
                 None => return Err(NavigationError::InvalidArrival),
             };
-            println!(
+            trace!(
                 "Final walk inside area {}, from ({target_x}, {target_y}) to ({}, {})",
                 arrival.2, arrival.0, arrival.1
             );
@@ -218,7 +221,7 @@ impl<'a> Navigate<'a> for Entity<'a> {
                 .polygon
                 .as_bounded_block_array()
                 .find_displacement((target_x, target_y), (arrival.0, arrival.1));
-            println!("Final route: {final_route:?}");
+            trace!("Final route: {final_route:?}");
             if let Some(final_route) = final_route {
                 instructions.extend(final_route.as_instructions());
             } else {

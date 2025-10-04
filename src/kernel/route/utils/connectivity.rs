@@ -5,8 +5,8 @@ use crate::schema::connection::ConnectionType;
 use bumpalo::Bump;
 use bumpalo::boxed::Box;
 use bumpalo::collections::Vec;
+use log::trace;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use log::info;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ConnectivityLimits {
@@ -248,7 +248,7 @@ pub trait ConnectWithInstance<'a>: Sized {
         limits: ConnectivityLimits,
         alloc: &'a Bump,
     ) -> Option<ConnectivityRoute<'a>> {
-        println!("Finding path from {} to {}", departure, arrival);
+        trace!("Finding path from {} to {}", departure, arrival);
         let departure_area = self
             .get_areas()
             .iter()
@@ -259,7 +259,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             .find(|area| area.database_id == arrival)?;
 
         if departure_area.database_id == arrival_area.database_id {
-            println!("Departure and arrival are in the same area.");
+            trace!("Departure and arrival are in the same area.");
             return Some(Vec::from_iter_in(
                 vec![(departure_area.database_id, Atom::new_in(alloc))],
                 alloc,
@@ -267,11 +267,11 @@ pub trait ConnectWithInstance<'a>: Sized {
         }
 
         if let Some(quick_path) = departure_area.is_contiguous(arrival_area, alloc, limits) {
-            println!("Areas are contiguous.");
+            trace!("Areas are contiguous.");
             return Some(quick_path);
         }
 
-        println!("Using Dijkstra's algorithm for pathfinding.");
+        trace!("Using Dijkstra's algorithm for pathfinding.");
 
         let area_map = self
             .get_areas()
@@ -279,7 +279,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             .map(|area| (area.database_id, area.as_ref()))
             .collect::<HashMap<_, _>>();
 
-        println!("Area map constructed with {} areas.", area_map.len());
+        trace!("Area map constructed with {} areas.", area_map.len());
 
         let mut heap = BinaryHeap::new();
         let mut visited = HashSet::new();
@@ -318,7 +318,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             for (neighbor, connectivity, _, conn_x, conn_y) in
                 current_area.connectivity_graph(alloc, limits).iter()
             {
-                info!("Exploring neighbor area: {}", neighbor.database_id);
+                trace!("Exploring neighbor area: {}", neighbor.database_id);
                 let neighbor_id = neighbor.database_id;
                 if visited.contains(&neighbor_id) {
                     continue;
@@ -343,7 +343,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             }
         }
 
-        println!("No path found.");
+        trace!("No path found.");
 
         None
     }
@@ -636,31 +636,49 @@ mod tests {
         let mut st1 = Connection::dummy(&alloc);
         st1.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
         st1.database_id = Atom::from("st1");
-        st1.connected_areas.push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
-        st1.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st1.connected_areas
+            .push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st1.connected_areas
+            .push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
         let mut st2 = Connection::dummy(&alloc);
         st2.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
         st2.database_id = Atom::from("st2");
-        st2.connected_areas.push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
-        st2.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st2.connected_areas
+            .push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st2.connected_areas
+            .push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
         let mut st3 = Connection::dummy(&alloc);
         st3.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
         st3.database_id = Atom::from("st3");
-        st3.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
-        st3.connected_areas.push((Box::new_in(f4.clone_in(&alloc), &alloc), 0.0, 0.0));
-        f2.connections.push(Box::new_in(st1.clone_in(&alloc), &alloc));
-        f2.connections.push(Box::new_in(st2.clone_in(&alloc), &alloc));
-        f3.connections.push(Box::new_in(st1.clone_in(&alloc), &alloc));
-        f3.connections.push(Box::new_in(st2.clone_in(&alloc), &alloc));
-        f3.connections.push(Box::new_in(st3.clone_in(&alloc), &alloc));
-        f4.connections.push(Box::new_in(st3.clone_in(&alloc), &alloc));
+        st3.connected_areas
+            .push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st3.connected_areas
+            .push((Box::new_in(f4.clone_in(&alloc), &alloc), 0.0, 0.0));
+        f2.connections
+            .push(Box::new_in(st1.clone_in(&alloc), &alloc));
+        f2.connections
+            .push(Box::new_in(st2.clone_in(&alloc), &alloc));
+        f3.connections
+            .push(Box::new_in(st1.clone_in(&alloc), &alloc));
+        f3.connections
+            .push(Box::new_in(st2.clone_in(&alloc), &alloc));
+        f3.connections
+            .push(Box::new_in(st3.clone_in(&alloc), &alloc));
+        f4.connections
+            .push(Box::new_in(st3.clone_in(&alloc), &alloc));
         let mut ent = ent;
         ent.name = Atom::from("School");
         ent.areas.push(Box::new_in(f2.clone_in(&alloc), &alloc));
         ent.areas.push(Box::new_in(f3.clone_in(&alloc), &alloc));
         ent.areas.push(Box::new_in(f4.clone_in(&alloc), &alloc));
-        println!("{}", ent);
-        let path = ent.find_path(Atom::from("f2"), (0.0, 0.0), Atom::from("f4"), limits, &alloc);
+        trace!("{}", ent);
+        let path = ent.find_path(
+            Atom::from("f2"),
+            (0.0, 0.0),
+            Atom::from("f4"),
+            limits,
+            &alloc,
+        );
         assert!(path.is_some());
         let path = path.unwrap();
         assert_eq!(path.len(), 3);
