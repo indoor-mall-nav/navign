@@ -5,27 +5,21 @@ mod schema;
 mod shared;
 
 use crate::kernel::beacon::initiate_unlocker;
-use crate::kernel::route::{find_route};
-use crate::kernel::route::types::{CloneIn};
-use crate::kernel::route::utils::connectivity::{
-    ConnectWithInstance, ConnectivityGraph, ConnectivityLimits,
-};
+use crate::kernel::route::find_route;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
-use axum::extract::{Path, Query, State};
+use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{
+    Router,
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
-    Router,
 };
 use bson::doc;
-use log::{info, LevelFilter};
-use mongodb::{Database};
+use log::{LevelFilter, info};
+use mongodb::Database;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
 use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
 // use crate::certification::ensure_key;

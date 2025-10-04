@@ -1,9 +1,9 @@
-use std::fmt::{Debug, Formatter};
 use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::area::Area;
 use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn};
 use crate::schema::connection::ConnectionType;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
+use std::fmt::{Debug, Formatter};
 
 #[derive(Debug)]
 pub struct Connection<'a> {
@@ -27,7 +27,11 @@ impl<'a> std::fmt::Display for Connection<'a> {
 }
 
 impl<'a> Connection<'a> {
-    pub fn connected_area_from(&self, area: &Area<'a>, alloc: &'a Bump) -> Vec<'a, (Box<'a, Area<'a>>, f64, f64)> {
+    pub fn connected_area_from(
+        &self,
+        area: &Area<'a>,
+        alloc: &'a Bump,
+    ) -> Vec<'a, (Box<'a, Area<'a>>, f64, f64)> {
         let mut result = Vec::new_in(alloc);
         for (connected_area, x, y) in self.connected_areas.iter() {
             if connected_area.database_id != area.database_id {

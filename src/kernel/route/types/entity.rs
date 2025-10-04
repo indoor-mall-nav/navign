@@ -1,20 +1,17 @@
 //! TODO: Use universal Arena Bump to manage shared references, not Oxc allocator.
 
-use std::cell::RefCell;
-use std::fmt::{Debug, Display, Formatter};
+use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::area::Area;
 use crate::kernel::route::types::connection::Connection;
 use crate::kernel::route::types::merchant::Merchant;
-use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::entity::EntityType;
-use crate::schema::Service;
-use bson::doc;
 use bson::oid::ObjectId;
-use bumpalo::{boxed::Box, collections::Vec, Bump};
+use bumpalo::{Bump, boxed::Box, collections::Vec};
 use futures::TryStreamExt;
 use log::info;
-use mongodb::Database;
+use std::cell::RefCell;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -120,7 +117,8 @@ impl<'a> Entity<'a> {
                 let mut areas_map = Vec::new_in(alloc);
                 for (connected_area_id, x, y) in conn.get_connected_areas().iter() {
                     info!("Processing connected area id: {}", connected_area_id);
-                    if let Some(connected_area) = Rc::clone(&allocated_areas).borrow()
+                    if let Some(connected_area) = Rc::clone(&allocated_areas)
+                        .borrow()
                         .iter()
                         .find(|a| a.database_id.as_str() == connected_area_id.to_hex().as_str())
                     {

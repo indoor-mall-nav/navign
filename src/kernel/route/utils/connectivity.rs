@@ -1,11 +1,12 @@
 use crate::kernel::route::types::area::Area;
+use crate::kernel::route::types::entity::Entity;
 use crate::kernel::route::types::{Atom, CloneIn};
 use crate::schema::connection::ConnectionType;
+use bumpalo::Bump;
 use bumpalo::boxed::Box;
 use bumpalo::collections::Vec;
-use bumpalo::Bump;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use crate::kernel::route::types::entity::Entity;
+use log::info;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ConnectivityLimits {
@@ -47,7 +48,9 @@ impl<'a> ConnectivityGraph<'a> for Area<'a> {
                     Vec::from_iter_in(
                         conn.connected_area_from(self, alloc)
                             .into_iter()
-                            .map(|(area, x, y)| (area, conn.database_id, *conn.r#type.as_ref(), x, y)),
+                            .map(|(area, x, y)| {
+                                (area, conn.database_id, *conn.r#type.as_ref(), x, y)
+                            }),
                         alloc,
                     )
                 })
@@ -67,11 +70,19 @@ impl<'a> ConnectivityGraph<'a> for Area<'a> {
 /// So you need to define an agent area that is the fourth floor of the building, and
 /// the connectivity graph will be calculated from that area, not the whole building.
 pub trait AgentInstance<'a>: Sized + ConnectivityGraph<'a> {
-    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<(Box<'a, Self>, Atom<'a>)>;
+    fn agent_instance(
+        &self,
+        alloc: &'a Bump,
+        limits: ConnectivityLimits,
+    ) -> Option<(Box<'a, Self>, Atom<'a>)>;
 }
 
 impl<'a> AgentInstance<'a> for Area<'a> {
-    fn agent_instance(&self, alloc: &'a Bump, limits: ConnectivityLimits) -> Option<(Box<'a, Self>, Atom<'a>)> {
+    fn agent_instance(
+        &self,
+        alloc: &'a Bump,
+        limits: ConnectivityLimits,
+    ) -> Option<(Box<'a, Self>, Atom<'a>)> {
         let graph = self.connectivity_graph(alloc, limits);
         // Only one node, which points to only one area (not self).
         if graph.is_empty() {
@@ -148,7 +159,10 @@ impl<'a> Contiguous<'a> for Area<'a> {
         let start_neighbors = self.connectivity_graph(alloc, limits);
         for (neighbor, node, _, _, _) in start_neighbors.iter() {
             if neighbor.database_id == terminus_id {
-                return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *node)], alloc));
+                return Some(Vec::from_iter_in(
+                    vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *node)],
+                    alloc,
+                ));
             }
         }
 
@@ -158,22 +172,40 @@ impl<'a> Contiguous<'a> for Area<'a> {
         if let Some((start_agent, connectivity)) = start_agent.as_ref()
             && start_agent.database_id == terminus_id
         {
-            return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *connectivity)], alloc));
+            return Some(Vec::from_iter_in(
+                vec![
+                    (start_id, Atom::new_in(&alloc)),
+                    (terminus_id, *connectivity),
+                ],
+                alloc,
+            ));
         }
 
         if let Some((terminus_agent, connectivity)) = terminus_agent.as_ref()
             && terminus_agent.database_id == start_id
         {
-            return Some(Vec::from_iter_in(vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *connectivity)], alloc));
+            return Some(Vec::from_iter_in(
+                vec![
+                    (start_id, Atom::new_in(&alloc)),
+                    (terminus_id, *connectivity),
+                ],
+                alloc,
+            ));
         }
 
-        if let (Some((start_agent, start_connectivity)), Some((terminus_agent, terminus_connectivity))) =
-            (start_agent.as_ref(), terminus_agent.as_ref())
+        if let (
+            Some((start_agent, start_connectivity)),
+            Some((terminus_agent, terminus_connectivity)),
+        ) = (start_agent.as_ref(), terminus_agent.as_ref())
             && start_agent.database_id == terminus_agent.database_id
         {
             let intermediate_id = start_agent.database_id.clone();
             return Some(Vec::from_iter_in(
-                vec![(start_id, Atom::new_in(alloc)), (intermediate_id, *start_connectivity), (terminus_id, *terminus_connectivity)],
+                vec![
+                    (start_id, Atom::new_in(alloc)),
+                    (intermediate_id, *start_connectivity),
+                    (terminus_id, *terminus_connectivity),
+                ],
                 alloc,
             ));
         }
@@ -199,10 +231,7 @@ fn reconstruct_path<'a>(
     total_connectivity.push(Atom::new_in(alloc)); // Starting point has no connectivity
     total_path.reverse();
     total_connectivity.reverse();
-    Vec::from_iter_in(
-        total_path.into_iter().zip(total_connectivity),
-        alloc,
-    )
+    Vec::from_iter_in(total_path.into_iter().zip(total_connectivity), alloc)
 }
 
 pub type ConnectivityPath<'a> = (Atom<'a>, Atom<'a>);
@@ -231,7 +260,10 @@ pub trait ConnectWithInstance<'a>: Sized {
 
         if departure_area.database_id == arrival_area.database_id {
             println!("Departure and arrival are in the same area.");
-            return Some(Vec::from_iter_in(vec![(departure_area.database_id, Atom::new_in(alloc))], alloc));
+            return Some(Vec::from_iter_in(
+                vec![(departure_area.database_id, Atom::new_in(alloc))],
+                alloc,
+            ));
         }
 
         if let Some(quick_path) = departure_area.is_contiguous(arrival_area, alloc, limits) {
@@ -239,11 +271,15 @@ pub trait ConnectWithInstance<'a>: Sized {
             return Some(quick_path);
         }
 
+        println!("Using Dijkstra's algorithm for pathfinding.");
+
         let area_map = self
             .get_areas()
             .iter()
             .map(|area| (area.database_id, area.as_ref()))
             .collect::<HashMap<_, _>>();
+
+        println!("Area map constructed with {} areas.", area_map.len());
 
         let mut heap = BinaryHeap::new();
         let mut visited = HashSet::new();
@@ -282,6 +318,7 @@ pub trait ConnectWithInstance<'a>: Sized {
             for (neighbor, connectivity, _, conn_x, conn_y) in
                 current_area.connectivity_graph(alloc, limits).iter()
             {
+                info!("Exploring neighbor area: {}", neighbor.database_id);
                 let neighbor_id = neighbor.database_id;
                 if visited.contains(&neighbor_id) {
                     continue;
@@ -306,6 +343,8 @@ pub trait ConnectWithInstance<'a>: Sized {
             }
         }
 
+        println!("No path found.");
+
         None
     }
 }
@@ -318,10 +357,10 @@ impl<'a> ConnectWithInstance<'a> for Entity<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::kernel::route::types::area::Area;
-    use crate::kernel::route::types::{Dummy, FromIn};
-    use crate::kernel::route::types::connection::Connection;
     use super::*;
+    use crate::kernel::route::types::area::Area;
+    use crate::kernel::route::types::connection::Connection;
+    use crate::kernel::route::types::{Dummy, FromIn};
 
     #[test]
     fn contiguous_areas_no_agent() {
@@ -340,40 +379,56 @@ mod tests {
         area4.database_id = Atom::from("area4");
         let mut conn1 = Connection::dummy(&alloc);
         conn1.database_id = Atom::from("conn1");
-        conn1.connected_areas.push(
-            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
-        );
-        conn1.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
+        conn1
+            .connected_areas
+            .push((Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0));
+        conn1
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
         let mut conn2 = Connection::dummy(&alloc);
         conn2.database_id = Atom::from("conn2");
-        conn2.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
-        );
+        conn2
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0));
         let mut conn3 = Connection::dummy(&alloc);
         conn3.database_id = Atom::from("conn3");
-        conn3.connected_areas.push(
-            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
-        );
-        conn3.connected_areas.push(
-            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
-        );
-        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area1.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        conn3
+            .connected_areas
+            .push((Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0));
+        conn3
+            .connected_areas
+            .push((Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0));
+        area1
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area1
+            .connections
+            .push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
         let mut entity = Entity::dummy(&alloc);
-        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area4.clone_in(&alloc), &alloc));
         let limits = ConnectivityLimits::default();
         let path = entity.find_path(
             Atom::from("area1"),
@@ -407,33 +462,51 @@ mod tests {
         area4.database_id = Atom::from("area4");
         let mut conn1 = Connection::dummy(&alloc);
         conn1.database_id = Atom::from("conn1");
-        conn1.connected_areas.push(
-            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
-        );
-        conn1.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
+        conn1
+            .connected_areas
+            .push((Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0));
+        conn1
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
         let mut conn2 = Connection::dummy(&alloc);
         conn2.database_id = Atom::from("conn2");
-        conn2.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
-        );
-        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
-        area3.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
-        area4.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0));
+        area1
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area3
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
         let mut entity = Entity::dummy(&alloc);
-        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area4.clone_in(&alloc), &alloc));
         let limits = ConnectivityLimits::default();
         let path = entity.find_path(
             Atom::from("area3"),
@@ -469,43 +542,65 @@ mod tests {
         area4.database_id = Atom::from("area4");
         let mut conn1 = Connection::dummy(&alloc);
         conn1.database_id = Atom::from("conn1");
-        conn1.connected_areas.push(
-            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
-        );
-        conn1.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
+        conn1
+            .connected_areas
+            .push((Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0));
+        conn1
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
         let mut conn2 = Connection::dummy(&alloc);
         conn2.database_id = Atom::from("conn2");
-        conn2.connected_areas.push(
-            (Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0)
-        );
-        conn2.connected_areas.push(
-            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
-        );
+        conn2
+            .connected_areas
+            .push((Box::new_in(area2.clone_in(&alloc), &alloc), 10.0, 0.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area3.clone_in(&alloc), &alloc), 10.0, 10.0));
+        conn2
+            .connected_areas
+            .push((Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0));
         let mut conn3 = Connection::dummy(&alloc);
         conn3.database_id = Atom::from("conn3");
-        conn3.connected_areas.push(
-            (Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0)
-        );
-        conn3.connected_areas.push(
-            (Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0)
-        );
-        area1.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area1.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn1.clone_in(&alloc), &alloc));
-        area2.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
-        area3.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
-        area4.connections.push(Box::new_in(conn2.clone_in(&alloc), &alloc));
-        area4.connections.push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        conn3
+            .connected_areas
+            .push((Box::new_in(area1.clone_in(&alloc), &alloc), 0.0, 0.0));
+        conn3
+            .connected_areas
+            .push((Box::new_in(area4.clone_in(&alloc), &alloc), 0.0, 10.0));
+        area1
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area1
+            .connections
+            .push(Box::new_in(conn3.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn1.clone_in(&alloc), &alloc));
+        area2
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area3
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4
+            .connections
+            .push(Box::new_in(conn2.clone_in(&alloc), &alloc));
+        area4
+            .connections
+            .push(Box::new_in(conn3.clone_in(&alloc), &alloc));
         let mut entity = Entity::dummy(&alloc);
-        entity.areas.push(Box::new_in(area1.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area2.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area3.clone_in(&alloc), &alloc));
-        entity.areas.push(Box::new_in(area4.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area1.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area2.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area3.clone_in(&alloc), &alloc));
+        entity
+            .areas
+            .push(Box::new_in(area4.clone_in(&alloc), &alloc));
         let limits = ConnectivityLimits::default();
         let path = entity.find_path(
             Atom::from("area3"),
@@ -522,5 +617,55 @@ mod tests {
         assert_eq!(path[2].0, Atom::from("area1"));
         assert_eq!(path[1].1, Atom::from("conn2"));
         assert_eq!(path[2].1, Atom::from("conn1"));
+    }
+
+    #[test]
+    fn school() {
+        let alloc = Bump::default();
+        let ent = Entity::dummy(&alloc);
+        let limits = ConnectivityLimits::default();
+        let mut f2 = Area::dummy(&alloc);
+        f2.name = Atom::from("2nd Floor");
+        f2.database_id = Atom::from("f2");
+        let mut f3 = Area::dummy(&alloc);
+        f3.name = Atom::from("3rd Floor");
+        f3.database_id = Atom::from("f3");
+        let mut f4 = Area::dummy(&alloc);
+        f4.name = Atom::from("4th Floor");
+        f4.database_id = Atom::from("f4");
+        let mut st1 = Connection::dummy(&alloc);
+        st1.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
+        st1.database_id = Atom::from("st1");
+        st1.connected_areas.push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st1.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        let mut st2 = Connection::dummy(&alloc);
+        st2.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
+        st2.database_id = Atom::from("st2");
+        st2.connected_areas.push((Box::new_in(f2.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st2.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        let mut st3 = Connection::dummy(&alloc);
+        st3.r#type = Box::new_in(ConnectionType::Stairs, &alloc);
+        st3.database_id = Atom::from("st3");
+        st3.connected_areas.push((Box::new_in(f3.clone_in(&alloc), &alloc), 0.0, 0.0));
+        st3.connected_areas.push((Box::new_in(f4.clone_in(&alloc), &alloc), 0.0, 0.0));
+        f2.connections.push(Box::new_in(st1.clone_in(&alloc), &alloc));
+        f2.connections.push(Box::new_in(st2.clone_in(&alloc), &alloc));
+        f3.connections.push(Box::new_in(st1.clone_in(&alloc), &alloc));
+        f3.connections.push(Box::new_in(st2.clone_in(&alloc), &alloc));
+        f3.connections.push(Box::new_in(st3.clone_in(&alloc), &alloc));
+        f4.connections.push(Box::new_in(st3.clone_in(&alloc), &alloc));
+        let mut ent = ent;
+        ent.name = Atom::from("School");
+        ent.areas.push(Box::new_in(f2.clone_in(&alloc), &alloc));
+        ent.areas.push(Box::new_in(f3.clone_in(&alloc), &alloc));
+        ent.areas.push(Box::new_in(f4.clone_in(&alloc), &alloc));
+        println!("{}", ent);
+        let path = ent.find_path(Atom::from("f2"), (0.0, 0.0), Atom::from("f4"), limits, &alloc);
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert_eq!(path.len(), 3);
+        assert_eq!(path[0].0, Atom::from("f2"));
+        assert_eq!(path[1].0, Atom::from("f3"));
+        assert_eq!(path[2].0, Atom::from("f4"));
     }
 }

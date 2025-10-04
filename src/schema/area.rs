@@ -1,8 +1,8 @@
-use std::fmt::{Display, Formatter};
 use crate::schema::service::Service;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Area {

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 async-trait = "0.1.89"
 axum = { version = "0.8.6", features = ["default", "macros"] }
 base64 = "0.22.1"
@@ -32,7 +32,7 @@ serde-big-array = "0.5.1"
 hex = "0.4.3"
 oauth2 = "5.0.0"
 reqwest = "0.12.23"
-sqlx = "0.8.6"
+sqlx = { version = "0.8.6", features = ["runtime-tokio"] }
 jsonwebtoken = "9.3.1"
 gravatar = "0.2.0"
 bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }

@@ -1,5 +1,5 @@
-use std::collections::{BinaryHeap, HashMap};
 use crate::kernel::route::utils::blocks::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray};
+use std::collections::{BinaryHeap, HashMap};
 
 pub trait DisplacementRoute<'a, T: Sized + Clone + Copy>: ContiguousBlockArray<T> {
     type Node: Sized + Clone + Copy + Ord + PartialOrd + Eq + PartialEq;
@@ -55,7 +55,11 @@ impl PartialOrd for PathNode {
 
 impl<'a> DisplacementRoute<'a, BoundedBlock> for BoundedBlockArray<'a> {
     type Node = PathNode;
-    fn find_displacement(&self, departure: (f64, f64), arrival: (f64, f64)) -> Option<Vec<BoundedBlock>> {
+    fn find_displacement(
+        &self,
+        departure: (f64, f64),
+        arrival: (f64, f64),
+    ) -> Option<Vec<BoundedBlock>> {
         let (departure_x, departure_y) = departure;
         let (arrival_x, arrival_y) = arrival;
 
@@ -87,10 +91,8 @@ impl<'a> DisplacementRoute<'a, BoundedBlock> for BoundedBlockArray<'a> {
 
             if current_index == arrival_index {
                 let path_indices = Utils::reconstruct_path(&came_from, current_index);
-                let path_blocks: Vec<BoundedBlock> = path_indices
-                    .iter()
-                    .map(|&idx| self[idx])
-                    .collect();
+                let path_blocks: Vec<BoundedBlock> =
+                    path_indices.iter().map(|&idx| self[idx]).collect();
                 return Some(path_blocks);
             }
 
@@ -108,11 +110,13 @@ impl<'a> DisplacementRoute<'a, BoundedBlock> for BoundedBlockArray<'a> {
                 let neighbor_center = neighbor.center();
 
                 let travel_distance = Utils::manhattan(current_center, neighbor_center);
-                let tentative_g_score = g_score.get(&current_index).unwrap_or(&f64::INFINITY) + travel_distance;
+                let tentative_g_score =
+                    g_score.get(&current_index).unwrap_or(&f64::INFINITY) + travel_distance;
                 if tentative_g_score < *g_score.get(&neighbor_index).unwrap_or(&f64::INFINITY) {
                     came_from.insert(neighbor_index, current_index);
                     g_score.insert(neighbor_index, tentative_g_score);
-                    let f_score = tentative_g_score + Utils::manhattan(neighbor.center(), arrival_block.center());
+                    let f_score = tentative_g_score
+                        + Utils::manhattan(neighbor.center(), arrival_block.center());
                     open_set.push(PathNode {
                         index: neighbor_index,
                         f_score,
@@ -127,12 +131,22 @@ impl<'a> DisplacementRoute<'a, BoundedBlock> for BoundedBlockArray<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::kernel::route::utils::blocks::Polygon;
     use super::*;
+    use crate::kernel::route::utils::blocks::Polygon;
 
     #[test]
     fn find_easy() {
-        let polygon = &[(0.0, 0.0), (0.0, 2.0), (1.0, 2.0),  (1.0, 1.0),  (2.0, 1.0), (2.0, 3.0), (3.0, 3.0),  (3.0, 0.0),  (0.0, 0.0)];
+        let polygon = &[
+            (0.0, 0.0),
+            (0.0, 2.0),
+            (1.0, 2.0),
+            (1.0, 1.0),
+            (2.0, 1.0),
+            (2.0, 3.0),
+            (3.0, 3.0),
+            (3.0, 0.0),
+            (0.0, 0.0),
+        ];
         let poly = Polygon::from(polygon.as_slice());
 
         let arr = poly.as_bounded_block_array();

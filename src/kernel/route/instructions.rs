@@ -1,8 +1,7 @@
-use std::fmt::Display;
-use serde::{Deserialize, Serialize};
 use crate::kernel::route::utils::blocks::BoundedBlock;
-use crate::kernel::route::utils::connectivity::ConnectivityPath;
 use crate::schema::connection::ConnectionType;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,7 +23,9 @@ impl Display for InstructionType {
                 -30 | -45 | -60 => write!(f, "Turn slightly left"),
                 _ => write!(f, "Turn {:.2} degrees", angle),
             },
-            InstructionType::Transport(conn_id, conn_type) => write!(f, "Take the {conn_type} (ID: {conn_id})"),
+            InstructionType::Transport(conn_id, conn_type) => {
+                write!(f, "Take the {conn_type} (ID: {conn_id})")
+            }
         }
     }
 }
@@ -46,7 +47,9 @@ impl AsInstructions for Vec<BoundedBlock> {
         // Start from the first block
         let first_block = &self[0];
         let (mut current_x, mut current_y) = first_block.center();
-        let diff_meters = ((first_block.x2 - first_block.x1).powi(2) + (first_block.y2 - first_block.y1).powi(2)).sqrt();
+        let diff_meters = ((first_block.x2 - first_block.x1).powi(2)
+            + (first_block.y2 - first_block.y1).powi(2))
+        .sqrt();
         instructions.push(InstructionType::GoStraight(diff_meters as u64));
 
         // Initial direction is unknown, we will set it based on the first movement
@@ -78,7 +81,8 @@ impl AsInstructions for Vec<BoundedBlock> {
 
             // If the former time was go straight, we need to merge them
             if let Some(InstructionType::GoStraight(last_distance)) = instructions.last_mut() {
-                let additional_distance = ((next_x - current_x).powi(2) + (next_y - current_y).powi(2)).sqrt() as u64;
+                let additional_distance =
+                    ((next_x - current_x).powi(2) + (next_y - current_y).powi(2)).sqrt() as u64;
                 *last_distance += additional_distance;
             } else {
                 let distance = ((next_x - current_x).powi(2) + (next_y - current_y).powi(2)).sqrt();
@@ -110,16 +114,38 @@ mod tests {
         let turn_instr = InstructionType::Turn(90);
         assert_eq!(format!("{}", turn_instr), "Turn right");
 
-        let transport_instr = InstructionType::Transport("conn123".to_string(), ConnectionType::Elevator);
-        assert_eq!(format!("{}", transport_instr), "Take the elevator (ID: conn123)");
+        let transport_instr =
+            InstructionType::Transport("conn123".to_string(), ConnectionType::Elevator);
+        assert_eq!(
+            format!("{}", transport_instr),
+            "Take the elevator (ID: conn123)"
+        );
     }
 
     #[test]
     fn test_block_to_instruction() {
         let blocks = vec![
-            BoundedBlock { x1: 0.0, y1: 0.0, x2: 1.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 0.0, x2: 2.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 2.0, y1: 0.0, x2: 3.0, y2: 1.0, is_bounded: true },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 0.0,
+                x2: 1.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 0.0,
+                x2: 2.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 2.0,
+                y1: 0.0,
+                x2: 3.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
         ];
         assert_eq!(blocks.as_instructions().len(), 1);
     }
@@ -127,10 +153,34 @@ mod tests {
     #[test]
     fn test_block_to_instruction_2() {
         let blocks = vec![
-            BoundedBlock { x1: 0.0, y1: 0.0, x2: 1.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 1.0, y1: 0.0, x2: 2.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 2.0, y1: 0.0, x2: 3.0, y2: 1.0, is_bounded: true },
-            BoundedBlock { x1: 2.0, y1: 1.0, x2: 3.0, y2: 2.0, is_bounded: true },
+            BoundedBlock {
+                x1: 0.0,
+                y1: 0.0,
+                x2: 1.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 1.0,
+                y1: 0.0,
+                x2: 2.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 2.0,
+                y1: 0.0,
+                x2: 3.0,
+                y2: 1.0,
+                is_bounded: true,
+            },
+            BoundedBlock {
+                x1: 2.0,
+                y1: 1.0,
+                x2: 3.0,
+                y2: 2.0,
+                is_bounded: true,
+            },
         ];
         println!("{:?}", blocks.as_instructions());
         assert_eq!(blocks.as_instructions().len(), 3);

@@ -1,11 +1,11 @@
+use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::connection::Connection;
 use crate::kernel::route::types::merchant::Merchant;
-use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
-use crate::schema::area::Floor;
-use bumpalo::{boxed::Box, collections::Vec, Bump};
-use std::fmt::{Debug, Display, Formatter};
 use crate::kernel::route::utils::blocks::Polygon;
+use crate::schema::area::Floor;
+use bumpalo::{Bump, boxed::Box, collections::Vec};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 pub struct Area<'a> {
