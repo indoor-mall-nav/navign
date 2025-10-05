@@ -1,3 +1,11 @@
+// Copyright (c) 2025 Ethan Wu
+// SPDX-License-Identifier: MIT
+
+//! Unlocker module for secure device authentication and communication with a server.
+//! This module provides functionalities to handle cryptographic operations,
+//! including key management, signing challenges, and generating proofs of device authenticity.
+//! It uses ECDSA for signing and RSA for encrypting AES keys, ensuring secure communication.
+//! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
 use aes_gcm::aead::Aead;
 use aes_gcm::KeyInit;
 use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
@@ -89,6 +97,9 @@ impl Unlocker {
         app.biometric()
             .authenticate("Please authenticate to load data".to_string(), auth_options)
             .map_err(|_| ())?;
+
+        #[cfg(all(desktop, not(debug_assertions)))]
+        panic!("Desktop release build is not supported due to biometric limitations.");
 
         let user_device_private_key_path = handle
             .path()

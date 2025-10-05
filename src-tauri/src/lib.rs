@@ -1,9 +1,7 @@
 use crate::unlocker::Unlocker;
 use base64::Engine;
-use p256::ecdsa::{SigningKey, VerifyingKey};
-use p256::elliptic_curve::rand_core::OsRng;
+use p256::ecdsa::VerifyingKey;
 use std::sync::Arc;
-use p256::pkcs8::{EncodePrivateKey, LineEnding};
 use tauri::{AppHandle, Manager, State};
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
@@ -15,6 +13,7 @@ pub(crate) mod api;
 pub(crate) mod login;
 pub(crate) mod shared;
 pub(crate) mod unlocker;
+pub(crate) mod locate;
 
 #[tauri::command]
 async fn unlock_door(
@@ -78,6 +77,10 @@ pub fn run() {
                 println!("Salt file exists.");
             } else {
                 let salt = nanoid::nanoid!();
+                println!("Hello, {:?}", app.path().app_local_data_dir());
+                if !app.path().app_local_data_dir().map(|x| x.exists()).unwrap_or(true) {
+                    std::fs::create_dir_all(app.path().app_local_data_dir().unwrap()).ok();
+                }
                 std::fs::write(
                     app.path()
                         .app_local_data_dir()
