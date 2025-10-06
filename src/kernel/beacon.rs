@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::AppState;
 use crate::kernel::unlocker::{Unlocker, unlocker_instance};
 use crate::schema::{Beacon, Service, User};

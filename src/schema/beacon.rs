@@ -34,25 +34,14 @@ pub struct Beacon {
     pub last_boot: Option<u64>,
 }
 
-impl Beacon {
-    pub fn get_location(&self) -> (f64, f64) {
-        // This should return the beacon's coordinates
-        // Assuming there's a location field in the Beacon struct
-        (0.0, 0.0) // Placeholder - should be replaced with actual field access
-    }
-
-    pub fn get_object_id(&self) -> ObjectId {
-        self.id
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum BeaconDevice {
     Esp32,
     Esp32C3,
-    Esp32S3,
+    Esp32C5,
     Esp32C6,
+    Esp32S3,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -9,10 +9,6 @@ pub trait DisplacementRoute<'a, T: Sized + Clone + Copy>: ContiguousBlockArray<T
 struct Utils;
 
 impl Utils {
-    fn heuristic(a: (f64, f64), b: (f64, f64)) -> f64 {
-        ((a.0 - b.0).powi(2) + (a.1 - b.1).powi(2)).sqrt()
-    }
-
     fn manhattan(a: (f64, f64), b: (f64, f64)) -> f64 {
         (a.0 - b.0).abs() + (a.1 - b.1).abs()
     }

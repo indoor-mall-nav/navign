@@ -1,3 +1,4 @@
+#![allow(unused)]
 use anyhow::Result;
 use mongodb::Database;
 use p256::PublicKey;

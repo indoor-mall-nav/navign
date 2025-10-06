@@ -49,7 +49,7 @@ impl<'a, 'b: 'a> CloneIn<'b> for Connection<'a> {
             name: self.name.clone_in(allocator),
             description: self.description.as_ref().map(|d| d.clone_in(allocator)),
             database_id: self.database_id.clone_in(allocator),
-            r#type: Box::new_in(self.r#type.as_ref().clone(), allocator),
+            r#type: Box::new_in(*self.r#type, allocator),
             connected_areas: Vec::from_iter_in(
                 self.connected_areas.iter().map(|(area, x, y)| {
                     (
@@ -89,7 +89,7 @@ impl<'a> FromIn<'a, crate::schema::connection::Connection> for Connection<'a> {
             name: Atom::from_in(value.name, allocator),
             description: value.description.map(|d| Atom::from_in(d, allocator)),
             database_id: Atom::from_in(value.id.to_hex(), allocator),
-            r#type: Box::new_in(value.r#type.clone(), allocator),
+            r#type: Box::new_in(value.r#type, allocator),
             connected_areas: Vec::new_in(allocator), // Needs to be populated separately
             available_hours: Some(Vec::from_iter_in(
                 value.available_period.iter().cloned(),
@@ -109,7 +109,7 @@ impl<'a> IntoIn<'a, crate::schema::connection::Connection> for Connection<'a> {
             entity: bson::oid::ObjectId::new(), // Needs to be set properly
             name: self.name.to_string(),
             description: self.description.map(|d| d.to_string()),
-            r#type: (*self.r#type).clone(),
+            r#type: (*self.r#type),
             available_period: self
                 .available_hours
                 .map(|hours| hours.iter().cloned().collect())

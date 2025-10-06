@@ -7,7 +7,7 @@ use std::fmt::Display;
 #[serde(rename_all = "kebab-case")]
 pub enum InstructionType {
     Move(f64, f64),
-    Transport(String, ConnectionType),
+    Transport(String, String, ConnectionType),
 }
 
 impl From<(f64, f64)> for InstructionType {
@@ -32,8 +32,8 @@ impl Display for InstructionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             InstructionType::Move(from, to) => write!(f, "Move to ({}, {})", from, to),
-            InstructionType::Transport(conn_id, conn_type) => {
-                write!(f, "Take the {conn_type} (ID: {conn_id})")
+            InstructionType::Transport(conn_id, target_area, conn_type) => {
+                write!(f, "Take the {conn_type} to {target_area} (ID: {conn_id})")
             }
         }
     }
@@ -64,11 +64,14 @@ mod tests {
         let move_instr = InstructionType::Move(1.0, 2.0);
         assert_eq!(format!("{}", move_instr), "Move to (1, 2)");
 
-        let transport_instr =
-            InstructionType::Transport("conn123".to_string(), ConnectionType::Elevator);
+        let transport_instr = InstructionType::Transport(
+            "conn123".to_string(),
+            "target_area".to_string(),
+            ConnectionType::Elevator,
+        );
         assert_eq!(
             format!("{}", transport_instr),
-            "Take the elevator (ID: conn123)"
+            "Take the elevator to target_area (ID: conn123)"
         );
     }
 

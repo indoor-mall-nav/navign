@@ -15,6 +15,7 @@ pub trait Dummy<'a>: Sized {
     fn dummy(allocator: &'a bumpalo::Bump) -> Self;
 }
 
+#[allow(unused)]
 pub trait TakeIn<'a>: Dummy<'a> {
     fn take_in(&mut self, allocator: &'a bumpalo::Bump) -> Self {
         std::mem::replace(self, Self::dummy(allocator))
@@ -25,6 +26,7 @@ pub trait FromIn<'a, T> {
     fn from_in(value: T, allocator: &'a bumpalo::Bump) -> Self;
 }
 
+#[allow(unused)]
 pub trait IntoIn<'a, T> {
     fn into_in(self, allocator: &'a bumpalo::Bump) -> T;
 }

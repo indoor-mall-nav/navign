@@ -1,3 +1,5 @@
+#![allow(unused)]
+use crate::schema::Service;
 use anyhow::Result;
 /// Beacon and Server handshake.
 /// 1. The beacon sends its info to the server, and the server compare it with the database.
@@ -98,6 +100,38 @@ impl BeaconSecret {
         // Generate the final code
         let code = binary % (10_u32.pow(6));
         format!("{:0width$}", code, width = 6usize)
+    }
+}
+
+impl Service for BeaconSecret {
+    fn get_id(&self) -> String {
+        self.id.to_hex()
+    }
+
+    fn get_name(&self) -> String {
+        self.mac.clone()
+    }
+
+    fn set_name(&mut self, name: String) {
+        self.mac = name;
+    }
+
+    fn get_description(&self) -> Option<String> {
+        Some(self.uuid.clone())
+    }
+
+    fn set_description(&mut self, description: Option<String>) {
+        if let Some(desc) = description {
+            self.uuid = desc;
+        }
+    }
+
+    fn get_collection_name() -> &'static str {
+        "beacon_secrets"
+    }
+
+    fn require_unique_name() -> bool {
+        true
     }
 }
 

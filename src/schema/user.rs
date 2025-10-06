@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::schema::Service;
 use bcrypt::hash;
 use bson::oid::ObjectId;

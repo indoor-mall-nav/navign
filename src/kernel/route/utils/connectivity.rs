@@ -160,7 +160,7 @@ impl<'a> Contiguous<'a> for Area<'a> {
         for (neighbor, node, _, _, _) in start_neighbors.iter() {
             if neighbor.database_id == terminus_id {
                 return Some(Vec::from_iter_in(
-                    vec![(start_id, Atom::new_in(&alloc)), (terminus_id, *node)],
+                    vec![(start_id, Atom::new_in(alloc)), (terminus_id, *node)],
                     alloc,
                 ));
             }
@@ -174,7 +174,7 @@ impl<'a> Contiguous<'a> for Area<'a> {
         {
             return Some(Vec::from_iter_in(
                 vec![
-                    (start_id, Atom::new_in(&alloc)),
+                    (start_id, Atom::new_in(alloc)),
                     (terminus_id, *connectivity),
                 ],
                 alloc,
@@ -186,7 +186,7 @@ impl<'a> Contiguous<'a> for Area<'a> {
         {
             return Some(Vec::from_iter_in(
                 vec![
-                    (start_id, Atom::new_in(&alloc)),
+                    (start_id, Atom::new_in(alloc)),
                     (terminus_id, *connectivity),
                 ],
                 alloc,
@@ -199,7 +199,7 @@ impl<'a> Contiguous<'a> for Area<'a> {
         ) = (start_agent.as_ref(), terminus_agent.as_ref())
             && start_agent.database_id == terminus_agent.database_id
         {
-            let intermediate_id = start_agent.database_id.clone();
+            let intermediate_id = start_agent.database_id;
             return Some(Vec::from_iter_in(
                 vec![
                     (start_id, Atom::new_in(alloc)),
@@ -358,9 +358,9 @@ impl<'a> ConnectWithInstance<'a> for Entity<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kernel::route::types::Dummy;
     use crate::kernel::route::types::area::Area;
     use crate::kernel::route::types::connection::Connection;
-    use crate::kernel::route::types::{Dummy, FromIn};
 
     #[test]
     fn contiguous_areas_no_agent() {

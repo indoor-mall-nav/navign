@@ -202,6 +202,7 @@ impl<'a> Navigate<'a> for Entity<'a> {
                 }
                 instructions.push(InstructionType::Transport(
                     conn.database_id.to_string(),
+                    area_dest_id.to_string(),
                     *conn.r#type,
                 ));
             }

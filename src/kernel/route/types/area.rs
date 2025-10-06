@@ -44,7 +44,7 @@ impl<'a, 'b: 'a> CloneIn<'b> for Area<'a> {
         Area {
             name: self.name.clone_in(allocator),
             description: self.description.as_ref().map(|d| d.clone_in(allocator)),
-            floor: self.floor.clone(),
+            floor: self.floor,
             connections: Vec::from_iter_in(
                 self.connections
                     .iter()
@@ -89,7 +89,7 @@ impl<'a> FromIn<'a, crate::schema::area::Area> for Area<'a> {
                 .description
                 .as_ref()
                 .map(|d| Atom::from_in(d.clone(), allocator)),
-            floor: area.floor.clone(),
+            floor: area.floor,
             connections: Vec::new_in(allocator), // Connections need to be set up separately
             merchants: Vec::new_in(allocator),   // Merchants need to be set up separately
             database_id: Atom::from_in(area.id.to_hex(), allocator),
@@ -107,7 +107,7 @@ impl<'a> IntoIn<'a, crate::schema::area::Area> for Area<'a> {
                 .unwrap_or_else(|_| bson::oid::ObjectId::new()),
             name: self.name.to_string(),
             description: self.description.as_ref().map(|d| d.to_string()),
-            floor: self.floor.clone(),
+            floor: self.floor,
             ..Default::default()
         }
     }

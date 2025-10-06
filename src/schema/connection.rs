@@ -3,6 +3,8 @@ use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
+pub type ConnectedArea = (ObjectId, f64, f64, bool);
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Connection {
     #[serde(rename = "_id")]
@@ -13,7 +15,7 @@ pub struct Connection {
     pub description: Option<String>,
     pub r#type: ConnectionType,
     /// List of Area IDs that this connection links
-    /// Format: Vec<(ObjectId, f64, f64)>
+    /// Format: Vec<(ObjectId, f64, f64, bool)>
     /// where ObjectId is the ID of the area, and f64 values are coordinates (x, y)
     /// representing the connection's position in the area.
     /// The coordinates are relative to the area polygon.
@@ -21,23 +23,16 @@ pub struct Connection {
     /// would represent the position of the gate in the first area.
     /// If the connection is a rail or shuttle, the coordinates would represent the
     /// position of the rail or shuttle stop in the first area.
-    pub connected_areas: Vec<(ObjectId, f64, f64)>,
+    pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,
     pub tags: Vec<String>,
+    pub gnd: Option<(f64, f64)>, // Ground (x, y) coordinates if it connects to outside
 }
 
 impl Connection {
-    pub fn get_object_id(&self) -> ObjectId {
-        self.id
-    }
-
-    pub fn get_connected_areas(&self) -> &Vec<(ObjectId, f64, f64)> {
+    pub fn get_connected_areas(&self) -> &Vec<ConnectedArea> {
         &self.connected_areas
-    }
-
-    pub fn get_connection_type(&self) -> &ConnectionType {
-        &self.r#type
     }
 }
 

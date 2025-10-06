@@ -8,7 +8,6 @@ use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::entity::EntityType;
 use bson::oid::ObjectId;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
-use futures::TryStreamExt;
 use log::trace;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
@@ -115,12 +114,12 @@ impl<'a> Entity<'a> {
             connection_list.into_iter().map(|conn| {
                 trace!("Processing connection id: {}", conn.id);
                 let mut areas_map = Vec::new_in(alloc);
-                for (connected_area_id, x, y) in conn.get_connected_areas().iter() {
+                for (connected_area_id, x, y, open) in conn.get_connected_areas().iter() {
                     trace!("Processing connected area id: {}", connected_area_id);
-                    if let Some(connected_area) = Rc::clone(&allocated_areas)
-                        .borrow()
-                        .iter()
-                        .find(|a| a.database_id.as_str() == connected_area_id.to_hex().as_str())
+                    if let Some(connected_area) =
+                        Rc::clone(&allocated_areas).borrow().iter().find(|a| {
+                            a.database_id.as_str() == connected_area_id.to_hex().as_str() && *open
+                        })
                     {
                         let ptr = connected_area.deref() as *const Area;
                         // SAFETY: The pointer is valid as long as allocated_areas is alive

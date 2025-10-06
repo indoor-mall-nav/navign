@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::kernel::auth::{Authenticator, Token};
 use crate::schema::User;
 use anyhow::anyhow;

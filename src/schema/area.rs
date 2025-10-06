@@ -17,27 +17,23 @@ pub struct Area {
     pub polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
 }
 
-impl Area {
-    pub fn get_object_id(&self) -> ObjectId {
-        self.id
-    }
-
-    pub fn get_floor(&self) -> Option<&Floor> {
-        self.floor.as_ref()
-    }
-
-    pub fn get_polygon(&self) -> &Vec<(f64, f64)> {
-        &self.polygon
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
 pub struct Floor {
     pub r#type: FloorType,
     pub name: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+impl From<Floor> for i32 {
+    fn from(val: Floor) -> i32 {
+        match val.r#type {
+            FloorType::Level => val.name as i32 + 1, // Level 0 is Ground, Level 1 is First
+            FloorType::Floor => val.name as i32,
+            FloorType::Basement => -(val.name as i32),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Copy, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum FloorType {
     /// European/UK style, e.g., "Ground," "First," "Second"

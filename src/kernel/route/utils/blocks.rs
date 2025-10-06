@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::kernel::route::types::CloneIn;
 use std::collections::BTreeSet;
 use std::ops::Index;
@@ -107,19 +108,6 @@ pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T
             .and_then(|(x, y)| self.access_right(x, y))
     }
 
-    fn fit_up(&self, x: f64, y: f64) -> Option<T> {
-        self.fit(x, y).and_then(|b| self.up(b))
-    }
-    fn fit_down(&self, x: f64, y: f64) -> Option<T> {
-        self.fit(x, y).and_then(|b| self.down(b))
-    }
-    fn fit_left(&self, x: f64, y: f64) -> Option<T> {
-        self.fit(x, y).and_then(|b| self.left(b))
-    }
-    fn fit_right(&self, x: f64, y: f64) -> Option<T> {
-        self.fit(x, y).and_then(|b| self.right(b))
-    }
-
     fn access_up(&self, x: usize, y: usize) -> Option<T> {
         (y > 0).then(|| self.access(x, y - 1)).flatten()
     }
@@ -222,10 +210,6 @@ impl<'a> Polygon<'a> {
             bounding: false,
             ..self
         }
-    }
-
-    pub fn new(points: &'a [(f64, f64)], bounding: bool) -> Self {
-        Self { points, bounding }
     }
 
     /// Ray-casting algorithm to determine if a point is inside the polygon
