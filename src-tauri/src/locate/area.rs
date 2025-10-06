@@ -15,6 +15,7 @@ pub struct ActiveArea {
     pub stored_at: u64,
 }
 
+#[allow(unused)]
 impl ActiveArea {
     pub fn new(id: String, name: String, polygon: String, entity: String, updated_at: u64) -> Self {
         Self {

@@ -43,7 +43,9 @@ export interface DeviceProof {
 
 export async function unlockDevice(device: BleDevice, entity: string) {
   try {
-    try {await disconnect();} catch(_) {}
+    try {await disconnect();} catch(_e) {
+      console.log("Not connected to any device", _e);
+    }
     if (device.name !== "NAVIGN-BEACON") {
       throw new Error("Unsupported device");
     }
@@ -174,7 +176,9 @@ export async function unlockDevice(device: BleDevice, entity: string) {
     }
     await disconnect();
   } catch (e) {
-    try {await disconnect();} catch(_) {}
+    try {await disconnect();} catch(_e) {
+      console.log("Not connected to any device", _e);
+    }
     console.error("Error during unlocking process:", e);
   }
 }

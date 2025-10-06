@@ -9,3 +9,7 @@ lint:
 fix:
   pnpm run fix
   cd src-tauri && cargo clippy --all-targets --all-features --fix -- -D warnings
+
+test:
+  pnpm run test
+  cd src-tauri && cargo test

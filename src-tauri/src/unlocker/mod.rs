@@ -6,6 +6,7 @@
 //! including key management, signing challenges, and generating proofs of device authenticity.
 //! It uses ECDSA for signing and RSA for encrypting AES keys, ensuring secure communication.
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
+#![allow(unused)]
 use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use aes_gcm::aead::Aead;
 use aes_gcm::KeyInit;

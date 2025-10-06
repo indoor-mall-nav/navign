@@ -28,10 +28,9 @@ pub async fn handle_devices(
     pool: &SqlitePool,
     base: &str,
 ) -> LocateResult {
-    let pool = SqlitePool::connect("sqlite:navign.db").await.unwrap();
     let mut info = Vec::with_capacity(devices.len());
     for device in devices.iter() {
-        if let Some(beacon_info) = BeaconInfo::get_from_mac(&pool, &device.address)
+        if let Some(beacon_info) = BeaconInfo::get_from_mac(pool, &device.address)
             .await
             .ok()
             .flatten()

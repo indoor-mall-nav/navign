@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "format": "prettier --write . --filter='{**,!src-tauri}/*.{js,ts,vue,json,md}'",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "lint:fix": "oxlint --fix",
+    "test": "vitest run"
   },
   "dependencies": {
     "@iconify-icons/mdi": "^1.2.48",
@@ -25,6 +26,7 @@
     "@tauri-apps/plugin-nfc": "~2",
     "@tauri-apps/plugin-notification": "~2",
     "@tauri-apps/plugin-opener": "^2.5.0",
+    "@tauri-apps/plugin-sql": "~2",
     "@vee-validate/zod": "^4.15.1",
     "@vitejs/plugin-vue-jsx": "^5.0.1",
     "@vueuse/core": "^13.7.0",

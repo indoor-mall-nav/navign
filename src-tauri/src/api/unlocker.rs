@@ -19,7 +19,7 @@ pub async fn request_unlock_permission(
     timestamp: u64,
     user_token: &str,
 ) -> Result<Challenge> {
-    let nonce_encoded = base64::engine::general_purpose::STANDARD.encode(&nonce);
+    let nonce_encoded = base64::engine::general_purpose::STANDARD.encode(nonce);
     let request_body = json!({
         "nonce": nonce_encoded,
         "beacon": beacon,

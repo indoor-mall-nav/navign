@@ -1,9 +1,6 @@
-use futures_util::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Row, SqlitePool};
+use sqlx::{FromRow, SqlitePool};
 use std::str::FromStr;
-use tauri::AppHandle;
-use tauri_plugin_sql::Builder;
 use wkt::types::Point;
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
@@ -16,6 +13,7 @@ pub struct BeaconInfo {
     pub entity: String,
 }
 
+#[allow(dead_code)]
 impl BeaconInfo {
     pub fn new(
         id: String,

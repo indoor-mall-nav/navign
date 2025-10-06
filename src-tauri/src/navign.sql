@@ -36,12 +36,8 @@ CREATE TABLE IF NOT EXISTS beacons
            TEXT
                 NOT
                     NULL,
-    x
-           REAL
-                NOT
-                    NULL,
-    y
-           REAL
+    location
+           TEXT
                 NOT
                     NULL,
     merchant

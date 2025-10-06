@@ -1,7 +1,6 @@
 use crate::unlocker::Unlocker;
 use base64::Engine;
 use p256::ecdsa::VerifyingKey;
-use sqlx::SqlitePool;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
 #[cfg(mobile)]
@@ -9,8 +8,8 @@ use tauri_plugin_biometric::AuthOptions;
 #[cfg(mobile)]
 use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
-use tokio::join;
 use tokio::sync::Mutex;
+use crate::locate::locate_device;
 
 pub(crate) mod api;
 pub(crate) mod locate;
@@ -20,7 +19,7 @@ pub(crate) mod unlocker;
 
 #[tauri::command]
 async fn unlock_door(
-    app: AppHandle,
+    _app: AppHandle,
     state: State<'_, Arc<Mutex<Unlocker>>>,
     nonce: String,
     entity: String,
@@ -69,6 +68,31 @@ async fn unlock_door(
     Ok(proof_result)
 }
 
+#[tauri::command]
+async fn check_location(
+    _app: AppHandle,
+    area: String
+) -> Result<String, ()> {
+    match locate_device(area).await {
+        Ok(res) => {
+            let result = serde_json::json!({
+                "status": "success",
+                "area": res.area,
+                "x": res.x,
+                "y": res.y,
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = serde_json::json!({
+                "status": "error",
+                "message": e.to_string(),
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -112,7 +136,7 @@ pub fn run() {
             }
             let path = app.path().app_local_data_dir()?.join("salt.txt");
             app.handle()
-                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&*path).build())?;
+                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&path).build())?;
             let server_pub_key = [
                 4, 29, 160, 114, 228, 62, 157, 118, 19, 35, 126, 85, 206, 135, 190, 151, 236, 195,
                 95, 99, 206, 111, 205, 177, 216, 26, 195, 79, 55, 241, 128, 164, 145, 102, 56, 204,
@@ -137,7 +161,7 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_nfc::init())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![unlock_door,])
+        .invoke_handler(tauri::generate_handler![unlock_door, check_location])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

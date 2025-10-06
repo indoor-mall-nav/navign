@@ -5,6 +5,7 @@ use tauri_plugin_http::reqwest;
 pub(crate) mod login;
 pub(crate) mod unlocker;
 
+#[allow(unused)]
 /// Response is a base64-encoded string of the server's public key bytes.
 async fn fetch_server_public_key() -> anyhow::Result<Vec<u8>> {
     match reqwest::Client::new()
