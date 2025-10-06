@@ -6,26 +6,28 @@
 //! including key management, signing challenges, and generating proofs of device authenticity.
 //! It uses ECDSA for signing and RSA for encrypting AES keys, ensuring secure communication.
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
+use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use aes_gcm::aead::Aead;
 use aes_gcm::KeyInit;
-use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use anyhow::Result;
 use base64::Engine;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use p256::elliptic_curve::rand_core::OsRng;
-use p256::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey, LineEnding};
+use p256::pkcs8::{
+    DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey, LineEnding,
+};
 use rsa::pkcs1::{DecodeRsaPublicKey, EncodeRsaPublicKey};
 use rsa::Pkcs1v15Encrypt;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_stronghold::stronghold::Stronghold;
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
 #[cfg(mobile)]
 use tauri_plugin_biometric::BiometricExt;
+use tauri_plugin_stronghold::stronghold::Stronghold;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
@@ -53,11 +55,7 @@ pub struct Unlocker {
 }
 
 impl Unlocker {
-    pub fn new(
-        server_public_key: VerifyingKey,
-        user_id: String,
-        user_token: String,
-    ) -> Self {
+    pub fn new(server_public_key: VerifyingKey, user_id: String, user_token: String) -> Self {
         Self {
             server_public_key,
             user_id,
@@ -101,26 +99,33 @@ impl Unlocker {
         #[cfg(all(desktop, not(debug_assertions)))]
         panic!("Desktop release build is not supported due to biometric limitations.");
 
-        let user_device_private_key_path = handle
-            .path()
-            .app_local_data_dir()?
-            .join("holder.db");
-        let client_path = handle
-            .path()
-            .app_local_data_dir()?
-            .join("client.db");
+        let user_device_private_key_path = handle.path().app_local_data_dir()?.join("holder.db");
+        let client_path = handle.path().app_local_data_dir()?.join("client.db");
         let path = client_path.to_string_lossy();
         if !user_device_private_key_path.exists() {
             let signing_key = SigningKey::random(&mut OsRng);
             let der = signing_key.to_pkcs8_der()?;
-            let holder = Stronghold::new(user_device_private_key_path.clone(), der.as_bytes().to_vec())?;
-            holder.load_client(path.as_ref())?.store().insert("private_key".as_bytes().to_vec(), der.as_bytes().to_vec(), None)?;
+            let holder = Stronghold::new(
+                user_device_private_key_path.clone(),
+                der.as_bytes().to_vec(),
+            )?;
+            holder.load_client(path.as_ref())?.store().insert(
+                "private_key".as_bytes().to_vec(),
+                der.as_bytes().to_vec(),
+                None,
+            )?;
             holder.save()?;
         }
         let holder = Stronghold::new(user_device_private_key_path.clone(), vec![])?;
-        let key = holder.load_client(path.as_ref())?.store().get("private_key".as_bytes())?.ok_or_else(|| anyhow::anyhow!("No private key found in stronghold")).and_then(|data| {
-            SigningKey::from_pkcs8_der(&data).map_err(|e| anyhow::anyhow!("Failed to parse private key: {}", e))
-        })?;
+        let key = holder
+            .load_client(path.as_ref())?
+            .store()
+            .get("private_key".as_bytes())?
+            .ok_or_else(|| anyhow::anyhow!("No private key found in stronghold"))
+            .and_then(|data| {
+                SigningKey::from_pkcs8_der(&data)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse private key: {}", e))
+            })?;
         Ok(key)
     }
 
@@ -137,17 +142,24 @@ impl Unlocker {
     /// 2. Generate AES key (encrypted by server public key) and IV
     /// 3. Generate device signing key (ECDSA P-256) if not exists
     /// 4. Return verifying key (public key of device signing key) and encrypted AES key
-    pub fn assemble_verifying_key_packet(&self, server_cert: &[u8], handle: AppHandle) -> Result<String> {
+    pub fn assemble_verifying_key_packet(
+        &self,
+        server_cert: &[u8],
+        handle: AppHandle,
+    ) -> Result<String> {
         let server_public_key = VerifyingKey::from_public_key_der(server_cert)?;
 
         let aes_key_unencrypted = rand::random::<[u8; 16]>();
         let aes_iv = rand::random::<[u8; 16]>();
 
         let rsa_public_key = rsa::RsaPublicKey::from_pkcs1_der(server_cert)?;
-        let encrypted_aes_key = rsa_public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &aes_key_unencrypted)?;
+        let encrypted_aes_key =
+            rsa_public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &aes_key_unencrypted)?;
 
         let device_key = self.ensure_signing_key(handle)?;
-        let public_key_der = device_key.verifying_key().to_public_key_pem(LineEnding::LF)?;
+        let public_key_der = device_key
+            .verifying_key()
+            .to_public_key_pem(LineEnding::LF)?;
 
         let encrypted_public_key = aes_gcm::Aes128Gcm::new_from_slice(&aes_key_unencrypted)?
             .encrypt(

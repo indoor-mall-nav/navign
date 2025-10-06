@@ -41,8 +41,12 @@ tauri-plugin-notification = "2"
 tauri-plugin-stronghold = "2"
 nanoid = "0.4.0"
 hex = "0.4.3"
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "runtime-tokio-native-tls", "sqlite"] }
 uuid = { version = "1.18.0", features = ["v4"] }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio", "runtime-tokio-native-tls"] }
+futures-util = "0.3.31"
+wkt = { version = "0.14.0", features = ["serde"] }
+itertools = "0.14.0"
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"

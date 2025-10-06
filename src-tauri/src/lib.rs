@@ -1,19 +1,22 @@
 use crate::unlocker::Unlocker;
 use base64::Engine;
 use p256::ecdsa::VerifyingKey;
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
 #[cfg(mobile)]
 use tauri_plugin_biometric::BiometricExt;
+use tauri_plugin_sql::{Migration, MigrationKind};
+use tokio::join;
 use tokio::sync::Mutex;
 
 pub(crate) mod api;
+pub(crate) mod locate;
 pub(crate) mod login;
 pub(crate) mod shared;
 pub(crate) mod unlocker;
-pub(crate) mod locate;
 
 #[tauri::command]
 async fn unlock_door(
@@ -70,27 +73,46 @@ async fn unlock_door(
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            let migrations = vec![Migration {
+                version: 1,
+                description: "initialize",
+                sql: include_str!("navign.sql"),
+                kind: MigrationKind::Up,
+            }];
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
             app.handle().plugin(tauri_plugin_notification::init())?;
-            if app.path().app_local_data_dir().map(|x| x.join("salt.txt").exists()).unwrap_or(false) {
+            app.handle().plugin(
+                tauri_plugin_sql::Builder::default()
+                    .add_migrations("sqlist:navign.db", migrations)
+                    .build(),
+            )?;
+            if app
+                .path()
+                .app_local_data_dir()
+                .map(|x| x.join("salt.txt").exists())
+                .unwrap_or(false)
+            {
                 println!("Salt file exists.");
             } else {
                 let salt = nanoid::nanoid!();
                 println!("Hello, {:?}", app.path().app_local_data_dir());
-                if !app.path().app_local_data_dir().map(|x| x.exists()).unwrap_or(true) {
+                if !app
+                    .path()
+                    .app_local_data_dir()
+                    .map(|x| x.exists())
+                    .unwrap_or(true)
+                {
                     std::fs::create_dir_all(app.path().app_local_data_dir().unwrap()).ok();
                 }
                 std::fs::write(
-                    app.path()
-                        .app_local_data_dir()
-                        .unwrap()
-                        .join("salt.txt"),
+                    app.path().app_local_data_dir().unwrap().join("salt.txt"),
                     salt.as_bytes(),
                 )?;
             }
             let path = app.path().app_local_data_dir()?.join("salt.txt");
-            app.handle().plugin(tauri_plugin_stronghold::Builder::with_argon2(&*path).build())?;
+            app.handle()
+                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&*path).build())?;
             let server_pub_key = [
                 4, 29, 160, 114, 228, 62, 157, 118, 19, 35, 126, 85, 206, 135, 190, 151, 236, 195,
                 95, 99, 206, 111, 205, 177, 216, 26, 195, 79, 55, 241, 128, 164, 145, 102, 56, 204,
