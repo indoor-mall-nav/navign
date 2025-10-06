@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         node-version: [20]
+        platform: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +48,7 @@ jobs:
     strategy:
       matrix:
         node-version: [20]
+        platform: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
