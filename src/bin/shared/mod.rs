@@ -1,4 +1,3 @@
-use bleps::att::Uuid;
 use heapless::Vec;
 
 pub mod constants;

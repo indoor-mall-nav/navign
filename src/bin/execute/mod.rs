@@ -1,5 +1,4 @@
 use crate::ble::protocol::BleProtocolHandler;
-use crate::crypto::challenge::ChallengeManager;
 use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
 use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
@@ -17,12 +16,10 @@ pub struct BeaconState<'a> {
     pub open: Output<'a>,
     pub unlock_attempts: u8,
     pub nonce_manager: NonceManager<32>,
-    pub challenge_manager: ChallengeManager,
     pub buffer: BleProtocolHandler,
     pub proof_manager: ProofManager,
     pub last_open: u64,
     pub last_relay_on: u64,
-    pub triggered: bool,
 }
 
 impl<'a> BeaconState<'a> {
@@ -32,7 +29,6 @@ impl<'a> BeaconState<'a> {
         button: Input<'a>,
         mut relay: Output<'a>,
         mut open: Output<'a>,
-        rng: Rng,
     ) -> Self {
         relay.set_low();
         open.set_low();
@@ -45,10 +41,8 @@ impl<'a> BeaconState<'a> {
             proof_manager: ProofManager::new(private_key),
             unlock_attempts: 0,
             buffer: BleProtocolHandler::new(),
-            challenge_manager: ChallengeManager::new(rng),
             last_open: 0,
             last_relay_on: 0,
-            triggered: false,
         }
     }
 

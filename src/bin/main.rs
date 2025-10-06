@@ -30,33 +30,31 @@ use bleps::{
     ad_structure::{
         create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
     },
-    attribute::Attribute,
     attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
 };
 use blocking_network_stack::Stack;
 use core::cell::RefCell;
 use embedded_dht_rs::dht11::Dht11;
-use esp_alloc as _;
 use esp_alloc::heap_allocator;
-use esp_backtrace as _;
 use esp_hal::delay::Delay;
 use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_hal::gpio::{Flex, Level};
+use esp_hal::ledc::channel::config::Config as ChannelConfig;
+use esp_hal::ledc::channel::{ChannelIFace, Number as ChannelNumber};
+use esp_hal::ledc::timer::config::Duty;
+use esp_hal::ledc::timer::{config::Config as TimerConfig, Number as TimerNumber, TimerIFace};
+use esp_hal::ledc::{Ledc, LowSpeed};
+use esp_hal::sha::{Sha, Sha256, ShaDigest};
 use esp_hal::{
     clock::CpuClock,
-    gpio::{Input, InputConfig, Pull},
+    gpio::{Input, InputConfig},
     gpio::{Output, OutputConfig},
     main,
     rng::Rng,
     time,
     timer::timg::TimerGroup,
 };
-use esp_hal::ledc::channel::{ChannelHW, ChannelIFace, Number as ChannelNumber};
-use esp_hal::ledc::timer::{Number as TimerNumber, TimerIFace, config::{Config as TimerConfig}};
-use esp_hal::ledc::{Ledc, LowSpeed};
-use esp_hal::ledc::channel::config::{Config as ChannelConfig};
-use esp_hal::ledc::timer::config::Duty;
 use esp_println::println;
 use esp_wifi::wifi::{AuthMethod, Configuration};
 use esp_wifi::{ble::controller::BleConnector, init};
@@ -64,6 +62,12 @@ use heapless::Vec;
 use smoltcp::iface::{SocketSet, SocketStorage};
 
 esp_bootloader_esp_idf::esp_app_desc!();
+
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    println!("PANIC: {}", info);
+    loop {}
+}
 
 #[main]
 fn main() -> ! {
@@ -73,12 +77,9 @@ fn main() -> ! {
 
     // Initialize pins.
     let dht11 = Flex::new(peripherals.GPIO4);
-    let button = Input::new(
-        peripherals.GPIO3,
-        InputConfig::default(),
-    );
-    let mut relay = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
-    let mut led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
+    let button = Input::new(peripherals.GPIO3, InputConfig::default());
+    let relay = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
+    let led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
     let human_body = Input::new(peripherals.GPIO1, InputConfig::default());
     let servo = Output::new(peripherals.GPIO0, Level::Low, OutputConfig::default());
 
@@ -88,17 +89,64 @@ fn main() -> ! {
     let mut pwm_channel = pwm.channel::<LowSpeed>(ChannelNumber::Channel1, servo);
     let mut pwm_timer = pwm.timer::<LowSpeed>(TimerNumber::Timer0);
 
-    println!("{:?}",pwm_timer.configure(TimerConfig {
-        duty: Duty::Duty14Bit,
-        clock_source: esp_hal::ledc::timer::LSClockSource::APBClk,
-        frequency: time::Rate::from_hz(50), // 50
-    }));
+    let sha = Sha::new(peripherals.SHA);
 
-    println!("{:?}", pwm_channel.configure(ChannelConfig {
-        timer: &pwm_timer,
-        duty_pct: 0, // Start with 0% duty cycle (off)
-        pin_config: esp_hal::ledc::channel::config::PinConfig::PushPull,
-    }));
+    // Hardware-accelerated SHA-256 computation
+
+    let start_time = time::Instant::now();
+
+    let mut digest: ShaDigest<'_, Sha256, _> = ShaDigest::new(sha);
+
+    println!("{:?}", digest.update(b"Hello, world!"));
+    println!("{:?}", digest.update(b"This is bare-metal Rust!"));
+    println!("{:?}", digest.update(b"Hardware acceleration."));
+
+    let mut buffer = [0u8; 32];
+
+    println!("{:?}", digest.finish(&mut buffer));
+
+    println!("SHA-256 Digest: {:x?}", buffer);
+
+    let elapsed = time::Instant::now().duration_since_epoch() - start_time.duration_since_epoch();
+    println!("SHA-256 computation took {} ms", elapsed.as_millis());
+
+    // Pure digital SHA-256 computation for comparison
+    let start_time_digital = time::Instant::now();
+
+    use sha2::{Digest, Sha256 as Sha2Digest};
+    let mut hasher = Sha2Digest::new();
+    hasher.update(b"Hello, world!");
+    hasher.update(b"This is bare-metal Rust!");
+    hasher.update(b"Hardware acceleration.");
+    let result = hasher.finalize();
+    println!("Digital SHA-256 Digest: {:x?}", result);
+
+    assert_eq!(buffer, result.as_slice());
+
+    let elapsed_digital =
+        time::Instant::now().duration_since_epoch() - start_time_digital.duration_since_epoch();
+    println!(
+        "Digital SHA-256 computation took {} ms",
+        elapsed_digital.as_millis()
+    );
+
+    println!(
+        "{:?}",
+        pwm_timer.configure(TimerConfig {
+            duty: Duty::Duty14Bit,
+            clock_source: esp_hal::ledc::timer::LSClockSource::APBClk,
+            frequency: time::Rate::from_hz(50), // 50
+        })
+    );
+
+    println!(
+        "{:?}",
+        pwm_channel.configure(ChannelConfig {
+            timer: &pwm_timer,
+            duty_pct: 0, // Start with 0% duty cycle (off)
+            pin_config: esp_hal::ledc::channel::config::PinConfig::PushPull,
+        })
+    );
 
     pwm_channel.set_duty(10).unwrap();
     Delay::new().delay_millis(50u32);
@@ -131,7 +179,6 @@ fn main() -> ! {
     ];
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
 
     let mut rng = Rng::new(peripherals.RNG);
 
@@ -142,13 +189,13 @@ fn main() -> ! {
         panic!("EFUSE BLOCK_KEY0 is not set. Please set it to a valid 32-byte private key.");
     }
 
-    let executor = BeaconState::new(private_key, button, human_body, relay, led, rng);
+    let executor = BeaconState::new(private_key, button, human_body, relay, led);
 
     let delay = Delay::new();
 
     let mut dht = Dht11::new(dht11, delay);
 
-    let mut executor = Rc::new(RefCell::new(executor));
+    let executor = Rc::new(RefCell::new(executor));
 
     executor
         .borrow_mut()
@@ -160,8 +207,6 @@ fn main() -> ! {
     Delay::new().delay_millis(3_000u32);
 
     let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
-
-    let debounce_cnt = 500;
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
     println!("Device ID: {:?}", device_id);
@@ -200,8 +245,9 @@ fn main() -> ! {
     );
 
     let mut socket_set_entries: [SocketStorage; 3] = Default::default();
-    let mut socket_set = SocketSet::new(&mut socket_set_entries[..]);
-    let mut dhcp_socket = smoltcp::socket::dhcpv4::Socket::new();
+    let socket_set = SocketSet::new(&mut socket_set_entries[..]);
+    #[allow(unused)]
+    let dhcp_socket = smoltcp::socket::dhcpv4::Socket::new();
 
     let wifi_config = Configuration::Client(esp_wifi::wifi::ClientConfiguration {
         ssid: "ssid".into(),
@@ -209,6 +255,8 @@ fn main() -> ! {
         auth_method: AuthMethod::WPAWPA2Personal,
         ..Default::default()
     });
+
+    #[allow(unused)]
 
     let wifi_res = wifi_controller.set_configuration(&wifi_config).ok();
 
@@ -220,6 +268,7 @@ fn main() -> ! {
 
     wifi_controller.connect().ok();
 
+    #[allow(unused)]
     let stack = Stack::new(iface, device, socket_set, now, rng.random());
 
     #[allow(clippy::never_loop)]
@@ -250,6 +299,9 @@ fn main() -> ! {
         // Here it would be defined in `gatt!` macro, but we need to inform the lsp to recognize them.
         let unlock_service_notify_enable_handle = 0x00u16;
         let unlock_service_handle = 0x00u16;
+        println!("Attributes length: {}", gatt_attributes.len());
+        println!("unlock_service_notify_enable_handle: {:x}", unlock_service_notify_enable_handle);
+        println!("unlock_service_handle: {:x}", unlock_service_handle);
 
         let mut wf = |offset: usize, data: &[u8]| {
             println!("Write at offset {}: {:x?}", offset, data);
@@ -314,74 +366,72 @@ fn main() -> ! {
                     Err(e) => println!("Failed to read DHT11 data: {:?}", e),
                 }
             }
-            let mut instance = Rc::clone(&executor);
+            let instance = Rc::clone(&executor);
             instance.borrow_mut().check_executors(now());
 
             let mut notification = None;
             let mut receive_buffer = [0u8; MAX_PACKET_SIZE];
             let mut send_buffer = [0u8; MAX_PACKET_SIZE];
 
-            if let Some(_) = srv.get_characteristic_value(
-                unlock_service_notify_enable_handle,
-                0,
-                &mut receive_buffer,
-            ) {
-                if instance.borrow().buffer.has_message() {
-                    let message = instance.borrow_mut().deserialize_message(None).ok();
-                    println!("Request received: {:?}", message);
-                    println!("Handling message");
-                    instance.borrow_mut().buffer.processing = true;
-                    let response: Option<BleMessage> = match message {
-                        Some(BleMessage::DeviceRequest(count)) => {
-                            if usize::from(count) > device_id.len() / 12 {
-                                None
-                            } else {
-                                let result = BleMessage::DeviceResponse(
-                                    device_type,
-                                    capabilities.clone(),
-                                    {
-                                        let mut id = [0u8; 12];
-                                        id.copy_from_slice(
-                                            device_id
-                                                [count as usize * 12..(count as usize + 1) * 12]
-                                                .as_ref(),
-                                        );
-                                        id
-                                    },
-                                );
-                                Some(result.into())
-                            }
+            if srv
+                .get_characteristic_value(
+                    unlock_service_notify_enable_handle,
+                    0,
+                    &mut receive_buffer,
+                )
+                .is_some()
+                && instance.borrow().buffer.has_message()
+            {
+                let message = instance.borrow_mut().deserialize_message(None).ok();
+                println!("Request received: {:?}", message);
+                println!("Handling message");
+                instance.borrow_mut().buffer.processing = true;
+                let response: Option<BleMessage> = match message {
+                    Some(BleMessage::DeviceRequest(count)) => {
+                        if usize::from(count) > device_id.len() / 12 {
+                            None
+                        } else {
+                            let result =
+                                BleMessage::DeviceResponse(device_type, capabilities.clone(), {
+                                    let mut id = [0u8; 12];
+                                    id.copy_from_slice(
+                                        device_id[count as usize * 12..(count as usize + 1) * 12]
+                                            .as_ref(),
+                                    );
+                                    id
+                                });
+                            Some(result)
                         }
-                        Some(BleMessage::NonceRequest) => {
-                            let nonce = instance.borrow_mut().generate_nonce(&mut rng);
-                            Some(nonce.into())
-                        }
-                        Some(BleMessage::UnlockRequest(ref proof)) => {
-                            let mut cell = instance.borrow_mut();
-                            let unlock_result = match cell.validate_proof(&proof, now()) {
-                                Ok(_) => {
-                                    cell.set_open(true, now());
-                                    (true, None)
-                                }
-                                Err(e) => (false, Some(e)),
-                            };
-                            Some(unlock_result.into())
-                        }
-                        _ => None,
-                    };
-                    println!("Response: {:?}", response);
-                    if let Some(resp) = response {
-                        let result = instance.borrow_mut().serialize_message(&resp).ok();
-                        println!("Should have response: {:?}", result);
-                        if let Some(data) = result {
-                            send_buffer.fill(0);
-                            send_buffer[..data.len()].copy_from_slice(&data);
-                            notification =
-                                Some(NotificationData::new(unlock_service_handle, &send_buffer));
-                        }
-                        instance.borrow_mut().buffer.processing = false;
-                        instance.borrow_mut().buffer.clear_receive_buffer();
                     }
+                    Some(BleMessage::NonceRequest) => {
+                        let nonce = instance.borrow_mut().generate_nonce(&mut rng);
+                        Some(nonce.into())
+                    }
+                    Some(BleMessage::UnlockRequest(ref proof)) => {
+                        let mut cell = instance.borrow_mut();
+                        let unlock_result = match cell.validate_proof(proof, now()) {
+                            Ok(_) => {
+                                cell.set_open(true, now());
+                                (true, None)
+                            }
+                            Err(e) => (false, Some(e)),
+                        };
+                        Some(unlock_result.into())
+                    }
+                    _ => None,
+                };
+                println!("Response: {:?}", response);
+                if let Some(resp) = response {
+                    let result = instance.borrow_mut().serialize_message(&resp).ok();
+                    println!("Should have response: {:?}", result);
+                    if let Some(data) = result {
+                        send_buffer.fill(0);
+                        send_buffer[..data.len()].copy_from_slice(&data);
+                        notification =
+                            Some(NotificationData::new(unlock_service_handle, &send_buffer));
+                    }
+                    instance.borrow_mut().buffer.processing = false;
+                    instance.borrow_mut().buffer.clear_receive_buffer();
                 }
             }
 

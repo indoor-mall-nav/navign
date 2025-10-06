@@ -10,6 +10,7 @@ pub struct BleProtocolHandler {
     send_buffer: Vec<u8, MAX_PACKET_SIZE>,
     receive_buffer: Vec<u8, MAX_PACKET_SIZE>,
     send_buffer_length: usize,
+    #[allow(unused)]
     receive_buffer_length: usize,
     pub processing: bool,
 }
@@ -103,7 +104,7 @@ impl BleProtocolHandler {
                     .push(device_type.serialize())
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
-                    .push(DeviceCapability::serialize(&capabilities))
+                    .push(DeviceCapability::serialize(capabilities))
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
                     .extend_from_slice(object_id)
@@ -174,10 +175,6 @@ impl BleProtocolHandler {
 
     pub fn clear_receive_buffer(&mut self) {
         self.receive_buffer.clear();
-    }
-
-    pub fn clear_send_buffer(&mut self) {
-        self.send_buffer.clear();
     }
 
     pub fn deserialize_message(&mut self, data: Option<&[u8]>) -> Result<BleMessage, BleError> {

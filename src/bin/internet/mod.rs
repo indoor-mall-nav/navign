@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused)]
 use crate::crypto::Nonce;
 use crate::shared::constants::NONCE_LENGTH;
 use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};

@@ -20,7 +20,7 @@ bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5
   "macros",
 ] }
 critical-section = "1.2.0"
-embedded-io = "0.6.1"
+embedded-io = "0.7.1"
 esp-alloc = "0.8.0"
 esp-wifi = { version = "0.15.0", features = [
   "ble",

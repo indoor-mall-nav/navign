@@ -142,7 +142,7 @@ dependencies = [
  "cfg-if",
  "critical-section",
  "embedded-dht-rs",
- "embedded-io",
+ "embedded-io 0.7.1",
  "embedded-nal",
  "esp-alloc",
  "esp-backtrace",
@@ -231,7 +231,7 @@ dependencies = [
  "bleps-dedup",
  "bleps-macros",
  "critical-section",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "futures",
  "log",
@@ -276,7 +276,7 @@ name = "blocking-network-stack"
 version = "0.1.0"
 source = "git+https://github.com/bjoernQ/blocking-network-stack.git?rev=b3ecefc222d8806edd221f266999ca339c52d34e#b3ecefc222d8806edd221f266999ca339c52d34e"
 dependencies = [
- "embedded-io",
+ "embedded-io 0.6.1",
  "heapless 0.8.0",
  "log",
  "smoltcp",
@@ -299,7 +299,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa7f7c19df9648c1da4f5356c4256533e38bd65633b6a41654922475a1c6d777"
 dependencies = [
  "embassy-sync 0.7.1",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "futures-intrusive",
  "heapless 0.8.0",
@@ -311,7 +311,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5698b2eda4613b62f3aa3119805df1ca6739e00167a2600b3a234ac49b14803"
 dependencies = [
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
 ]
 
@@ -880,12 +880,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
+name = "embedded-io"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
+
+[[package]]
 name = "embedded-io-async"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ff09972d4073aa8c299395be75161d582e7629cd663171d62af73c8d50dba3f"
 dependencies = [
- "embedded-io",
+ "embedded-io 0.6.1",
 ]
 
 [[package]]
@@ -931,7 +937,7 @@ dependencies = [
  "aes-gcm",
  "atomic-polyfill",
  "digest",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "generic-array 0.14.7",
  "heapless 0.6.1",
@@ -1102,7 +1108,7 @@ dependencies = [
  "embedded-can",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "enumset",
  "esp-config",
@@ -1176,7 +1182,7 @@ dependencies = [
  "critical-section",
  "crypto-bigint",
  "edge-nal",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "enumset",
  "esp-hal",
@@ -1285,7 +1291,7 @@ dependencies = [
  "critical-section",
  "document-features",
  "embassy-net-driver",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "enumset",
  "esp-alloc",
@@ -2334,7 +2340,7 @@ checksum = "fb1be74cb817fa6dbda417110f575d9b9ad5488817f1eb65f2f6468fe6d5d663"
 dependencies = [
  "base64",
  "buffered-io",
- "embedded-io",
+ "embedded-io 0.6.1",
  "embedded-io-async",
  "embedded-nal-async",
  "embedded-tls",
