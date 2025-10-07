@@ -1,97 +1,23 @@
 use crate::unlocker::Unlocker;
-use base64::Engine;
+use locate::locate_handler;
+use login::handshake::bind_with_server;
 use p256::ecdsa::VerifyingKey;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
+use tauri::Manager;
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
 #[cfg(mobile)]
 use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
 use tokio::sync::Mutex;
-use crate::locate::locate_device;
+use unlocker::unlock_handler;
 
 pub(crate) mod api;
 pub(crate) mod locate;
 pub(crate) mod login;
 pub(crate) mod shared;
 pub(crate) mod unlocker;
-
-#[tauri::command]
-async fn unlock_door(
-    _app: AppHandle,
-    state: State<'_, Arc<Mutex<Unlocker>>>,
-    nonce: String,
-    entity: String,
-    beacon: String,
-) -> Result<String, ()> {
-    println!("requesting challenge");
-    let nonce = TryInto::<[u8; 16]>::try_into(
-        base64::engine::general_purpose::STANDARD
-            .decode(nonce)
-            .map_err(|_| ())?,
-    )
-    .map_err(|_| ())?;
-    println!("Nonce received: {:?}", nonce);
-    let mut app_state = state.lock().await;
-    let challenge = app_state
-        .request_unlock(nonce, entity, beacon)
-        .await
-        .map_err(|_| ())?;
-
-    println!("Challenge adopted: {:?}", challenge);
-
-    #[cfg(mobile)]
-    let auth_options = AuthOptions {
-        allow_device_credential: true,
-        cancel_title: Some("Cancel".to_string()),
-        fallback_title: Some("Use Passcode".to_string()),
-        title: Some("Authenticate to unlock".to_string()),
-        subtitle: Some("Please authenticate to proceed".to_string()),
-        confirmation_required: Some(true),
-    };
-
-    #[cfg(mobile)]
-    app.biometric()
-        .authenticate("Please authenticate to unlock".to_string(), auth_options)
-        .map_err(|_| ())?;
-
-    println!("Biometric authentication passed, generating proof...");
-
-    let proof = app_state
-        .generate_device_proof(&challenge)
-        .map_err(|_| ())?;
-
-    println!("Proof generated: {:?}", proof);
-
-    let proof_result = serde_json::to_string(&proof).map_err(|_| ())?;
-    Ok(proof_result)
-}
-
-#[tauri::command]
-async fn check_location(
-    _app: AppHandle,
-    area: String
-) -> Result<String, ()> {
-    match locate_device(area).await {
-        Ok(res) => {
-            let result = serde_json::json!({
-                "status": "success",
-                "area": res.area,
-                "x": res.x,
-                "y": res.y,
-            });
-            Ok(result.to_string())
-        }
-        Err(e) => {
-            let result = serde_json::json!({
-                "status": "error",
-                "message": e.to_string(),
-            });
-            Ok(result.to_string())
-        }
-    }
-}
+pub(crate) mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -161,7 +87,11 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_nfc::init())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![unlock_door, check_location])
+        .invoke_handler(tauri::generate_handler![
+            locate_handler,
+            bind_with_server,
+            unlock_handler
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -7,11 +7,21 @@
 //! It uses ECDSA for signing and RSA for encrypting AES keys, ensuring secure communication.
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
 #![allow(unused)]
+
+mod utils;
+pub mod constants;
+mod proof;
+mod challenge;
+mod pipeline;
+
+pub use pipeline::unlock_handler;
+
 use crate::api::unlocker::{fetch_beacon_information, request_unlock_permission};
 use aes_gcm::aead::Aead;
 use aes_gcm::KeyInit;
 use anyhow::Result;
 use base64::Engine;
+use nanoid::nanoid;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use p256::elliptic_curve::rand_core::OsRng;
@@ -53,6 +63,7 @@ pub struct Unlocker {
     counter: u64,
     /// The JWT token for the user session
     user_token: String,
+    device_id: String,
 }
 
 impl Unlocker {
@@ -62,6 +73,7 @@ impl Unlocker {
             user_id,
             counter: 0,
             user_token,
+            device_id: nanoid!()
         }
     }
 
@@ -81,7 +93,7 @@ impl Unlocker {
         self.user_id = user_id;
     }
 
-    pub fn ensure_signing_key(&self, handle: AppHandle) -> Result<SigningKey> {
+    pub fn ensure_signing_key(&self, handle: &AppHandle) -> Result<SigningKey> {
         #[cfg(mobile)]
         let auth_options = AuthOptions {
             allow_device_credential: true,
@@ -128,57 +140,6 @@ impl Unlocker {
                     .map_err(|e| anyhow::anyhow!("Failed to parse private key: {}", e))
             })?;
         Ok(key)
-    }
-
-    pub fn sign_server_challenge(&self, buffer: [u8; 32], handle: AppHandle) -> Result<[u8; 64]> {
-        let key = self.ensure_signing_key(handle)?;
-        let signature: Signature = key.sign(&buffer);
-        let mut sig_bytes = [0u8; 64];
-        sig_bytes.copy_from_slice(&signature.to_bytes());
-        Ok(sig_bytes)
-    }
-
-    /// Submit server key:
-    /// 1. Get server public certificate for asymmetric encryption for AES key exchange
-    /// 2. Generate AES key (encrypted by server public key) and IV
-    /// 3. Generate device signing key (ECDSA P-256) if not exists
-    /// 4. Return verifying key (public key of device signing key) and encrypted AES key
-    pub fn assemble_verifying_key_packet(
-        &self,
-        server_cert: &[u8],
-        handle: AppHandle,
-    ) -> Result<String> {
-        let server_public_key = VerifyingKey::from_public_key_der(server_cert)?;
-
-        let aes_key_unencrypted = rand::random::<[u8; 16]>();
-        let aes_iv = rand::random::<[u8; 16]>();
-
-        let rsa_public_key = rsa::RsaPublicKey::from_pkcs1_der(server_cert)?;
-        let encrypted_aes_key =
-            rsa_public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &aes_key_unencrypted)?;
-
-        let device_key = self.ensure_signing_key(handle)?;
-        let public_key_der = device_key
-            .verifying_key()
-            .to_public_key_pem(LineEnding::LF)?;
-
-        let encrypted_public_key = aes_gcm::Aes128Gcm::new_from_slice(&aes_key_unencrypted)?
-            .encrypt(
-                aes_gcm::Nonce::from_slice(&aes_iv),
-                public_key_der.as_bytes(),
-            )?;
-
-        let aes_key = base64::engine::general_purpose::STANDARD.encode(encrypted_aes_key);
-        let iv = base64::engine::general_purpose::STANDARD.encode(aes_iv);
-        let public_key = base64::engine::general_purpose::STANDARD.encode(encrypted_public_key);
-
-        let packet = serde_json::json!({
-            "aes_key": aes_key,
-            "aes_iv": iv,
-            "public_key": public_key,
-        });
-
-        Ok(packet.to_string())
     }
 
     pub async fn request_unlock(
@@ -235,5 +196,9 @@ impl Unlocker {
             timestamp: challenge.timestamp,
             counter: self.counter,
         })
+    }
+
+    pub fn device_id(&self) -> &str {
+        &self.device_id
     }
 }

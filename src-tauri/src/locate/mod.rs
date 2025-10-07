@@ -5,6 +5,7 @@ mod migration;
 mod scan;
 
 use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
 use crate::locate::locator::LocateResult;
 use crate::locate::scan::stop_scan;
 
@@ -39,5 +40,28 @@ pub async fn locate_device(area: String) -> anyhow::Result<LocateState> {
             todo!("We need to nest the locate_device call here, after refreshing the area")
         }
         _ => unreachable!(),
+    }
+}
+
+
+#[tauri::command]
+pub async fn locate_handler(_app: AppHandle, area: String) -> Result<String, ()> {
+    match locate_device(area).await {
+        Ok(res) => {
+            let result = serde_json::json!({
+                "status": "success",
+                "area": res.area,
+                "x": res.x,
+                "y": res.y,
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = serde_json::json!({
+                "status": "error",
+                "message": e.to_string(),
+            });
+            Ok(result.to_string())
+        }
     }
 }
