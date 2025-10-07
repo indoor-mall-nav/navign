@@ -5,15 +5,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Beacon {
     #[serde(rename = "_id")]
-    id: ObjectId,
+    pub id: ObjectId,
     /// Reference to the Entity
-    entity: ObjectId,
+    pub entity: ObjectId,
     /// Reference to the Area where the beacon is located
-    area: ObjectId,
+    pub area: ObjectId,
     /// Optional reference to the Merchant associated with the beacon.
-    merchant: Option<ObjectId>,
+    pub merchant: Option<ObjectId>,
     /// Optional reference to the Connection associated with the beacon.
-    connection: Option<ObjectId>,
+    pub connection: Option<ObjectId>,
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     /// Format:
     /// ```
@@ -22,16 +22,15 @@ pub struct Beacon {
     /// where `<area_id>` is the ID of the area and `<beacon_id>` is the unique identifier of the beacon.
     /// They are incremental value from 0 and, the area id uses 2-byte hex encoding,
     /// whereas the beacon id uses 4-byte hex encoding.
-    name: String,
+    pub name: String,
     /// The displaying name of the beacon, which can be used for user-friendly identification.
     /// This can be the name of the area, merchant, or a custom name.
-    description: Option<String>,
+    pub description: Option<String>,
     /// The type of the beacon, which can indicate its purpose or functionality.
-    r#type: BeaconType,
+    pub r#type: BeaconType,
     /// The location of the beacon, represented as a pair of coordinates (longitude, latitude).
-    location: (f64, f64),
-    device: BeaconDevice,
-    pub last_boot: Option<u64>,
+    pub location: (f64, f64),
+    pub device: BeaconDevice,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

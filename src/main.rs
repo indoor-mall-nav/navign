@@ -9,20 +9,20 @@ use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merch
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{
-    Router,
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
+    Router,
 };
 use bson::doc;
-use log::{LevelFilter, info};
+use log::{info, LevelFilter};
 use mongodb::Database;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
-use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
+use p256::pkcs8::EncodePublicKey;
+use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
-#[allow(deprecated)]
-use crate::kernel::unlocker::instance::initiate_unlocker;
+use crate::kernel::unlocker::{create_unlock_instance, update_unlock_instance, record_unlock_result};
 // use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
@@ -50,7 +50,7 @@ async fn cert(State(state): State<AppState>) -> impl IntoResponse {
     match state
         .private_key
         .verifying_key()
-        .to_pkcs1_pem(LineEnding::LF)
+        .to_public_key_pem(LineEnding::LF)
     {
         Ok(res) => (StatusCode::OK, res),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
@@ -87,11 +87,9 @@ async fn main() -> anyhow::Result<()> {
             get(Beacon::get_one_handler),
         )
         .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
-        .route(
-            "/api/entities/{eid}/beacons/unlocker",
-            #[allow(deprecated)]
-            post(initiate_unlocker),
-        )
+        .route("/api/entities/{eid}/beacons/{id}/unlocker", post(create_unlock_instance))
+        .route("/api/entities/{eid}/beacons/{id}/unlocker/{instance}/status", put(update_unlock_instance))
+        .route("/api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome", put(record_unlock_result))
         .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
         .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
         .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))

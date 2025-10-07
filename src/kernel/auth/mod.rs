@@ -3,6 +3,9 @@ mod github;
 mod google;
 mod password;
 mod wechat;
+mod token;
+
+pub use token::UserData;
 
 use anyhow::{Result, anyhow};
 use std::env;
@@ -59,6 +62,7 @@ pub struct Token {
     iss: String,
     sub: String,
     name: String,
+    device: String,
     iat: i64,
     exp: i64,
     jti: String,
@@ -85,6 +89,10 @@ impl FromStr for Token {
     type Err = anyhow::Error;
 
     fn from_str(token: &str) -> Result<Self, Self::Err> {
+        let mut token = token;
+        if token.starts_with("Bearer") {
+            token = token.trim_start_matches("Bearer ").trim();
+        }
         let decoding_key = env::var("JWT_SIGN_KEY")?;
         let key = DecodingKey::from_secret(decoding_key.as_bytes());
         let validation = Validation::default();
@@ -94,20 +102,18 @@ impl FromStr for Token {
     }
 }
 
-impl From<&User> for Token {
-    fn from(user: &User) -> Self {
-        let current = chrono::Utc::now();
-        let iat = current.timestamp();
-        let exp = current.timestamp() + chrono::Duration::minutes(30).num_seconds();
-        let token_id = uuid::Uuid::new_v4().to_string();
-        Self {
-            iss: String::from("Navign"),
-            sub: user.id.to_string(),
-            name: user.username.to_string(),
-            iat,
-            exp,
-            jti: token_id,
-            scope: String::from("admin"),
+impl From<(&User, String)> for Token {
+    fn from((user, device): (&User, String)) -> Self {
+        let now = chrono::Utc::now().timestamp();
+        Token {
+            iss: "Navign".to_string(),
+            sub: user.id.to_hex(),
+            name: user.username.clone(),
+            device,
+            iat: now,
+            exp: now + 5 * 3600 * 24, // 5 days
+            jti: uuid::Uuid::new_v4().to_string(),
+            scope: "user".to_string(),
         }
     }
 }

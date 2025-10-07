@@ -20,6 +20,7 @@ pub struct PasswordPayload {
     pub timestamp: u64,
     pub nonce: String,
     pub hash: String,
+    pub device_id: String,
 }
 
 impl PasswordPayload {
@@ -29,6 +30,7 @@ impl PasswordPayload {
         hasher.update(self.password.as_bytes());
         hasher.update(self.timestamp.to_be_bytes());
         hasher.update(self.nonce.as_bytes());
+        hasher.update(self.device_id.as_bytes());
         let hash = hasher.finalize().to_vec();
         let hash_str = hex::encode(hash);
         self.hash == hash_str
@@ -58,7 +60,7 @@ impl<'de> Authenticator<'de, PasswordPayload> for PasswordAuthenticator {
             None => return Err(anyhow!("User does not exist")),
         };
         if user.verify_password(credential.password.as_str()) {
-            let token = Token::from(&user);
+            let token = Token::from((&user, credential.device_id.clone()));
             Ok(token.to_string())
         } else {
             Err(anyhow!("Wrong password"))

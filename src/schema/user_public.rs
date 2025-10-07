@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserPublicKeys {
     #[serde(rename = "_id")]
     pub id: ObjectId,
+    pub user: String,
     pub model: String,
     pub arch: String,
     pub identifier: String,
