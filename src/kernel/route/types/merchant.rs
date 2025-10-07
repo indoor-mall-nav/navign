@@ -1,5 +1,4 @@
-use crate::kernel::route::types::Atom;
-use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
+use crate::kernel::route::types::{Atom, CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::merchant::MerchantType;
 use bumpalo::{Bump, boxed::Box};
 

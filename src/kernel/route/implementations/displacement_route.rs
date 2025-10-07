@@ -1,4 +1,4 @@
-use crate::kernel::route::utils::blocks::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray};
+use crate::kernel::route::implementations::blocks::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray};
 use std::collections::{BinaryHeap, HashMap};
 
 pub trait DisplacementRoute<'a, T: Sized + Clone + Copy>: ContiguousBlockArray<T> {
@@ -128,7 +128,7 @@ impl<'a> DisplacementRoute<'a, BoundedBlock> for BoundedBlockArray<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kernel::route::utils::blocks::Polygon;
+    use crate::kernel::route::implementations::blocks::Polygon;
 
     #[test]
     fn find_easy() {

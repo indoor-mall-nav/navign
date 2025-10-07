@@ -1,10 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-pub mod area;
-pub mod connection;
-pub mod entity;
-pub mod merchant;
+mod area;
+mod connection;
+mod entity;
+mod merchant;
+
+pub use area::Area;
+pub use connection::Connection;
+pub use entity::Entity;
+pub use merchant::Merchant;
+use crate::schema::connection::ConnectionType;
 
 pub trait CloneIn<'a>: Sized {
     type Cloned;
@@ -98,3 +104,22 @@ impl<'a> FromIn<'a, Cow<'a, str>> for Atom<'a> {
         Self(s)
     }
 }
+
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+pub struct ConnectivityLimits {
+    pub elevator: bool,
+    pub stairs: bool,
+    pub escalator: bool,
+}
+
+impl Default for ConnectivityLimits {
+    fn default() -> Self {
+        Self {
+            elevator: true,
+            stairs: true,
+            escalator: true,
+        }
+    }
+}
+
+pub type ConnectivityNode<'a> = (bumpalo::boxed::Box<'a, Area<'a>>, Atom<'a>, ConnectionType, f64, f64);

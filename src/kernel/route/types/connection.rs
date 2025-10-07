@@ -1,6 +1,4 @@
-use crate::kernel::route::types::Atom;
-use crate::kernel::route::types::area::Area;
-use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn};
+use crate::kernel::route::types::{Atom, Area, CloneIn, Dummy, FromIn, IntoIn};
 use crate::schema::connection::ConnectionType;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Formatter};

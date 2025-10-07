@@ -1,105 +1,8 @@
-use crate::kernel::route::types::area::Area;
-use crate::kernel::route::types::entity::Entity;
-use crate::kernel::route::types::{Atom, CloneIn};
-use crate::schema::connection::ConnectionType;
-use bumpalo::Bump;
-use bumpalo::boxed::Box;
-use bumpalo::collections::Vec;
-use log::trace;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-
-#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
-pub struct ConnectivityLimits {
-    pub elevator: bool,
-    pub stairs: bool,
-    pub escalator: bool,
-}
-
-impl Default for ConnectivityLimits {
-    fn default() -> Self {
-        Self {
-            elevator: true,
-            stairs: true,
-            escalator: true,
-        }
-    }
-}
-
-pub type ConnectivityNode<'a> = (Box<'a, Area<'a>>, Atom<'a>, ConnectionType, f64, f64);
-
-pub trait ConnectivityGraph<'a>: Sized {
-    fn connectivity_graph(
-        &self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Vec<'a, ConnectivityNode<'a>>;
-}
-
-impl<'a> ConnectivityGraph<'a> for Area<'a> {
-    fn connectivity_graph(
-        &self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Vec<'a, ConnectivityNode<'a>> {
-        Vec::from_iter_in(
-            self.connections
-                .iter()
-                .flat_map(|conn| {
-                    Vec::from_iter_in(
-                        conn.connected_area_from(self, alloc)
-                            .into_iter()
-                            .map(|(area, x, y)| {
-                                (area, conn.database_id, *conn.r#type.as_ref(), x, y)
-                            }),
-                        alloc,
-                    )
-                })
-                .filter(|(_, _, conn_type, _, _)| match conn_type {
-                    ConnectionType::Elevator => limits.elevator,
-                    ConnectionType::Escalator => limits.escalator,
-                    ConnectionType::Stairs => limits.stairs,
-                    _ => true,
-                }),
-            alloc,
-        )
-    }
-}
-
-/// Agent instance is like, suppose, you are going to a cinema and the cinema was regarded as an area,
-/// but you can only access with the cinema by, like, entering the fourth floor of a building.
-/// So you need to define an agent area that is the fourth floor of the building, and
-/// the connectivity graph will be calculated from that area, not the whole building.
-pub trait AgentInstance<'a>: Sized + ConnectivityGraph<'a> {
-    fn agent_instance(
-        &self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Option<(Box<'a, Self>, Atom<'a>)>;
-}
-
-impl<'a> AgentInstance<'a> for Area<'a> {
-    fn agent_instance(
-        &self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Option<(Box<'a, Self>, Atom<'a>)> {
-        let graph = self.connectivity_graph(alloc, limits);
-        // Only one node, which points to only one area (not self).
-        if graph.is_empty() {
-            return None;
-        }
-
-        if graph.len() == 1 {
-            let (area, conn_id, _, _, _) = &graph[0];
-            let area = area.as_ref();
-            if area.database_id != self.database_id {
-                return Some((Box::new_in(area.clone_in(alloc), alloc), *conn_id));
-            }
-        }
-
-        None
-    }
-}
+use bumpalo::Bump;
+use log::trace;
+use crate::kernel::route::implementations::{ConnectivityGraph, Contiguous};
+use crate::kernel::route::types::{Area, Atom, ConnectivityLimits, Entity};
 
 /// Simplified priority node for pathfinding: lower distance = higher priority
 #[derive(Debug, Clone)]
@@ -137,90 +40,13 @@ fn manhattan_distance(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     (x1 - x2).abs() + (y1 - y2).abs()
 }
 
-pub trait Contiguous<'a> {
-    fn is_contiguous(
-        &self,
-        other: &Self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>>;
-}
-
-impl<'a> Contiguous<'a> for Area<'a> {
-    fn is_contiguous(
-        &self,
-        other: &Self,
-        alloc: &'a Bump,
-        limits: ConnectivityLimits,
-    ) -> Option<Vec<'a, (Atom<'a>, Atom<'a>)>> {
-        let start_id = self.database_id;
-        let terminus_id = other.database_id;
-
-        let start_neighbors = self.connectivity_graph(alloc, limits);
-        for (neighbor, node, _, _, _) in start_neighbors.iter() {
-            if neighbor.database_id == terminus_id {
-                return Some(Vec::from_iter_in(
-                    vec![(start_id, Atom::new_in(alloc)), (terminus_id, *node)],
-                    alloc,
-                ));
-            }
-        }
-
-        let start_agent = self.agent_instance(alloc, limits);
-        let terminus_agent = other.agent_instance(alloc, limits);
-
-        if let Some((start_agent, connectivity)) = start_agent.as_ref()
-            && start_agent.database_id == terminus_id
-        {
-            return Some(Vec::from_iter_in(
-                vec![
-                    (start_id, Atom::new_in(alloc)),
-                    (terminus_id, *connectivity),
-                ],
-                alloc,
-            ));
-        }
-
-        if let Some((terminus_agent, connectivity)) = terminus_agent.as_ref()
-            && terminus_agent.database_id == start_id
-        {
-            return Some(Vec::from_iter_in(
-                vec![
-                    (start_id, Atom::new_in(alloc)),
-                    (terminus_id, *connectivity),
-                ],
-                alloc,
-            ));
-        }
-
-        if let (
-            Some((start_agent, start_connectivity)),
-            Some((terminus_agent, terminus_connectivity)),
-        ) = (start_agent.as_ref(), terminus_agent.as_ref())
-            && start_agent.database_id == terminus_agent.database_id
-        {
-            let intermediate_id = start_agent.database_id;
-            return Some(Vec::from_iter_in(
-                vec![
-                    (start_id, Atom::new_in(alloc)),
-                    (intermediate_id, *start_connectivity),
-                    (terminus_id, *terminus_connectivity),
-                ],
-                alloc,
-            ));
-        }
-
-        None
-    }
-}
-
 fn reconstruct_path<'a>(
     came_from: &HashMap<Atom<'a>, (Atom<'a>, Atom<'a>)>,
     current: Atom<'a>,
     alloc: &'a Bump,
-) -> Vec<'a, (Atom<'a>, Atom<'a>)> {
-    let mut total_path = Vec::new_in(alloc);
-    let mut total_connectivity = Vec::new_in(alloc);
+) -> bumpalo::collections::Vec<'a, (Atom<'a>, Atom<'a>)> {
+    let mut total_path = bumpalo::collections::Vec::new_in(alloc);
+    let mut total_connectivity = bumpalo::collections::Vec::new_in(alloc);
     total_path.push(current);
     let mut current = current;
     while let Some((prev, conn)) = came_from.get(&current) {
@@ -231,14 +57,14 @@ fn reconstruct_path<'a>(
     total_connectivity.push(Atom::new_in(alloc)); // Starting point has no connectivity
     total_path.reverse();
     total_connectivity.reverse();
-    Vec::from_iter_in(total_path.into_iter().zip(total_connectivity), alloc)
+    bumpalo::collections::Vec::from_iter_in(total_path.into_iter().zip(total_connectivity), alloc)
 }
 
 pub type ConnectivityPath<'a> = (Atom<'a>, Atom<'a>);
-type ConnectivityRoute<'a> = Vec<'a, ConnectivityPath<'a>>;
+type ConnectivityRoute<'a> = bumpalo::collections::Vec<'a, ConnectivityPath<'a>>;
 
 pub trait ConnectWithInstance<'a>: Sized {
-    fn get_areas(&self) -> &[Box<'a, Area<'a>>];
+    fn get_areas(&self) -> &[bumpalo::boxed::Box<'a, Area<'a>>];
 
     fn find_path(
         &self,
@@ -260,7 +86,7 @@ pub trait ConnectWithInstance<'a>: Sized {
 
         if departure_area.database_id == arrival_area.database_id {
             trace!("Departure and arrival are in the same area.");
-            return Some(Vec::from_iter_in(
+            return Some(bumpalo::collections::Vec::from_iter_in(
                 vec![(departure_area.database_id, Atom::new_in(alloc))],
                 alloc,
             ));
@@ -295,11 +121,11 @@ pub trait ConnectWithInstance<'a>: Sized {
         distance_map.insert(departure_area.database_id, 0);
 
         while let Some(PathNode {
-            area_id: current_area,
-            distance: current_distance,
-            x,
-            y,
-        }) = heap.pop()
+                           area_id: current_area,
+                           distance: current_distance,
+                           x,
+                           y,
+                       }) = heap.pop()
         {
             if visited.contains(&current_area) {
                 continue;
@@ -350,7 +176,7 @@ pub trait ConnectWithInstance<'a>: Sized {
 }
 
 impl<'a> ConnectWithInstance<'a> for Entity<'a> {
-    fn get_areas(&self) -> &[Box<'a, Area<'a>>] {
+    fn get_areas(&self) -> &[bumpalo::boxed::Box<'a, Area<'a>>] {
         &self.areas
     }
 }
@@ -358,9 +184,9 @@ impl<'a> ConnectWithInstance<'a> for Entity<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kernel::route::types::Dummy;
-    use crate::kernel::route::types::area::Area;
-    use crate::kernel::route::types::connection::Connection;
+    use crate::kernel::route::types::{CloneIn, ConnectivityLimits, Dummy, Connection, Area};
+    use crate::schema::connection::ConnectionType;
+    use bumpalo::boxed::Box;
 
     #[test]
     fn contiguous_areas_no_agent() {

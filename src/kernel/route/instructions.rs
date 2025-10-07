@@ -1,4 +1,4 @@
-use crate::kernel::route::utils::blocks::BoundedBlock;
+use crate::kernel::route::BoundedBlock;
 use crate::schema::connection::ConnectionType;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -55,7 +55,7 @@ impl AsInstructions for Vec<BoundedBlock> {
 #[cfg(test)]
 mod tests {
     use crate::kernel::route::instructions::AsInstructions;
-    use crate::kernel::route::utils::blocks::BoundedBlock;
+    use crate::kernel::route::BoundedBlock;
 
     #[test]
     fn test_instruction_display() {

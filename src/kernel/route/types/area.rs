@@ -1,8 +1,6 @@
-use crate::kernel::route::types::Atom;
-use crate::kernel::route::types::connection::Connection;
-use crate::kernel::route::types::merchant::Merchant;
+use crate::kernel::route::types::{Connection, Atom, Merchant};
 use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
-use crate::kernel::route::utils::blocks::Polygon;
+use crate::kernel::route::implementations::Polygon;
 use crate::schema::area::Floor;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Display, Formatter};

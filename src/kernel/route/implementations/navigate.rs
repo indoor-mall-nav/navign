@@ -1,16 +1,11 @@
+use crate::kernel::route::implementations::{ConnectWithInstance, DisplacementRoute};
 use crate::kernel::route::instructions::{AsInstructions, InstructionType};
 use crate::kernel::route::types::Atom;
-use crate::kernel::route::types::entity::Entity;
-use crate::kernel::route::utils::connectivity::{ConnectWithInstance, ConnectivityLimits};
-use crate::kernel::route::utils::displacement::DisplacementRoute;
+use crate::kernel::route::types::{ConnectivityLimits, Entity};
 use bumpalo::Bump;
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-
-pub mod blocks;
-pub mod connectivity;
-pub mod displacement;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NavigationError {

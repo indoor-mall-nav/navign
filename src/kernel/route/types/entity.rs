@@ -1,18 +1,8 @@
-//! TODO: Use universal Arena Bump to manage shared references, not Oxc allocator.
-
-use crate::kernel::route::types::Atom;
-use crate::kernel::route::types::area::Area;
-use crate::kernel::route::types::connection::Connection;
-use crate::kernel::route::types::merchant::Merchant;
-use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
+use crate::kernel::route::types::{Atom, Area, CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::entity::EntityType;
 use bson::oid::ObjectId;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
-use log::trace;
-use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Entity<'a> {
@@ -87,113 +77,5 @@ impl<'a> IntoIn<'a, crate::schema::entity::Entity> for Entity<'a> {
             name: self.name.to_string(),
             ..Default::default()
         }
-    }
-}
-
-impl<'a> Entity<'a> {
-    pub fn convert_area_in(
-        alloc: &'a Bump,
-        entity: crate::schema::Entity,
-        area_list: std::vec::Vec<crate::schema::Area>,
-        connection_list: std::vec::Vec<crate::schema::Connection>,
-        merchant_list: std::vec::Vec<crate::schema::Merchant>,
-    ) -> Option<Entity<'a>> {
-        if area_list.is_empty() || merchant_list.is_empty() || connection_list.is_empty() {
-            return None;
-        }
-        let mut result = Entity::from_in(entity, alloc);
-        trace!("Converted entity to internal representation");
-        let allocated_areas = Rc::new(RefCell::new(Vec::from_iter_in(
-            area_list
-                .into_iter()
-                .map(|area| Box::new_in(Area::from_in(area, alloc), alloc)),
-            alloc,
-        )));
-        trace!("Converted areas to internal representation");
-        let allocated_connections = Vec::from_iter_in(
-            connection_list.into_iter().map(|conn| {
-                trace!("Processing connection id: {}", conn.id);
-                let mut areas_map = Vec::new_in(alloc);
-                for (connected_area_id, x, y, open) in conn.get_connected_areas().iter() {
-                    trace!("Processing connected area id: {}", connected_area_id);
-                    if let Some(connected_area) =
-                        Rc::clone(&allocated_areas).borrow().iter().find(|a| {
-                            a.database_id.as_str() == connected_area_id.to_hex().as_str() && *open
-                        })
-                    {
-                        let ptr = connected_area.deref() as *const Area;
-                        // SAFETY: The pointer is valid as long as allocated_areas is alive
-                        let area_ref = unsafe { &*ptr };
-                        areas_map.push((Box::new_in(area_ref.clone_in(alloc), alloc), *x, *y));
-                        trace!("Connected area found and added: {}", connected_area_id);
-                    }
-                }
-                let mut target = Box::new_in(Connection::from_in(conn, alloc), alloc);
-                target.connected_areas = areas_map;
-                target
-            }),
-            alloc,
-        );
-        for area in allocated_areas.borrow_mut().iter_mut() {
-            trace!("Processing area id: {}", area.database_id);
-            let area_id = ObjectId::parse_str(area.database_id.as_str()).ok()?;
-            let connections = Vec::from_iter_in(
-                allocated_connections.iter().filter_map(|conn| {
-                    trace!("Checking connection id: {}", conn.database_id);
-                    conn.connected_areas
-                        .iter()
-                        .any(|(a, _, _)| {
-                            let a_id = ObjectId::parse_str(a.database_id.as_str()).ok();
-                            trace!("Comparing area ids: {} and {:?}", area_id, a_id);
-                            a_id == Some(area_id)
-                        })
-                        .then(|| {
-                            trace!(
-                                "Connection {} belongs to area {}",
-                                conn.database_id, area.database_id
-                            );
-                            let ptr = conn.deref() as *const Connection;
-                            // SAFETY: The pointer is valid as long as allocated_connections is alive
-                            let conn_ref = unsafe { &*ptr };
-                            Box::new_in(conn_ref.clone_in(alloc), alloc)
-                        })
-                }),
-                alloc,
-            );
-            trace!(
-                "Area {} has {} connections: {:?}",
-                area.database_id,
-                connections.len(),
-                connections
-            );
-            area.connections = connections;
-            // Merchants are directly filtered from the original list
-            let merchants = Vec::from_iter_in(
-                merchant_list.iter().filter_map(|m| {
-                    trace!("Checking merchant id: {} with area id: {}", m.id, m.area);
-                    if m.area == area_id {
-                        trace!("Merchant {} belongs to area {}", m.id, area.database_id);
-                        Some(Box::new_in(Merchant::from_in(m.clone(), alloc), alloc))
-                    } else {
-                        None
-                    }
-                }),
-                alloc,
-            );
-            trace!("Area {} has merchants: {:?}", area.database_id, merchants);
-            area.merchants = merchants;
-            trace!(
-                "Area {} has {} connections and {} merchants",
-                area.database_id,
-                area.connections.len(),
-                area.merchants.len()
-            );
-        }
-        trace!("Populated areas with connections and merchants");
-        result.areas = Rc::try_unwrap(allocated_areas)
-            .map_err(|_| ())
-            .ok()?
-            .into_inner();
-        Some(result)
     }
 }

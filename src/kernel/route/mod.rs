@@ -1,9 +1,4 @@
 use crate::AppState;
-use crate::kernel::route::instructions::InstructionType;
-use crate::kernel::route::types::{Atom, FromIn};
-use crate::kernel::route::utils::connectivity::ConnectivityLimits;
-use crate::kernel::route::utils::{Navigate, NavigationError};
-use crate::schema::{Area, Connection, Entity, Merchant, Service};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -15,17 +10,22 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::task::spawn_blocking;
 
+pub mod implementations;
 pub mod instructions;
 pub mod types;
-pub mod utils;
+
+use crate::schema::Service;
+pub use implementations::*;
+pub use instructions::*;
+pub use types::*;
 
 pub fn route_merchant(
     departure_merchant: &str,
     arrival_merchant: &str,
-    entity_id: Entity,
-    areas: Vec<Area>,
-    connections: Vec<Connection>,
-    merchants: Vec<Merchant>,
+    entity_id: crate::schema::Entity,
+    areas: Vec<crate::schema::Area>,
+    connections: Vec<crate::schema::Connection>,
+    merchants: Vec<crate::schema::Merchant>,
     limits: ConnectivityLimits,
 ) -> Result<Vec<InstructionType>, NavigationError> {
     let alloc = Bump::default();
@@ -42,7 +42,7 @@ pub fn route_merchant(
         None => return Err(NavigationError::InvalidArrival),
     }
     .clone();
-    let entity = match types::entity::Entity::convert_area_in(
+    let entity = match Entity::convert_entity_in(
         &alloc,
         entity_id,
         areas,
@@ -104,7 +104,7 @@ pub async fn find_route(
             axum::Json(json!({"error": "Missing 'from' or 'to' parameter"})),
         );
     }
-    let entity = match Entity::get_one_by_id(&state.db, entity.as_str()).await {
+    let entity = match crate::schema::Entity::get_one_by_id(&state.db, entity.as_str()).await {
         Some(e) => e,
         None => {
             return (
@@ -115,29 +115,29 @@ pub async fn find_route(
     };
     let areas = state
         .db
-        .collection(Area::get_collection_name())
+        .collection(crate::schema::Area::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
         .unwrap()
-        .try_collect::<Vec<Area>>()
+        .try_collect::<Vec<crate::schema::Area>>()
         .await
         .unwrap_or_default();
     let connections = state
         .db
-        .collection(Connection::get_collection_name())
+        .collection(crate::schema::Connection::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
         .unwrap()
-        .try_collect::<Vec<Connection>>()
+        .try_collect::<Vec<crate::schema::Connection>>()
         .await
         .unwrap_or_default();
     let merchants = state
         .db
-        .collection(Merchant::get_collection_name())
+        .collection(crate::schema::Merchant::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
         .unwrap()
-        .try_collect::<Vec<Merchant>>()
+        .try_collect::<Vec<crate::schema::Merchant>>()
         .await
         .unwrap_or_default();
     if areas.is_empty() || connections.is_empty() || merchants.is_empty() {
