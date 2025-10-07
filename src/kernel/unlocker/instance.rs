@@ -1,4 +1,5 @@
 #![allow(unused)]
+use crate::kernel::auth::UserData;
 use crate::kernel::cryptography::UnlockChallenge;
 use crate::schema::{Beacon, Service};
 use crate::schema::{BeaconSecrets, User, UserPublicKeys};
@@ -18,7 +19,6 @@ use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use crate::kernel::auth::UserData;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -120,7 +120,7 @@ impl UnlockInstance {
         hasher.update(beacon.counter.to_be_bytes());
         let hash = hasher.finalize();
         let key = beacon
-            .edcsa_key()
+            .ecdsa_key()
             .ok_or(anyhow!("Invalid beacon ECDSA key"))?;
         let signature: Signature = key.sign(&hash);
         if signature.to_bytes()[60..64] != beacon_signature_tail {
@@ -184,7 +184,17 @@ impl UnlockInstance {
                 signature.to_bytes()[56..64].try_into().unwrap(),
             )
             .await?;
-        let proof_b64 = base64::engine::general_purpose::STANDARD.encode(proof);
+        let device_signing_key = BeaconSecrets::get_one_by_id(db, self.device.as_str())
+            .await
+            .ok_or_else(|| anyhow!("Device not found"))?
+            .ecdsa_key()
+            .ok_or_else(|| anyhow!("Invalid device ECDSA key"))?;
+        let device_signature: Signature = device_signing_key.sign(&proof);
+        let mut final_proof = Vec::with_capacity(64 + 8);
+        final_proof.extend_from_slice(proof.as_slice());
+        final_proof.extend_from_slice(device_signature.to_bytes().as_slice()[56..64].as_ref());
+
+        let proof_b64 = base64::engine::general_purpose::STANDARD.encode(final_proof);
         Ok(proof_b64)
     }
 

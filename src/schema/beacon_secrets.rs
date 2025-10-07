@@ -11,7 +11,7 @@ pub struct BeaconSecrets {
     pub last_epoch: u64,
     pub counter: u64,
     /// The PEM format of the ECDSA private key
-    pub edcsa_key: String,
+    pub ecdsa_key: String,
 }
 
 impl Service for BeaconSecrets {
@@ -37,13 +37,13 @@ impl Service for BeaconSecrets {
 }
 
 impl BeaconSecrets {
-    pub fn new(mac: String, edcsa_key: String) -> Self {
+    pub fn new(mac: String, ecdsa_key: String) -> Self {
         Self {
             id: ObjectId::new(),
             mac,
             last_epoch: 0,
             counter: 0,
-            edcsa_key,
+            ecdsa_key,
         }
     }
 
@@ -51,8 +51,8 @@ impl BeaconSecrets {
         self.last_epoch = epoch;
     }
 
-    pub fn edcsa_key(&self) -> Option<p256::ecdsa::SigningKey> {
-        p256::ecdsa::SigningKey::from_pkcs8_pem(self.edcsa_key.as_str()).ok()
+    pub fn ecdsa_key(&self) -> Option<p256::ecdsa::SigningKey> {
+        p256::ecdsa::SigningKey::from_pkcs8_pem(self.ecdsa_key.as_str()).ok()
     }
 
     pub async fn increment_counter(&mut self, db: &mongodb::Database) -> anyhow::Result<()> {
@@ -83,14 +83,14 @@ mod tests {
     use p256::pkcs8::EncodePrivateKey;
 
     #[test]
-    fn test_edcsa_key() {
+    fn test_ecdsa_key() {
         let signing_key = SigningKey::random(&mut OsRng);
         let pem = signing_key
             .to_pkcs8_pem(Default::default())
             .unwrap()
             .to_string();
         let beacon = BeaconSecrets::new("AA:BB:CC:DD:EE:FF".to_string(), pem.clone());
-        let recovered_key = beacon.edcsa_key().unwrap();
+        let recovered_key = beacon.ecdsa_key().unwrap();
         assert_eq!(signing_key.to_bytes(), recovered_key.to_bytes());
     }
 

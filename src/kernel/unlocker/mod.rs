@@ -9,6 +9,7 @@ use axum::Json;
 use base64::Engine;
 use log::info;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct UnlockData {
@@ -54,10 +55,13 @@ pub async fn create_unlock_instance(
             .insert_one(&instance)
             .await
         {
-            Ok(_) => (
-                StatusCode::CREATED,
-                serde_json::to_string(&instance).unwrap(),
-            ),
+            Ok(_) => {
+                let nonce_encoded = hex::encode(instance.challenge_nonce.as_bytes());
+                (
+                    StatusCode::CREATED,
+                    json!({ "instance_id": instance.get_id(), "nonce": nonce_encoded }).to_string(),
+                )
+            }
             Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         },
         Err(e) => (StatusCode::BAD_REQUEST, e.to_string()),
@@ -101,7 +105,7 @@ pub async fn update_unlock_instance(
         Ok(payload) => payload,
         Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()),
     };
-    if payload.len() != 72 {
+    if payload.len() != 8 + 64 {
         return (
             StatusCode::BAD_REQUEST,
             "Invalid payload length".to_string(),
