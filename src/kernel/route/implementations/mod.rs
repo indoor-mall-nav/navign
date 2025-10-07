@@ -7,7 +7,7 @@ mod connect_with_instance;
 mod displacement_route;
 mod navigate;
 
-pub use blocks::{BoundedBlock, BoundedBlockArray, Polygon};
+pub use blocks::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray, Polygon};
 pub use convert_entity_in::ConvertEntityIn;
 pub use connectivity_graph::ConnectivityGraph;
 pub use agent_instance::AgentInstance;

@@ -1,5 +1,5 @@
 use crate::kernel::route::types::{Atom, Area, CloneIn, Dummy, FromIn, IntoIn};
-use crate::schema::connection::ConnectionType;
+use crate::schema::ConnectionType;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Formatter};
 
@@ -81,8 +81,8 @@ impl<'a> Dummy<'a> for Connection<'a> {
     }
 }
 
-impl<'a> FromIn<'a, crate::schema::connection::Connection> for Connection<'a> {
-    fn from_in(value: crate::schema::connection::Connection, allocator: &'a Bump) -> Self {
+impl<'a> FromIn<'a, crate::schema::Connection> for Connection<'a> {
+    fn from_in(value: crate::schema::Connection, allocator: &'a Bump) -> Self {
         Self {
             name: Atom::from_in(value.name, allocator),
             description: value.description.map(|d| Atom::from_in(d, allocator)),
@@ -98,10 +98,10 @@ impl<'a> FromIn<'a, crate::schema::connection::Connection> for Connection<'a> {
     }
 }
 
-impl<'a> IntoIn<'a, crate::schema::connection::Connection> for Connection<'a> {
-    fn into_in(self, _allocator: &'a Bump) -> crate::schema::connection::Connection {
+impl<'a> IntoIn<'a, crate::schema::Connection> for Connection<'a> {
+    fn into_in(self, _allocator: &'a Bump) -> crate::schema::Connection {
         // Warn: it's better to reread from database to avoid data loss
-        crate::schema::connection::Connection {
+        crate::schema::Connection {
             id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
                 .unwrap_or_else(|_| bson::oid::ObjectId::new()),
             entity: bson::oid::ObjectId::new(), // Needs to be set properly

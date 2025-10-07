@@ -4,7 +4,6 @@ mod kernel;
 mod schema;
 mod shared;
 
-use crate::kernel::beacon::initiate_unlocker;
 use crate::kernel::route::find_route;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
@@ -22,6 +21,8 @@ use p256::elliptic_curve::rand_core::OsRng;
 use rsa::pkcs1::{EncodeRsaPublicKey, LineEnding};
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
+#[allow(deprecated)]
+use crate::kernel::unlocker::instance::initiate_unlocker;
 // use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
@@ -88,6 +89,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
         .route(
             "/api/entities/{eid}/beacons/unlocker",
+            #[allow(deprecated)]
             post(initiate_unlocker),
         )
         .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))

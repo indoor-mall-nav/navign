@@ -1,7 +1,7 @@
 use crate::kernel::route::types::{Connection, Atom, Merchant};
 use crate::kernel::route::types::{CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::kernel::route::implementations::Polygon;
-use crate::schema::area::Floor;
+use crate::schema::Floor;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Display, Formatter};
 
@@ -79,8 +79,8 @@ impl<'a> Dummy<'a> for Area<'a> {
 
 impl<'a> TakeIn<'a> for Area<'a> {}
 
-impl<'a> FromIn<'a, crate::schema::area::Area> for Area<'a> {
-    fn from_in(area: crate::schema::area::Area, allocator: &'a Bump) -> Self {
+impl<'a> FromIn<'a, crate::schema::Area> for Area<'a> {
+    fn from_in(area: crate::schema::Area, allocator: &'a Bump) -> Self {
         Self {
             name: Atom::from_in(area.name.clone(), allocator),
             description: area
@@ -97,10 +97,10 @@ impl<'a> FromIn<'a, crate::schema::area::Area> for Area<'a> {
     }
 }
 
-impl<'a> IntoIn<'a, crate::schema::area::Area> for Area<'a> {
-    fn into_in(self, _allocator: &'a Bump) -> crate::schema::area::Area {
+impl<'a> IntoIn<'a, crate::schema::Area> for Area<'a> {
+    fn into_in(self, _allocator: &'a Bump) -> crate::schema::Area {
         // Warn: it's better to reread from database to avoid data loss
-        crate::schema::area::Area {
+        crate::schema::Area {
             id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
                 .unwrap_or_else(|_| bson::oid::ObjectId::new()),
             name: self.name.to_string(),

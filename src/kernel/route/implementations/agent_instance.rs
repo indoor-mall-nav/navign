@@ -1,6 +1,6 @@
 use bumpalo::Bump;
-use crate::kernel::route::implementations::connectivity_graph::ConnectivityGraph;
-use crate::kernel::route::types::{Area, Atom, CloneIn, ConnectivityLimits};
+use crate::kernel::route::ConnectivityGraph;
+use crate::kernel::route::{Area, Atom, CloneIn, ConnectivityLimits};
 
 /// Agent instance is like, suppose, you are going to a cinema and the cinema was regarded as an area,
 /// but you can only access with the cinema by, like, entering the fourth floor of a building.

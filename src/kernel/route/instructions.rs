@@ -1,5 +1,5 @@
 use crate::kernel::route::BoundedBlock;
-use crate::schema::connection::ConnectionType;
+use crate::schema::ConnectionType;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 

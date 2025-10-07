@@ -1,8 +1,8 @@
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use bumpalo::Bump;
 use log::trace;
-use crate::kernel::route::implementations::{ConnectivityGraph, Contiguous};
-use crate::kernel::route::types::{Area, Atom, ConnectivityLimits, Entity};
+use crate::kernel::route::{ConnectivityGraph, Contiguous};
+use crate::kernel::route::{Area, Atom, ConnectivityLimits, Entity};
 
 /// Simplified priority node for pathfinding: lower distance = higher priority
 #[derive(Debug, Clone)]
@@ -185,7 +185,7 @@ impl<'a> ConnectWithInstance<'a> for Entity<'a> {
 mod tests {
     use super::*;
     use crate::kernel::route::types::{CloneIn, ConnectivityLimits, Dummy, Connection, Area};
-    use crate::schema::connection::ConnectionType;
+    use crate::schema::ConnectionType;
     use bumpalo::boxed::Box;
 
     #[test]

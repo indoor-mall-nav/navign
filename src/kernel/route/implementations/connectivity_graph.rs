@@ -1,6 +1,6 @@
 use bumpalo::Bump;
-use crate::kernel::route::types::{Area, ConnectivityLimits, ConnectivityNode};
-use crate::schema::connection::ConnectionType;
+use crate::kernel::route::{Area, ConnectivityLimits, ConnectivityNode};
+use crate::schema::ConnectionType;
 
 pub trait ConnectivityGraph<'a>: Sized {
     fn connectivity_graph(

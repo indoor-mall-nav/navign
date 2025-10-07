@@ -1,5 +1,5 @@
 use crate::kernel::route::types::{Atom, CloneIn, Dummy, FromIn, IntoIn, TakeIn};
-use crate::schema::merchant::MerchantType;
+use crate::schema::MerchantType;
 use bumpalo::{Bump, boxed::Box};
 
 #[derive(Debug)]
@@ -48,8 +48,8 @@ impl<'a> Dummy<'a> for Merchant<'a> {
 
 impl<'a> TakeIn<'a> for Merchant<'a> {}
 
-impl<'a> FromIn<'a, crate::schema::merchant::Merchant> for Merchant<'a> {
-    fn from_in(merchant: crate::schema::merchant::Merchant, allocator: &'a Bump) -> Self {
+impl<'a> FromIn<'a, crate::schema::Merchant> for Merchant<'a> {
+    fn from_in(merchant: crate::schema::Merchant, allocator: &'a Bump) -> Self {
         Self {
             name: Atom::from_in(merchant.name.clone(), allocator),
             coordinates: merchant.location,
@@ -60,10 +60,10 @@ impl<'a> FromIn<'a, crate::schema::merchant::Merchant> for Merchant<'a> {
     }
 }
 
-impl<'a> IntoIn<'a, crate::schema::merchant::Merchant> for Merchant<'a> {
-    fn into_in(self, _allocator: &'a Bump) -> crate::schema::merchant::Merchant {
+impl<'a> IntoIn<'a, crate::schema::Merchant> for Merchant<'a> {
+    fn into_in(self, _allocator: &'a Bump) -> crate::schema::Merchant {
         // Warn: it's better to reread from database to avoid data loss
-        crate::schema::merchant::Merchant {
+        crate::schema::Merchant {
             id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
                 .unwrap_or_else(|_| bson::oid::ObjectId::new()),
             name: self.name.to_string(),

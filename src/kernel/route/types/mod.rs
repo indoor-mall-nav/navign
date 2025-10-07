@@ -10,7 +10,7 @@ pub use area::Area;
 pub use connection::Connection;
 pub use entity::Entity;
 pub use merchant::Merchant;
-use crate::schema::connection::ConnectionType;
+use crate::schema::ConnectionType;
 
 pub trait CloneIn<'a>: Sized {
     type Cloned;

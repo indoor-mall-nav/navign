@@ -1,4 +1,4 @@
-use crate::kernel::route::implementations::blocks::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray};
+use crate::kernel::route::{BoundedBlock, BoundedBlockArray, ContiguousBlockArray};
 use std::collections::{BinaryHeap, HashMap};
 
 pub trait DisplacementRoute<'a, T: Sized + Clone + Copy>: ContiguousBlockArray<T> {

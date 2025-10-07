@@ -38,3 +38,4 @@ gravatar = "0.2.0"
 bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }
 bumpalo-herd = "0.1.2"
 wkt = { version = "0.14.0", features = ["serde"] }
+rand = "0.9.2"

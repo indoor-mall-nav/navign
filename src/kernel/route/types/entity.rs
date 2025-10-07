@@ -1,5 +1,5 @@
 use crate::kernel::route::types::{Atom, Area, CloneIn, Dummy, FromIn, IntoIn, TakeIn};
-use crate::schema::entity::EntityType;
+use crate::schema::EntityType;
 use bson::oid::ObjectId;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Display, Formatter};
@@ -56,8 +56,8 @@ impl<'a> Dummy<'a> for Entity<'a> {
 
 impl<'a> TakeIn<'a> for Entity<'a> {}
 
-impl<'a> FromIn<'a, crate::schema::entity::Entity> for Entity<'a> {
-    fn from_in(value: crate::schema::entity::Entity, allocator: &'a Bump) -> Self {
+impl<'a> FromIn<'a, crate::schema::Entity> for Entity<'a> {
+    fn from_in(value: crate::schema::Entity, allocator: &'a Bump) -> Self {
         Self {
             r#type: value.r#type,
             name: Atom::from_in(value.name, allocator),
@@ -68,10 +68,10 @@ impl<'a> FromIn<'a, crate::schema::entity::Entity> for Entity<'a> {
     }
 }
 
-impl<'a> IntoIn<'a, crate::schema::entity::Entity> for Entity<'a> {
-    fn into_in(self, _allocator: &'a Bump) -> crate::schema::entity::Entity {
+impl<'a> IntoIn<'a, crate::schema::Entity> for Entity<'a> {
+    fn into_in(self, _allocator: &'a Bump) -> crate::schema::Entity {
         // Warn: it's better to reread from database to avoid data loss
-        crate::schema::entity::Entity {
+        crate::schema::Entity {
             id: ObjectId::parse_str(self.database_id.as_str()).unwrap_or_else(|_| ObjectId::new()),
             r#type: self.r#type,
             name: self.name.to_string(),
