@@ -13,10 +13,17 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongodb-version: ['8.0']
 
     steps:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.12.0
+      with:
+        mongodb-version: ${{ matrix.mongodb-version }}
     - name: Run tests
       run: cargo test --verbose

@@ -8,7 +8,7 @@ anyhow = "1.0.100"
 async-trait = "0.1.89"
 axum = { version = "0.8.6", features = ["default", "macros"] }
 base64 = "0.22.1"
-bson = "2.15.0"
+bson = { version = "2.15.0" }
 chrono = "0.4.41"
 dotenv = "0.15.0"
 log = { version = "0.4.27", features = ["max_level_info", "serde", "std"] }
@@ -39,3 +39,4 @@ bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }
 bumpalo-herd = "0.1.2"
 wkt = { version = "0.14.0", features = ["serde"] }
 rand = "0.9.2"
+axum-extra = { version = "0.10.3", features = ["typed-header", "typed-routing"] }
