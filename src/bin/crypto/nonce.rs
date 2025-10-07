@@ -1,10 +1,8 @@
 use crate::shared::constants::NONCE_LENGTH;
-use core::fmt::Write;
 use esp_hal::rng::Rng;
 use esp_println::println;
-use heapless::String;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 pub struct Nonce([u8; NONCE_LENGTH]);
 
 impl Nonce {
@@ -23,14 +21,6 @@ impl Nonce {
 
     pub fn from_bytes(bytes: &[u8; NONCE_LENGTH]) -> Self {
         Nonce(*bytes)
-    }
-
-    pub fn to_hex(&self) -> String<{ NONCE_LENGTH * 2 }> {
-        let mut s = String::<{ NONCE_LENGTH * 2 }>::new();
-        for byte in &self.0 {
-            write!(s, "{:02x}", byte).unwrap();
-        }
-        s
     }
 
     pub fn from_hex(s: &str) -> Option<Self> {

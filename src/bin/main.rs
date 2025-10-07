@@ -20,7 +20,7 @@ pub(crate) mod shared;
 pub(crate) mod storage;
 
 use crate::ble::BleMessage;
-use crate::execute::BeaconState;
+use crate::execute::{BeaconState, UnlockMethod};
 use crate::shared::constants::*;
 use crate::shared::{DeviceCapability, DeviceType};
 use alloc::rc::Rc;
@@ -40,12 +40,6 @@ use esp_alloc::heap_allocator;
 use esp_hal::delay::Delay;
 use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_hal::gpio::{Flex, Level};
-use esp_hal::ledc::channel::config::Config as ChannelConfig;
-use esp_hal::ledc::channel::{ChannelIFace, Number as ChannelNumber};
-use esp_hal::ledc::timer::config::Duty;
-use esp_hal::ledc::timer::{config::Config as TimerConfig, Number as TimerNumber, TimerIFace};
-use esp_hal::ledc::{Ledc, LowSpeed};
-use esp_hal::sha::{Sha, Sha256, ShaDigest};
 use esp_hal::{
     clock::CpuClock,
     gpio::{Input, InputConfig},
@@ -81,93 +75,6 @@ fn main() -> ! {
     let relay = Output::new(peripherals.GPIO7, Level::Low, OutputConfig::default());
     let led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
     let human_body = Input::new(peripherals.GPIO1, InputConfig::default());
-    let servo = Output::new(peripherals.GPIO0, Level::Low, OutputConfig::default());
-
-    let mut pwm = Ledc::new(peripherals.LEDC);
-
-    pwm.set_global_slow_clock(esp_hal::ledc::LSGlobalClkSource::APBClk);
-    let mut pwm_channel = pwm.channel::<LowSpeed>(ChannelNumber::Channel1, servo);
-    let mut pwm_timer = pwm.timer::<LowSpeed>(TimerNumber::Timer0);
-
-    let sha = Sha::new(peripherals.SHA);
-
-    // Hardware-accelerated SHA-256 computation
-
-    let start_time = time::Instant::now();
-
-    let mut digest: ShaDigest<'_, Sha256, _> = ShaDigest::new(sha);
-
-    println!("{:?}", digest.update(b"Hello, world!"));
-    println!("{:?}", digest.update(b"This is bare-metal Rust!"));
-    println!("{:?}", digest.update(b"Hardware acceleration."));
-
-    let mut buffer = [0u8; 32];
-
-    println!("{:?}", digest.finish(&mut buffer));
-
-    println!("SHA-256 Digest: {:x?}", buffer);
-
-    let elapsed = time::Instant::now().duration_since_epoch() - start_time.duration_since_epoch();
-    println!("SHA-256 computation took {} ms", elapsed.as_millis());
-
-    // Pure digital SHA-256 computation for comparison
-    let start_time_digital = time::Instant::now();
-
-    use sha2::{Digest, Sha256 as Sha2Digest};
-    let mut hasher = Sha2Digest::new();
-    hasher.update(b"Hello, world!");
-    hasher.update(b"This is bare-metal Rust!");
-    hasher.update(b"Hardware acceleration.");
-    let result = hasher.finalize();
-    println!("Digital SHA-256 Digest: {:x?}", result);
-
-    assert_eq!(buffer, result.as_slice());
-
-    let elapsed_digital =
-        time::Instant::now().duration_since_epoch() - start_time_digital.duration_since_epoch();
-    println!(
-        "Digital SHA-256 computation took {} ms",
-        elapsed_digital.as_millis()
-    );
-
-    println!(
-        "{:?}",
-        pwm_timer.configure(TimerConfig {
-            duty: Duty::Duty14Bit,
-            clock_source: esp_hal::ledc::timer::LSClockSource::APBClk,
-            frequency: time::Rate::from_hz(50), // 50
-        })
-    );
-
-    println!(
-        "{:?}",
-        pwm_channel.configure(ChannelConfig {
-            timer: &pwm_timer,
-            duty_pct: 0, // Start with 0% duty cycle (off)
-            pin_config: esp_hal::ledc::channel::config::PinConfig::PushPull,
-        })
-    );
-
-    pwm_channel.set_duty(10).unwrap();
-    Delay::new().delay_millis(50u32);
-    pwm_channel.set_duty(7).unwrap();
-    Delay::new().delay_millis(500u32);
-    pwm_channel.set_duty(5).unwrap();
-    Delay::new().delay_millis(50u32);
-    pwm_channel.set_duty(0).unwrap();
-    Delay::new().delay_millis(500u32);
-    pwm_channel.set_duty(5).unwrap();
-    Delay::new().delay_millis(50u32);
-    pwm_channel.set_duty(7).unwrap();
-    Delay::new().delay_millis(500u32);
-    pwm_channel.set_duty(10).unwrap();
-    Delay::new().delay_millis(50u32);
-    pwm_channel.set_duty(0).unwrap();
-    Delay::new().delay_millis(500u32);
-    pwm_channel.set_duty(10).unwrap();
-    Delay::new().delay_millis(50u32);
-    pwm_channel.set_duty(0).unwrap();
-    Delay::new().delay_millis(500u32);
 
     heap_allocator!(size: 192 * 1024);
 
@@ -189,7 +96,9 @@ fn main() -> ! {
         panic!("EFUSE BLOCK_KEY0 is not set. Please set it to a valid 32-byte private key.");
     }
 
-    let executor = BeaconState::new(private_key, button, human_body, relay, led);
+    let method = UnlockMethod::Relay(relay);
+
+    let executor = BeaconState::new(private_key, button, human_body, method, led);
 
     let delay = Delay::new();
 
@@ -257,7 +166,6 @@ fn main() -> ! {
     });
 
     #[allow(unused)]
-
     let wifi_res = wifi_controller.set_configuration(&wifi_config).ok();
 
     if let Err(e) = wifi_controller.start() {
@@ -300,7 +208,10 @@ fn main() -> ! {
         let unlock_service_notify_enable_handle = 0x00u16;
         let unlock_service_handle = 0x00u16;
         println!("Attributes length: {}", gatt_attributes.len());
-        println!("unlock_service_notify_enable_handle: {:x}", unlock_service_notify_enable_handle);
+        println!(
+            "unlock_service_notify_enable_handle: {:x}",
+            unlock_service_notify_enable_handle
+        );
         println!("unlock_service_handle: {:x}", unlock_service_handle);
 
         let mut wf = |offset: usize, data: &[u8]| {
@@ -405,7 +316,11 @@ fn main() -> ! {
                     }
                     Some(BleMessage::NonceRequest) => {
                         let nonce = instance.borrow_mut().generate_nonce(&mut rng);
-                        Some(nonce.into())
+                        let mut identifier = [0u8; 8];
+                        if let Ok(sig) =  instance.borrow().proof_manager.sign_data(nonce.as_bytes()) {
+                            identifier.copy_from_slice(&sig[sig.len() - 8..]);
+                        }
+                        Some((nonce, identifier).into())
                     }
                     Some(BleMessage::UnlockRequest(ref proof)) => {
                         let mut cell = instance.borrow_mut();

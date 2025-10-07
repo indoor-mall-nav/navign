@@ -10,7 +10,7 @@ pub enum BleMessage {
     DeviceRequest(u8),
     DeviceResponse(DeviceType, Vec<DeviceCapability, 3>, [u8; 12]), // 24-byte MongoDB ObjectId
     NonceRequest,
-    NonceResponse(Nonce),
+    NonceResponse(Nonce, [u8; 8]), // 8-byte signature tail
     UnlockRequest(Proof),
     UnlockResponse(bool, Option<CryptoError>),
 }
@@ -21,9 +21,9 @@ impl From<(bool, Option<CryptoError>)> for BleMessage {
     }
 }
 
-impl From<Nonce> for BleMessage {
-    fn from(value: Nonce) -> Self {
-        BleMessage::NonceResponse(value)
+impl From<(Nonce, [u8; 8])> for BleMessage {
+    fn from((nonce, tail): (Nonce, [u8; 8])) -> Self {
+        BleMessage::NonceResponse(nonce, tail)
     }
 }
 

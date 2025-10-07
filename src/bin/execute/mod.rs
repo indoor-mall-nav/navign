@@ -1,3 +1,5 @@
+use esp_hal::Blocking;
+use esp_hal::delay::Delay;
 use crate::ble::protocol::BleProtocolHandler;
 use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
@@ -5,14 +7,27 @@ use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
 use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
 use esp_hal::gpio::{Input, Level, Output};
+use esp_hal::ledc::channel::{Channel as PwmChannel, ChannelIFace};
+use esp_hal::ledc::LowSpeed;
+use esp_hal::ledc::timer::Timer as PwmTimer;
+use esp_hal::rmt::{Channel as RmtChannel, ConstChannelAccess, Tx};
 use esp_hal::rng::Rng;
 use esp_println::println;
 
-#[derive(Debug)]
+#[allow(dead_code)]
+pub enum UnlockMethod<'a> {
+    Relay(Output<'a>),
+    Remote(RmtChannel<Blocking, ConstChannelAccess<Tx, 0>>),
+    Servo {
+        channel: PwmChannel<'a, LowSpeed>,
+        timer: PwmTimer<'a, LowSpeed>
+    },
+}
+
 pub struct BeaconState<'a> {
     pub button: Input<'a>,
     pub human_sensor: Input<'a>,
-    pub relay: Output<'a>,
+    pub unlock_method: UnlockMethod<'a>,
     pub open: Output<'a>,
     pub unlock_attempts: u8,
     pub nonce_manager: NonceManager<32>,
@@ -27,15 +42,14 @@ impl<'a> BeaconState<'a> {
         private_key: [u8; 32],
         human_sensor: Input<'a>,
         button: Input<'a>,
-        mut relay: Output<'a>,
+        unlock_method: UnlockMethod<'a>,
         mut open: Output<'a>,
     ) -> Self {
-        relay.set_low();
         open.set_low();
         Self {
             button,
             human_sensor,
-            relay,
+            unlock_method,
             open,
             nonce_manager: NonceManager::<32>::new(),
             proof_manager: ProofManager::new(private_key),
@@ -59,6 +73,26 @@ impl<'a> BeaconState<'a> {
         }
     }
 
+    fn check_relay_is_high(&self) -> bool {
+        if let UnlockMethod::Relay(output) = &self.unlock_method {
+            output.is_set_high()
+        } else {
+            false
+        }
+    }
+
+    fn set_relay_high(&mut self) {
+        if let UnlockMethod::Relay(output) = &mut self.unlock_method {
+            output.set_high();
+        }
+    }
+
+    fn set_relay_low(&mut self) {
+        if let UnlockMethod::Relay(output) = &mut self.unlock_method {
+            output.set_low();
+        }
+    }
+
     /// Once open, wait for 5 seconds before closing.
     /// During the window, if human sensor is triggered, keep it open and close it 3 seconds after last trigger.
     /// If human sensor is not triggered, close it after 5 seconds.
@@ -70,30 +104,36 @@ impl<'a> BeaconState<'a> {
             println!("Open state: {}", self.open.is_set_high());
             println!("Human sensor state: {}", self.human_sensor.is_high());
             println!("Last open time: {}", self.last_open);
-            println!("Relay state: {}", self.relay.is_set_high());
             println!("Last relay on time: {}", self.last_relay_on);
         }
 
-        // if self.button.is_high() {
-        //     println!("Button state: {}", self.button.is_high());
-        //     self.open.set_high();
-        //     self.relay.set_high();
-        //     self.last_open = time;
-        //     self.triggered = true;
-        // }
-
         if self.open.is_set_high() {
-            if self.human_sensor.is_high() && self.relay.is_set_low() {
-                self.relay.set_high();
-                self.last_relay_on = time;
+            if self.human_sensor.is_high() {
+                match &self.unlock_method {
+                    UnlockMethod::Relay(rel) => {
+                        if rel.is_set_low() {
+                            self.set_relay_high();
+                            self.last_relay_on = time;
+                        }
+                    }
+                    UnlockMethod::Remote(_) => {
+                        // Send the RMT signal to open the gate
+                        unimplemented!();
+                    }
+                    UnlockMethod::Servo { channel, .. } => {
+                        channel.set_duty(10).ok();
+                        Delay::new().delay_millis(50u32);
+                        channel.set_duty(0).ok();
+                    }
+                }
             }
             if time - self.last_open > 10_000 {
                 self.open.set_low();
             }
         }
 
-        if self.relay.is_set_high() && time - self.last_relay_on > 5_000 {
-            self.relay.set_low();
+        if self.check_relay_is_high() && time - self.last_relay_on > 5_000 {
+            self.set_relay_low();
             self.open.set_low();
         }
     }
@@ -109,7 +149,7 @@ impl<'a> BeaconState<'a> {
 
         if !self
             .nonce_manager
-            .check_and_mark_challenge_hash(proof.challenge_hash, proof.timestamp)
+            .check_and_mark_nonce(Nonce::from(proof.nonce), proof.timestamp)
         {
             self.unlock_attempts += 1;
             return Err(CryptoError::ReplayDetected);
