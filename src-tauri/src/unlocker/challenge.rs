@@ -2,7 +2,7 @@ use base64::Engine;
 use digest::Digest;
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{Signature, SigningKey};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use sha2::Sha256;
 
@@ -11,7 +11,7 @@ pub struct ServerChallenge {
     pub nonce: [u8; 16],
     pub instance_id: [u8; 24],
     pub timestamp: u64,
-    pub user_id: [u8; 24]
+    pub user_id: [u8; 24],
 }
 
 impl ServerChallenge {
@@ -57,8 +57,12 @@ impl ServerChallenge {
 
     pub fn depacketize(packet: String, user: String) -> Option<Self> {
         // Server only sends the nonce and the instance ID
-        let data = base64::engine::general_purpose::STANDARD.decode(packet).ok()?;
-        if data.len() != 16 + 24 { return None };
+        let data = base64::engine::general_purpose::STANDARD
+            .decode(packet)
+            .ok()?;
+        if data.len() != 16 + 24 {
+            return None;
+        };
         let mut nonce = [0u8; 16];
         nonce.copy_from_slice(&data[0..16]);
         let mut instance_id = [0u8; 24];
@@ -74,6 +78,9 @@ impl ServerChallenge {
         let signature = self.sign(signing_key);
         packet.extend(signature);
         let validator = signature[56..64].try_into().unwrap_or([0u8; 8]);
-        (base64::engine::general_purpose::STANDARD.encode(packet), validator)
+        (
+            base64::engine::general_purpose::STANDARD.encode(packet),
+            validator,
+        )
     }
 }

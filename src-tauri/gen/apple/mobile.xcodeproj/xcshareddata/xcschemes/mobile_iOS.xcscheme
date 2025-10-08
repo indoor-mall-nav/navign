@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "9DFE3F2B3FB7F55440B4266E"
-               BuildableName = "mobile.app"
+               BuildableName = "Navign.app"
                BlueprintName = "mobile_iOS"
                ReferencedContainer = "container:mobile.xcodeproj">
             </BuildableReference>
@@ -31,7 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9DFE3F2B3FB7F55440B4266E"
-            BuildableName = "mobile.app"
+            BuildableName = "Navign.app"
             BlueprintName = "mobile_iOS"
             ReferencedContainer = "container:mobile.xcodeproj">
          </BuildableReference>
@@ -66,7 +66,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9DFE3F2B3FB7F55440B4266E"
-            BuildableName = "mobile.app"
+            BuildableName = "Navign.app"
             BlueprintName = "mobile_iOS"
             ReferencedContainer = "container:mobile.xcodeproj">
          </BuildableReference>
@@ -95,7 +95,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9DFE3F2B3FB7F55440B4266E"
-            BuildableName = "mobile.app"
+            BuildableName = "Navign.app"
             BlueprintName = "mobile_iOS"
             ReferencedContainer = "container:mobile.xcodeproj">
          </BuildableReference>

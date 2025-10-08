@@ -19,6 +19,8 @@
     "geolocation:allow-get-current-position",
     "geolocation:allow-watch-position",
     "sql:default",
-    "sql:allow-execute"
+    "sql:allow-execute",
+    "log:default",
+    "store:default"
   ]
 }

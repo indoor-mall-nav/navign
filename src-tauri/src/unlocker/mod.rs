@@ -8,11 +8,11 @@
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
 #![allow(unused)]
 
-mod utils;
-pub mod constants;
-mod proof;
 mod challenge;
+pub mod constants;
 mod pipeline;
+mod proof;
+mod utils;
 
 pub use pipeline::unlock_handler;
 
@@ -64,6 +64,7 @@ pub struct Unlocker {
     /// The JWT token for the user session
     user_token: String,
     device_id: String,
+    signed_in: bool,
 }
 
 impl Unlocker {
@@ -73,7 +74,8 @@ impl Unlocker {
             user_id,
             counter: 0,
             user_token,
-            device_id: nanoid!()
+            device_id: nanoid!(),
+            signed_in: false
         }
     }
 
@@ -105,9 +107,10 @@ impl Unlocker {
         };
 
         #[cfg(mobile)]
-        app.biometric()
+        handle
+            .biometric()
             .authenticate("Please authenticate to load data".to_string(), auth_options)
-            .map_err(|_| ())?;
+            .map_err(|_| anyhow::anyhow!("Biometric authentication failed"))?;
 
         #[cfg(all(desktop, not(debug_assertions)))]
         panic!("Desktop release build is not supported due to biometric limitations.");

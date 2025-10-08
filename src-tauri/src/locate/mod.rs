@@ -4,10 +4,10 @@ mod locator;
 mod migration;
 mod scan;
 
-use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
 use crate::locate::locator::LocateResult;
 use crate::locate::scan::stop_scan;
+use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LocateState {
@@ -29,11 +29,7 @@ pub async fn locate_device(area: String) -> anyhow::Result<LocateState> {
     }
     let result = locator::handle_devices(devices, &conn, area.as_str()).await;
     match result {
-        LocateResult::Success(x, y) => Ok(LocateState {
-            area,
-            x,
-            y,
-        }),
+        LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
         LocateResult::Error(err) => Err(anyhow::anyhow!("Locate error: {}", err)),
         LocateResult::NoBeacons => Err(anyhow::anyhow!("No beacons found")),
         LocateResult::AreaChanged(_) => {
@@ -42,7 +38,6 @@ pub async fn locate_device(area: String) -> anyhow::Result<LocateState> {
         _ => unreachable!(),
     }
 }
-
 
 #[tauri::command]
 pub async fn locate_handler(_app: AppHandle, area: String) -> Result<String, ()> {

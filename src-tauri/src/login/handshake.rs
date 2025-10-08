@@ -14,6 +14,8 @@ use serde_json::json;
 use std::sync::Arc;
 use tauri::{AppHandle, State};
 #[cfg(mobile)]
+use tauri_plugin_biometric::AuthOptions;
+#[cfg(mobile)]
 use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_http::reqwest;
 #[cfg(all(desktop, dev))]

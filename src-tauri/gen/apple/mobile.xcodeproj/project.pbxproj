@@ -10,7 +10,10 @@
 		112D0BAB8DF57F8B380BBEC4 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 2F64922EAAC2B89DE84A5C39 /* assets */; };
 		12DA73F8395C7FF950DAFC4C /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BD77E62B213CB132FBEC47B9 /* UIKit.framework */; };
 		1AC2BA3222112E52B6526846 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E0B93B718434403C4D318AC7 /* Metal.framework */; };
-		1D35DDCF2E56056D0046E297 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D35DDCE2E56056D0046E297 /* CoreBluetooth.framework */; };
+		1DFCEC862E95F98100634578 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DFCEC852E95F98100634578 /* CoreBluetooth.framework */; };
+		1DFCEC882E95F98500634578 /* CoreNFC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DFCEC872E95F98500634578 /* CoreNFC.framework */; };
+		1DFCEC8F2E95FBFC00634578 /* CoreAudioTypes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DFCEC892E95F9D100634578 /* CoreAudioTypes.framework */; };
+		1DFCEC902E95FBFC00634578 /* CoreAudioTypes.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1DFCEC892E95F9D100634578 /* CoreAudioTypes.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6189D6F1EA771AEF529A0C98 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1714BEC9E96A91810A49D208 /* MetalKit.framework */; };
 		8DAF8F310364CFDFA131B09F /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C10C0592774892C2F18430BA /* libapp.a */; };
 		A55EE16269C39B9AFA985D18 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F9A2EEA6FBD37E9E67D27835 /* CoreGraphics.framework */; };
@@ -22,26 +25,63 @@
 		FC2464E9251091FC24E58422 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E4FFE5423099F6F581293509 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		1DFCEC912E95FBFC00634578 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				1DFCEC902E95FBFC00634578 /* CoreAudioTypes.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		009C019B1F6BECBF41432BF5 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
+		043E8FC5C0DA5E5C6779D477 /* beacon.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = beacon.rs; sourceTree = "<group>"; };
 		09C94EBEA2859AEFD7E57896 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B2C122CA93471F56AF6C955 /* utils.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = utils.rs; sourceTree = "<group>"; };
+		0F3DAABC0F3014B7D4BA3CA0 /* Navign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Navign.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1714BEC9E96A91810A49D208 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		1D35DDCE2E56056D0046E297 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		1DFCEC852E95F98100634578 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		1DFCEC872E95F98500634578 /* CoreNFC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreNFC.framework; path = System/Library/Frameworks/CoreNFC.framework; sourceTree = SDKROOT; };
+		1DFCEC892E95F9D100634578 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
+		1DFCEC8B2E95F9D600634578 /* libswiftCompatibilitySpan.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftCompatibilitySpan.tbd; path = usr/lib/swift/libswiftCompatibilitySpan.tbd; sourceTree = SDKROOT; };
+		22960DB7DE5EAC3775A70673 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
+		23F1428E7A86ACDA7EEFC338 /* pipeline.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = pipeline.rs; sourceTree = "<group>"; };
 		2F64922EAAC2B89DE84A5C39 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+		35CCD28946F534B718BACDCD /* area.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = area.rs; sourceTree = "<group>"; };
+		378573D8FEE4321F94241070 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
 		39E2E6AE4CB7316C2D96DD3F /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
 		3C679D4B46A439474DEE2848 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		4AC3DE1988B20666788296EC /* challenge.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = challenge.rs; sourceTree = "<group>"; };
+		63756D76E4B6768012A8803E /* unlocker.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = unlocker.rs; sourceTree = "<group>"; };
 		6C293BF49E3783C6E09A86AE /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		6F790924E2E1156EBE7C56D0 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
 		70DC581B877FC7470E4B9B80 /* mobile_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = mobile_iOS.entitlements; sourceTree = "<group>"; };
 		79119B50A3ABC34A95F83484 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		7BB0D5A3BD3BA89CB39C3199 /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
+		7CAACBB67B90D4454D252CC0 /* login.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = login.rs; sourceTree = "<group>"; };
+		7E87ECFDA45BA926B506691F /* constants.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = constants.rs; sourceTree = "<group>"; };
+		7EF7ABAB7AAB7A5985A0F6E3 /* proof.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = proof.rs; sourceTree = "<group>"; };
+		82C2D65B95E821068D281587 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
 		83CBBF24CEC3ADB5595EA24C /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		8B4598E192D9200A9E466943 /* shared.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.rs; sourceTree = "<group>"; };
+		8F8E40FBE03D2109DFB8193A /* navign.sql */ = {isa = PBXFileReference; lastKnownFileType = text; path = navign.sql; sourceTree = "<group>"; };
 		929D63247A3F107EDCB552B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B4F05BA3B14868DE67CDB2F5 /* locator.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = locator.rs; sourceTree = "<group>"; };
 		BD77E62B213CB132FBEC47B9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		C10C0592774892C2F18430BA /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		E0B93B718434403C4D318AC7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		E4FFE5423099F6F581293509 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		ED89D53164C2C9D1D6F4EAAC /* scan.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = scan.rs; sourceTree = "<group>"; };
 		F92176EEB07ED815FD79FFBA /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		F9A2EEA6FBD37E9E67D27835 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		FB4931E2BCDDC3E5C8EA3D82 /* migration.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = migration.rs; sourceTree = "<group>"; };
+		FFE0FA39F9C1871098585C00 /* handshake.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = handshake.rs; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,13 +89,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DFCEC8F2E95FBFC00634578 /* CoreAudioTypes.framework in Frameworks */,
 				8DAF8F310364CFDFA131B09F /* libapp.a in Frameworks */,
-				1D35DDCF2E56056D0046E297 /* CoreBluetooth.framework in Frameworks */,
+				1DFCEC862E95F98100634578 /* CoreBluetooth.framework in Frameworks */,
 				A55EE16269C39B9AFA985D18 /* CoreGraphics.framework in Frameworks */,
 				1AC2BA3222112E52B6526846 /* Metal.framework in Frameworks */,
 				6189D6F1EA771AEF529A0C98 /* MetalKit.framework in Frameworks */,
 				CA2B61364055E9EEEF2EB371 /* QuartzCore.framework in Frameworks */,
 				D10AA5DB440FA9B8778A1382 /* Security.framework in Frameworks */,
+				1DFCEC882E95F98500634578 /* CoreNFC.framework in Frameworks */,
 				12DA73F8395C7FF950DAFC4C /* UIKit.framework in Frameworks */,
 				B3903BD3F32FF77676C42AC0 /* WebKit.framework in Frameworks */,
 			);
@@ -64,6 +106,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C8044FF72BA2F3EEDE0CDA0 /* api */ = {
+			isa = PBXGroup;
+			children = (
+				7CAACBB67B90D4454D252CC0 /* login.rs */,
+				378573D8FEE4321F94241070 /* mod.rs */,
+				63756D76E4B6768012A8803E /* unlocker.rs */,
+			);
+			path = api;
+			sourceTree = "<group>";
+		};
+		2D10F90056A63C1A8FEE2D38 /* unlocker */ = {
+			isa = PBXGroup;
+			children = (
+				4AC3DE1988B20666788296EC /* challenge.rs */,
+				7E87ECFDA45BA926B506691F /* constants.rs */,
+				82C2D65B95E821068D281587 /* mod.rs */,
+				23F1428E7A86ACDA7EEFC338 /* pipeline.rs */,
+				7EF7ABAB7AAB7A5985A0F6E3 /* proof.rs */,
+				0B2C122CA93471F56AF6C955 /* utils.rs */,
+			);
+			path = unlocker;
+			sourceTree = "<group>";
+		};
 		36268D9B44625ED1A5061C37 /* bindings */ = {
 			isa = PBXGroup;
 			children = (
@@ -99,7 +164,10 @@
 		9DE8EEF7437C59695F3BC465 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				1D35DDCE2E56056D0046E297 /* CoreBluetooth.framework */,
+				1DFCEC8B2E95F9D600634578 /* libswiftCompatibilitySpan.tbd */,
+				1DFCEC892E95F9D100634578 /* CoreAudioTypes.framework */,
+				1DFCEC872E95F98500634578 /* CoreNFC.framework */,
+				1DFCEC852E95F98100634578 /* CoreBluetooth.framework */,
 				F9A2EEA6FBD37E9E67D27835 /* CoreGraphics.framework */,
 				C10C0592774892C2F18430BA /* libapp.a */,
 				E0B93B718434403C4D318AC7 /* Metal.framework */,
@@ -136,10 +204,18 @@
 			);
 			sourceTree = "<group>";
 		};
+		D239E01D67B39D0B0410AFD0 /* utils */ = {
+			isa = PBXGroup;
+			children = (
+				009C019B1F6BECBF41432BF5 /* mod.rs */,
+			);
+			path = utils;
+			sourceTree = "<group>";
+		};
 		E7EDF9843499667DC918B3AE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */,
+				0F3DAABC0F3014B7D4BA3CA0 /* Navign.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -149,9 +225,38 @@
 			children = (
 				7BB0D5A3BD3BA89CB39C3199 /* lib.rs */,
 				39E2E6AE4CB7316C2D96DD3F /* main.rs */,
+				8F8E40FBE03D2109DFB8193A /* navign.sql */,
+				8B4598E192D9200A9E466943 /* shared.rs */,
+				0C8044FF72BA2F3EEDE0CDA0 /* api */,
+				F5B322C439DB2ED6CB1134FB /* locate */,
+				F59A525BC483B0D5A4BE51A0 /* login */,
+				2D10F90056A63C1A8FEE2D38 /* unlocker */,
+				D239E01D67B39D0B0410AFD0 /* utils */,
 			);
 			name = src;
 			path = ../../src;
+			sourceTree = "<group>";
+		};
+		F59A525BC483B0D5A4BE51A0 /* login */ = {
+			isa = PBXGroup;
+			children = (
+				FFE0FA39F9C1871098585C00 /* handshake.rs */,
+				6F790924E2E1156EBE7C56D0 /* mod.rs */,
+			);
+			path = login;
+			sourceTree = "<group>";
+		};
+		F5B322C439DB2ED6CB1134FB /* locate */ = {
+			isa = PBXGroup;
+			children = (
+				35CCD28946F534B718BACDCD /* area.rs */,
+				043E8FC5C0DA5E5C6779D477 /* beacon.rs */,
+				B4F05BA3B14868DE67CDB2F5 /* locator.rs */,
+				FB4931E2BCDDC3E5C8EA3D82 /* migration.rs */,
+				22960DB7DE5EAC3775A70673 /* mod.rs */,
+				ED89D53164C2C9D1D6F4EAAC /* scan.rs */,
+			);
+			path = locate;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -165,6 +270,7 @@
 				1442BDFDF46D65E7D4ED588C /* Sources */,
 				CC60C609C9A2E7EB6C06F345 /* Resources */,
 				49939BE7CB9E883FF797237A /* Frameworks */,
+				1DFCEC912E95FBFC00634578 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -174,7 +280,7 @@
 			packageProductDependencies = (
 			);
 			productName = mobile_iOS;
-			productReference = 0F3DAABC0F3014B7D4BA3CA0 /* mobile.app */;
+			productReference = 0F3DAABC0F3014B7D4BA3CA0 /* Navign.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -237,7 +343,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "pnpm tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}";
+			shellScript = "cargo tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -256,11 +362,11 @@
 		2DE470D618FF10BFC3CA346F /* debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = mobile_iOS/mobile_iOS.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = X6G3LQC8AA;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
@@ -269,6 +375,8 @@
 					"\".\"",
 				);
 				INFOPLIST_FILE = mobile_iOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Navign;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -287,8 +395,9 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.mallnav;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.navign;
 				PRODUCT_NAME = "Navign";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -417,11 +526,11 @@
 		DA3C99CB0228328D2B319053 /* release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = mobile_iOS/mobile_iOS.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = X6G3LQC8AA;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
@@ -429,7 +538,13 @@
 					"$(inherited)",
 					"\".\"",
 				);
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=0",
+				);
 				INFOPLIST_FILE = mobile_iOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Navign;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -448,8 +563,9 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.mallnav;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.navign;
 				PRODUCT_NAME = "Navign";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;

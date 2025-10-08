@@ -12,6 +12,10 @@ use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use tauri::{AppHandle, State};
+#[cfg(mobile)]
+use tauri_plugin_biometric::AuthOptions;
+#[cfg(mobile)]
+use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_blec::models::WriteType;
 use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
@@ -177,9 +181,10 @@ pub async fn unlock_pipeline(
     };
 
     #[cfg(mobile)]
-    app.biometric()
+    handle
+        .biometric()
         .authenticate("Please authenticate to unlock".to_string(), auth_options)
-        .map_err(|_| ())?;
+        .map_err(|_| anyhow::anyhow!("Biometric authentication failed"))?;
 
     let (challenge_packet, validator) = challenge.packetize(&device_key);
 
@@ -304,7 +309,7 @@ pub async fn unlock_handler(
             });
             println!("Unlock pipeline succeeded: {}", res);
             Ok(payload.to_string())
-        },
+        }
         Err(e) => {
             println!("Unlock pipeline failed: {}", e);
             let payload = json!({

@@ -4,10 +4,6 @@ use login::handshake::bind_with_server;
 use p256::ecdsa::VerifyingKey;
 use std::sync::Arc;
 use tauri::Manager;
-#[cfg(mobile)]
-use tauri_plugin_biometric::AuthOptions;
-#[cfg(mobile)]
-use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
 use tokio::sync::Mutex;
 use unlocker::unlock_handler;
@@ -34,9 +30,13 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_notification::init())?;
             app.handle().plugin(
                 tauri_plugin_sql::Builder::default()
-                    .add_migrations("sqlist:navign.db", migrations)
+                    .add_migrations("sqlite:navign.db", migrations)
                     .build(),
             )?;
+            app.handle().plugin(tauri_plugin_log::Builder::new().build())?;
+            app.handle().plugin(tauri_plugin_os::init())?;
+            app.handle().plugin(tauri_plugin_persisted_scope::init())?;
+            app.handle().plugin(tauri_plugin_store::Builder::new().build())?;
             if app
                 .path()
                 .app_local_data_dir()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { authenticate, type Status } from "@tauri-apps/plugin-biometric";
+import { type Status } from "@tauri-apps/plugin-biometric";
 import { type BleDevice, startScan, stopScan } from "@mnlphlp/plugin-blec";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,14 +139,6 @@ async function getGeolocation() {
 async function startTask() {
   greetMsg.value = "Scanning Started";
   console.log("Starting authentication...");
-  await authenticate("Please authenticate to start scanning")
-    .then((res) => {
-      console.log("Authentication successful:", res);
-    })
-    .catch((err) => {
-      console.error("Authentication failed:", err);
-      greetMsg.value = "Authentication failed. Cannot start scanning.";
-    });
   await startScan(
     async (result) => {
       console.log(
@@ -280,12 +272,19 @@ const stageSize = ref({
 
 async function invokeTest1() {
   console.log("Invoking test 1...");
-  const result: DeviceProof = JSON.parse(await invoke("unlock_door", {
-    beacon: "68a84b6ebdfa76608b934b0a",
-    nonce: "hSFDdCjkp4t5SDroE+Yc5Q==",
-    entity: "68a8301fbdfa76608b934ae1",
-  }));
-  console.log(result, 'ccc', result.challenge_hash, new Uint8Array(result.challenge_hash));
+  const result: DeviceProof = JSON.parse(
+    await invoke("unlock_door", {
+      beacon: "68a84b6ebdfa76608b934b0a",
+      nonce: "hSFDdCjkp4t5SDroE+Yc5Q==",
+      entity: "68a8301fbdfa76608b934ae1",
+    }),
+  );
+  console.log(
+    result,
+    "ccc",
+    result.challenge_hash,
+    new Uint8Array(result.challenge_hash),
+  );
 }
 </script>
 
@@ -359,8 +358,8 @@ async function invokeTest1() {
     <Card class="mx-2" v-if="switchEntities && entities.length > 0">
       <CardHeader>
         <CardTitle>Several Entities Found</CardTitle>
-        <CardDescription
-          >Check out which entity (i.e., mall) you are in.
+        <CardDescription>
+          Check out which entity (i.e., mall) you are in.
         </CardDescription>
       </CardHeader>
       <CardContent>

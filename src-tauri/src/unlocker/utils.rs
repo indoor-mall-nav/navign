@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::unlocker::constants::*;
 use crate::unlocker::proof::Proof;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize)]
 /// Capabilities that the device can report to the client.
@@ -22,12 +22,10 @@ impl DeviceCapability {
             capabilities.push(DeviceCapability::UnlockGate);
         }
         if byte & (DeviceCapability::EnvironmentalData as u8) != 0 {
-            capabilities
-                .push(DeviceCapability::EnvironmentalData);
+            capabilities.push(DeviceCapability::EnvironmentalData);
         }
         if byte & (DeviceCapability::RssiCalibration as u8) != 0 {
-            capabilities
-                .push(DeviceCapability::RssiCalibration);
+            capabilities.push(DeviceCapability::RssiCalibration);
         }
         capabilities
     }
@@ -168,13 +166,19 @@ impl BleMessage {
             return None;
         }
         match data[0] {
-            DEVICE_REQUEST if data.len() == DEVICE_REQUEST_LENGTH => Some(BleMessage::DeviceRequest(data[1])),
+            DEVICE_REQUEST if data.len() == DEVICE_REQUEST_LENGTH => {
+                Some(BleMessage::DeviceRequest(data[1]))
+            }
             DEVICE_RESPONSE if data.len() == DEVICE_RESPONSE_LENGTH => {
                 let device_type = DeviceType::depacketize(data[1])?;
                 let capabilities = DeviceCapability::depacketize(data[2]);
                 let mut object_id = [0u8; 12];
                 object_id.copy_from_slice(&data[3..15]);
-                Some(BleMessage::DeviceResponse(device_type, capabilities, object_id))
+                Some(BleMessage::DeviceResponse(
+                    device_type,
+                    capabilities,
+                    object_id,
+                ))
             }
             NONCE_REQUEST if data.len() == NONCE_REQUEST_LENGTH => Some(BleMessage::NonceRequest),
             NONCE_RESPONSE if data.len() == NONCE_RESPONSE_LENGTH => {
