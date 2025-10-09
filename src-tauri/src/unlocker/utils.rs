@@ -119,9 +119,9 @@ impl CryptoError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BleMessage {
     DeviceRequest(u8),
-    DeviceResponse(DeviceType, Vec<DeviceCapability>, [u8; 12]), // 24-byte MongoDB ObjectId segment
+    DeviceResponse(DeviceType, Vec<DeviceCapability>, [u8; 24]), // 24-byte MongoDB ObjectId segment
     NonceRequest,
-    NonceResponse([u8; 16], [u8; 4]),
+    NonceResponse([u8; 16], [u8; 8]),
     UnlockRequest(Proof),
     UnlockResponse(bool, CryptoError),
 }
@@ -172,8 +172,8 @@ impl BleMessage {
             DEVICE_RESPONSE if data.len() == DEVICE_RESPONSE_LENGTH => {
                 let device_type = DeviceType::depacketize(data[1])?;
                 let capabilities = DeviceCapability::depacketize(data[2]);
-                let mut object_id = [0u8; 12];
-                object_id.copy_from_slice(&data[3..15]);
+                let mut object_id = [0u8; 24];
+                object_id.copy_from_slice(&data[3..27]);
                 Some(BleMessage::DeviceResponse(
                     device_type,
                     capabilities,

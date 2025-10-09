@@ -50,44 +50,22 @@ pub async fn unlock_pipeline(
     let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;
     let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
-    // Step 1: handshake and inquiry device info
-    let mut device_type = DeviceType::Merchant;
-    let mut device_capabilities = Vec::with_capacity(3);
-    let mut object_id = String::with_capacity(24);
+    handler
+        .send_data(characteristic, Some(service), &[], WriteType::WithResponse)
+        .await?;
 
-    for segment in 0x01..=0x02 {
-        handler
-            .send_data(characteristic, Some(service), &[], WriteType::WithResponse)
-            .await?;
+    let received = handler.recv_data(characteristic, Some(service)).await?;
+    let depacketized = BleMessage::depacketize(received.as_slice())
+        .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 
-        let received = handler.recv_data(characteristic, Some(service)).await?;
-        let depacketized = BleMessage::depacketize(received.as_slice())
-            .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
+    let BleMessage::DeviceResponse(d_type, d_capabilities, obj_id) = depacketized else {
+        return Err(anyhow::anyhow!("Failed to extract device response"));
+    };
 
-        if let BleMessage::DeviceResponse(device_type_packet, capabilities, object_id_segment) =
-            depacketized
-        {
-            if segment == 0x01 {
-                device_type = device_type_packet;
-                device_capabilities.extend(capabilities);
-            } else {
-                if device_type != device_type_packet {
-                    return Err(anyhow::anyhow!("Device type mismatch between segments"));
-                }
-                if device_capabilities != capabilities {
-                    return Err(anyhow::anyhow!(
-                        "Device capabilities mismatch between segments"
-                    ));
-                }
-            }
-            object_id.push_str(
-                std::str::from_utf8(&object_id_segment)
-                    .map_err(|e| anyhow::anyhow!("Failed to parse object ID segment: {}", e))?,
-            )
-        } else {
-            return Err(anyhow::anyhow!("Received unexpected BLE message"));
-        }
-    }
+    let object_id = obj_id
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
 
     if object_id.len() != 24 {
         return Err(anyhow::anyhow!("Invalid object ID length"));
@@ -95,13 +73,13 @@ pub async fn unlock_pipeline(
 
     println!(
         "Device Type: {:?}, Capabilities: {:?}, Object ID: {}",
-        device_type, device_capabilities, object_id
+        d_type, d_capabilities, object_id
     );
 
-    if !device_capabilities.contains(&DeviceCapability::UnlockGate) {
+    if !d_capabilities.contains(&DeviceCapability::UnlockGate) {
         return Err(anyhow::anyhow!("Device does not support unlocking"));
     }
-
+    
     // Step 2: get the nonce
     handler
         .send_data(
@@ -128,9 +106,9 @@ pub async fn unlock_pipeline(
     println!("Nonce: {:x?}", nonce);
     println!("Verification: {:x?}", verification);
 
-    let mut payload = [0u8; 20];
+    let mut payload = [0u8; 24];
     payload.copy_from_slice(nonce.as_slice());
-    payload[16..20].copy_from_slice(&verification[0..4]);
+    payload[16..24].copy_from_slice(&verification[0..8]);
     let encoded = base64::engine::general_purpose::STANDARD.encode(payload);
     println!("Payload: {}", encoded);
 

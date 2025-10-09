@@ -13,7 +13,7 @@ pub const UNLOCK_SUCCESS: u8 = 0x01;
 pub const DEVICE_REQUEST_COUNT_LENGTH: usize = 1;
 pub const IDENTIFIER_LENGTH: usize = 1;
 pub const NONCE_LENGTH: usize = 16;
-pub const SIGNATURE_TAIL_LENGTH: usize = 4;
+pub const SIGNATURE_TAIL_LENGTH: usize = 8;
 /// ObjectId as used in MongoDB, 24 bytes
 pub const DEVICE_ID_LENGTH: usize = 12;
 pub const DEVICE_TYPE_LENGTH: usize = 1;
