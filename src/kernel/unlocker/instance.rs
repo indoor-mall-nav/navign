@@ -104,13 +104,13 @@ impl UnlockInstance {
             None => anyhow::bail!("Beacon not found"),
         };
         let decoded = base64::engine::general_purpose::STANDARD.decode(payload)?;
-        if decoded.len() != 20 {
+        if decoded.len() != 24 {
             anyhow::bail!("Invalid beacon payload length");
         }
         let beacon_nonce: [u8; 16] = decoded[0..16]
             .try_into()
             .map_err(|_| anyhow!("Invalid beacon nonce length"))?;
-        let beacon_signature_tail: [u8; 4] = decoded[16..20]
+        let beacon_signature_tail: [u8; 8] = decoded[16..24]
             .try_into()
             .map_err(|_| anyhow!("Invalid beacon signature tail length"))?;
         // Verify the beacon signature tail
@@ -123,7 +123,7 @@ impl UnlockInstance {
             .ecdsa_key()
             .ok_or(anyhow!("Invalid beacon ECDSA key"))?;
         let signature: Signature = key.sign(&hash);
-        if signature.to_bytes()[60..64] != beacon_signature_tail {
+        if signature.to_bytes()[56..64] != beacon_signature_tail {
             anyhow::bail!("Invalid beacon signature tail");
         }
         info!("Beacon signature tail verified");
