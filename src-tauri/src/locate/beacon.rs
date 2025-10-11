@@ -109,3 +109,74 @@ impl BeaconInfo {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::SqlitePool;
+    use crate::locate::area::ActiveArea;
+    use crate::locate::merchant::Merchant;
+
+    #[tokio::test]
+    async fn test_beacon_info_crud() {
+        let migrator = sqlx::migrate!("./migrations");
+        let pool = SqlitePool::connect(":memory:").await.unwrap();
+        migrator.run(&pool).await.unwrap();
+
+        sqlx::query("PRAGMA foreign_keys = ON;").execute(&pool).await.unwrap();
+        // Execute `navign.sql` to create necessary tables
+
+        let merchant = Merchant {
+            id: "merchant1".to_string(),
+            name: "Test Merchant".to_string(),
+            entry: "entity1".to_string(),
+            ..Default::default()
+        };
+        let area = ActiveArea {
+            id: "area1".to_string(),
+            name: "Test Area".to_string(),
+            entity: "entity1".to_string(),
+            polygon: "POLYGON((0 0,0 1,1 1,1 0,0 0))".to_string(),
+            updated_at: chrono::Utc::now().timestamp() as u64,
+            stored_at: chrono::Utc::now().timestamp() as u64,
+        };
+        merchant.insert(&pool).await.unwrap();
+        area.insert(&pool).await.unwrap();
+
+        let beacon = BeaconInfo::new(
+            "beacon1".to_string(),
+            "AA:BB:CC:DD:EE:FF".to_string(),
+            (37.7749, -122.4194),
+            "merchant1".to_string(),
+            "area1".to_string(),
+            "entity1".to_string(),
+        );
+
+        // Insert
+        beacon.insert(&pool).await.unwrap();
+
+        // Get by ID
+        let fetched = BeaconInfo::get_from_id(&pool, "beacon1").await.unwrap().unwrap();
+        assert_eq!(fetched.mac, "AA:BB:CC:DD:EE:FF");
+
+        // Update
+        let updated_beacon = BeaconInfo::new(
+            "beacon1".to_string(),
+            "11:22:33:44:55:66".to_string(),
+            (37.7749, -122.4194),
+            "merchant1".to_string(),
+            "area1".to_string(),
+            "entity1".to_string(),
+        );
+        updated_beacon.update(&pool).await.unwrap();
+
+        let fetched_updated = BeaconInfo::get_from_id(&pool, "beacon1").await.unwrap().unwrap();
+        assert_eq!(fetched_updated.mac, "11:22:33:44:55:66");
+        assert_eq!(fetched_updated.merchant, "merchant1");
+
+        // Remove
+        BeaconInfo::remove(&pool, "beacon1").await.unwrap();
+        let fetched_none = BeaconInfo::get_from_id(&pool, "beacon1").await.unwrap();
+        assert!(fetched_none.is_none());
+    }
+}

@@ -3,6 +3,7 @@ mod beacon;
 mod locator;
 mod migration;
 mod scan;
+mod merchant;
 
 use crate::locate::locator::LocateResult;
 use crate::locate::scan::stop_scan;

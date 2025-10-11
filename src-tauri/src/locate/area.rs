@@ -4,7 +4,7 @@ use std::str::FromStr;
 use wkt::types::Polygon;
 use wkt::Wkt;
 
-#[derive(Clone, Debug, FromRow, Serialize, Deserialize)]
+#[derive(Clone, Debug, FromRow, Serialize, Deserialize, Default)]
 pub struct ActiveArea {
     pub id: String,
     pub name: String,
