@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::str::FromStr;
-use wkt::types::Polygon;
+use wkt::types::{Coord, Dimension, LineString, Polygon};
 use wkt::Wkt;
+use crate::api::map::AreaResponse;
 
 #[derive(Clone, Debug, FromRow, Serialize, Deserialize, Default)]
 pub struct ActiveArea {
@@ -13,6 +14,31 @@ pub struct ActiveArea {
     pub entity: String,
     pub updated_at: u64,
     pub stored_at: u64,
+}
+
+fn coords_to_polygon(coords: &Vec<(f64, f64)>) -> String {
+    let polygon = Polygon::new(
+        vec![LineString::new(
+            coords.iter().map(|&(x, y)| Coord { x, y, z: None, m: None }).collect(),
+            Dimension::XY
+        )],
+        Dimension::XY
+    );
+    polygon.to_string()
+}
+
+impl From<AreaResponse> for ActiveArea {
+    fn from(area: AreaResponse) -> Self {
+        Self {
+            id: area.id.oid,
+            name: area.name,
+            entity: area.entity.oid,
+            polygon: coords_to_polygon(&area.polygon),
+            // TODO
+            updated_at: chrono::Utc::now().timestamp() as u64,
+            stored_at: chrono::Utc::now().timestamp() as u64,
+        }
+    }
 }
 
 #[allow(unused)]

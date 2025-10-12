@@ -7,7 +7,11 @@ export const useSessionStore = defineStore("session", {
     area: {} as Area,
     nearestMerchants: [] as Merchant[],
     beacons: [] as Beacon[],
-    connections: [] as Connection[], // Assuming connections are stored as an array of strings
+    connections: [] as Connection[],
+    userToken: "" as string,
+    userId: "" as string,
+    currentLocation: null as { x: number; y: number } | null,
+    isAuthenticated: false as boolean,
   }),
   getters: {
     isEntitySet: (state) => Object.keys(state.entity).length > 0,
@@ -16,6 +20,7 @@ export const useSessionStore = defineStore("session", {
       Object.keys(state.nearestMerchants).length > 0,
     isBeaconsSet: (state) => state.beacons.length > 0,
     isConnectionsSet: (state) => state.connections.length > 0,
+    hasValidToken: (state) => state.userToken.length > 0 && state.isAuthenticated,
   },
   actions: {
     setEntity(entity: Entity) {
@@ -30,14 +35,28 @@ export const useSessionStore = defineStore("session", {
     setBeacons(beacons: Beacon[]) {
       this.beacons = beacons;
     },
+    setConnections(connections: Connection[]) {
+      this.connections = connections;
+    },
+    setUserToken(token: string) {
+      this.userToken = token;
+      this.isAuthenticated = token.length > 0;
+    },
+    setUserId(userId: string) {
+      this.userId = userId;
+    },
+    setCurrentLocation(location: { x: number; y: number } | null) {
+      this.currentLocation = location;
+    },
     clearSession() {
       this.entity = {} as Entity;
       this.area = {} as Area;
       this.nearestMerchants = [] as Merchant[];
       this.beacons = [];
-    },
-    setConnections(connections: Connection[]) {
-      this.connections = connections;
+      this.userToken = "";
+      this.userId = "";
+      this.currentLocation = null;
+      this.isAuthenticated = false;
     },
   },
 });

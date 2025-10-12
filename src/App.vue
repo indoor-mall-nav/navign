@@ -291,94 +291,92 @@ async function invokeTest1() {
 <template>
   <main class="container">
     <RouterView />
-    <p class="text-2xl text-center mt-16">Indoor Mall Nav System</p>
-    <div class="mx-6">
-      To get started with, please allow us to locate your device to find which
-      mall/store/any indoor location you are in.
-      <Button @click="getGeolocation" v-if="!entity">Get Geolocation </Button>
-      <Input
-        v-if="!entity"
-        v-model="entityString"
-        placeholder="Enter entity name (e.g., mall, store)"
-        class="mt-4"
-      />
-      <Button @click="requestEntity" v-if="!entity"
-        >Get Entity <Icon icon="mdi:map-marker-radius"
-      /></Button>
 
-      <Button class="mt-4" @click="invokeTest1">Invoke Test 1</Button>
-      <Dialog>
-        <DialogTrigger as-child>
-          <Button class="mt-4">Start Scanning</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogTitle>Scanning for Beacons</DialogTitle>
-          <p class="text-sm text-muted-foreground">
-            Please wait while we scan for nearby beacons...
-          </p>
-          <Button @click="startTask" class="mt-4">Start Scan</Button>
-          <p v-if="getLocationFailed" class="text-red-500 mt-2">
-            Failed to obtain geolocation. Please ensure location services are
-            enabled.
-          </p>
-          <p v-if="greetMsg" class="text-green-500 mt-2">{{ greetMsg }}</p>
-          <Button @click="getGeolocation" class="mt-4"
-            >Retry Geolocation
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </div>
+<!--    <p class="text-2xl text-center mt-16">Indoor Mall Nav System</p>-->
+<!--    <div class="mx-6">-->
+<!--      To get started with, please allow us to locate your device to find which-->
+<!--      mall/store/any indoor location you are in.-->
+<!--      <Button @click="getGeolocation" v-if="!entity">Get Geolocation </Button>-->
+<!--      <Input-->
+<!--        v-if="!entity"-->
+<!--        v-model="entityString"-->
+<!--        placeholder="Enter entity name (e.g., mall, store)"-->
+<!--        class="mt-4"-->
+<!--      />-->
+<!--      <Button @click="requestEntity" v-if="!entity"-->
+<!--        >Get Entity <Icon icon="mdi:map-marker-radius"-->
+<!--      /></Button>-->
 
-    <Card v-if="activeArea" class="mx-4">
-      <CardHeader>
-        <CardTitle>Active Area</CardTitle>
-        <CardDescription>{{ activeArea.name }}</CardDescription>
-      </CardHeader>
-      <CardContent> </CardContent>
-    </Card>
-    <!--    <Button @click="startTask">Start Scanning</Button>-->
-    <!--    {{ // JSON.stringify(devices.map((x) => x.name).filter(Boolean)) }}-->
-    <!--    {{ JSON.stringify(geolocation) }}-->
-    <Card v-for="device in devices" :key="device.name">
-      <CardHeader>
-        <CardTitle>{{ device.name }}</CardTitle>
-        <CardDescription>{{ device.address }}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p>RSSI: {{ device.rssi }}</p>
-        <p>UUID: {{ JSON.stringify(device.serviceData) }}</p>
-        <p>Manufacturer Data: {{ JSON.stringify(device.manufacturerData) }}</p>
-      </CardContent>
-      <CardAction>
-        <Button @click="unlockDevice(device, entity?._id.$oid ?? '')"
-          >Unlock</Button
-        >
-      </CardAction>
-    </Card>
-    <Card class="mx-2" v-if="switchEntities && entities.length > 0">
-      <CardHeader>
-        <CardTitle>Several Entities Found</CardTitle>
-        <CardDescription>
-          Check out which entity (i.e., mall) you are in.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Card
-          v-for="entityItem in entities"
-          :key="entityItem._id.$oid"
-          class="mb-2"
-        >
-          <CardHeader>
-            <CardTitle>{{ entityItem.name }}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription>{{ entityItem.description }}</CardDescription>
-          </CardContent>
-          <CardAction class="ml-4">
-            <Button @click="entity = entityItem">Select</Button>
-          </CardAction>
-        </Card>
-      </CardContent>
-    </Card>
+<!--      <Button class="mt-4" @click="invokeTest1">Invoke Test 1</Button>-->
+<!--      <Dialog>-->
+<!--        <DialogTrigger as-child>-->
+<!--          <Button class="mt-4">Start Scanning</Button>-->
+<!--        </DialogTrigger>-->
+<!--        <DialogContent>-->
+<!--          <DialogTitle>Scanning for Beacons</DialogTitle>-->
+<!--          <p class="text-sm text-muted-foreground">-->
+<!--            Please wait while we scan for nearby beacons...-->
+<!--          </p>-->
+<!--          <Button @click="startTask" class="mt-4">Start Scan</Button>-->
+<!--          <p v-if="getLocationFailed" class="text-red-500 mt-2">-->
+<!--            Failed to obtain geolocation. Please ensure location services are-->
+<!--            enabled.-->
+<!--          </p>-->
+<!--          <p v-if="greetMsg" class="text-green-500 mt-2">{{ greetMsg }}</p>-->
+<!--          <Button @click="getGeolocation" class="mt-4"-->
+<!--            >Retry Geolocation-->
+<!--          </Button>-->
+<!--        </DialogContent>-->
+<!--      </Dialog>-->
+<!--    </div>-->
+
+<!--    <Card v-if="activeArea" class="mx-4">-->
+<!--      <CardHeader>-->
+<!--        <CardTitle>Active Area</CardTitle>-->
+<!--        <CardDescription>{{ activeArea.name }}</CardDescription>-->
+<!--      </CardHeader>-->
+<!--      <CardContent> </CardContent>-->
+<!--    </Card>-->
+<!--    <Card v-for="device in devices" :key="device.name">-->
+<!--      <CardHeader>-->
+<!--        <CardTitle>{{ device.name }}</CardTitle>-->
+<!--        <CardDescription>{{ device.address }}</CardDescription>-->
+<!--      </CardHeader>-->
+<!--      <CardContent>-->
+<!--        <p>RSSI: {{ device.rssi }}</p>-->
+<!--        <p>UUID: {{ JSON.stringify(device.serviceData) }}</p>-->
+<!--        <p>Manufacturer Data: {{ JSON.stringify(device.manufacturerData) }}</p>-->
+<!--      </CardContent>-->
+<!--      <CardAction>-->
+<!--        <Button @click="unlockDevice(device, entity?._id.$oid ?? '')"-->
+<!--          >Unlock</Button-->
+<!--        >-->
+<!--      </CardAction>-->
+<!--    </Card>-->
+<!--    <Card class="mx-2" v-if="switchEntities && entities.length > 0">-->
+<!--      <CardHeader>-->
+<!--        <CardTitle>Several Entities Found</CardTitle>-->
+<!--        <CardDescription>-->
+<!--          Check out which entity (i.e., mall) you are in.-->
+<!--        </CardDescription>-->
+<!--      </CardHeader>-->
+<!--      <CardContent>-->
+<!--        <Card-->
+<!--          v-for="entityItem in entities"-->
+<!--          :key="entityItem._id.$oid"-->
+<!--          class="mb-2"-->
+<!--        >-->
+<!--          <CardHeader>-->
+<!--            <CardTitle>{{ entityItem.name }}</CardTitle>-->
+<!--          </CardHeader>-->
+<!--          <CardContent>-->
+<!--            <CardDescription>{{ entityItem.description }}</CardDescription>-->
+<!--          </CardContent>-->
+<!--          <CardAction class="ml-4">-->
+<!--            <Button @click="entity = entityItem">Select</Button>-->
+<!--          </CardAction>-->
+<!--        </Card>-->
+<!--      </CardContent>-->
+<!--    </Card>-->
   </main>
 </template>

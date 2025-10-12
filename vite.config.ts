@@ -2,13 +2,14 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import tailwindcss from "@tailwindcss/vite";
+import vueDevTools from 'vite-plugin-vue-devtools'
 import path from "node:path";
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [vue(), vueJsx(), tailwindcss()],
+  plugins: [vue(), vueJsx(), tailwindcss(), vueDevTools()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

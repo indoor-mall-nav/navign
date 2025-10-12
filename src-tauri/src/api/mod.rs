@@ -3,6 +3,7 @@ use base64::Engine;
 use tauri_plugin_http::reqwest;
 
 pub(crate) mod login;
+pub(crate) mod map;
 pub mod page_results;
 pub(crate) mod unlocker;
 

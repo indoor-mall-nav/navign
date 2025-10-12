@@ -2,6 +2,7 @@
 //!
 //! After
 
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use tauri_plugin_blec::get_handler;
 use tauri_plugin_blec::models::{BleDevice, ScanFilter};
@@ -38,6 +39,25 @@ impl std::fmt::Display for ScanError {
 impl std::error::Error for ScanError {}
 
 pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
+    if cfg!(all(desktop, dev)) {
+        return Ok(
+            vec![
+                BleDevice {
+                    address: "48:F6:EE:21:B0:7C".to_string(),
+                    name: "NAVIGN_BEACON".to_string(),
+                    rssi: Some(-45),
+                    services: vec![
+                        service_id_to_uuid(0x1819),
+                        service_id_to_uuid(0x1821),
+                    ],
+                    manufacturer_data: HashMap::new(),
+                    service_data: HashMap::new(),
+                    is_bonded: false,
+                    is_connected: false
+                }
+            ]
+        );
+    }
     let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<BleDevice>>(10);
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;
     if handler.is_scanning().await {
@@ -71,6 +91,9 @@ pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
 }
 
 pub async fn stop_scan() -> Result<(), ScanError> {
+    if cfg!(all(desktop, dev)) {
+        return Ok(());
+    }
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;
     if handler.is_scanning().await {
         handler

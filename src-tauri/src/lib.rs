@@ -1,6 +1,8 @@
 use crate::unlocker::Unlocker;
 use locate::locate_handler;
 use login::handshake::bind_with_server;
+use login::handlers::{login_handler, register_handler, logout_handler, guest_login_handler, validate_token_handler};
+use api::map::{get_map_data_handler, generate_svg_map_handler, search_merchants_handler, get_route_handler};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
@@ -85,7 +87,16 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             locate_handler,
             bind_with_server,
-            unlock_handler
+            unlock_handler,
+            login_handler,
+            register_handler,
+            logout_handler,
+            guest_login_handler,
+            validate_token_handler,
+            get_map_data_handler,
+            generate_svg_map_handler,
+            search_merchants_handler,
+            get_route_handler
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
