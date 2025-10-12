@@ -140,6 +140,7 @@ dependencies = [
  "bleps",
  "blocking-network-stack",
  "cfg-if",
+ "chrono",
  "critical-section",
  "embedded-dht-rs",
  "embedded-io 0.7.1",

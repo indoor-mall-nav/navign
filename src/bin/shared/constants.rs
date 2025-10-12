@@ -10,12 +10,11 @@ pub const UNLOCK_RESPONSE: u8 = 0x06;
 pub const UNLOCK_FAILURE: u8 = 0x00;
 pub const UNLOCK_SUCCESS: u8 = 0x01;
 
-pub const DEVICE_REQUEST_COUNT_LENGTH: usize = 1;
 pub const IDENTIFIER_LENGTH: usize = 1;
 pub const NONCE_LENGTH: usize = 16;
 pub const SIGNATURE_TAIL_LENGTH: usize = 4;
 /// ObjectId as used in MongoDB, 24 bytes
-pub const DEVICE_ID_LENGTH: usize = 12;
+pub const DEVICE_ID_LENGTH: usize = 24;
 pub const DEVICE_TYPE_LENGTH: usize = 1;
 pub const DEVICE_CAPABILITY_LENGTH: usize = 1;
 pub const SERVER_SIGNATURE_LENGTH: usize = 64;
@@ -25,7 +24,7 @@ pub const TIMESTAMP_LENGTH: usize = 8;
 pub const UNLOCK_LENGTH: usize = 1;
 pub const UNLOCK_REASON_LENGTH: usize = 1;
 
-pub const DEVICE_REQUEST_LENGTH: usize = IDENTIFIER_LENGTH + DEVICE_REQUEST_COUNT_LENGTH;
+pub const DEVICE_REQUEST_LENGTH: usize = IDENTIFIER_LENGTH;
 pub const DEVICE_RESPONSE_LENGTH: usize =
     IDENTIFIER_LENGTH + DEVICE_TYPE_LENGTH + DEVICE_CAPABILITY_LENGTH + DEVICE_ID_LENGTH;
 pub const NONCE_REQUEST_LENGTH: usize = IDENTIFIER_LENGTH;

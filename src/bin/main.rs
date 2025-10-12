@@ -15,7 +15,7 @@ extern crate alloc;
 pub(crate) mod ble;
 pub(crate) mod crypto;
 pub(crate) mod execute;
-mod internet;
+pub(crate) mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
@@ -153,6 +153,8 @@ fn main() -> ! {
         ),
     );
 
+    println!("Device MAC: {:x?}", device.mac_address());
+
     let mut socket_set_entries: [SocketStorage; 3] = Default::default();
     let socket_set = SocketSet::new(&mut socket_set_entries[..]);
     #[allow(unused)]
@@ -224,6 +226,7 @@ fn main() -> ! {
         };
 
         let mut rf = |offset: usize, buffer: &mut [u8]| -> usize {
+            println!("Read request at offset {}", offset);
             let target = Rc::clone(&executor)
                 .borrow_mut()
                 .buffer
@@ -298,26 +301,22 @@ fn main() -> ! {
                 println!("Handling message");
                 instance.borrow_mut().buffer.processing = true;
                 let response: Option<BleMessage> = match message {
-                    Some(BleMessage::DeviceRequest(count)) => {
-                        if usize::from(count) > device_id.len() / 12 {
-                            None
-                        } else {
-                            let result =
-                                BleMessage::DeviceResponse(device_type, capabilities.clone(), {
-                                    let mut id = [0u8; 12];
-                                    id.copy_from_slice(
-                                        device_id[count as usize * 12..(count as usize + 1) * 12]
-                                            .as_ref(),
-                                    );
-                                    id
-                                });
-                            Some(result)
-                        }
+                    Some(BleMessage::DeviceRequest) => {
+                        Some(BleMessage::DeviceResponse(
+                            device_type,
+                            capabilities.clone(),
+                            {
+                                let mut id = [0u8; 24];
+                                id.copy_from_slice(device_id.as_ref());
+                                id
+                            },
+                        ))
                     }
                     Some(BleMessage::NonceRequest) => {
                         let nonce = instance.borrow_mut().generate_nonce(&mut rng);
                         let mut identifier = [0u8; 8];
-                        if let Ok(sig) =  instance.borrow().proof_manager.sign_data(nonce.as_bytes()) {
+                        if let Ok(sig) = instance.borrow().proof_manager.sign_data(nonce.as_bytes())
+                        {
                             identifier.copy_from_slice(&sig[sig.len() - 8..]);
                         }
                         Some((nonce, identifier).into())

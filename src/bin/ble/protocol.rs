@@ -63,17 +63,20 @@ impl BleProtocolHandler {
 
     pub fn extract_message(&mut self, offset: usize) -> [u8; MAX_PACKET_SIZE] {
         let mut output = [0u8; MAX_PACKET_SIZE];
+        let offset_parts = (offset + 1) / 23;
+        let offset = offset_parts * 20 + 1;
         let terminal = if self.send_buffer_length > offset {
             self.send_buffer_length - offset
         } else {
             return output;
         };
-        output[..terminal].copy_from_slice(&self.send_buffer[offset..self.send_buffer_length]);
-        // Remove those data from the vec
-        if terminal > 0 {
-            self.send_buffer.drain(0..terminal);
-            self.send_buffer_length -= terminal;
-        }
+        let max_terminal = if terminal > 20 { 20 } else { terminal };
+        let max_terminal = if max_terminal + offset > self.send_buffer_length {
+            self.send_buffer_length - offset
+        } else {
+            max_terminal
+        };
+        output[..terminal].copy_from_slice(&self.send_buffer[offset..offset + max_terminal]);
         output
     }
 
@@ -161,7 +164,7 @@ impl BleProtocolHandler {
         }
 
         let result = match self.receive_buffer[0] {
-            DEVICE_REQUEST => Ok(BleMessage::DeviceRequest(self.receive_buffer[1])),
+            DEVICE_REQUEST => Ok(BleMessage::DeviceRequest),
 
             NONCE_REQUEST => Ok(BleMessage::NonceRequest),
 

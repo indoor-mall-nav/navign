@@ -10,14 +10,28 @@ path = "./src/bin/main.rs"
 test = false
 bench = false
 
+[package.metadata.cargo-shear]
+ignored = [
+  "esp-backtrace",
+  "esp-storage",
+  "futures",
+  "esp-mbedtls",
+  "cfg-if",
+  "embedded-io",
+  "cfg-if",
+  "embedded-io",
+  "reqwless",
+  "chrono",
+  "critical-section",
+]
 
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.2.0", features = ["esp32c3"] }
 esp-hal                = { version = "=1.0.0-rc.0", features = ["esp32c3", "unstable"] }
-
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5148d8ae679e021b78f53fd33afb8bb35d0b62e", features = [
   "async",
   "macros",
+  "mtu128"
 ] }
 critical-section = "1.2.0"
 embedded-io = "0.7.1"
@@ -49,6 +63,7 @@ nb = "1.1.0"
 futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"] }
 blocking-network-stack = { git = "https://github.com/bjoernQ/blocking-network-stack.git", rev = "b3ecefc222d8806edd221f266999ca339c52d34e" }
 embedded-dht-rs = { version = "0.5.0", features = ["dht11"] }
+chrono = { version = "0.4.42", default-features = false }
 
 
 

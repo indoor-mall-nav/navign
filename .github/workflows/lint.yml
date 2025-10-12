@@ -19,4 +19,8 @@ jobs:
       - name: Run build
         run: cargo build --verbose
       - name: Run lint
-        run: cargo clippy --verbose
+        run: cargo clippy --verbose -- --deny warnings
+      - name: Install cargo-shear
+        run: cargo install cargo-shear
+      - name: Run shear
+        run: cargo shear
