@@ -12,11 +12,12 @@ use mongodb::{Collection, Database};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::schema::metadata::PaginationResponse;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {
     pattern: &'a str,
-    page: u64,
+    offset: u64,
     limit: u64,
     sort: Option<&'a str>,
     asc: bool,
@@ -182,40 +183,18 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         Ok(Self::get_one_by_name(db, name).await?.is_some())
     }
 
-    async fn search_by_name_pattern(
-        db: &Database,
-        pattern: &str,
-        case_insensitive: bool,
-    ) -> Result<Vec<Self>, mongodb::error::Error>
-    where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let options = if case_insensitive { "i" } else { "" };
-
-        let filter = doc! {
-            "name": {
-                "$regex": pattern,
-                "$options": options
-            }
-        };
-
-        let cursor = collection.find(filter).await?;
-        cursor.try_collect().await
-    }
-
     async fn search_and_page_by_name_pattern(
         db: &Database,
         SearchQueryParams {
             pattern,
-            page,
+            offset,
             limit,
             sort,
             asc,
             case_insensitive,
             entity, // Not used in this trait, but kept for compatibility
         }: SearchQueryParams<'_>,
-    ) -> Result<Vec<Self>, mongodb::error::Error>
+    ) -> Result<PaginationResponse<Self>, mongodb::error::Error>
     where
         Self: Sized,
     {
@@ -237,7 +216,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         };
 
         let find_options = mongodb::options::FindOptions::builder()
-            .skip((page - 1) * limit)
+            .skip(offset)
             .limit(limit as i64)
             .sort(sort.map(|s| {
                 if asc {
@@ -248,8 +227,16 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
             }))
             .build();
 
-        let cursor = collection.find(filter).with_options(find_options).await?;
-        cursor.try_collect().await
+        let cursor = collection.find(filter.clone()).with_options(find_options).await?;
+        let result: Vec<Self> = cursor.try_collect().await?;
+        let total_count = collection.count_documents(filter).await?;
+        Ok(PaginationResponse::new(
+            total_count,
+            offset,
+            limit,
+            &format!("/api/entity/{entity}/{}/", Self::get_collection_name()),
+            result,
+        ))
     }
 
     async fn search_by_description_pattern(
@@ -294,7 +281,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     async fn get_handler(
         State(state): State<AppState>,
         Query(ReadQuery {
-            page,
+            offset,
             limit,
             query,
             sort,
@@ -309,21 +296,21 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
             Self::get_collection_name()
         );
         let db = &state.db;
-        let page = page.unwrap_or(1);
-        let limit = limit.unwrap_or(0);
+        let offset = offset.unwrap_or(0);
+        let limit = limit.unwrap_or(10);
         let query = query.unwrap_or_default();
         let sort = sort.as_deref();
         let asc = asc.unwrap_or(true);
         let case_sensitive = case_sensitive.unwrap_or(false);
         info!(
-            "Query parameters in {}: page={page}, limit={limit}, query='{query}', sort={sort:?}, asc={asc}, case_sensitive={case_sensitive}",
+            "Query parameters in {}: offset={offset}, limit={limit}, query='{query}', sort={sort:?}, asc={asc}, case_sensitive={case_sensitive}",
             Self::get_collection_name()
         );
         match Self::search_and_page_by_name_pattern(
             db,
             SearchQueryParams {
                 pattern: &query,
-                page,
+                offset,
                 limit,
                 sort,
                 asc,

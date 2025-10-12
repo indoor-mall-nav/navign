@@ -10,7 +10,7 @@ pub mod polygon;
 pub(crate) mod service;
 pub mod user;
 mod user_public;
-
+mod metadata;
 
 pub use area::{Area, Floor};
 pub use beacon::{Beacon, BeaconDevice, BeaconType};

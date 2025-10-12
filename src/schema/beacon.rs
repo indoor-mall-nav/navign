@@ -1,6 +1,15 @@
 use crate::schema::service::Service;
 use bson::oid::ObjectId;
+use futures::TryStreamExt;
+use mongodb::Database;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+use axum::extract::{Path, Query, State};
+use axum::response::IntoResponse;
+use bson::doc;
+use crate::AppState;
+use crate::schema::metadata::{PaginationResponse, PaginationResponseMetadata};
+use crate::shared::ReadQuery;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Beacon {
@@ -31,6 +40,7 @@ pub struct Beacon {
     /// The location of the beacon, represented as a pair of coordinates (longitude, latitude).
     pub location: (f64, f64),
     pub device: BeaconDevice,
+    pub mac: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -88,5 +98,80 @@ impl Service for Beacon {
 
     fn require_unique_name() -> bool {
         true
+    }
+}
+
+impl Beacon {
+    async fn get_all_in_area(
+        db: &Database,
+        area_id: &str,
+        entity_id: &str,
+        offset: u64,
+        limit: u64,
+        sort: Option<&str>,
+        asc: bool,
+    ) -> anyhow::Result<PaginationResponse<Self>> {
+        let collection = db.collection::<Beacon>(Self::get_collection_name());
+        let area_object_id =
+            ObjectId::from_str(area_id).map_err(|e| anyhow::anyhow!("Invalid area ID: {}", e))?;
+        let entity_object_id = ObjectId::from_str(entity_id)
+            .map_err(|e| anyhow::anyhow!("Invalid entity ID: {}", e))?;
+        let filter = doc! {
+            "area": area_object_id,
+            "entity": entity_object_id,
+        };
+        let sort_doc = if let Some(field) = sort {
+            let order = if asc { 1 } else { -1 };
+            doc! { field: order }
+        } else {
+            doc! { "_id": 1 } // Default sort by name ascending
+        };
+        let mut find_options = mongodb::options::FindOptions::builder()
+            .sort(sort_doc)
+            .skip(Some(offset))
+            .limit(Some(limit as i64))
+            .build();
+        let cursor = collection
+            .find(filter.clone())
+            .await
+            .map_err(|e| anyhow::anyhow!("Database query error: {}", e))?;
+        let beacons: Vec<Self> = cursor
+            .try_collect()
+            .await
+            .map_err(|e| anyhow::anyhow!("Error collecting results: {}", e))?;
+        let total_items = collection
+            .count_documents(filter)
+            .await
+            .map_err(|e| anyhow::anyhow!("Database count error: {}", e))?;
+        let metadata = PaginationResponseMetadata::new(
+            total_items,
+            offset,
+            limit,
+            &format!("/entities/{}/areas/{}/beacons", entity_id, area_id),
+        );
+        Ok(PaginationResponse { metadata, data: beacons })
+    }
+    pub async fn get_all_in_area_handler(
+        State(state): State<AppState>,
+        Query(params): Query<ReadQuery>,
+        Path((entity, area)): Path<(String, String)>,
+    ) -> impl IntoResponse {
+        match Self::get_all_in_area(
+            &state.db,
+            area.as_str(),
+            entity.as_str(),
+            params.offset.unwrap_or(1),
+            params.limit.unwrap_or(10),
+            params.sort.as_deref(),
+            params.asc.unwrap_or(true),
+        )
+        .await
+        {
+            Ok(beacons) => (axum::http::StatusCode::OK, serde_json::to_string(&beacons).unwrap()),
+            Err(e) => (
+                axum::http::StatusCode::BAD_REQUEST,
+                e.to_string(),
+            ),
+        }
     }
 }

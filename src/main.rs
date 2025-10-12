@@ -108,6 +108,10 @@ async fn main() -> anyhow::Result<()> {
             "/api/entities/{eid}/areas/{id}",
             delete(Area::delete_handler),
         )
+        .route(
+            "/api/entities/{eid}/areas/{aid}/beacons",
+            get(Beacon::get_all_in_area_handler),
+        )
         .route("/api/entities", get(Entity::search_entity_handler))
         .route("/api/entities/", get(Entity::search_entity_handler))
         .route("/api/entities/{id}", get(Entity::get_one_handler))

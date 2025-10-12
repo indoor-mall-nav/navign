@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReadQuery {
-    pub page: Option<u64>,
+    pub offset: Option<u64>,
     pub limit: Option<u64>,
     pub query: Option<String>,
     pub sort: Option<String>,
