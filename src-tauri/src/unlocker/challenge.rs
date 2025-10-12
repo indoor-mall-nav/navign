@@ -3,7 +3,6 @@ use digest::Digest;
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{Signature, SigningKey};
 use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
 use sha2::Sha256;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,23 +54,6 @@ impl ServerChallenge {
         signature_array
     }
 
-    pub fn depacketize(packet: String, user: String) -> Option<Self> {
-        // Server only sends the nonce and the instance ID
-        let data = base64::engine::general_purpose::STANDARD
-            .decode(packet)
-            .ok()?;
-        if data.len() != 16 + 24 {
-            return None;
-        };
-        let mut nonce = [0u8; 16];
-        nonce.copy_from_slice(&data[0..16]);
-        let mut instance_id = [0u8; 24];
-        instance_id.copy_from_slice(&data[16..40]);
-        let timestamp = chrono::Utc::now().timestamp() as u64;
-        let instance_id = std::str::from_utf8(&instance_id).ok()?;
-        Some(Self::new(nonce, instance_id, timestamp, user))
-    }
-
     pub fn packetize(&self, signing_key: &SigningKey) -> (String, [u8; 8]) {
         let mut packet = Vec::with_capacity(8 + 64);
         packet.extend_from_slice(&self.timestamp.to_be_bytes());
@@ -82,5 +64,43 @@ impl ServerChallenge {
             base64::engine::general_purpose::STANDARD.encode(packet),
             validator,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::rand_core::OsRng;
+    use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey};
+
+    #[test]
+    fn test_server_challenge() {
+        let signing_key = SigningKey::random(&mut OsRng);
+        let pem = signing_key
+            .to_pkcs8_pem(Default::default())
+            .unwrap()
+            .to_string();
+        let device_key = SigningKey::from_pkcs8_pem(pem.as_str()).unwrap();
+
+        let challenge = ServerChallenge::new(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+            "abcdef123456abcdef123456",
+            1625077765,
+            "abcdef123456abcdef123456".to_string(),
+        );
+
+        let (packet_b64, validator) = challenge.packetize(&device_key);
+        println!("Packet (base64): {}", packet_b64);
+        println!("Validator: {:?}", validator);
+
+        assert_eq!(packet_b64.len(), 96);
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(packet_b64)
+            .unwrap();
+        assert_eq!(decoded.len(), 72);
+        let validator_from_packet: [u8; 8] = decoded[64..72].try_into().unwrap();
+        assert_eq!(validator, validator_from_packet);
+        assert_eq!(validator.len(), 8);
     }
 }

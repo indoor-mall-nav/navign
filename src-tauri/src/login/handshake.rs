@@ -126,7 +126,7 @@ pub async fn bind_with_server(
 
     match perform_handshake(
         public_key,
-        unlocker.get_user_token().to_string(),
+        unlocker.get_user_token().ok_or(())?.to_string(),
         unlocker.device_id().to_string(),
     )
     .await

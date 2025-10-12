@@ -73,3 +73,5 @@ CREATE TABLE IF NOT EXISTS merchants
         NOT
             NULL
 );
+
+INSERT INTO merchants (id, name, entry) VALUES ('unknown', 'Unknown', 'unknown');

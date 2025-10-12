@@ -113,9 +113,9 @@ impl BeaconInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::SqlitePool;
     use crate::locate::area::ActiveArea;
     use crate::locate::merchant::Merchant;
+    use sqlx::SqlitePool;
 
     #[tokio::test]
     async fn test_beacon_info_crud() {
@@ -123,7 +123,10 @@ mod tests {
         let pool = SqlitePool::connect(":memory:").await.unwrap();
         migrator.run(&pool).await.unwrap();
 
-        sqlx::query("PRAGMA foreign_keys = ON;").execute(&pool).await.unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON;")
+            .execute(&pool)
+            .await
+            .unwrap();
         // Execute `navign.sql` to create necessary tables
 
         let merchant = Merchant {
@@ -156,7 +159,10 @@ mod tests {
         beacon.insert(&pool).await.unwrap();
 
         // Get by ID
-        let fetched = BeaconInfo::get_from_id(&pool, "beacon1").await.unwrap().unwrap();
+        let fetched = BeaconInfo::get_from_id(&pool, "beacon1")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(fetched.mac, "AA:BB:CC:DD:EE:FF");
 
         // Update
@@ -170,7 +176,10 @@ mod tests {
         );
         updated_beacon.update(&pool).await.unwrap();
 
-        let fetched_updated = BeaconInfo::get_from_id(&pool, "beacon1").await.unwrap().unwrap();
+        let fetched_updated = BeaconInfo::get_from_id(&pool, "beacon1")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(fetched_updated.mac, "11:22:33:44:55:66");
         assert_eq!(fetched_updated.merchant, "merchant1");
 

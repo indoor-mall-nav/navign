@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
@@ -31,7 +32,10 @@ impl Merchant {
         }
     }
 
-    pub async fn get_from_id(pool: &sqlx::SqlitePool, id: &str) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn get_from_id(
+        pool: &sqlx::SqlitePool,
+        id: &str,
+    ) -> Result<Option<Self>, sqlx::Error> {
         let merchant = sqlx::query_as::<_, Merchant>("SELECT * FROM merchants WHERE id = ?")
             .bind(id)
             .fetch_optional(pool)

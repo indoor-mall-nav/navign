@@ -60,7 +60,7 @@ impl DeviceType {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 pub enum CryptoError {
     InvalidSignature,
     InvalidKey,
@@ -198,6 +198,81 @@ impl BleMessage {
                 Some(BleMessage::UnlockResponse(success, error))
             }
             _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::unlocker::proof::Proof;
+
+    #[test]
+    fn test_device_capability_packetize_depacketize() {
+        let capabilities = vec![
+            DeviceCapability::UnlockGate,
+            DeviceCapability::EnvironmentalData,
+        ];
+        let byte = DeviceCapability::packetize(&capabilities);
+        let depacketized = DeviceCapability::depacketize(byte);
+        assert_eq!(capabilities, depacketized);
+    }
+
+    #[test]
+    fn test_device_type_packetize_depacketize() {
+        let device_type = DeviceType::Pathway;
+        let byte = device_type.packetize();
+        let depacketized = DeviceType::depacketize(byte).unwrap();
+        assert_eq!(device_type, depacketized);
+    }
+
+    #[test]
+    fn test_crypto_error_packetize_depacketize() {
+        let error = CryptoError::InvalidSignature;
+        let byte = error.packetize();
+        let depacketized = CryptoError::depacketize(byte).unwrap();
+        assert_eq!(error, depacketized);
+    }
+
+    #[test]
+    fn test_ble_message_packetize_depacketize() {
+        let original_message = BleMessage::DeviceResponse(
+            DeviceType::Merchant,
+            vec![DeviceCapability::UnlockGate],
+            [1u8; 24],
+        );
+        let packet = original_message.packetize();
+        println!("Packet: {:?}", packet);
+        assert_eq!(packet.len(), DEVICE_RESPONSE_LENGTH);
+        let depacketized_message = BleMessage::depacketize(&packet).unwrap();
+        match (original_message, depacketized_message) {
+            (
+                BleMessage::DeviceResponse(orig_type, orig_caps, orig_id),
+                BleMessage::DeviceResponse(dep_type, dep_caps, dep_id),
+            ) => {
+                assert_eq!(orig_type, dep_type);
+                assert_eq!(orig_caps, dep_caps);
+                assert_eq!(orig_id, dep_id);
+            }
+            _ => panic!("Mismatched message types"),
+        }
+    }
+
+    #[test]
+    fn test_unlock_request_packetize_depacketize() {
+        let proof = Proof::new([0u8; 16], [1u8; 8], [2u8; 8], 123456789, [3u8; 64]);
+        let original_message = BleMessage::UnlockRequest(proof);
+        let packet = original_message.packetize();
+        let depacketized_message = BleMessage::depacketize(&packet).unwrap();
+        match (original_message, depacketized_message) {
+            (BleMessage::UnlockRequest(orig_proof), BleMessage::UnlockRequest(dep_proof)) => {
+                assert_eq!(orig_proof.nonce, dep_proof.nonce);
+                assert_eq!(orig_proof.device_bytes, dep_proof.device_bytes);
+                assert_eq!(orig_proof.verify_bytes, dep_proof.verify_bytes);
+                assert_eq!(orig_proof.timestamp, dep_proof.timestamp);
+                assert_eq!(orig_proof.server_signature, dep_proof.server_signature);
+            }
+            _ => panic!("Mismatched message types"),
         }
     }
 }

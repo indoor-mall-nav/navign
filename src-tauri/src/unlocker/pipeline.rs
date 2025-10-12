@@ -4,7 +4,7 @@ use crate::unlocker::constants::{
     NONCE_RESPONSE_LENGTH, UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID,
 };
 use crate::unlocker::proof::Proof;
-use crate::unlocker::utils::{BleMessage, DeviceCapability, DeviceType};
+use crate::unlocker::utils::{BleMessage, DeviceCapability};
 use crate::unlocker::Unlocker;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -79,7 +79,7 @@ pub async fn unlock_pipeline(
     if !d_capabilities.contains(&DeviceCapability::UnlockGate) {
         return Err(anyhow::anyhow!("Device does not support unlocking"));
     }
-    
+
     // Step 2: get the nonce
     handler
         .send_data(

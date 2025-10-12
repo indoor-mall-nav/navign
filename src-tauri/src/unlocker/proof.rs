@@ -1,8 +1,7 @@
 use crate::unlocker::constants::{
-    CHALLENGE_HASH_LENGTH, DEVICE_BYTES_LENGTH, NONCE_LENGTH, SERVER_SIGNATURE_LENGTH,
+    DEVICE_BYTES_LENGTH, NONCE_LENGTH, SERVER_SIGNATURE_LENGTH,
     TIMESTAMP_LENGTH, UNLOCK_REQUEST_LENGTH, VERIFY_BYTES_LENGTH,
 };
-use p256::ecdsa::SigningKey;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
@@ -73,5 +72,35 @@ impl Proof {
             timestamp,
             server_signature,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proof_packetize_depacketize() {
+        let nonce = [1u8; 16];
+        let device_bytes = [2u8; 8];
+        let verify_bytes = [3u8; 8];
+        let timestamp = 1234567890u64;
+        let server_signature = [4u8; 64];
+
+        let proof = Proof::new(
+            nonce,
+            device_bytes,
+            verify_bytes,
+            timestamp,
+            server_signature,
+        );
+        let packet = proof.packetize();
+        let depacketized_proof = Proof::depacketize(&packet).unwrap();
+
+        assert_eq!(proof.nonce, depacketized_proof.nonce);
+        assert_eq!(proof.device_bytes, depacketized_proof.device_bytes);
+        assert_eq!(proof.verify_bytes, depacketized_proof.verify_bytes);
+        assert_eq!(proof.timestamp, depacketized_proof.timestamp);
+        assert_eq!(proof.server_signature, depacketized_proof.server_signature);
     }
 }
