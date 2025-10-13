@@ -3,10 +3,11 @@ use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use sqlx::SqlitePool;
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
+use tauri_plugin_log::log::trace;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapArea {
@@ -76,32 +77,51 @@ pub struct MerchantResponse {
     pub entity: CustomizedObjectId,
     pub area: CustomizedObjectId,
     pub location: (f64, f64),
-    pub polygon: Vec<(f64, f64)>,
+    pub polygon: Option<Vec<(f64, f64)>>,
     pub tags: Vec<String>,
+    pub r#type: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteRequest {
-    pub from: String,  // merchant/area id
-    pub to: String,    // merchant/area id
-    pub disallow: Option<String>,  // "e" (elevator), "s" (stairs), "c" (escalator)
+    pub from: String,             // merchant/area id
+    pub to: String,               // merchant/area id
+    pub disallow: Option<String>, // "e" (elevator), "s" (stairs), "c" (escalator)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteResponse {
-    pub instructions: Vec<RouteInstruction>,
-    pub total_distance: f64,
-    pub areas: Vec<String>,
+    pub instructions: Vec<InstructionType>,
+    pub total_distance: Option<f64>,
+    pub areas: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RouteInstruction {
-    pub r#type: String,  // "move", "elevator", "stairs", "escalator", "gate"
-    pub area: String,
-    pub from: (f64, f64),
-    pub to: (f64, f64),
-    pub description: Option<String>,
-    pub distance: Option<f64>,
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Eq, Copy)]
+#[serde(rename_all = "kebab-case")]
+/// Represents the type of connection between areas or entities.
+pub enum ConnectionType {
+    /// A connection that allows people to pass through, such as a door or gate.
+    /// Usually involve authentication or access control.
+    Gate,
+    /// A connection that allows people to move between different areas, such as a hallway or corridor.
+    #[default]
+    Escalator,
+    /// A connection that allows people to move between different levels, such as stairs or elevators.
+    Elevator,
+    /// A connection that allows people to move between different areas, such as a pathway or tunnel.
+    Stairs,
+    /// Like in Hong Kong International Airport, Singapore Changi Airport, or Shanghai Pudong International Airport.
+    /// There is a dedicated transportation system that connects different terminals or areas.
+    Rail,
+    /// Shuttle bus.
+    Shuttle,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InstructionType {
+    Move(f64, f64),
+    Transport(String, String, ConnectionType),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +147,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
 
     // Fetch area data
     let area_url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
+    trace!("Fetching area from URL: {}", area_url);
     let area_response: AreaResponse = client
         .get(&area_url)
         .send()
@@ -136,8 +157,15 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse area: {}", e))?;
 
+    trace!(
+        "Fetched area: {} with ID {}",
+        area_response.name,
+        area_response.id
+    );
+
     // Fetch beacons in the area
     let beacons_url = format!("{}/beacons", area_url);
+    trace!("Fetching beacons from URL: {}", beacons_url);
     let beacons_response: PaginationResponse<BeaconResponse> = client
         .get(&beacons_url)
         .send()
@@ -146,6 +174,8 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .json()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse beacons: {}", e))?;
+
+    trace!("Fetched {} beacons", beacons_response.data.len());
 
     let map_beacons: Vec<MapBeacon> = beacons_response
         .data
@@ -158,8 +188,11 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         })
         .collect();
 
+    trace!("Mapped {} beacons", map_beacons.len());
+
     // Fetch merchants in the area
-    let merchants_url = format!("{}api/entities/{}/merchants?area={}", BASE_URL, entity, area);
+    let merchants_url = format!("{}/merchants", area_url);
+    trace!("Fetching merchants from URL: {}", merchants_url);
     let merchants_response: PaginationResponse<MerchantResponse> = client
         .get(&merchants_url)
         .send()
@@ -169,6 +202,8 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse merchants: {}", e))?;
 
+    trace!("Fetched {} merchants", merchants_response.data.len());
+
     let map_merchants: Vec<MapMerchant> = merchants_response
         .data
         .into_iter()
@@ -176,10 +211,12 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
             id: m.id.to_string(),
             name: m.name,
             location: m.location,
-            polygon: m.polygon,
+            polygon: m.polygon.unwrap_or_default(),
             tags: m.tags,
         })
         .collect();
+
+    trace!("Mapped {} merchants", map_merchants.len());
 
     Ok(MapArea {
         id: area_response.id.to_string(),
@@ -214,12 +251,8 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
     let scale_y = (height as f64 - 20.0) / (max_y - min_y);
     let scale = scale_x.min(scale_y);
 
-    let transform = |x: f64, y: f64| -> (f64, f64) {
-        (
-            (x - min_x) * scale + 10.0,
-            (y - min_y) * scale + 10.0,
-        )
-    };
+    let transform =
+        |x: f64, y: f64| -> (f64, f64) { ((x - min_x) * scale + 10.0, (y - min_y) * scale + 10.0) };
 
     // Draw area polygon
     svg.push_str(r#"<g id="area-boundary">"#);
@@ -262,7 +295,9 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
         ));
         svg.push_str(&format!(
             r##"<text x="{}" y="{}" font-size="10" text-anchor="middle" fill="#666">{}</text>"##,
-            tx, ty + 15.0, beacon.name
+            tx,
+            ty + 15.0,
+            beacon.name
         ));
     }
     svg.push_str("</g>");
@@ -340,7 +375,7 @@ pub async fn search_merchants_handler(
     };
 
     let merchants = sqlx::query_as::<_, Merchant>(
-        "SELECT * FROM merchants WHERE entry = ? AND name LIKE ? LIMIT 20"
+        "SELECT * FROM merchants WHERE entry = ? AND name LIKE ? LIMIT 20",
     )
     .bind(&entity)
     .bind(format!("%{}%", query))
@@ -374,18 +409,32 @@ pub async fn fetch_route(
 ) -> anyhow::Result<RouteResponse> {
     let client = reqwest::Client::new();
 
-    let mut url = format!("{}api/entities/{}/route?from={}&to={}", BASE_URL, entity, from, to);
+    let mut url = format!(
+        "{}api/entities/{}/route?from={}&to={}",
+        BASE_URL, entity, from, to
+    );
+
+    trace!("Fetching route from URL: {}", url);
 
     if let Some(limits) = limits {
+        trace!("Applying connectivity limits: {:?}", limits);
         let mut disallow = String::new();
-        if !limits.elevator { disallow.push('e'); }
-        if !limits.stairs { disallow.push('s'); }
-        if !limits.escalator { disallow.push('c'); }
+        if !limits.elevator {
+            disallow.push('e');
+        }
+        if !limits.stairs {
+            disallow.push('s');
+        }
+        if !limits.escalator {
+            disallow.push('c');
+        }
 
         if !disallow.is_empty() {
             url.push_str(&format!("&disallow={}", disallow));
         }
     }
+
+    trace!("Final route URL: {}", url);
 
     let response: RouteResponse = client
         .get(&url)
@@ -515,15 +564,13 @@ mod tests {
             name: "Test Area".to_string(),
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![],
-            merchants: vec![
-                MapMerchant {
-                    id: "merchant1".to_string(),
-                    name: "Store A".to_string(),
-                    location: (25.0, 25.0),
-                    polygon: vec![(20.0, 20.0), (30.0, 20.0), (30.0, 30.0), (20.0, 30.0)],
-                    tags: vec!["food".to_string(), "restaurant".to_string()],
-                },
-            ],
+            merchants: vec![MapMerchant {
+                id: "merchant1".to_string(),
+                name: "Store A".to_string(),
+                location: (25.0, 25.0),
+                polygon: vec![(20.0, 20.0), (30.0, 20.0), (30.0, 30.0), (20.0, 30.0)],
+                tags: vec!["food".to_string(), "restaurant".to_string()],
+            }],
         };
 
         let svg = generate_svg_map(&map_data, 800, 600);
@@ -533,52 +580,5 @@ mod tests {
         assert!(svg.contains("merchant-merchant1"));
         assert!(svg.contains("#e3f2fd"));
         assert!(svg.contains("#1976d2"));
-    }
-
-    #[test]
-    fn test_route_instruction_serialization() {
-        let instruction = RouteInstruction {
-            r#type: "move".to_string(),
-            area: "area1".to_string(),
-            from: (0.0, 0.0),
-            to: (10.0, 10.0),
-            description: Some("Walk straight".to_string()),
-            distance: Some(14.14),
-        };
-
-        let json = serde_json::to_string(&instruction).unwrap();
-        assert!(json.contains("move"));
-        assert!(json.contains("area1"));
-        assert!(json.contains("Walk straight"));
-    }
-
-    #[test]
-    fn test_route_response_total_distance() {
-        let route = RouteResponse {
-            instructions: vec![
-                RouteInstruction {
-                    r#type: "move".to_string(),
-                    area: "area1".to_string(),
-                    from: (0.0, 0.0),
-                    to: (10.0, 0.0),
-                    description: None,
-                    distance: Some(10.0),
-                },
-                RouteInstruction {
-                    r#type: "move".to_string(),
-                    area: "area1".to_string(),
-                    from: (10.0, 0.0),
-                    to: (10.0, 10.0),
-                    description: None,
-                    distance: Some(10.0),
-                },
-            ],
-            total_distance: 20.0,
-            areas: vec!["area1".to_string()],
-        };
-
-        assert_eq!(route.total_distance, 20.0);
-        assert_eq!(route.instructions.len(), 2);
-        assert_eq!(route.areas.len(), 1);
     }
 }

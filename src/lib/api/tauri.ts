@@ -68,13 +68,10 @@ export interface MapMerchant {
 }
 
 // Route/Navigation APIs
-export interface RouteInstruction {
-  type: "move" | "elevator" | "stairs" | "escalator" | "gate";
-  area: string;
-  from: [number, number];
-  to: [number, number];
-  description?: string;
-  distance?: number;
+export type RouteInstruction = {
+  move: [number, number]
+} | {
+  transport: [string, string, 'stairs' | 'elevator' | 'escalator' | 'gate' | 'turnstile']
 }
 
 export interface RouteResponse {

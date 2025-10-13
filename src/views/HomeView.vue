@@ -221,6 +221,21 @@ async function handleMerchantClick(merchantId: string) {
   console.log("Merchant clicked:", merchantId);
 }
 
+function handleStartNavigation() {
+  if (!entityId.value || !areaId.value) {
+    locationError.value = "Please select an entity and area first";
+    return;
+  }
+
+  router.push({
+    name: "navigation",
+    query: {
+      entity: entityId.value,
+      area: areaId.value,
+    },
+  });
+}
+
 function handleLogout() {
   session.clearSession();
   router.push("/login");
@@ -445,7 +460,7 @@ watch(() => session.entity, (newEntity) => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent class="space-y-2">
-            <Button variant="outline" class="w-full justify-start">
+            <Button variant="outline" class="w-full justify-start" @click="handleStartNavigation">
               <Icon icon="mdi:navigation" class="w-4 h-4 mr-2" />
               Start Navigation
             </Button>
@@ -469,6 +484,7 @@ watch(() => session.entity, (newEntity) => {
           :area-id="areaId"
           :width="800"
           :height="600"
+          :user-location="currentPosition ? { x: currentPosition.x, y: currentPosition.y } : null"
           @beacon-click="handleBeaconClick"
           @merchant-click="handleMerchantClick"
         />

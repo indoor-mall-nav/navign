@@ -3,6 +3,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri_plugin_blec::models::BleDevice;
+use tauri_plugin_log::log::trace;
 
 type Locator = (f64, f64, f64); // (x, y, rssi)
 
@@ -28,22 +29,28 @@ pub async fn handle_devices(
     pool: &SqlitePool,
     base: &str,
 ) -> LocateResult {
+    trace!("Handling {} devices", devices.len());
     let mut info = Vec::with_capacity(devices.len());
     for device in devices.iter() {
+        trace!("Processing device: {:?}", device);
         if let Some(beacon_info) = BeaconInfo::get_from_mac(pool, &device.address)
             .await
             .ok()
             .flatten()
         {
+            trace!("Found beacon info: {:?}", beacon_info);
             if device.rssi.is_some_and(|rssi| rssi >= -160) {
+                trace!("Adding beacon info: {:?}", beacon_info);
                 info.push(beacon_info);
             }
         }
     }
+    trace!("Collected beacon info: {:?}", info);
     let groups = info.iter().zip(devices).chunk_by(|(i, _)| i.area.as_str());
     groups
         .into_iter()
         .map(|(id, group)| {
+            trace!("Processing group for area: {}", id);
             (
                 id,
                 group
@@ -57,10 +64,17 @@ pub async fn handle_devices(
         })
         .max_by_key(|(_, beacons)| count_effective_beacons(beacons))
         .map(|(area, beacons)| {
+            trace!(
+                "Selected area: {}, with {} effective beacons",
+                area,
+                count_effective_beacons(&beacons)
+            );
             if beacons.is_empty() {
+                trace!("No valid beacons found in area: {}", area);
                 return LocateResult::NoBeacons;
             }
             if area != base {
+                trace!("Area changed from {} to {}", base, area);
                 return LocateResult::AreaChanged(area.to_string());
             }
             match locate_via_beacons(&beacons) {
@@ -86,6 +100,7 @@ fn rssi_to_distance(rssi: f64) -> f64 {
 /// 2. If ALL RSSI values are within -80 dBm to -160 dBm, use the weighted area centroid method.
 /// 3. Remove RSSI values less than -160 dBm.
 pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
+    trace!("Located position via beacons in: {:?}", beacons);
     if beacons.is_empty() {
         return None;
     }
@@ -93,19 +108,25 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
         .iter()
         .filter(|&&(_, _, rssi)| rssi > -80.0)
         .collect();
+    trace!("{} strong beacons", strong_beacons.len());
     if !strong_beacons.is_empty() {
         // Use the beacon with the highest RSSI value
+        trace!("Using the strongest beacon");
         let &(x, y, _) = strong_beacons
             .iter()
             .max_by(|&&a, &&b| a.2.partial_cmp(&b.2).unwrap())
             .unwrap();
         return Some((*x, *y));
     }
+    trace!("No strong beacons, using weighted centroid method");
+    // Filter out beacons with RSSI less than -160 dBm
     let filtered_beacons: Vec<&Locator> = beacons
         .iter()
         .filter(|&&(_, _, rssi)| rssi >= -160.0)
         .collect();
+    trace!("{} beacons after filtering", filtered_beacons.len());
     if filtered_beacons.is_empty() {
+        trace!("No beacons with sufficient RSSI");
         return None;
     }
     // Weighted area centroid method
@@ -113,6 +134,7 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
     let mut sum_y = 0.0;
     let mut total_weight = 0.0;
     for &&(x, y, rssi) in &filtered_beacons {
+        trace!("Beacon at ({}, {}) with RSSI {}", x, y, rssi);
         let distance = rssi_to_distance(rssi);
         if distance > 0.0 {
             let weight = 1.0 / distance;
@@ -121,9 +143,11 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
             total_weight += weight;
         }
     }
+    trace!("Sum_x: {}, Sum_y: {}, Total_weight: {}", sum_x, sum_y, total_weight);
     if total_weight == 0.0 {
         return None;
     }
+    trace!("Calculated position: ({}, {})", sum_x / total_weight, sum_y / total_weight);
     Some((sum_x / total_weight, sum_y / total_weight))
 }
 

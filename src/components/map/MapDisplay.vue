@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
-import { getMapData, generateSvgMap, type MapData } from "@/lib/api/tauri";
+import { getMapData, generateSvgMap, type MapData, type RouteResponse } from "@/lib/api/tauri";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@iconify/vue";
+import RouteOverlay from "./RouteOverlay.vue";
 
 const props = defineProps<{
   entityId: string;
   areaId: string;
   width?: number;
   height?: number;
+  userLocation?: { x: number; y: number } | null;
+  route?: RouteResponse | null;
+  currentStep?: number;
+  targetMerchantId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -54,6 +59,105 @@ async function loadMapData() {
   }
 }
 
+const targetMerchant = computed(() => {
+  if (!props.targetMerchantId || !mapData.value) return null;
+  return mapData.value.merchants.find(m => m.id === props.targetMerchantId);
+});
+
+function addUserLocationToSvg() {
+  if (!svgContent.value || !props.userLocation || !mapData.value) return;
+
+  // Calculate bounds for scaling (same as backend)
+  let min_x = Number.MAX_VALUE;
+  let max_x = Number.MIN_VALUE;
+  let min_y = Number.MAX_VALUE;
+  let max_y = Number.MIN_VALUE;
+
+  for (const [x, y] of mapData.value.polygon) {
+    min_x = Math.min(min_x, x);
+    max_x = Math.max(max_x, x);
+    min_y = Math.min(min_y, y);
+    max_y = Math.max(max_y, y);
+  }
+
+  const scale_x = (mapWidth.value - 20) / (max_x - min_x);
+  const scale_y = (mapHeight.value - 20) / (max_y - min_y);
+  const scale = Math.min(scale_x, scale_y);
+
+  const tx = (props.userLocation.x - min_x) * scale + 10;
+  const ty = (props.userLocation.y - min_y) * scale + 10;
+
+  // Create user location marker with pulsing animation
+  const locationMarker = `
+    <g id="user-location" class="user-location">
+      <defs>
+        <radialGradient id="pulseGradient">
+          <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:0.8"/>
+          <stop offset="100%" style="stop-color:#4CAF50;stop-opacity:0"/>
+        </radialGradient>
+      </defs>
+      <!-- Pulsing circle -->
+      <circle cx="${tx}" cy="${ty}" r="20" fill="url(#pulseGradient)" opacity="0.5">
+        <animate attributeName="r" from="20" to="40" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Main marker -->
+      <circle cx="${tx}" cy="${ty}" r="8" fill="#4CAF50" stroke="#fff" stroke-width="3"/>
+      <circle cx="${tx}" cy="${ty}" r="4" fill="#fff"/>
+      <!-- Label -->
+      <text x="${tx}" y="${ty + 25}" font-size="12" font-weight="bold" text-anchor="middle" fill="#4CAF50">You are here</text>
+    </g>
+  `;
+
+  // Insert before closing </svg> tag
+  svgContent.value = svgContent.value.replace('</svg>', locationMarker + '</svg>');
+}
+
+function addTargetMarkerToSvg() {
+  if (!svgContent.value || !targetMerchant.value || !mapData.value) return;
+
+  // Calculate bounds for scaling (same as backend)
+  let min_x = Number.MAX_VALUE;
+  let max_x = Number.MIN_VALUE;
+  let min_y = Number.MAX_VALUE;
+  let max_y = Number.MIN_VALUE;
+
+  for (const [x, y] of mapData.value.polygon) {
+    min_x = Math.min(min_x, x);
+    max_x = Math.max(max_x, x);
+    min_y = Math.min(min_y, y);
+    max_y = Math.max(max_y, y);
+  }
+
+  const scale_x = (mapWidth.value - 20) / (max_x - min_x);
+  const scale_y = (mapHeight.value - 20) / (max_y - min_y);
+  const scale = Math.min(scale_x, scale_y);
+
+  const tx = (targetMerchant.value.location[0] - min_x) * scale + 10;
+  const ty = (targetMerchant.value.location[1] - min_y) * scale + 10;
+
+  // Create target marker with pulsing animation
+  const targetMarker = `
+    <g id="target-marker" class="target-marker">
+      <!-- Pulsing circles -->
+      <circle cx="${tx}" cy="${ty}" r="20" fill="#ef4444" opacity="0.3">
+        <animate attributeName="r" from="20" to="40" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Main marker -->
+      <circle cx="${tx}" cy="${ty}" r="12" fill="#ef4444" stroke="#fff" stroke-width="3"/>
+      <!-- Target icon -->
+      <circle cx="${tx}" cy="${ty}" r="6" fill="#fff"/>
+      <circle cx="${tx}" cy="${ty}" r="3" fill="#ef4444"/>
+      <!-- Label -->
+      <text x="${tx}" y="${ty + 28}" font-size="12" font-weight="bold" text-anchor="middle" fill="#ef4444">Target</text>
+    </g>
+  `;
+
+  // Insert before closing </svg> tag
+  svgContent.value = svgContent.value.replace('</svg>', targetMarker + '</svg>');
+}
+
 async function generateMap() {
   if (!props.entityId || !props.areaId) return;
 
@@ -66,6 +170,14 @@ async function generateMap() {
     );
     if (result.status === "success" && result.svg) {
       svgContent.value = result.svg;
+      // Add user location marker if available
+      if (props.userLocation) {
+        addUserLocationToSvg();
+      }
+      // Add target marker if available
+      if (props.targetMerchantId) {
+        addTargetMarkerToSvg();
+      }
     }
   } catch (err) {
     console.error("Failed to generate SVG map:", err);
@@ -121,9 +233,11 @@ onMounted(() => {
 });
 
 watch(
-  () => [props.entityId, props.areaId],
+  () => [props.entityId, props.areaId, props.userLocation, props.targetMerchantId],
   () => {
-    loadMapData();
+    if (props.entityId && props.areaId) {
+      loadMapData();
+    }
   }
 );
 
@@ -193,7 +307,7 @@ watch([mapWidth, mapHeight], () => {
 
         <div
           v-else-if="svgContent"
-          class="map-svg-container overflow-auto border rounded-lg"
+          class="map-svg-container overflow-auto border rounded-lg relative"
           :style="{
             maxHeight: mapHeight + 'px',
             cursor: 'pointer',
@@ -208,6 +322,22 @@ watch([mapWidth, mapHeight], () => {
               transition: 'transform 0.2s',
             }"
           ></div>
+
+          <!-- Route Overlay -->
+          <RouteOverlay
+            v-if="route && mapData"
+            :route="route"
+            :map-data="mapData"
+            :map-width="mapWidth"
+            :map-height="mapHeight"
+            :current-step="currentStep"
+            :show-target="true"
+            :style="{
+              transform: `scale(${zoomLevel})`,
+              transformOrigin: 'top left',
+              transition: 'transform 0.2s',
+            }"
+          />
         </div>
 
         <div v-if="mapData && (filteredBeacons.length > 0 || filteredMerchants.length > 0)" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -270,4 +400,3 @@ watch([mapWidth, mapHeight], () => {
   background: #f9fafb;
 }
 </style>
-

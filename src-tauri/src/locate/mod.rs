@@ -91,10 +91,11 @@ pub async fn locate_device(
         LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
         LocateResult::Error(err) => Err(anyhow::anyhow!("Locate error: {}", err)),
         LocateResult::NoBeacons => Err(anyhow::anyhow!("No beacons found")),
-        LocateResult::AreaChanged(_) => {
-            update_area(&conn, area.as_str(), entity.as_str()).await?;
-            match locator::handle_devices(devices, &conn, area.as_str()).await {
-                LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
+        LocateResult::AreaChanged(new_area) => {
+            trace!("Area changed, updating area info...");
+            update_area(&conn, new_area.as_str(), entity.as_str()).await?;
+            match locator::handle_devices(devices, &conn, new_area.as_str()).await {
+                LocateResult::Success(x, y) => Ok(LocateState { area: new_area, x, y }),
                 LocateResult::Error(err) => Err(anyhow::anyhow!("Locate error: {}", err)),
                 LocateResult::NoBeacons => Err(anyhow::anyhow!("No beacons found")),
                 _ => unreachable!(),
@@ -260,8 +261,18 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
                 beacon.area.to_string(),
                 entity.to_string(),
             );
-            beacon_info.insert(conn).await?;
-            println!("Beacon {} inserted/updated in the database.", beacon.id);
+            if BeaconInfo::get_from_id(conn, &beacon.id.to_string())
+                .await
+                .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
+                .is_some()
+            {
+                trace!("Beacon with ID {} already exists in the database.", beacon.id);
+                beacon_info.update(conn).await?;
+            } else {
+                trace!("Inserting new beacon with ID {} into the database.", beacon.id);
+                beacon_info.insert(conn).await?;
+            }
+            trace!("Beacon {} inserted/updated in the database.", beacon.id);
         }
         beacons_url = beacons.metadata.next_page_url;
     }

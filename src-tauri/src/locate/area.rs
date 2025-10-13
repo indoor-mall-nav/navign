@@ -16,7 +16,7 @@ pub struct ActiveArea {
     pub stored_at: u64,
 }
 
-fn coords_to_polygon(coords: &Vec<(f64, f64)>) -> String {
+fn coords_to_polygon(coords: &[(f64, f64)]) -> String {
     let polygon = Polygon::new(
         vec![LineString::new(
             coords.iter().map(|&(x, y)| Coord { x, y, z: None, m: None }).collect(),
@@ -33,7 +33,7 @@ impl From<AreaResponse> for ActiveArea {
             id: area.id.oid,
             name: area.name,
             entity: area.entity.oid,
-            polygon: coords_to_polygon(&area.polygon),
+            polygon: coords_to_polygon(area.polygon.as_slice()),
             // TODO
             updated_at: chrono::Utc::now().timestamp() as u64,
             stored_at: chrono::Utc::now().timestamp() as u64,
