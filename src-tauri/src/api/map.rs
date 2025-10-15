@@ -227,6 +227,21 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     })
 }
 
+pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantResponse>> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/merchants?limit=1000", BASE_URL, entity);
+    trace!("Fetching all merchants from URL: {}", url);
+    let response: PaginationResponse<MerchantResponse> = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch merchants: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse merchants: {}", e))?;
+    Ok(response.data)
+}
+
 /// Generate SVG map representation of the area
 pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
     let mut svg = format!(
@@ -344,6 +359,29 @@ pub async fn generate_svg_map_handler(
             let result = json!({
                 "status": "success",
                 "svg": svg
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_all_merchants_handler(
+    _app: AppHandle,
+    entity: String,
+) -> Result<String, String> {
+    match get_all_merchants(&entity).await {
+        Ok(merchants) => {
+            let result = json!({
+                "status": "success",
+                "data": merchants
             });
             Ok(result.to_string())
         }

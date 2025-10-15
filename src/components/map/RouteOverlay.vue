@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { RouteResponse, MapData } from "@/lib/api/tauri";
+import type { RouteResponse, RouteInstruction, MapData } from "@/lib/api/tauri";
 
 const props = defineProps<{
   route: RouteResponse;
@@ -9,6 +9,7 @@ const props = defineProps<{
   mapHeight: number;
   currentStep?: number;
   showTarget?: boolean;
+  userLocation?: { x: number; y: number } | null;
 }>();
 
 // Calculate bounds and scaling (same as backend)
@@ -40,61 +41,88 @@ const transform = (x: number, y: number) => {
   };
 };
 
-const routePath = computed(() => {
-  if (!props.route || !props.route.instructions.length) return "";
+// Extract coordinates from instruction
+function getInstructionCoords(instruction: RouteInstruction): [number, number] | null {
+  if ('move' in instruction) {
+    return instruction.move;
+  }
+  // For transport instructions, we don't have exact coordinates in the instruction
+  return null;
+}
 
-  const points = props.route.instructions.map((inst) => {
-    const from = transform(inst.from[0], inst.from[1]);
-    return `${from.x},${from.y}`;
+function getInstructionType(instruction: RouteInstruction): string {
+  if ('move' in instruction) {
+    return "move";
+  } else if ('transport' in instruction) {
+    return instruction.transport[2];
+  }
+  return "move";
+}
+
+const routePoints = computed(() => {
+  if (!props.route || !props.route.instructions.length) return [];
+
+  const points: Array<{ x: number; y: number; type: string; index: number }> = [];
+
+  // Add user location as starting point if available
+  if (props.userLocation) {
+    const startPoint = transform(props.userLocation.x, props.userLocation.y);
+    points.push({ ...startPoint, type: 'start', index: -1 });
+  }
+
+  // Add all instruction points
+  props.route.instructions.forEach((inst, idx) => {
+    const coords = getInstructionCoords(inst);
+    if (coords) {
+      const point = transform(coords[0], coords[1]);
+      points.push({ ...point, type: getInstructionType(inst), index: idx });
+    }
   });
 
-  // Add the last "to" point
-  const lastInst = props.route.instructions[props.route.instructions.length - 1];
-  const lastTo = transform(lastInst.to[0], lastInst.to[1]);
-  points.push(`${lastTo.x},${lastTo.y}`);
+  return points;
+});
 
-  return points.join(" ");
+const routePath = computed(() => {
+  if (routePoints.value.length < 2) return "";
+  return routePoints.value.map(p => `${p.x},${p.y}`).join(" ");
 });
 
 const routeSegments = computed(() => {
-  if (!props.route) return [];
+  if (routePoints.value.length < 2) return [];
 
-  return props.route.instructions.map((inst, idx) => {
-    const from = transform(inst.from[0], inst.from[1]);
-    const to = transform(inst.to[0], inst.to[1]);
+  const segments = [];
+  for (let i = 0; i < routePoints.value.length - 1; i++) {
+    const from = routePoints.value[i];
+    const to = routePoints.value[i + 1];
 
-    const isPassed = props.currentStep !== undefined && idx < props.currentStep;
-    const isCurrent = props.currentStep === idx;
+    const isPassed = props.currentStep !== undefined && i < props.currentStep;
+    const isCurrent = props.currentStep === i;
 
-    return {
+    segments.push({
       from,
       to,
-      type: inst.type,
+      type: to.type,
       isPassed,
       isCurrent,
-      index: idx,
-    };
-  });
+      index: i,
+    });
+  }
+
+  return segments;
 });
 
 const startPoint = computed(() => {
-  if (!props.route || !props.route.instructions.length) return null;
-  const firstInst = props.route.instructions[0];
-  return transform(firstInst.from[0], firstInst.from[1]);
+  return routePoints.value.length > 0 ? routePoints.value[0] : null;
 });
 
 const endPoint = computed(() => {
-  if (!props.route || !props.route.instructions.length) return null;
-  const lastInst = props.route.instructions[props.route.instructions.length - 1];
-  return transform(lastInst.to[0], lastInst.to[1]);
+  return routePoints.value.length > 0 ? routePoints.value[routePoints.value.length - 1] : null;
 });
 
 const currentPosition = computed(() => {
-  if (props.currentStep === undefined || !props.route) return null;
-  if (props.currentStep >= props.route.instructions.length) return null;
-
-  const inst = props.route.instructions[props.currentStep];
-  return transform(inst.from[0], inst.from[1]);
+  if (props.currentStep === undefined || !routePoints.value.length) return null;
+  if (props.currentStep >= routePoints.value.length) return null;
+  return routePoints.value[props.currentStep];
 });
 
 function getSegmentColor(type: string, isPassed: boolean, isCurrent: boolean): string {
@@ -111,6 +139,7 @@ function getSegmentColor(type: string, isPassed: boolean, isCurrent: boolean): s
     case "escalator":
       return "#14b8a6"; // teal
     case "gate":
+    case "turnstile":
       return "#ef4444"; // red
     default:
       return "#6b7280"; // gray
@@ -309,4 +338,3 @@ function getSegmentWidth(isCurrent: boolean): number {
   }
 }
 </style>
-

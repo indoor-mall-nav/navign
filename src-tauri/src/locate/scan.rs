@@ -40,23 +40,61 @@ impl std::error::Error for ScanError {}
 
 pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
     if cfg!(all(desktop, dev)) {
-        return Ok(
-            vec![
-                BleDevice {
-                    address: "48:F6:EE:21:B0:7C".to_string(),
-                    name: "NAVIGN_BEACON".to_string(),
-                    rssi: Some(-45),
-                    services: vec![
-                        service_id_to_uuid(0x1819),
-                        service_id_to_uuid(0x1821),
-                    ],
-                    manufacturer_data: HashMap::new(),
-                    service_data: HashMap::new(),
-                    is_bonded: false,
-                    is_connected: false
-                }
-            ]
-        );
+        let target = rand::random::<u8>() % 3;
+        return match target {
+            0 => Ok(
+                vec![
+                    BleDevice {
+                        address: "48:F6:EE:21:B0:7C".to_string(),
+                        name: "NAVIGN_BEACON".to_string(),
+                        rssi: Some(-45),
+                        services: vec![
+                            service_id_to_uuid(0x1819),
+                            service_id_to_uuid(0x1821),
+                        ],
+                        manufacturer_data: HashMap::new(),
+                        service_data: HashMap::new(),
+                        is_bonded: false,
+                        is_connected: false
+                    }
+                ]
+            ),
+            1 => Ok(
+                vec![
+                    BleDevice {
+                        address: "48:F6:EE:21:B0:7D".to_string(),
+                        name: "NAVIGN_BEACON".to_string(),
+                        rssi: Some(-90),
+                        services: vec![
+                            service_id_to_uuid(0x1819),
+                            service_id_to_uuid(0x1821),
+                        ],
+                        manufacturer_data: HashMap::new(),
+                        service_data: HashMap::new(),
+                        is_bonded: false,
+                        is_connected: false
+                    }
+                ]
+            ),
+            2 => Ok(
+                vec![
+                    BleDevice {
+                        address: "48:F6:EE:21:B0:7E".to_string(),
+                        name: "NAVIGN_BEACON".to_string(),
+                        rssi: Some(-40),
+                        services: vec![
+                            service_id_to_uuid(0x1819),
+                            service_id_to_uuid(0x1821),
+                        ],
+                        manufacturer_data: HashMap::new(),
+                        service_data: HashMap::new(),
+                        is_bonded: false,
+                        is_connected: false
+                    }
+                ]
+            ),
+            _ => Err(ScanError::NoDevicesFound),
+        }
     }
     let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<BleDevice>>(10);
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;

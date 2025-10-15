@@ -138,7 +138,13 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
     trace!("Connecting to device with MAC: {}", mac);
 
     let object_id = if cfg!(all(desktop, dev)) {
-        "68a84b6ebdfa76608b934b0a".to_string()
+        info!("Development mode: using fixed object ID for MAC: {}", mac);
+        (match mac.to_uppercase().as_str() {
+            "48:F6:EE:21:B0:7C" => "68a84b6ebdfa76608b934b0a",
+            "48:F6:EE:21:B0:7D" => "68a84b6ebdfa76608b934b0b",
+            "48:F6:EE:21:B0:7E" => "68a84b6ebdfa76608b934b09",
+            _ => "68a84b6ebdfa76608b934b0a"
+        }).to_string()
     } else {
         let handler = tauri_plugin_blec::get_handler()
             .map_err(|e| anyhow::anyhow!("BLE not initialized: {}", e))?;

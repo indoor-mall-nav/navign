@@ -3,7 +3,12 @@ import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import MapDisplay from "@/components/map/MapDisplay.vue";
 import NavigationPanel from "@/components/map/NavigationPanel.vue";
-import { getMapData, locateDevice, type RouteResponse } from "@/lib/api/tauri";
+import {
+  getAllMerchants,
+  getMapData,
+  locateDevice,
+  type RouteResponse,
+} from "@/lib/api/tauri";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
@@ -12,8 +17,8 @@ import { Separator } from "@/components/ui/separator";
 const route = useRoute();
 
 // Entity and area from route params or defaults
-const entityId = ref(route.query.entity as string || "default-entity");
-const areaId = ref(route.query.area as string || "default-area");
+const entityId = ref((route.query.entity as string) || "default-entity");
+const areaId = ref((route.query.area as string) || "default-area");
 
 // Navigation state
 const currentRoute = ref<RouteResponse | null>(null);
@@ -26,6 +31,7 @@ const currentLocationId = ref<string | undefined>(undefined);
 const mapData = ref<any>(null);
 const isLocating = ref(false);
 const locationError = ref("");
+const merchantsData = ref<Array<any>>([]);
 
 // Layout state
 const showNavigationPanel = ref(true);
@@ -35,6 +41,11 @@ async function loadMapData() {
     const result = await getMapData(entityId.value, areaId.value);
     if (result.status === "success" && result.data) {
       mapData.value = result.data;
+    }
+    const merchants = await getAllMerchants(entityId.value);
+    console.log(merchants)
+    if (merchants.status === "success" && merchants.data) {
+      merchantsData.value = merchants.data.map(x => ({...x, id: x._id.$oid}));
     }
   } catch (err) {
     console.error("Failed to load map data:", err);
@@ -79,6 +90,16 @@ function handleNavigationEnded() {
 
 function toggleNavigationPanel() {
   showNavigationPanel.value = !showNavigationPanel.value;
+}
+
+function formatDistance(meters: number): string {
+  if (meters < 1) {
+    return `${Math.round(meters * 100)} cm`;
+  } else if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  } else {
+    return `${(meters / 1000).toFixed(2)} km`;
+  }
 }
 
 onMounted(() => {
@@ -161,9 +182,12 @@ onMounted(() => {
             <Card>
               <CardContent class="pt-6">
                 <div class="text-center">
-                  <Icon icon="mdi:map-marker-distance" class="w-8 h-8 mx-auto mb-2 text-primary" />
+                  <Icon
+                    icon="mdi:map-marker-distance"
+                    class="w-8 h-8 mx-auto mb-2 text-primary"
+                  />
                   <p class="text-2xl font-bold">
-                    {{ currentRoute.total_distance.toFixed(0) }}m
+                    {{ formatDistance(currentRoute.total_distance) }}
                   </p>
                   <p class="text-xs text-muted-foreground">Total Distance</p>
                 </div>
@@ -172,8 +196,13 @@ onMounted(() => {
             <Card>
               <CardContent class="pt-6">
                 <div class="text-center">
-                  <Icon icon="mdi:foot-print" class="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                  <p class="text-2xl font-bold">{{ currentRoute.instructions.length }}</p>
+                  <Icon
+                    icon="mdi:foot-print"
+                    class="w-8 h-8 mx-auto mb-2 text-blue-500"
+                  />
+                  <p class="text-2xl font-bold">
+                    {{ currentRoute.instructions.length }}
+                  </p>
                   <p class="text-xs text-muted-foreground">Steps</p>
                 </div>
               </CardContent>
@@ -181,8 +210,11 @@ onMounted(() => {
             <Card>
               <CardContent class="pt-6">
                 <div class="text-center">
-                  <Icon icon="mdi:layers" class="w-8 h-8 mx-auto mb-2 text-green-500" />
-                  <p class="text-2xl font-bold">{{ currentRoute.areas.length }}</p>
+                  <Icon
+                    icon="mdi:layers"
+                    class="w-8 h-8 mx-auto mb-2 text-green-500"
+                  />
+                  <!--                  <p class="text-2xl font-bold">{{ currentRoute.areas.length }}</p>-->
                   <p class="text-xs text-muted-foreground">Areas</p>
                 </div>
               </CardContent>
@@ -190,7 +222,10 @@ onMounted(() => {
             <Card>
               <CardContent class="pt-6">
                 <div class="text-center">
-                  <Icon icon="mdi:progress-check" class="w-8 h-8 mx-auto mb-2 text-orange-500" />
+                  <Icon
+                    icon="mdi:progress-check"
+                    class="w-8 h-8 mx-auto mb-2 text-orange-500"
+                  />
                   <p class="text-2xl font-bold">
                     {{ currentStep + 1 }}/{{ currentRoute.instructions.length }}
                   </p>
@@ -218,12 +253,15 @@ onMounted(() => {
 
         <div class="p-4 space-y-4">
           <!-- Quick Stats (sidebar on desktop) -->
-          <div v-if="currentRoute" class="hidden lg:grid grid-cols-2 gap-2 mb-4">
+          <div
+            v-if="currentRoute"
+            class="hidden lg:grid grid-cols-2 gap-2 mb-4"
+          >
             <Card class="bg-primary/5">
               <CardContent class="pt-4 pb-3">
                 <div class="text-center">
                   <p class="text-xl font-bold">
-                    {{ currentRoute.total_distance.toFixed(0) }}m
+                    {{ formatDistance(currentRoute.total_distance) }}
                   </p>
                   <p class="text-xs text-muted-foreground">Distance</p>
                 </div>
@@ -232,7 +270,9 @@ onMounted(() => {
             <Card class="bg-blue-500/5">
               <CardContent class="pt-4 pb-3">
                 <div class="text-center">
-                  <p class="text-xl font-bold">{{ currentRoute.instructions.length }}</p>
+                  <p class="text-xl font-bold">
+                    {{ currentRoute.instructions.length }}
+                  </p>
                   <p class="text-xs text-muted-foreground">Steps</p>
                 </div>
               </CardContent>
@@ -246,8 +286,10 @@ onMounted(() => {
             v-if="mapData"
             :entity-id="entityId"
             :current-location="currentLocationId"
-            :current-exact-location="userLocation? [userLocation.x, userLocation.y]: undefined"
-            :merchants="mapData.merchants || []"
+            :current-exact-location="
+              userLocation ? [userLocation?.x, userLocation?.y] : undefined
+            "
+            :merchants="merchantsData || []"
             @route-calculated="handleRouteCalculated"
             @navigation-started="handleNavigationStarted"
             @navigation-ended="handleNavigationEnded"
@@ -262,7 +304,9 @@ onMounted(() => {
               </CardTitle>
             </CardHeader>
             <CardContent class="text-sm space-y-2">
-              <ol class="list-decimal list-inside space-y-1 text-muted-foreground">
+              <ol
+                class="list-decimal list-inside space-y-1 text-muted-foreground"
+              >
                 <li>Search for your destination</li>
                 <li>Select route preferences</li>
                 <li>Calculate the route</li>

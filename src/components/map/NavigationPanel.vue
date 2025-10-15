@@ -3,8 +3,8 @@ import { ref, computed, watch } from "vue";
 import {
   getRoute,
   type RouteResponse,
+  type RouteInstruction,
   type MapMerchant,
-  RouteInstruction,
 } from "@/lib/api/tauri";
 import {
   Card,
@@ -69,9 +69,9 @@ const progress = computed(() => {
 
 const remainingDistance = computed(() => {
   if (!route.value || !isNavigating.value) return 0;
-  return route.value.instructions
-    .slice(currentStep.value)
-    .reduce((sum, inst) => sum + (inst.distance || 0), 0);
+  // Estimate based on progress through instructions
+  const progressRatio = currentStep.value / route.value.instructions.length;
+  return route.value.total_distance * (1 - progressRatio);
 });
 
 function selectTarget(merchant: MapMerchant) {
@@ -91,7 +91,7 @@ async function calculateRoute() {
   try {
     const result = await getRoute(
       props.entityId,
-      `${props.currentExactLocation[0]},${props.currentExactLocation[1]},${props.currentLocation}`,
+      `${props.currentExactLocation[1]},${props.currentExactLocation[0]},${props.currentLocation}`,
       selectedTarget.value.id,
       {
         elevator: allowElevator.value,
@@ -132,7 +132,6 @@ function nextStep() {
   if (currentStep.value < route.value.instructions.length - 1) {
     currentStep.value++;
   } else {
-    // Navigation completed
     stopNavigation();
   }
 }
@@ -152,28 +151,34 @@ function clearRoute() {
   error.value = "";
 }
 
-function getInstruction(instructionType: RouteInstruction): string {
-  switch (Object.keys(instructionType)[0] ) {
-    case "move":
-      return "move";
-    case "transport":
-      switch ((instructionType as {
-        transport: [string, string, 'stairs' | 'elevator' | 'escalator' | 'gate' | 'turnstile']
-      }).transport[2]) {
-        case "elevator":
-          return "elevator";
-        case "stairs":
-          return "stairs";
-        case "escalator":
-          return "escalator";
-        case "gate":
-          return "gate";
-        default:
-          return "move";
-      }
-    default:
-      return "move";
+function getInstructionType(instruction: RouteInstruction): string {
+  if ("move" in instruction) {
+    return "move";
+  } else if ("transport" in instruction) {
+    return instruction.transport[2];
   }
+  return "move";
+}
+
+function getInstructionDetails(instruction: RouteInstruction): {
+  type: string;
+  target?: [number, number];
+  connectionId?: string;
+  targetArea?: string;
+} {
+  if ("move" in instruction) {
+    return {
+      type: "move",
+      target: instruction.move,
+    };
+  } else if ("transport" in instruction) {
+    return {
+      type: instruction.transport[2],
+      connectionId: instruction.transport[0],
+      targetArea: instruction.transport[1],
+    };
+  }
+  return { type: "move" };
 }
 
 function getInstructionIcon(type: string): string {
@@ -188,6 +193,8 @@ function getInstructionIcon(type: string): string {
       return "mdi:escalator";
     case "gate":
       return "mdi:gate";
+    case "turnstile":
+      return "mdi:turnstile";
     default:
       return "mdi:navigation";
   }
@@ -204,6 +211,7 @@ function getInstructionColor(type: string): string {
     case "escalator":
       return "text-green-500";
     case "gate":
+    case "turnstile":
       return "text-red-500";
     default:
       return "text-gray-500";
@@ -220,10 +228,18 @@ function formatDistance(meters: number): string {
   }
 }
 
+function getInstructionDescription(instruction: RouteInstruction): string {
+  const details = getInstructionDetails(instruction);
+  if (details.type === "move") {
+    return `Walk to (${details.target?.[0].toFixed(1)}, ${details.target?.[1].toFixed(1)})`;
+  } else {
+    return `Take ${details.type} to ${details.targetArea || "next area"}`;
+  }
+}
+
 watch(
   () => props.currentLocation,
   () => {
-    // Reset navigation when location changes
     if (isNavigating.value) {
       stopNavigation();
     }
@@ -374,10 +390,6 @@ watch(
             <Icon icon="mdi:close" class="w-5 h-5" />
           </Button>
         </CardTitle>
-        <CardDescription>
-          {{ formatDistance(route.total_distance) }} •
-          {{ route.instructions.length }} steps
-        </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
         <!-- Route Instructions Preview -->
@@ -392,17 +404,26 @@ watch(
                 class="w-8 h-8 rounded-full bg-accent flex items-center justify-center"
               >
                 <Icon
-                  :icon="getInstructionIcon(getInstruction(instruction))"
-                  :class="['w-5 h-5', getInstructionColor(getInstruction(instruction))]"
+                  :icon="getInstructionIcon(getInstructionType(instruction))"
+                  :class="[
+                    'w-5 h-5',
+                    getInstructionColor(getInstructionType(instruction)),
+                  ]"
                 />
               </div>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium capitalize">
-                  {{ getInstruction(instruction) }}
+                  {{ getInstructionType(instruction) }}
                 </span>
+                <Badge variant="outline" class="text-xs">
+                  Step {{ idx + 1 }}
+                </Badge>
               </div>
+              <p class="text-sm text-muted-foreground mt-1">
+                {{ getInstructionDescription(instruction) }}
+              </p>
             </div>
           </div>
         </div>
@@ -458,18 +479,23 @@ watch(
                 class="w-16 h-16 rounded-full bg-background flex items-center justify-center"
               >
                 <Icon
-                  :icon="getInstructionIcon(getInstruction(currentInstruction))"
+                  :icon="
+                    getInstructionIcon(getInstructionType(currentInstruction))
+                  "
                   :class="[
                     'w-8 h-8',
-                    getInstructionColor(getInstruction(currentInstruction)),
+                    getInstructionColor(getInstructionType(currentInstruction)),
                   ]"
                 />
               </div>
             </div>
             <div class="flex-1">
               <h3 class="text-lg font-semibold capitalize">
-                {{ getInstruction(currentInstruction) }}
+                {{ getInstructionType(currentInstruction) }}
               </h3>
+              <p class="text-sm text-muted-foreground mt-1">
+                {{ getInstructionDescription(currentInstruction) }}
+              </p>
             </div>
           </div>
 
@@ -482,14 +508,21 @@ watch(
             <div class="flex items-center gap-2">
               <Icon
                 :icon="
-                  getInstruction(route!.instructions[currentStep + 1])
+                  getInstructionIcon(
+                    getInstructionType(route!.instructions[currentStep + 1]),
+                  )
                 "
                 class="w-4 h-4"
               />
               <span class="text-sm font-medium capitalize">
-                {{ getInstruction(route!.instructions[currentStep + 1]) }}
+                {{ getInstructionType(route!.instructions[currentStep + 1]) }}
               </span>
             </div>
+            <p class="text-xs text-muted-foreground mt-1">
+              {{
+                getInstructionDescription(route!.instructions[currentStep + 1])
+              }}
+            </p>
           </div>
         </div>
 

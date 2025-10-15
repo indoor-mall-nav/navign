@@ -97,6 +97,15 @@ export async function getMapData(
   return JSON.parse(response);
 }
 
+export async function getAllMerchants(
+  entity: string,
+): Promise<ApiResponse<MapMerchant[]>> {
+  const response = await invoke<string>("get_all_merchants_handler", {
+    entity,
+  });
+  return JSON.parse(response);
+}
+
 export async function generateSvgMap(
   entity: string,
   area: string,
