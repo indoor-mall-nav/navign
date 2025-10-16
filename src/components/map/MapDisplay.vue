@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
-import { getMapData, generateSvgMap, type MapData, type RouteResponse } from "@/lib/api/tauri";
+import { computed, onMounted, ref, toRefs, watch } from "vue";
+import {
+  generateSvgMap,
+  getMapData,
+  type MapData,
+  type RouteResponse,
+} from "@/lib/api/tauri";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +24,17 @@ const props = defineProps<{
   targetMerchantId?: string | null;
 }>();
 
+const {
+  entityId,
+  areaId,
+  userLocation,
+  targetMerchantId,
+  width,
+  height,
+  route,
+  currentStep,
+} = toRefs(props);
+
 const emit = defineEmits<{
   beaconClick: [beaconId: string];
   merchantClick: [merchantId: string];
@@ -29,14 +45,14 @@ const svgContent = ref<string>("");
 const loading = ref(false);
 const error = ref<string>("");
 const searchQuery = ref("");
-const mapWidth = computed(() => props.width || 800);
-const mapHeight = computed(() => props.height || 600);
+const mapWidth = computed(() => width.value || 800);
+const mapHeight = computed(() => height.value || 600);
 const showBeacons = ref(true);
 const showMerchants = ref(true);
 const zoomLevel = ref(1);
 
 async function loadMapData() {
-  if (!props.entityId || !props.areaId) {
+  if (!entityId.value || !areaId.value) {
     error.value = "Entity ID and Area ID are required";
     return;
   }
@@ -45,7 +61,7 @@ async function loadMapData() {
   error.value = "";
 
   try {
-    const result = await getMapData(props.entityId, props.areaId);
+    const result = await getMapData(entityId.value, areaId.value);
     if (result.status === "success" && result.data) {
       mapData.value = result.data;
       await generateMap();
@@ -60,12 +76,12 @@ async function loadMapData() {
 }
 
 const targetMerchant = computed(() => {
-  if (!props.targetMerchantId || !mapData.value) return null;
-  return mapData.value.merchants.find(m => m.id === props.targetMerchantId);
+  if (!targetMerchantId.value || !mapData.value) return null;
+  return mapData.value.merchants.find((m) => m.id === targetMerchantId.value);
 });
 
 function addUserLocationToSvg() {
-  if (!svgContent.value || !props.userLocation || !mapData.value) return;
+  if (!svgContent.value || !userLocation.value || !mapData.value) return;
 
   // Calculate bounds for scaling (same as backend)
   let min_x = Number.MAX_VALUE;
@@ -84,8 +100,8 @@ function addUserLocationToSvg() {
   const scale_y = (mapHeight.value - 20) / (max_y - min_y);
   const scale = Math.min(scale_x, scale_y);
 
-  const tx = (props.userLocation.x - min_x) * scale + 10;
-  const ty = (props.userLocation.y - min_y) * scale + 10;
+  const tx = (userLocation.value.x - min_x) * scale + 10;
+  const ty = (userLocation.value.y - min_y) * scale + 10;
 
   // Create user location marker with pulsing animation
   const locationMarker = `
@@ -110,7 +126,10 @@ function addUserLocationToSvg() {
   `;
 
   // Insert before closing </svg> tag
-  svgContent.value = svgContent.value.replace('</svg>', locationMarker + '</svg>');
+  svgContent.value = svgContent.value.replace(
+    "</svg>",
+    locationMarker + "</svg>",
+  );
 }
 
 function addTargetMarkerToSvg() {
@@ -155,27 +174,30 @@ function addTargetMarkerToSvg() {
   `;
 
   // Insert before closing </svg> tag
-  svgContent.value = svgContent.value.replace('</svg>', targetMarker + '</svg>');
+  svgContent.value = svgContent.value.replace(
+    "</svg>",
+    targetMarker + "</svg>",
+  );
 }
 
 async function generateMap() {
-  if (!props.entityId || !props.areaId) return;
+  if (!entityId.value || !areaId.value) return;
 
   try {
     const result = await generateSvgMap(
-      props.entityId,
-      props.areaId,
+      entityId.value,
+      areaId.value,
       mapWidth.value,
-      mapHeight.value
+      mapHeight.value,
     );
     if (result.status === "success" && result.svg) {
       svgContent.value = result.svg;
       // Add user location marker if available
-      if (props.userLocation) {
+      if (userLocation.value) {
         addUserLocationToSvg();
       }
       // Add target marker if available
-      if (props.targetMerchantId) {
+      if (targetMerchantId.value) {
         addTargetMarkerToSvg();
       }
     }
@@ -201,7 +223,7 @@ const filteredBeacons = computed(() => {
   if (!mapData.value || !searchQuery.value) return mapData.value?.beacons || [];
   const query = searchQuery.value.toLowerCase();
   return mapData.value.beacons.filter((b) =>
-    b.name.toLowerCase().includes(query)
+    b.name.toLowerCase().includes(query),
   );
 });
 
@@ -212,7 +234,7 @@ const filteredMerchants = computed(() => {
   return mapData.value.merchants.filter(
     (m) =>
       m.name.toLowerCase().includes(query) ||
-      m.tags.some((tag) => tag.toLowerCase().includes(query))
+      m.tags.some((tag) => tag.toLowerCase().includes(query)),
   );
 });
 
@@ -232,14 +254,10 @@ onMounted(() => {
   loadMapData();
 });
 
-watch(
-  () => [props.entityId, props.areaId, props.userLocation, props.targetMerchantId],
-  () => {
-    if (props.entityId && props.areaId) {
-      loadMapData();
-    }
-  }
-);
+watch(entityId, loadMapData, { immediate: true });
+watch(areaId, loadMapData, { immediate: true });
+watch(userLocation, loadMapData, { immediate: true });
+watch(targetMerchantId, loadMapData, { immediate: true });
 
 watch([mapWidth, mapHeight], () => {
   if (mapData.value) {
@@ -340,7 +358,13 @@ watch([mapWidth, mapHeight], () => {
           />
         </div>
 
-        <div v-if="mapData && (filteredBeacons.length > 0 || filteredMerchants.length > 0)" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          v-if="
+            mapData &&
+            (filteredBeacons.length > 0 || filteredMerchants.length > 0)
+          "
+          class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div v-if="showBeacons && filteredBeacons.length > 0">
             <h3 class="font-semibold mb-2">
               Beacons ({{ filteredBeacons.length }})

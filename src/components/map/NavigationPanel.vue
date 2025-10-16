@@ -6,6 +6,7 @@ import {
   type RouteInstruction,
   type MapMerchant,
 } from "@/lib/api/tauri";
+import { extractInstructions } from "./extractInstructions";
 import {
   Card,
   CardContent,
@@ -57,20 +58,25 @@ const filteredMerchants = computed(() => {
   );
 });
 
-const currentInstruction = computed(() => {
-  if (!route.value || !isNavigating.value) return null;
-  return route.value.instructions[currentStep.value];
+const navigationSteps = computed(() => {
+  if (!route.value) return [];
+  return extractInstructions(route.value.instructions);
+});
+
+const currentNavigationStep = computed(() => {
+  if (!isNavigating.value || navigationSteps.value.length === 0) return null;
+  return navigationSteps.value[currentStep.value];
 });
 
 const progress = computed(() => {
-  if (!route.value || route.value.instructions.length === 0) return 0;
-  return ((currentStep.value + 1) / route.value.instructions.length) * 100;
+  if (navigationSteps.value.length === 0) return 0;
+  return ((currentStep.value + 1) / navigationSteps.value.length) * 100;
 });
 
 const remainingDistance = computed(() => {
   if (!route.value || !isNavigating.value) return 0;
   // Estimate based on progress through instructions
-  const progressRatio = currentStep.value / route.value.instructions.length;
+  const progressRatio = currentStep.value / navigationSteps.value.length;
   return route.value.total_distance * (1 - progressRatio);
 });
 
@@ -128,8 +134,8 @@ function stopNavigation() {
 }
 
 function nextStep() {
-  if (!route.value) return;
-  if (currentStep.value < route.value.instructions.length - 1) {
+  if (navigationSteps.value.length === 0) return;
+  if (currentStep.value < navigationSteps.value.length - 1) {
     currentStep.value++;
   } else {
     stopNavigation();
@@ -151,73 +157,6 @@ function clearRoute() {
   error.value = "";
 }
 
-function getInstructionType(instruction: RouteInstruction): string {
-  if ("move" in instruction) {
-    return "move";
-  } else if ("transport" in instruction) {
-    return instruction.transport[2];
-  }
-  return "move";
-}
-
-function getInstructionDetails(instruction: RouteInstruction): {
-  type: string;
-  target?: [number, number];
-  connectionId?: string;
-  targetArea?: string;
-} {
-  if ("move" in instruction) {
-    return {
-      type: "move",
-      target: instruction.move,
-    };
-  } else if ("transport" in instruction) {
-    return {
-      type: instruction.transport[2],
-      connectionId: instruction.transport[0],
-      targetArea: instruction.transport[1],
-    };
-  }
-  return { type: "move" };
-}
-
-function getInstructionIcon(type: string): string {
-  switch (type) {
-    case "move":
-      return "mdi:arrow-right";
-    case "elevator":
-      return "mdi:elevator";
-    case "stairs":
-      return "mdi:stairs";
-    case "escalator":
-      return "mdi:escalator";
-    case "gate":
-      return "mdi:gate";
-    case "turnstile":
-      return "mdi:turnstile";
-    default:
-      return "mdi:navigation";
-  }
-}
-
-function getInstructionColor(type: string): string {
-  switch (type) {
-    case "move":
-      return "text-blue-500";
-    case "elevator":
-      return "text-purple-500";
-    case "stairs":
-      return "text-orange-500";
-    case "escalator":
-      return "text-green-500";
-    case "gate":
-    case "turnstile":
-      return "text-red-500";
-    default:
-      return "text-gray-500";
-  }
-}
-
 function formatDistance(meters: number): string {
   if (meters < 1) {
     return `${Math.round(meters * 100)} cm`;
@@ -228,12 +167,86 @@ function formatDistance(meters: number): string {
   }
 }
 
-function getInstructionDescription(instruction: RouteInstruction): string {
-  const details = getInstructionDetails(instruction);
-  if (details.type === "move") {
-    return `Walk to (${details.target?.[0].toFixed(1)}, ${details.target?.[1].toFixed(1)})`;
-  } else {
-    return `Take ${details.type} to ${details.targetArea || "next area"}`;
+function getNavigationStepIcon(step: typeof navigationSteps.value[number]): string {
+  switch (step.type) {
+    case "straight":
+      return "mdi:arrow-up";
+    case "turn":
+      if (step.turn === "left") return "mdi:arrow-left";
+      if (step.turn === "right") return "mdi:arrow-right";
+      if (step.turn === "around") return "mdi:arrow-u-left-top";
+      return "mdi:navigation";
+    case "transport":
+      const transportType = step.transport?.[2];
+      if (transportType === "elevator") return "mdi:elevator";
+      if (transportType === "stairs") return "mdi:stairs";
+      if (transportType === "escalator") return "mdi:escalator";
+      if (transportType === "gate") return "mdi:gate";
+      if (transportType === "turnstile") return "mdi:turnstile";
+      return "mdi:transit-connection-variant";
+    case "unlock":
+      return "mdi:lock-open-variant";
+    default:
+      return "mdi:navigation";
+  }
+}
+
+function getNavigationStepColor(step: typeof navigationSteps.value[number]): string {
+  switch (step.type) {
+    case "straight":
+      return "text-blue-500";
+    case "turn":
+      return "text-yellow-500";
+    case "transport":
+      const transportType = step.transport?.[2];
+      if (transportType === "elevator") return "text-purple-500";
+      if (transportType === "stairs") return "text-orange-500";
+      if (transportType === "escalator") return "text-green-500";
+      if (transportType === "gate" || transportType === "turnstile") return "text-red-500";
+      return "text-gray-500";
+    case "unlock":
+      return "text-emerald-500";
+    default:
+      return "text-gray-500";
+  }
+}
+
+function getNavigationStepTitle(step: typeof navigationSteps.value[number]): string {
+  switch (step.type) {
+    case "straight":
+      return "Walk Straight";
+    case "turn":
+      if (step.turn === "left") return "Turn Left";
+      if (step.turn === "right") return "Turn Right";
+      if (step.turn === "around") return "Turn Around";
+      return "Turn";
+    case "transport":
+      const transportType = step.transport?.[2];
+      return `Take ${transportType?.charAt(0).toUpperCase()}${transportType?.slice(1)}`;
+    case "unlock":
+      return "Unlock Door";
+    default:
+      return "Navigate";
+  }
+}
+
+function getNavigationStepDescription(step: typeof navigationSteps.value[number]): string {
+  switch (step.type) {
+    case "straight":
+      return `Walk straight for ${formatDistance(step.straight || 0)}`;
+    case "turn":
+      if (step.turn === "left") return "Turn left";
+      if (step.turn === "right") return "Turn right";
+      if (step.turn === "around") return "Turn around";
+      return "Turn";
+    case "transport":
+      const transportType = step.transport?.[2];
+      const targetArea = step.transport?.[1];
+      return `Take ${transportType} to ${targetArea || "next area"}`;
+    case "unlock":
+      return "Unlock the door to access your destination";
+    default:
+      return "Continue";
   }
 }
 
@@ -395,7 +408,7 @@ watch(
         <!-- Route Instructions Preview -->
         <div class="max-h-80 overflow-y-auto space-y-2">
           <div
-            v-for="(instruction, idx) in route.instructions"
+            v-for="(step, idx) in navigationSteps"
             :key="idx"
             class="flex items-start gap-3 p-3 rounded-lg border bg-card"
           >
@@ -404,10 +417,10 @@ watch(
                 class="w-8 h-8 rounded-full bg-accent flex items-center justify-center"
               >
                 <Icon
-                  :icon="getInstructionIcon(getInstructionType(instruction))"
+                  :icon="getNavigationStepIcon(step)"
                   :class="[
                     'w-5 h-5',
-                    getInstructionColor(getInstructionType(instruction)),
+                    getNavigationStepColor(step),
                   ]"
                 />
               </div>
@@ -415,14 +428,14 @@ watch(
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium capitalize">
-                  {{ getInstructionType(instruction) }}
+                  {{ getNavigationStepTitle(step) }}
                 </span>
                 <Badge variant="outline" class="text-xs">
                   Step {{ idx + 1 }}
                 </Badge>
               </div>
               <p class="text-sm text-muted-foreground mt-1">
-                {{ getInstructionDescription(instruction) }}
+                {{ getNavigationStepDescription(step) }}
               </p>
             </div>
           </div>
@@ -436,7 +449,7 @@ watch(
     </Card>
 
     <!-- Active Navigation -->
-    <Card v-if="isNavigating && currentInstruction">
+    <Card v-if="isNavigating && currentNavigationStep">
       <CardHeader>
         <CardTitle class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -455,7 +468,7 @@ watch(
           <div class="flex items-center justify-between text-sm">
             <span
               >Step {{ currentStep + 1 }} of
-              {{ route!.instructions.length }}</span
+              {{ navigationSteps.length }}</span
             >
             <span class="text-muted-foreground">
               {{ formatDistance(remainingDistance) }} remaining
@@ -480,47 +493,47 @@ watch(
               >
                 <Icon
                   :icon="
-                    getInstructionIcon(getInstructionType(currentInstruction))
+                    getNavigationStepIcon(currentNavigationStep)
                   "
                   :class="[
                     'w-8 h-8',
-                    getInstructionColor(getInstructionType(currentInstruction)),
+                    getNavigationStepColor(currentNavigationStep),
                   ]"
                 />
               </div>
             </div>
             <div class="flex-1">
               <h3 class="text-lg font-semibold capitalize">
-                {{ getInstructionType(currentInstruction) }}
+                {{ getNavigationStepTitle(currentNavigationStep) }}
               </h3>
               <p class="text-sm text-muted-foreground mt-1">
-                {{ getInstructionDescription(currentInstruction) }}
+                {{ getNavigationStepDescription(currentNavigationStep) }}
               </p>
             </div>
           </div>
 
           <!-- Next Instruction Preview -->
           <div
-            v-if="currentStep < route!.instructions.length - 1"
+            v-if="currentStep < navigationSteps.length - 1"
             class="p-3 rounded-lg border bg-card/50"
           >
             <p class="text-xs text-muted-foreground mb-2">Next:</p>
             <div class="flex items-center gap-2">
               <Icon
                 :icon="
-                  getInstructionIcon(
-                    getInstructionType(route!.instructions[currentStep + 1]),
+                  getNavigationStepIcon(
+                    navigationSteps[currentStep + 1],
                   )
                 "
                 class="w-4 h-4"
               />
               <span class="text-sm font-medium capitalize">
-                {{ getInstructionType(route!.instructions[currentStep + 1]) }}
+                {{ getNavigationStepTitle(navigationSteps[currentStep + 1]) }}
               </span>
             </div>
             <p class="text-xs text-muted-foreground mt-1">
               {{
-                getInstructionDescription(route!.instructions[currentStep + 1])
+                getNavigationStepDescription(navigationSteps[currentStep + 1])
               }}
             </p>
           </div>
@@ -539,7 +552,7 @@ watch(
           </Button>
           <Button class="flex-1" @click="nextStep">
             {{
-              currentStep === route!.instructions.length - 1 ? "Finish" : "Next"
+              currentStep === navigationSteps.length - 1 ? "Finish" : "Next"
             }}
             <Icon icon="mdi:chevron-right" class="w-4 h-4 ml-1" />
           </Button>

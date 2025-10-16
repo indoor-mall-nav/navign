@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
+use sqlx::SqlitePool;
 use tauri::{AppHandle, State};
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;

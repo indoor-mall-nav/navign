@@ -203,6 +203,20 @@ async function handleLocateMe() {
       };
       session.setCurrentLocation({ x: result.x || 0, y: result.y || 0 });
       locationError.value = `Located at (${result.x?.toFixed(2)}, ${result.y?.toFixed(2)})`;
+      if (result.area && result.area !== areaId.value) {
+        // Area has changed
+        try {
+          const areaResponse = await fetch(
+            `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`
+          );
+          const area: Area = await areaResponse.json();
+          session.setArea(area);
+          locationError.value += `, Area changed to ${area.name}`;
+        } catch (error) {
+          console.error("Error fetching new area details:", error);
+          locationError.value += ", but failed to load new area details";
+        }
+      }
     } else {
       locationError.value = result.message || "Failed to locate device";
     }

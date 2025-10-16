@@ -61,6 +61,10 @@ async function locateUserPosition() {
     const result = await locateDevice(areaId.value, entityId.value);
     if (result.status === "success" && result.x && result.y) {
       userLocation.value = { x: result.x, y: result.y };
+      if (result.area && result.area !== areaId.value) {
+        areaId.value = result.area;
+        await loadMapData();
+      }
       currentLocationId.value = result.area;
     } else {
       locationError.value = result.message || "Failed to locate position";
