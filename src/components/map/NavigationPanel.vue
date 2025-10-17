@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   getRoute,
-  type RouteResponse,
-  type RouteInstruction,
   type MapMerchant,
+  type RouteResponse,
+  unlockDevice,
 } from "@/lib/api/tauri";
 import { extractInstructions } from "./extractInstructions";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,7 +167,23 @@ function formatDistance(meters: number): string {
   }
 }
 
-function getNavigationStepIcon(step: typeof navigationSteps.value[number]): string {
+const unlockErrorMessage = ref("");
+
+function unlockDoor() {
+  const targetMerchant = selectedTarget.value;
+  if (!targetMerchant) return;
+  unlockDevice(props.entityId, targetMerchant.id).then((res) => {
+    if (res.status === "success") {
+      nextStep();
+    } else {
+      unlockErrorMessage.value = "Failed to unlock door: " + res.message;
+    }
+  });
+}
+
+function getNavigationStepIcon(
+  step: (typeof navigationSteps.value)[number],
+): string {
   switch (step.type) {
     case "straight":
       return "mdi:arrow-up";
@@ -191,7 +207,9 @@ function getNavigationStepIcon(step: typeof navigationSteps.value[number]): stri
   }
 }
 
-function getNavigationStepColor(step: typeof navigationSteps.value[number]): string {
+function getNavigationStepColor(
+  step: (typeof navigationSteps.value)[number],
+): string {
   switch (step.type) {
     case "straight":
       return "text-blue-500";
@@ -202,7 +220,8 @@ function getNavigationStepColor(step: typeof navigationSteps.value[number]): str
       if (transportType === "elevator") return "text-purple-500";
       if (transportType === "stairs") return "text-orange-500";
       if (transportType === "escalator") return "text-green-500";
-      if (transportType === "gate" || transportType === "turnstile") return "text-red-500";
+      if (transportType === "gate" || transportType === "turnstile")
+        return "text-red-500";
       return "text-gray-500";
     case "unlock":
       return "text-emerald-500";
@@ -211,7 +230,9 @@ function getNavigationStepColor(step: typeof navigationSteps.value[number]): str
   }
 }
 
-function getNavigationStepTitle(step: typeof navigationSteps.value[number]): string {
+function getNavigationStepTitle(
+  step: (typeof navigationSteps.value)[number],
+): string {
   switch (step.type) {
     case "straight":
       return "Walk Straight";
@@ -230,7 +251,9 @@ function getNavigationStepTitle(step: typeof navigationSteps.value[number]): str
   }
 }
 
-function getNavigationStepDescription(step: typeof navigationSteps.value[number]): string {
+function getNavigationStepDescription(
+  step: (typeof navigationSteps.value)[number],
+): string {
   switch (step.type) {
     case "straight":
       return `Walk straight for ${formatDistance(step.straight || 0)}`;
@@ -418,10 +441,7 @@ watch(
               >
                 <Icon
                   :icon="getNavigationStepIcon(step)"
-                  :class="[
-                    'w-5 h-5',
-                    getNavigationStepColor(step),
-                  ]"
+                  :class="['w-5 h-5', getNavigationStepColor(step)]"
                 />
               </div>
             </div>
@@ -467,8 +487,7 @@ watch(
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
             <span
-              >Step {{ currentStep + 1 }} of
-              {{ navigationSteps.length }}</span
+              >Step {{ currentStep + 1 }} of {{ navigationSteps.length }}</span
             >
             <span class="text-muted-foreground">
               {{ formatDistance(remainingDistance) }} remaining
@@ -492,9 +511,7 @@ watch(
                 class="w-16 h-16 rounded-full bg-background flex items-center justify-center"
               >
                 <Icon
-                  :icon="
-                    getNavigationStepIcon(currentNavigationStep)
-                  "
+                  :icon="getNavigationStepIcon(currentNavigationStep)"
                   :class="[
                     'w-8 h-8',
                     getNavigationStepColor(currentNavigationStep),
@@ -509,6 +526,17 @@ watch(
               <p class="text-sm text-muted-foreground mt-1">
                 {{ getNavigationStepDescription(currentNavigationStep) }}
               </p>
+              <Button
+                v-if="currentNavigationStep.type === 'unlock'"
+                class="mt-2"
+                size="sm"
+                @click="unlockDoor"
+              >
+                Unlock
+              </Button>
+              <p v-if="unlockErrorMessage" class="text-sm text-red-500 mt-1">
+                {{ unlockErrorMessage }}
+              </p>
             </div>
           </div>
 
@@ -520,11 +548,7 @@ watch(
             <p class="text-xs text-muted-foreground mb-2">Next:</p>
             <div class="flex items-center gap-2">
               <Icon
-                :icon="
-                  getNavigationStepIcon(
-                    navigationSteps[currentStep + 1],
-                  )
-                "
+                :icon="getNavigationStepIcon(navigationSteps[currentStep + 1])"
                 class="w-4 h-4"
               />
               <span class="text-sm font-medium capitalize">
@@ -551,9 +575,7 @@ watch(
             Previous
           </Button>
           <Button class="flex-1" @click="nextStep">
-            {{
-              currentStep === navigationSteps.length - 1 ? "Finish" : "Next"
-            }}
+            {{ currentStep === navigationSteps.length - 1 ? "Finish" : "Next" }}
             <Icon icon="mdi:chevron-right" class="w-4 h-4 ml-1" />
           </Button>
         </div>

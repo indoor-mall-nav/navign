@@ -20,7 +20,8 @@ export const useSessionStore = defineStore("session", {
       Object.keys(state.nearestMerchants).length > 0,
     isBeaconsSet: (state) => state.beacons.length > 0,
     isConnectionsSet: (state) => state.connections.length > 0,
-    hasValidToken: (state) => state.userToken.length > 0 && state.isAuthenticated,
+    hasValidToken: (state) =>
+      state.userToken.length > 0 && state.isAuthenticated,
   },
   actions: {
     setEntity(entity: Entity) {

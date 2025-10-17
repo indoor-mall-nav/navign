@@ -42,8 +42,10 @@ const transform = (x: number, y: number) => {
 };
 
 // Extract coordinates from instruction
-function getInstructionCoords(instruction: RouteInstruction): [number, number] | null {
-  if ('move' in instruction) {
+function getInstructionCoords(
+  instruction: RouteInstruction,
+): [number, number] | null {
+  if ("move" in instruction) {
     return instruction.move;
   }
   // For transport instructions, we don't have exact coordinates in the instruction
@@ -51,9 +53,9 @@ function getInstructionCoords(instruction: RouteInstruction): [number, number] |
 }
 
 function getInstructionType(instruction: RouteInstruction): string {
-  if ('move' in instruction) {
+  if ("move" in instruction) {
     return "move";
-  } else if ('transport' in instruction) {
+  } else if ("transport" in instruction) {
     return instruction.transport[2];
   }
   return "move";
@@ -62,12 +64,13 @@ function getInstructionType(instruction: RouteInstruction): string {
 const routePoints = computed(() => {
   if (!props.route || !props.route.instructions.length) return [];
 
-  const points: Array<{ x: number; y: number; type: string; index: number }> = [];
+  const points: Array<{ x: number; y: number; type: string; index: number }> =
+    [];
 
   // Add user location as starting point if available
   if (props.userLocation) {
     const startPoint = transform(props.userLocation.x, props.userLocation.y);
-    points.push({ ...startPoint, type: 'start', index: -1 });
+    points.push({ ...startPoint, type: "start", index: -1 });
   }
 
   // Add all instruction points
@@ -84,7 +87,7 @@ const routePoints = computed(() => {
 
 const routePath = computed(() => {
   if (routePoints.value.length < 2) return "";
-  return routePoints.value.map(p => `${p.x},${p.y}`).join(" ");
+  return routePoints.value.map((p) => `${p.x},${p.y}`).join(" ");
 });
 
 const routeSegments = computed(() => {
@@ -116,7 +119,9 @@ const startPoint = computed(() => {
 });
 
 const endPoint = computed(() => {
-  return routePoints.value.length > 0 ? routePoints.value[routePoints.value.length - 1] : null;
+  return routePoints.value.length > 0
+    ? routePoints.value[routePoints.value.length - 1]
+    : null;
 });
 
 const currentPosition = computed(() => {
@@ -125,7 +130,11 @@ const currentPosition = computed(() => {
   return routePoints.value[props.currentStep];
 });
 
-function getSegmentColor(type: string, isPassed: boolean, isCurrent: boolean): string {
+function getSegmentColor(
+  type: string,
+  isPassed: boolean,
+  isCurrent: boolean,
+): string {
   if (isPassed) return "#9ca3af"; // gray for passed segments
   if (isCurrent) return "#3b82f6"; // blue for current segment
 
@@ -156,7 +165,7 @@ function getSegmentWidth(isCurrent: boolean): number {
     :width="mapWidth"
     :height="mapHeight"
     class="absolute top-0 left-0 pointer-events-none"
-    style="z-index: 10;"
+    style="z-index: 10"
   >
     <defs>
       <!-- Arrow marker for route direction -->
@@ -170,7 +179,6 @@ function getSegmentWidth(isCurrent: boolean): number {
       >
         <polygon points="0 0, 10 3, 0 6" fill="#10b981" />
       </marker>
-
     </defs>
 
     <!-- Route polyline (full path) -->
@@ -192,7 +200,9 @@ function getSegmentWidth(isCurrent: boolean): number {
         :y1="segment.from.y"
         :x2="segment.to.x"
         :y2="segment.to.y"
-        :stroke="getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)"
+        :stroke="
+          getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)
+        "
         :stroke-width="getSegmentWidth(segment.isCurrent)"
         stroke-linecap="round"
         :stroke-dasharray="segment.isCurrent ? '10 5' : 'none'"
@@ -206,7 +216,9 @@ function getSegmentWidth(isCurrent: boolean): number {
           :y1="(segment.from.y + segment.to.y) / 2"
           :x2="(segment.from.x + segment.to.x) / 2"
           :y2="(segment.from.y + segment.to.y) / 2"
-          :stroke="getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)"
+          :stroke="
+            getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)
+          "
           stroke-width="2"
           marker-end="url(#arrowhead)"
         />
@@ -218,7 +230,9 @@ function getSegmentWidth(isCurrent: boolean): number {
         :cy="segment.from.y"
         :r="segment.isCurrent ? 8 : 5"
         :fill="segment.isCurrent ? '#3b82f6' : '#fff'"
-        :stroke="getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)"
+        :stroke="
+          getSegmentColor(segment.type, segment.isPassed, segment.isCurrent)
+        "
         :stroke-width="segment.isCurrent ? 3 : 2"
       />
     </g>

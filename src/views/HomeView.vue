@@ -4,13 +4,23 @@ import { useSessionStore } from "@/states/session";
 import { useRouter } from "vue-router";
 import { locateDevice } from "@/lib/api/tauri";
 import MapDisplay from "@/components/map/MapDisplay.vue";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@iconify/vue";
 import { Badge } from "@/components/ui/badge";
 import { fetch } from "@tauri-apps/plugin-http";
-import { checkPermissions, getCurrentPosition, requestPermissions } from "@tauri-apps/plugin-geolocation";
+import {
+  checkPermissions,
+  getCurrentPosition,
+  requestPermissions,
+} from "@tauri-apps/plugin-geolocation";
 import { baseUrl } from "@/lib/shared";
 import type { Entity, Area } from "@/schema";
 
@@ -19,7 +29,9 @@ const router = useRouter();
 
 const locating = ref(false);
 const locationError = ref("");
-const currentPosition = ref<{ area: string; x: number; y: number } | null>(null);
+const currentPosition = ref<{ area: string; x: number; y: number } | null>(
+  null,
+);
 
 // Entity finding state
 const geolocation = ref<[number, number]>([0, 0]);
@@ -70,7 +82,8 @@ async function getGeolocation() {
     geolocationError.value = "";
   } catch (error) {
     console.error("Geolocation error:", error);
-    geolocationError.value = "Failed to obtain geolocation. Please ensure location services are enabled.";
+    geolocationError.value =
+      "Failed to obtain geolocation. Please ensure location services are enabled.";
   }
 }
 
@@ -88,16 +101,26 @@ async function findEntity() {
     });
 
     // Add geolocation if available
-    if (geolocation.value && geolocation.value[0] !== 0.0 && geolocation.value[1] !== 0.0) {
+    if (
+      geolocation.value &&
+      geolocation.value[0] !== 0.0 &&
+      geolocation.value[1] !== 0.0
+    ) {
       query.append("latitude", geolocation.value[0].toString());
       query.append("longitude", geolocation.value[1].toString());
     }
 
-    console.log("Fetching entities:", baseUrl + "/api/entities/?" + query.toString());
+    console.log(
+      "Fetching entities:",
+      baseUrl + "/api/entities/?" + query.toString(),
+    );
 
-    const response = await fetch(baseUrl + "/api/entities/?" + query.toString(), {
-      method: "GET",
-    });
+    const response = await fetch(
+      baseUrl + "/api/entities/?" + query.toString(),
+      {
+        method: "GET",
+      },
+    );
 
     const data: Entity[] = await response.json();
     console.log("Entities found:", data);
@@ -152,7 +175,7 @@ async function findAreaWithBackend() {
       // Fetch the full area details
       try {
         const areaResponse = await fetch(
-          `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`
+          `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`,
         );
 
         const area: Area = await areaResponse.json();
@@ -174,7 +197,8 @@ async function findAreaWithBackend() {
         areaFindingError.value = "Area detected but failed to load details";
       }
     } else {
-      areaFindingError.value = result.message || "Failed to detect area. No beacons found nearby.";
+      areaFindingError.value =
+        result.message || "Failed to detect area. No beacons found nearby.";
     }
   } catch (error) {
     console.error("Area detection error:", error);
@@ -207,7 +231,7 @@ async function handleLocateMe() {
         // Area has changed
         try {
           const areaResponse = await fetch(
-            `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`
+            `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`,
           );
           const area: Area = await areaResponse.json();
           session.setArea(area);
@@ -256,11 +280,14 @@ function handleLogout() {
 }
 
 // Watch for entity changes
-watch(() => session.entity, (newEntity) => {
-  if (newEntity) {
-    console.log("Entity selected:", newEntity.name);
-  }
-});
+watch(
+  () => session.entity,
+  (newEntity) => {
+    if (newEntity) {
+      console.log("Entity selected:", newEntity.name);
+    }
+  },
+);
 </script>
 
 <template>
@@ -301,7 +328,11 @@ watch(() => session.entity, (newEntity) => {
                 class="w-4 h-4 mr-2"
                 :class="{ 'text-green-500': geolocation[0] !== 0 }"
               />
-              {{ geolocation[0] !== 0 ? `Location: ${geolocation[0].toFixed(4)}, ${geolocation[1].toFixed(4)}` : 'Get Current Location' }}
+              {{
+                geolocation[0] !== 0
+                  ? `Location: ${geolocation[0].toFixed(4)}, ${geolocation[1].toFixed(4)}`
+                  : "Get Current Location"
+              }}
             </Button>
           </div>
 
@@ -315,21 +346,25 @@ watch(() => session.entity, (newEntity) => {
           </div>
 
           <!-- Find Button -->
-          <Button
-            @click="findEntity"
-            class="w-full"
-            :disabled="findingEntity"
-          >
+          <Button @click="findEntity" class="w-full" :disabled="findingEntity">
             <Icon
               icon="mdi:magnify"
               class="w-4 h-4 mr-2"
               :class="{ 'animate-spin': findingEntity }"
             />
-            {{ findingEntity ? 'Searching...' : 'Find Entity' }}
+            {{ findingEntity ? "Searching..." : "Find Entity" }}
           </Button>
 
           <!-- Error/Success Messages -->
-          <p v-if="geolocationError" class="text-sm" :class="geolocationError.includes('Found') ? 'text-green-600' : 'text-red-500'">
+          <p
+            v-if="geolocationError"
+            class="text-sm"
+            :class="
+              geolocationError.includes('Found')
+                ? 'text-green-600'
+                : 'text-red-500'
+            "
+          >
             {{ geolocationError }}
           </p>
         </CardContent>
@@ -353,16 +388,26 @@ watch(() => session.entity, (newEntity) => {
             <div class="flex items-start justify-between">
               <div>
                 <h3 class="font-semibold">{{ entity.name }}</h3>
-                <p class="text-sm text-muted-foreground" v-if="entity.description">
+                <p
+                  class="text-sm text-muted-foreground"
+                  v-if="entity.description"
+                >
                   {{ entity.description }}
                 </p>
                 <div class="flex gap-1 mt-2">
-                  <Badge v-for="tag in entity.tags.slice(0, 3)" :key="tag" variant="secondary">
+                  <Badge
+                    v-for="tag in entity.tags.slice(0, 3)"
+                    :key="tag"
+                    variant="secondary"
+                  >
                     {{ tag }}
                   </Badge>
                 </div>
               </div>
-              <Icon icon="mdi:chevron-right" class="w-5 h-5 text-muted-foreground" />
+              <Icon
+                icon="mdi:chevron-right"
+                class="w-5 h-5 text-muted-foreground"
+              />
             </div>
           </Card>
         </CardContent>
@@ -396,10 +441,19 @@ watch(() => session.entity, (newEntity) => {
               class="w-4 h-4 mr-2"
               :class="{ 'animate-spin': findingArea }"
             />
-            {{ findingArea ? 'Detecting Area...' : 'Detect Current Area' }}
+            {{ findingArea ? "Detecting Area..." : "Detect Current Area" }}
           </Button>
 
-          <p v-if="areaFindingError" class="text-sm" :class="areaFindingError.includes('Successfully') || areaFindingError.includes('Found') ? 'text-green-600' : 'text-red-500'">
+          <p
+            v-if="areaFindingError"
+            class="text-sm"
+            :class="
+              areaFindingError.includes('Successfully') ||
+              areaFindingError.includes('Found')
+                ? 'text-green-600'
+                : 'text-red-500'
+            "
+          >
             {{ areaFindingError }}
           </p>
         </CardContent>
@@ -420,19 +474,19 @@ watch(() => session.entity, (newEntity) => {
           <CardContent class="space-y-4">
             <div v-if="currentPosition" class="p-3 bg-accent rounded-lg">
               <div class="flex items-center gap-2 mb-2">
-                <Icon icon="mdi:map-marker-check" class="w-5 h-5 text-green-500" />
+                <Icon
+                  icon="mdi:map-marker-check"
+                  class="w-5 h-5 text-green-500"
+                />
                 <span class="font-semibold">Located</span>
               </div>
               <div class="text-sm text-muted-foreground">
-                Position: ({{ currentPosition.x.toFixed(2) }}, {{ currentPosition.y.toFixed(2) }})
+                Position: ({{ currentPosition.x.toFixed(2) }},
+                {{ currentPosition.y.toFixed(2) }})
               </div>
             </div>
 
-            <Button
-              class="w-full"
-              @click="handleLocateMe"
-              :disabled="locating"
-            >
+            <Button class="w-full" @click="handleLocateMe" :disabled="locating">
               <Icon
                 icon="mdi:crosshairs-gps"
                 class="w-4 h-4 mr-2"
@@ -441,7 +495,14 @@ watch(() => session.entity, (newEntity) => {
               {{ locating ? "Locating..." : "Locate Me" }}
             </Button>
 
-            <p v-if="locationError" :class="locationError.includes('Located') ? 'text-green-600 text-sm' : 'text-red-500 text-sm'">
+            <p
+              v-if="locationError"
+              :class="
+                locationError.includes('Located')
+                  ? 'text-green-600 text-sm'
+                  : 'text-red-500 text-sm'
+              "
+            >
               {{ locationError }}
             </p>
           </CardContent>
@@ -463,7 +524,10 @@ watch(() => session.entity, (newEntity) => {
                   <Icon icon="mdi:store" class="w-4 h-4 text-blue-500" />
                   <span class="text-sm font-medium">{{ merchant.name }}</span>
                 </div>
-                <Icon icon="mdi:chevron-right" class="w-4 h-4 text-muted-foreground" />
+                <Icon
+                  icon="mdi:chevron-right"
+                  class="w-4 h-4 text-muted-foreground"
+                />
               </div>
             </div>
           </CardContent>
@@ -474,7 +538,11 @@ watch(() => session.entity, (newEntity) => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent class="space-y-2">
-            <Button variant="outline" class="w-full justify-start" @click="handleStartNavigation">
+            <Button
+              variant="outline"
+              class="w-full justify-start"
+              @click="handleStartNavigation"
+            >
               <Icon icon="mdi:navigation" class="w-4 h-4 mr-2" />
               Start Navigation
             </Button>
@@ -482,7 +550,11 @@ watch(() => session.entity, (newEntity) => {
               <Icon icon="mdi:magnify" class="w-4 h-4 mr-2" />
               Search Merchants
             </Button>
-            <Button variant="outline" class="w-full justify-start" @click="handleLocateMe">
+            <Button
+              variant="outline"
+              class="w-full justify-start"
+              @click="handleLocateMe"
+            >
               <Icon icon="mdi:target" class="w-4 h-4 mr-2" />
               Update Location
             </Button>
@@ -498,13 +570,20 @@ watch(() => session.entity, (newEntity) => {
           :area-id="areaId"
           :width="800"
           :height="600"
-          :user-location="currentPosition ? { x: currentPosition.x, y: currentPosition.y } : null"
+          :user-location="
+            currentPosition
+              ? { x: currentPosition.x, y: currentPosition.y }
+              : null
+          "
           @beacon-click="handleBeaconClick"
           @merchant-click="handleMerchantClick"
         />
         <Card v-else>
           <CardContent class="py-12 text-center">
-            <Icon icon="mdi:map-off" class="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <Icon
+              icon="mdi:map-off"
+              class="w-16 h-16 mx-auto mb-4 text-muted-foreground"
+            />
             <p class="text-muted-foreground">No map data available</p>
             <Button class="mt-4" @click="findAreaWithBackend">
               <Icon icon="mdi:radar" class="w-4 h-4 mr-2" />

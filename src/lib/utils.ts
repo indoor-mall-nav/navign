@@ -20,7 +20,7 @@ export type ObjectValues<T> = T[keyof T];
 export function rssiToDistance(
   rssi: number,
   txPower: number = -59,
-  pathLoss: number = 2.0
+  pathLoss: number = 2.0,
 ): number {
   if (rssi === 0) return -1.0;
   const ratio = (txPower - rssi) / (10.0 * pathLoss);
@@ -68,7 +68,7 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
   return (...args: Parameters<T>) => {
@@ -89,7 +89,7 @@ export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371e3; // Earth's radius in meters
   const φ1 = (lat1 * Math.PI) / 180;
@@ -113,7 +113,7 @@ export function calculateDistance(
  */
 export function isPointInPolygon(
   point: [number, number],
-  polygon: [number, number][]
+  polygon: [number, number][],
 ): boolean {
   const [x, y] = point;
   let inside = false;
@@ -140,14 +140,16 @@ export function isPointInPolygon(
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  delay: number = 1000
+  delay: number = 1000,
 ): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error) {
       if (i === maxRetries - 1) throw error;
-      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, delay * Math.pow(2, i)),
+      );
     }
   }
   throw new Error("Max retries reached");

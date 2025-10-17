@@ -1,9 +1,9 @@
+use crate::api::map::AreaResponse;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::str::FromStr;
 use wkt::types::{Coord, Dimension, LineString, Polygon};
 use wkt::Wkt;
-use crate::api::map::AreaResponse;
 
 #[derive(Clone, Debug, FromRow, Serialize, Deserialize, Default)]
 pub struct ActiveArea {
@@ -19,10 +19,18 @@ pub struct ActiveArea {
 fn coords_to_polygon(coords: &[(f64, f64)]) -> String {
     let polygon = Polygon::new(
         vec![LineString::new(
-            coords.iter().map(|&(x, y)| Coord { x, y, z: None, m: None }).collect(),
-            Dimension::XY
+            coords
+                .iter()
+                .map(|&(x, y)| Coord {
+                    x,
+                    y,
+                    z: None,
+                    m: None,
+                })
+                .collect(),
+            Dimension::XY,
         )],
-        Dimension::XY
+        Dimension::XY,
     );
     polygon.to_string()
 }

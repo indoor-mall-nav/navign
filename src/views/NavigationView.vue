@@ -43,9 +43,12 @@ async function loadMapData() {
       mapData.value = result.data;
     }
     const merchants = await getAllMerchants(entityId.value);
-    console.log(merchants)
+    console.log(merchants);
     if (merchants.status === "success" && merchants.data) {
-      merchantsData.value = merchants.data.map(x => ({...x, id: x._id.$oid}));
+      merchantsData.value = merchants.data.map((x) => ({
+        ...x,
+        id: x._id.$oid,
+      }));
     }
   } catch (err) {
     console.error("Failed to load map data:", err);

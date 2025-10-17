@@ -2,9 +2,9 @@ name: Rust Unit Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -76,4 +76,3 @@ jobs:
         uses: extractions/setup-just@v3
       - name: Run lint
         run: just lint
-

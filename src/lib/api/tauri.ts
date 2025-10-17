@@ -9,7 +9,10 @@ export interface ApiResponse<T = any> {
 }
 
 // Login/Authentication APIs
-export async function login(email: string, password: string): Promise<ApiResponse> {
+export async function login(
+  email: string,
+  password: string,
+): Promise<ApiResponse> {
   const response = await invoke<string>("login_handler", { email, password });
   return JSON.parse(response);
 }
@@ -17,7 +20,7 @@ export async function login(email: string, password: string): Promise<ApiRespons
 export async function register(
   email: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<ApiResponse> {
   const response = await invoke<string>("register_handler", {
     email,
@@ -68,11 +71,17 @@ export interface MapMerchant {
 }
 
 // Route/Navigation APIs
-export type RouteInstruction = {
-  move: [number, number]
-} | {
-  transport: [string, string, 'stairs' | 'elevator' | 'escalator' | 'gate' | 'turnstile']
-}
+export type RouteInstruction =
+  | {
+      move: [number, number];
+    }
+  | {
+      transport: [
+        string,
+        string,
+        "stairs" | "elevator" | "escalator" | "gate" | "turnstile",
+      ];
+    };
 
 export interface RouteResponse {
   instructions: RouteInstruction[];
@@ -88,7 +97,7 @@ export interface ConnectivityLimits {
 
 export async function getMapData(
   entity: string,
-  area: string
+  area: string,
 ): Promise<ApiResponse<MapData>> {
   const response = await invoke<string>("get_map_data_handler", {
     entity,
@@ -110,7 +119,7 @@ export async function generateSvgMap(
   entity: string,
   area: string,
   width: number,
-  height: number
+  height: number,
 ): Promise<ApiResponse<{ svg: string }>> {
   const response = await invoke<string>("generate_svg_map_handler", {
     entity,
@@ -124,7 +133,7 @@ export async function generateSvgMap(
 export async function searchMerchants(
   entity: string,
   area: string,
-  query: string
+  query: string,
 ): Promise<ApiResponse> {
   const response = await invoke<string>("search_merchants_handler", {
     entity,
@@ -137,7 +146,7 @@ export async function searchMerchants(
 // Location APIs
 export async function locateDevice(
   area: string,
-  entity: string
+  entity: string,
 ): Promise<ApiResponse<{ area: string; x: number; y: number }>> {
   const response = await invoke<string>("locate_handler", { area, entity });
   console.log(response);
@@ -147,12 +156,13 @@ export async function locateDevice(
 // Unlocker APIs
 export async function unlockDevice(
   entity: string,
-  target: string
+  target: string,
 ): Promise<ApiResponse> {
   const response = await invoke<string>("unlock_handler", {
     entity,
     target,
   });
+  console.log(response);
   return JSON.parse(response);
 }
 
@@ -165,7 +175,7 @@ export async function getRoute(
   entity: string,
   from: string,
   to: string,
-  limits?: ConnectivityLimits
+  limits?: ConnectivityLimits,
 ): Promise<ApiResponse<RouteResponse>> {
   const response = await invoke<string>("get_route_handler", {
     entity,

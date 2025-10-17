@@ -20,6 +20,7 @@ Navign is an indoor navigation system that uses Bluetooth Low Energy (BLE) beaco
 ## Tech Stack
 
 ### Frontend
+
 - **Framework**: Vue 3 with TypeScript
 - **UI Components**: Shadcn Vue
 - **Styling**: Tailwind CSS 4
@@ -30,11 +31,12 @@ Navign is an indoor navigation system that uses Bluetooth Low Energy (BLE) beaco
 - **Animations**: Motion-v
 
 ### Backend (Tauri)
+
 - **Runtime**: Tauri 2.0
 - **Language**: Rust
 - **Database**: SQLite with SQLx
 - **Bluetooth**: Custom BLE integration via tauri-plugin-blec
-- **Cryptography**: 
+- **Cryptography**:
   - P256 ECDSA for signature verification
   - AES-GCM for encryption
   - RSA for key exchange
@@ -89,18 +91,21 @@ mobile/
 ## Installation
 
 1. **Clone the repository**:
+
    ```bash
    git clone <repository-url>
    cd mobile
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment variables**:
    Create a `.env` file in the root directory:
+
    ```env
    VITE_BASE_URL=http://your-server-url:3000
    ```
@@ -210,6 +215,7 @@ The application works with several key entities:
 Main configuration file: `src-tauri/tauri.conf.json`
 
 Key settings:
+
 - **Product Name**: Navign
 - **Bundle Identifier**: com.ethan.mallnav
 - **Minimum Android SDK**: 26
@@ -218,6 +224,7 @@ Key settings:
 ### Vite Configuration
 
 Located in `vite.config.ts`:
+
 - Development server runs on port 1420
 - HMR on port 1421
 - Path alias `@` points to `./src`

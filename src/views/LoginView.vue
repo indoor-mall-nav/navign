@@ -156,17 +156,10 @@ async function handleGuestLogin() {
             I agree to the Terms of Service and Privacy Policy.
           </Label>
         </div>
-        <p
-          v-if="errorMessage"
-          class="text-red-500 text-sm mt-2"
-        >
+        <p v-if="errorMessage" class="text-red-500 text-sm mt-2">
           {{ errorMessage }}
         </p>
-        <Button
-          class="w-full my-4"
-          type="submit"
-          :disabled="loading"
-        >
+        <Button class="w-full my-4" type="submit" :disabled="loading">
           {{ loading ? "Registering..." : "Register" }}
         </Button>
       </Form>
@@ -193,17 +186,10 @@ async function handleGuestLogin() {
           class="my-4"
           :disabled="loading"
         />
-        <p
-          v-if="errorMessage"
-          class="text-red-500 text-sm mt-2"
-        >
+        <p v-if="errorMessage" class="text-red-500 text-sm mt-2">
           {{ errorMessage }}
         </p>
-        <Button
-          class="w-full my-4"
-          type="submit"
-          :disabled="loading"
-        >
+        <Button class="w-full my-4" type="submit" :disabled="loading">
           {{ loading ? "Logging in..." : "Login" }}
         </Button>
       </Form>

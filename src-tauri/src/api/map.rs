@@ -5,6 +5,7 @@ use crate::shared::BASE_URL;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::SqlitePool;
+use std::fmt::Display;
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_log::log::trace;
@@ -87,6 +88,16 @@ pub struct RouteRequest {
     pub from: String,             // merchant/area id
     pub to: String,               // merchant/area id
     pub disallow: Option<String>, // "e" (elevator), "s" (stairs), "c" (escalator)
+}
+
+impl Display for RouteRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "?from={}&to={}", self.from, self.to)?;
+        if let Some(disallow) = &self.disallow {
+            write!(f, "&disallow={}", disallow)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -373,10 +384,7 @@ pub async fn generate_svg_map_handler(
 }
 
 #[tauri::command]
-pub async fn get_all_merchants_handler(
-    _app: AppHandle,
-    entity: String,
-) -> Result<String, String> {
+pub async fn get_all_merchants_handler(_app: AppHandle, entity: String) -> Result<String, String> {
     match get_all_merchants(&entity).await {
         Ok(merchants) => {
             let result = json!({
@@ -447,12 +455,11 @@ pub async fn fetch_route(
 ) -> anyhow::Result<RouteResponse> {
     let client = reqwest::Client::new();
 
-    let mut url = format!(
-        "{}api/entities/{}/route?from={}&to={}",
-        BASE_URL, entity, from, to
-    );
-
-    trace!("Fetching route from URL: {}", url);
+    let mut req = RouteRequest {
+        from: from.to_string(),
+        to: to.to_string(),
+        disallow: None,
+    };
 
     if let Some(limits) = limits {
         trace!("Applying connectivity limits: {:?}", limits);
@@ -468,11 +475,13 @@ pub async fn fetch_route(
         }
 
         if !disallow.is_empty() {
-            url.push_str(&format!("&disallow={}", disallow));
+            req.disallow = Some(disallow.clone());
         }
     }
 
-    trace!("Final route URL: {}", url);
+    let url = format!("{}api/entities/{}/route{}", BASE_URL, entity, req);
+
+    trace!("Fetching route from URL: {}", url);
 
     let response: RouteResponse = client
         .get(&url)

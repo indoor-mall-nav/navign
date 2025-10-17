@@ -1,2 +1,2 @@
-pub mod handshake;
 pub mod handlers;
+pub mod handshake;

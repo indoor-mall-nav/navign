@@ -5,6 +5,7 @@ pub mod merchant;
 mod migration;
 mod scan;
 
+use crate::api::map::AreaResponse;
 use crate::api::page_results::PaginationResponse;
 use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;
@@ -22,9 +23,8 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_blec::models::WriteType;
 use tauri_plugin_blec::OnDisconnectHandler;
 use tauri_plugin_http::reqwest;
-use tauri_plugin_log::log::{error, info, trace};
+use tauri_plugin_log::log::{debug, error, info, trace};
 use uuid::Uuid;
-use crate::api::map::AreaResponse;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LocateState {
@@ -95,7 +95,11 @@ pub async fn locate_device(
             trace!("Area changed, updating area info...");
             update_area(&conn, new_area.as_str(), entity.as_str()).await?;
             match locator::handle_devices(devices, &conn, new_area.as_str()).await {
-                LocateResult::Success(x, y) => Ok(LocateState { area: new_area, x, y }),
+                LocateResult::Success(x, y) => Ok(LocateState {
+                    area: new_area,
+                    x,
+                    y,
+                }),
                 LocateResult::Error(err) => Err(anyhow::anyhow!("Locate error: {}", err)),
                 LocateResult::NoBeacons => Err(anyhow::anyhow!("No beacons found")),
                 _ => unreachable!(),
@@ -137,15 +141,7 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
 
     trace!("Connecting to device with MAC: {}", mac);
 
-    let object_id = if cfg!(all(desktop, dev)) {
-        info!("Development mode: using fixed object ID for MAC: {}", mac);
-        (match mac.to_uppercase().as_str() {
-            "48:F6:EE:21:B0:7C" => "68a84b6ebdfa76608b934b0a",
-            "48:F6:EE:21:B0:7D" => "68a84b6ebdfa76608b934b0b",
-            "48:F6:EE:21:B0:7E" => "68a84b6ebdfa76608b934b09",
-            _ => "68a84b6ebdfa76608b934b0a"
-        }).to_string()
-    } else {
+    let object_id = {
         let handler = tauri_plugin_blec::get_handler()
             .map_err(|e| anyhow::anyhow!("BLE not initialized: {}", e))?;
 
@@ -158,10 +154,11 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
         handler
-            .send_data(characteristic, Some(service), &[], WriteType::WithResponse)
+            .send_data(characteristic, Some(service), &[0x01], WriteType::WithResponse)
             .await?;
 
         let received = handler.recv_data(characteristic, Some(service)).await?;
+        debug!("Received data from device {}: {:x?}", mac, received);
         let depacketized = BleMessage::depacketize(received.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 
@@ -272,10 +269,16 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
                 .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
                 .is_some()
             {
-                trace!("Beacon with ID {} already exists in the database.", beacon.id);
+                trace!(
+                    "Beacon with ID {} already exists in the database.",
+                    beacon.id
+                );
                 beacon_info.update(conn).await?;
             } else {
-                trace!("Inserting new beacon with ID {} into the database.", beacon.id);
+                trace!(
+                    "Inserting new beacon with ID {} into the database.",
+                    beacon.id
+                );
                 beacon_info.insert(conn).await?;
             }
             trace!("Beacon {} inserted/updated in the database.", beacon.id);

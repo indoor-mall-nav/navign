@@ -1,8 +1,13 @@
 use crate::unlocker::Unlocker;
+use api::map::{
+    generate_svg_map_handler, get_all_merchants_handler, get_map_data_handler, get_route_handler,
+    search_merchants_handler,
+};
 use locate::locate_handler;
+use login::handlers::{
+    guest_login_handler, login_handler, logout_handler, register_handler, validate_token_handler,
+};
 use login::handshake::bind_with_server;
-use login::handlers::{login_handler, register_handler, logout_handler, guest_login_handler, validate_token_handler};
-use api::map::{get_map_data_handler, generate_svg_map_handler, search_merchants_handler, get_route_handler, get_all_merchants_handler};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
@@ -29,6 +34,7 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
             app.handle().plugin(tauri_plugin_notification::init())?;
+            app.handle().plugin(tauri_plugin_blec::init())?;
             app.handle().plugin(
                 tauri_plugin_sql::Builder::default()
                     .add_migrations("sqlite:navign.db", migrations)
@@ -76,8 +82,6 @@ pub fn run() {
             app.handle().plugin(tauri_plugin_biometric::init())?;
             #[cfg(mobile)]
             app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
-            #[cfg(mobile)]
-            app.handle().plugin(tauri_plugin_blec::init())?;
             #[cfg(mobile)]
             app.handle().plugin(tauri_plugin_geolocation::init())?;
             #[cfg(mobile)]

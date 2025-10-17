@@ -1,4 +1,6 @@
-use crate::api::login::{login as api_login, register as api_register, validate_token, logout as api_logout};
+use crate::api::login::{
+    login as api_login, logout as api_logout, register as api_register, validate_token,
+};
 use crate::unlocker::Unlocker;
 use serde_json::json;
 use std::sync::Arc;
@@ -78,10 +80,7 @@ pub async fn register_handler(
 }
 
 #[tauri::command]
-pub async fn validate_token_handler(
-    _app: AppHandle,
-    token: String,
-) -> Result<String, String> {
+pub async fn validate_token_handler(_app: AppHandle, token: String) -> Result<String, String> {
     match validate_token(token).await {
         Ok(valid) => {
             let result = json!({
@@ -146,4 +145,3 @@ pub async fn guest_login_handler(
     });
     Ok(result.to_string())
 }
-

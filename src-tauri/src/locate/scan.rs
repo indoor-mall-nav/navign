@@ -2,8 +2,8 @@
 //!
 //! After
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tauri_plugin_blec::get_handler;
 use tauri_plugin_blec::models::{BleDevice, ScanFilter};
 use uuid::Uuid;
@@ -39,63 +39,6 @@ impl std::fmt::Display for ScanError {
 impl std::error::Error for ScanError {}
 
 pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
-    if cfg!(all(desktop, dev)) {
-        let target = rand::random::<u8>() % 3;
-        return match target {
-            0 => Ok(
-                vec![
-                    BleDevice {
-                        address: "48:F6:EE:21:B0:7C".to_string(),
-                        name: "NAVIGN_BEACON".to_string(),
-                        rssi: Some(-45),
-                        services: vec![
-                            service_id_to_uuid(0x1819),
-                            service_id_to_uuid(0x1821),
-                        ],
-                        manufacturer_data: HashMap::new(),
-                        service_data: HashMap::new(),
-                        is_bonded: false,
-                        is_connected: false
-                    }
-                ]
-            ),
-            1 => Ok(
-                vec![
-                    BleDevice {
-                        address: "48:F6:EE:21:B0:7D".to_string(),
-                        name: "NAVIGN_BEACON".to_string(),
-                        rssi: Some(-90),
-                        services: vec![
-                            service_id_to_uuid(0x1819),
-                            service_id_to_uuid(0x1821),
-                        ],
-                        manufacturer_data: HashMap::new(),
-                        service_data: HashMap::new(),
-                        is_bonded: false,
-                        is_connected: false
-                    }
-                ]
-            ),
-            2 => Ok(
-                vec![
-                    BleDevice {
-                        address: "48:F6:EE:21:B0:7E".to_string(),
-                        name: "NAVIGN_BEACON".to_string(),
-                        rssi: Some(-40),
-                        services: vec![
-                            service_id_to_uuid(0x1819),
-                            service_id_to_uuid(0x1821),
-                        ],
-                        manufacturer_data: HashMap::new(),
-                        service_data: HashMap::new(),
-                        is_bonded: false,
-                        is_connected: false
-                    }
-                ]
-            ),
-            _ => Err(ScanError::NoDevicesFound),
-        }
-    }
     let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<BleDevice>>(10);
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;
     if handler.is_scanning().await {
@@ -108,17 +51,18 @@ pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
         .discover(
             Some(tx),
             3000,
-            ScanFilter::AllServices(vec![service_id_to_uuid(0x1819), service_id_to_uuid(0x1821)]),
+            ScanFilter::AnyService(vec![service_id_to_uuid(0x1819), service_id_to_uuid(0x1821)]),
             true,
         )
         .await
         .map_err(|e| ScanError::ScanFailed(e.to_string()))?;
     let mut devices = Vec::new();
-    if let Some(devs) = rx.recv().await {
-        devices = devs
-            .into_iter()
-            .filter(|d| d.rssi.is_some() && d.name == "NAVIGN_BEACON")
-            .collect();
+    while let Some(devs) = rx.recv().await {
+        devices.extend(
+            devs.into_iter()
+                .filter(|d| d.rssi.is_some() && d.name == "NAVIGN-BEACON")
+                .collect::<Vec<_>>(),
+        );
     }
     handler.stop_scan().await.ok();
     if devices.is_empty() {
@@ -156,17 +100,26 @@ mod tests {
     #[test]
     fn test_service_id_to_uuid_conversion() {
         let uuid_1819 = service_id_to_uuid(0x1819);
-        assert_eq!(uuid_1819.to_string(), "00001819-0000-1000-8000-00805f9b34fb");
+        assert_eq!(
+            uuid_1819.to_string(),
+            "00001819-0000-1000-8000-00805f9b34fb"
+        );
 
         let uuid_1821 = service_id_to_uuid(0x1821);
-        assert_eq!(uuid_1821.to_string(), "00001821-0000-1000-8000-00805f9b34fb");
+        assert_eq!(
+            uuid_1821.to_string(),
+            "00001821-0000-1000-8000-00805f9b34fb"
+        );
     }
 
     #[test]
     fn test_scan_error_display() {
         assert_eq!(ScanError::NotInitialized.to_string(), "BLE not initialized");
         assert_eq!(ScanError::CannotStartScan.to_string(), "Cannot start scan");
-        assert_eq!(ScanError::ScanFailed("test error".to_string()).to_string(), "Scan failed: test error");
+        assert_eq!(
+            ScanError::ScanFailed("test error".to_string()).to_string(),
+            "Scan failed: test error"
+        );
         assert_eq!(ScanError::NoDevicesFound.to_string(), "No devices found");
     }
 
