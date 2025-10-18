@@ -4,7 +4,7 @@ use crate::crypto::Nonce;
 use crate::shared::constants::NONCE_LENGTH;
 use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use embedded_nal::{AddrType, Dns};
-use esp_hal::rng::Rng;
+use esp_hal::rng::{Rng, Trng};
 use esp_hal::sha::Digest;
 use heapless::String;
 use p256::ecdsa::signature::Signer;
@@ -25,7 +25,7 @@ pub struct RequestPayload<'a> {
 /// 2. Send the nonce and signature to the server.
 /// 3. The server verifies the signature with the (stored) device's private key.
 /// 4. If the signature is valid, the server loads the beacon's status and return a timestamp.
-fn connect_with_server(rng: &mut Rng, device_private_key: SigningKey, beacon_id: &str) {
+fn connect_with_server(rng: &mut Trng, device_private_key: SigningKey, beacon_id: &str) {
     let nonce = Nonce::generate(rng);
     let mut nonce_buffer = [0u8; { NONCE_LENGTH * 2 }];
     hex::encode_to_slice(nonce.as_bytes(), &mut nonce_buffer).unwrap();

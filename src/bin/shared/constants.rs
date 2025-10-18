@@ -6,6 +6,8 @@ pub const NONCE_REQUEST: u8 = 0x03;
 pub const NONCE_RESPONSE: u8 = 0x04;
 pub const UNLOCK_REQUEST: u8 = 0x05;
 pub const UNLOCK_RESPONSE: u8 = 0x06;
+pub const DEBUG_REQUEST: u8 = 0xFF;
+pub const DEBUG_RESPONSE: u8 = 0xFE;
 
 pub const UNLOCK_FAILURE: u8 = 0x00;
 pub const UNLOCK_SUCCESS: u8 = 0x01;

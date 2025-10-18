@@ -1,4 +1,5 @@
 use crate::crypto::Nonce;
+use esp_hal::rng::Trng;
 use heapless::index_map::FnvIndexMap;
 
 #[derive(Debug)]
@@ -18,11 +19,7 @@ impl<const N: usize> NonceManager<N> {
 
     /// Check if the challenge hash is valid (not used before and within the time window).
     /// If valid, mark it as used.
-    pub fn check_and_mark_nonce(
-        &mut self,
-        nonce: Nonce,
-        timestamp: u64,
-    ) -> bool {
+    pub fn check_and_mark_nonce(&mut self, nonce: Nonce, timestamp: u64) -> bool {
         // Clean up old challenge hashes
         self.clear_expired(timestamp);
 
@@ -36,9 +33,7 @@ impl<const N: usize> NonceManager<N> {
                 Err(_) => {
                     // If the map is full, remove the oldest entry
                     self.remove_oldest_nonce();
-                    self.used_nonces
-                        .insert(nonce, timestamp)
-                        .ok();
+                    self.used_nonces.insert(nonce, timestamp).ok();
                 }
             }
             true
@@ -58,7 +53,7 @@ impl<const N: usize> NonceManager<N> {
         }
     }
 
-    pub fn generate_nonce(&mut self, rng: &mut esp_hal::rng::Rng) -> Nonce {
+    pub fn generate_nonce(&mut self, rng: &mut Trng) -> Nonce {
         Nonce::generate(rng)
     }
 }

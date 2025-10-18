@@ -1,4 +1,3 @@
-
 pub mod constants;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]

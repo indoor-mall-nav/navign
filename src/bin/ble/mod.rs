@@ -13,6 +13,8 @@ pub enum BleMessage {
     NonceResponse(Nonce, [u8; 8]), // 8-byte signature tail
     UnlockRequest(Proof),
     UnlockResponse(bool, Option<CryptoError>),
+    DebugRequest(()),
+    DebugResponse(Vec<u8, 128>),
 }
 
 impl From<(bool, Option<CryptoError>)> for BleMessage {

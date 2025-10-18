@@ -24,6 +24,8 @@ fn expect_length(data: &[u8]) -> bool {
         NONCE_RESPONSE => data.len() == NONCE_RESPONSE_LENGTH,
         UNLOCK_REQUEST => data.len() == UNLOCK_REQUEST_LENGTH,
         UNLOCK_RESPONSE => data.len() == UNLOCK_RESPONSE_LENGTH,
+        DEBUG_REQUEST => data.len() >= IDENTIFIER_LENGTH,
+        DEBUG_RESPONSE => data.len() >= IDENTIFIER_LENGTH,
         _ => false,
     }
 }
@@ -63,14 +65,14 @@ impl BleProtocolHandler {
 
     pub fn extract_message(&mut self, offset: usize) -> [u8; MAX_PACKET_SIZE] {
         let mut output = [0u8; MAX_PACKET_SIZE];
-        let offset_parts = (offset + 1) / 23;
-        let offset = offset_parts * 20 + 1;
+        let offset_parts = (offset + 1) / 128;
+        let offset = offset_parts * 125 + 1;
         let terminal = if self.send_buffer_length > offset {
             self.send_buffer_length - offset
         } else {
             return output;
         };
-        let max_terminal = if terminal > 20 { 20 } else { terminal };
+        let max_terminal = if terminal > 125 { 125 } else { terminal };
         let max_terminal = if max_terminal + offset > self.send_buffer_length {
             self.send_buffer_length - offset
         } else {
@@ -138,6 +140,16 @@ impl BleProtocolHandler {
                 self.send_buffer_length = UNLOCK_RESPONSE_LENGTH;
             }
 
+            BleMessage::DebugResponse(debug_data) => {
+                buffer
+                    .push(DEBUG_RESPONSE)
+                    .map_err(|_| BleError::BufferFull)?;
+                buffer
+                    .extend_from_slice(&debug_data[..16])
+                    .map_err(|_| BleError::BufferFull)?;
+                self.send_buffer_length = IDENTIFIER_LENGTH + debug_data.len();
+            }
+
             _ => unreachable!("Cannot serialize this message type"),
         }
 
@@ -172,10 +184,12 @@ impl BleProtocolHandler {
                 if self.receive_buffer.len() != UNLOCK_REQUEST_LENGTH {
                     return Err(BleError::ParseError);
                 }
-                let proof = Proof::depacketize(&self.receive_buffer[1..])
-                    .ok_or(BleError::ParseError)?;
+                let proof =
+                    Proof::depacketize(&self.receive_buffer[1..]).ok_or(BleError::ParseError)?;
                 Ok(BleMessage::UnlockRequest(proof))
             }
+
+            DEBUG_REQUEST => Ok(BleMessage::DebugRequest(())),
 
             _ => Err(BleError::ParseError),
         };

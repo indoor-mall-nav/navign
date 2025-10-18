@@ -1,12 +1,12 @@
 use crate::shared::constants::NONCE_LENGTH;
-use esp_hal::rng::Rng;
+use esp_hal::rng::Trng;
 use esp_println::println;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 pub struct Nonce([u8; NONCE_LENGTH]);
 
 impl Nonce {
-    pub fn generate(rng: &mut Rng) -> Self {
+    pub fn generate(rng: &mut Trng) -> Self {
         let mut nonce = [0u8; NONCE_LENGTH];
         for item in nonce.iter_mut() {
             println!("Generating random byte...");

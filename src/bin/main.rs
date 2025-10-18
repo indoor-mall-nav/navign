@@ -33,27 +33,26 @@ use bleps::{
     attribute_server::{AttributeServer, NotificationData},
     gatt, Ble, HciConnector,
 };
-use blocking_network_stack::Stack;
 use core::cell::RefCell;
 use embedded_dht_rs::dht11::Dht11;
 use esp_alloc::heap_allocator;
 use esp_hal::delay::Delay;
 use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_hal::gpio::{Flex, Level};
+use esp_hal::rng::{Trng, TrngSource};
+use esp_hal::interrupt::software::SoftwareInterruptControl;
 use esp_hal::{
     clock::CpuClock,
     gpio::{Input, InputConfig},
     gpio::{Output, OutputConfig},
-    main,
-    rng::Rng,
-    time,
-    timer::timg::TimerGroup,
+    main, time,
 };
+use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
-use esp_wifi::wifi::{AuthMethod, Configuration};
-use esp_wifi::{ble::controller::BleConnector, init};
+use esp_radio::ble::Config;
+use esp_radio::{ble::controller::BleConnector, init};
+use esp_rtos as _;
 use heapless::Vec;
-use smoltcp::iface::{SocketSet, SocketStorage};
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -76,6 +75,11 @@ fn main() -> ! {
     let led = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
     let human_body = Input::new(peripherals.GPIO1, InputConfig::default());
 
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+
+    let software_interrupt = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, software_interrupt.software_interrupt0);
+
     heap_allocator!(size: 192 * 1024);
 
     let server_public_key = [
@@ -85,15 +89,16 @@ fn main() -> ! {
         104, 142, 37, 110, 136,
     ];
 
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    #[allow(unused)]
+    let trng_source = TrngSource::new(peripherals.RNG, peripherals.ADC1);
 
-    let mut rng = Rng::new(peripherals.RNG);
+    let mut rng = Trng::try_new().unwrap();
 
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
     // If private key is not set, panic
     if private_key == [0u8; 32] {
-        panic!("EFUSE BLOCK_KEY0 is not set. Please set it to a valid 32-byte private key.");
+        println!("EFUSE BLOCK_KEY0 is not set. Please set it to a valid 32-byte private key.");
     }
 
     let method = UnlockMethod::Relay(relay);
@@ -111,11 +116,9 @@ fn main() -> ! {
         .set_server_public_key(server_public_key)
         .unwrap();
 
-    executor.borrow_mut().set_open(true, 0);
-
     Delay::new().delay_millis(3_000u32);
 
-    let esp_wifi_ctrl = init(timg0.timer0, rng).unwrap();
+    let esp_wifi_ctrl = init().unwrap();
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
     println!("Device ID: {:?}", device_id);
@@ -140,51 +143,11 @@ fn main() -> ! {
 
     let now = || time::Instant::now().duration_since_epoch().as_millis();
 
-    let (mut wifi_controller, interfaces) =
-        esp_wifi::wifi::new(&esp_wifi_ctrl, peripherals.WIFI).unwrap();
-    let mut device = interfaces.sta;
-    let iface = smoltcp::iface::Interface::new(
-        smoltcp::iface::Config::new(smoltcp::wire::HardwareAddress::Ethernet(
-            smoltcp::wire::EthernetAddress::from_bytes(&device.mac_address()),
-        )),
-        &mut device,
-        smoltcp::time::Instant::from_micros(
-            time::Instant::now().duration_since_epoch().as_micros() as i64,
-        ),
-    );
-
-    println!("Device MAC: {:x?}", device.mac_address());
-
-    let mut socket_set_entries: [SocketStorage; 3] = Default::default();
-    let socket_set = SocketSet::new(&mut socket_set_entries[..]);
-    #[allow(unused)]
-    let dhcp_socket = smoltcp::socket::dhcpv4::Socket::new();
-
-    let wifi_config = Configuration::Client(esp_wifi::wifi::ClientConfiguration {
-        ssid: "ssid".into(),
-        password: "password".into(),
-        auth_method: AuthMethod::WPAWPA2Personal,
-        ..Default::default()
-    });
-
-    #[allow(unused)]
-    let wifi_res = wifi_controller.set_configuration(&wifi_config).ok();
-
-    if let Err(e) = wifi_controller.start() {
-        println!("Failed to start WiFi: {:?}", e);
-    } else {
-        println!("WiFi started");
-    }
-
-    wifi_controller.connect().ok();
-
-    #[allow(unused)]
-    let stack = Stack::new(iface, device, socket_set, now, rng.random());
-
     #[allow(clippy::never_loop)]
     loop {
         Rc::clone(&executor).borrow_mut().check_executors(now());
-        let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow());
+        let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow(), Config::default())
+            .expect("Failed to create BLE connector");
         let hci = HciConnector::new(connector, now);
         let mut ble = Ble::new(&hci);
 
@@ -268,7 +231,6 @@ fn main() -> ! {
 
         loop {
             if now() % 50_000 == 5_000 {
-                Rc::clone(&executor).borrow_mut().set_open(true, now());
                 println!("Reading DHT11 Data...");
                 match dht.read().map(|res| {
                     println!(
@@ -301,17 +263,15 @@ fn main() -> ! {
                 println!("Handling message");
                 instance.borrow_mut().buffer.processing = true;
                 let response: Option<BleMessage> = match message {
-                    Some(BleMessage::DeviceRequest) => {
-                        Some(BleMessage::DeviceResponse(
-                            device_type,
-                            capabilities.clone(),
-                            {
-                                let mut id = [0u8; 24];
-                                id.copy_from_slice(device_id.as_ref());
-                                id
-                            },
-                        ))
-                    }
+                    Some(BleMessage::DeviceRequest) => Some(BleMessage::DeviceResponse(
+                        device_type,
+                        capabilities.clone(),
+                        {
+                            let mut id = [0u8; 24];
+                            id.copy_from_slice(device_id.as_ref());
+                            id
+                        },
+                    )),
                     Some(BleMessage::NonceRequest) => {
                         let nonce = instance.borrow_mut().generate_nonce(&mut rng);
                         let mut identifier = [0u8; 8];
@@ -331,6 +291,14 @@ fn main() -> ! {
                             Err(e) => (false, Some(e)),
                         };
                         Some(unlock_result.into())
+                    }
+                    Some(BleMessage::DebugRequest(_)) => {
+                        let length = rng.random().wrapping_rem(16) + 1;
+                        let mut data = [0u8; 128];
+                        for i in 0..length {
+                            data[i as usize] = rng.random() as u8;
+                        }
+                        Some(BleMessage::DebugResponse(data.into()))
                     }
                     _ => None,
                 };

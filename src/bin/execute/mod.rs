@@ -1,27 +1,65 @@
-use esp_hal::Blocking;
-use esp_hal::delay::Delay;
 use crate::ble::protocol::BleProtocolHandler;
 use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
 use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
 use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
+use esp_hal::delay::Delay;
 use esp_hal::gpio::{Input, Level, Output};
 use esp_hal::ledc::channel::{Channel as PwmChannel, ChannelIFace};
-use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::timer::Timer as PwmTimer;
-use esp_hal::rmt::{Channel as RmtChannel, ConstChannelAccess, Tx};
-use esp_hal::rng::Rng;
+use esp_hal::ledc::LowSpeed;
+use esp_hal::rmt::{Channel, Rmt, Tx, TxChannelConfig, TxChannelCreator};
+use esp_hal::rng::Trng;
+use esp_hal::Blocking;
 use esp_println::println;
 
 #[allow(dead_code)]
 pub enum UnlockMethod<'a> {
     Relay(Output<'a>),
-    Remote(RmtChannel<Blocking, ConstChannelAccess<Tx, 0>>),
+    Remote {
+        channel: Channel<'a, Blocking, Tx>,
+        addr: u8,
+        cmd: u8,
+    },
     Servo {
         channel: PwmChannel<'a, LowSpeed>,
-        timer: PwmTimer<'a, LowSpeed>
+        timer: PwmTimer<'a, LowSpeed>,
     },
+}
+
+impl<'a> UnlockMethod<'a> {
+    #[allow(unused)]
+    pub fn is_relay(&self) -> bool {
+        matches!(self, UnlockMethod::Relay(_))
+    }
+
+    #[allow(unused)]
+    pub fn relay(output: Output<'a>) -> Self {
+        UnlockMethod::Relay(output)
+    }
+
+    #[allow(unused)]
+    pub fn remote(
+        rmt: Rmt<'a, Blocking>,
+        output: Output<'a>,
+        addr: u8,
+        packet: u8,
+    ) -> Result<Self, esp_hal::rmt::Error> {
+        let rmt_channel: Channel<Blocking, Tx> = rmt
+            .channel0
+            .configure_tx(output, TxChannelConfig::default())?;
+        Ok(UnlockMethod::Remote {
+            channel: rmt_channel,
+            addr,
+            cmd: packet,
+        })
+    }
+
+    #[allow(unused)]
+    pub fn servo(channel: PwmChannel<'a, LowSpeed>, timer: PwmTimer<'a, LowSpeed>) -> Self {
+        UnlockMethod::Servo { channel, timer }
+    }
 }
 
 pub struct BeaconState<'a> {
@@ -98,7 +136,7 @@ impl<'a> BeaconState<'a> {
     /// If human sensor is not triggered, close it after 5 seconds.
     /// This is used for running in a loop.
     pub fn check_executors(&mut self, time: u64) {
-        if time % 2000 == 0 {
+        if time % 2000 == 0 && self.open.is_set_high() {
             println!("Checking executors at time: {}", time);
             println!("Button state: {}", self.button.is_low());
             println!("Open state: {}", self.open.is_set_high());
@@ -109,16 +147,22 @@ impl<'a> BeaconState<'a> {
 
         if self.open.is_set_high() {
             if self.human_sensor.is_high() {
-                match &self.unlock_method {
+                match &mut self.unlock_method {
                     UnlockMethod::Relay(rel) => {
                         if rel.is_set_low() {
                             self.set_relay_high();
                             self.last_relay_on = time;
                         }
                     }
-                    UnlockMethod::Remote(_) => {
+                    UnlockMethod::Remote { .. } => {
                         // Send the RMT signal to open the gate
-                        unimplemented!();
+                        // example packet
+                        // let mut data = [PulseCode::new(Level::High, 200, Level::Low, 50); 20];
+                        // data[data.len() - 2] = PulseCode::new(Level::High, 3000, Level::Low, 500);
+                        // data[data.len() - 1] = PulseCode::end_marker();
+                        // let transaction = channel.transmit(&data).expect("Failed to transmit RMT data");
+                        // *channel = transaction.wait().expect("Failed to complete RMT transmission");
+                        todo!("Ownership problem")
                     }
                     UnlockMethod::Servo { channel, .. } => {
                         channel.set_duty(10).ok();
@@ -167,7 +211,7 @@ impl<'a> BeaconState<'a> {
         }
     }
 
-    pub fn generate_nonce(&mut self, rng: &mut Rng) -> Nonce {
+    pub fn generate_nonce(&mut self, rng: &mut Trng) -> Nonce {
         self.nonce_manager.generate_nonce(rng)
     }
 
