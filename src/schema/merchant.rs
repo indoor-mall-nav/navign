@@ -1,4 +1,4 @@
-use crate::schema::service::Service;
+use crate::schema::service::{OneInArea, Service};
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
@@ -257,3 +257,5 @@ impl Service for Merchant {
         false
     }
 }
+
+impl OneInArea for Merchant {}

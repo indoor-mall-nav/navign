@@ -7,6 +7,7 @@ use std::fmt::Display;
 #[serde(rename_all = "kebab-case")]
 pub enum InstructionType {
     Move(f64, f64),
+    /// Connection ID, Target Area, Connection Type
     Transport(String, String, ConnectionType),
 }
 

@@ -19,9 +19,66 @@ pub use implementations::*;
 pub use instructions::*;
 pub use types::*;
 
-pub fn route_merchant(
-    departure_merchant: &str,
-    arrival_merchant: &str,
+pub fn route(
+    departure: &str,
+    arrival: &str,
+    entity_id: crate::schema::Entity,
+    areas: Vec<crate::schema::Area>,
+    connections: Vec<crate::schema::Connection>,
+    merchants: Vec<crate::schema::Merchant>,
+    limits: ConnectivityLimits,
+) -> Result<Vec<InstructionType>, NavigationError> {
+    let departure = if departure.contains(",") {
+        let parts: Vec<&str> = departure.split(',').collect();
+        if parts.len() != 3 {
+            return Err(NavigationError::InvalidDeparture);
+        }
+        let lon = parts[0].parse::<f64>().map_err(|_| NavigationError::InvalidDeparture)?;
+        let lat = parts[1].parse::<f64>().map_err(|_| NavigationError::InvalidDeparture)?;
+        let area = parts[2].to_string();
+        (lon, lat, area)
+    } else {
+        let departure = match merchants
+            .iter()
+            .find(|m| m.id.to_hex() == departure)
+        {
+            Some(m) => m,
+            None => return Err(NavigationError::InvalidDeparture),
+        }
+            .clone();
+        (departure.location.0, departure.location.1, departure.area.to_hex())
+    };
+    let arrival = if arrival.contains(",") {
+        let parts: Vec<&str> = arrival.split(',').collect();
+        if parts.len() != 3 {
+            return Err(NavigationError::InvalidArrival);
+        }
+        let lon = parts[0].parse::<f64>().map_err(|_| NavigationError::InvalidArrival)?;
+        let lat = parts[1].parse::<f64>().map_err(|_| NavigationError::InvalidArrival)?;
+        let area = parts[2].to_string();
+        (lon, lat, area)
+    } else {
+        let arrival = match merchants.iter().find(|m| m.id.to_hex() == arrival) {
+            Some(m) => m,
+            None => return Err(NavigationError::InvalidArrival),
+        }
+            .clone();
+        (arrival.location.0, arrival.location.1, arrival.area.to_hex())
+    };
+    route_point(
+        departure,
+        arrival,
+        entity_id,
+        areas,
+        connections,
+        merchants,
+        limits,
+    )
+}
+
+pub fn route_point(
+    departure: (f64, f64, String),
+    arrival: (f64, f64, String),
     entity_id: crate::schema::Entity,
     areas: Vec<crate::schema::Area>,
     connections: Vec<crate::schema::Connection>,
@@ -29,19 +86,6 @@ pub fn route_merchant(
     limits: ConnectivityLimits,
 ) -> Result<Vec<InstructionType>, NavigationError> {
     let alloc = Bump::default();
-    let departure = match merchants
-        .iter()
-        .find(|m| m.id.to_hex() == departure_merchant)
-    {
-        Some(m) => m,
-        None => return Err(NavigationError::InvalidDeparture),
-    }
-    .clone();
-    let arrival = match merchants.iter().find(|m| m.id.to_hex() == arrival_merchant) {
-        Some(m) => m,
-        None => return Err(NavigationError::InvalidArrival),
-    }
-    .clone();
     let entity = match Entity::convert_entity_in(
         &alloc,
         entity_id,
@@ -54,17 +98,17 @@ pub fn route_merchant(
     };
     trace!("Entity: {}", entity);
     trace!("Routing within entity: {}", entity.name);
-    let dep_area = departure.area.to_hex();
-    let arr_area = arrival.area.to_hex();
+    let dep_area = departure.2;
+    let arr_area = arrival.2;
     let src = (
-        departure.location.0,
-        departure.location.1,
+        departure.0,
+        departure.1,
         Atom::from_in(dep_area, &alloc),
     );
     trace!("Source location: {:?}", src);
     let dest = (
-        arrival.location.0,
-        arrival.location.1,
+        arrival.0,
+        arrival.1,
         Atom::from_in(arr_area, &alloc),
     );
     trace!("Destination location: {:?}", dest);
@@ -148,7 +192,7 @@ pub async fn find_route(
     }
     spawn_blocking(move || {
         trace!("Starting route computation from {} to {}, entity name: {}, {} areas, {} connections, {} merchants", from.as_ref().unwrap(), to.as_ref().unwrap(), entity.name, areas.len(), connections.len(), merchants.len());
-        match route_merchant(
+        match route(
             from.unwrap().as_str(),
             to.unwrap().as_str(),
             entity,

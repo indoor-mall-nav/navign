@@ -23,6 +23,7 @@ use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
 use crate::kernel::unlocker::{create_unlock_instance, update_unlock_instance, record_unlock_result};
+use crate::schema::service::OneInArea;
 // use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
@@ -112,11 +113,17 @@ async fn main() -> anyhow::Result<()> {
             "/api/entities/{eid}/areas/{aid}/beacons",
             get(Beacon::get_all_in_area_handler),
         )
+        .route(
+            "/api/entities/{eid}/areas/{aid}/merchants",
+            get(Merchant::get_all_in_area_handler),
+        )
         .route("/api/entities", get(Entity::search_entity_handler))
         .route("/api/entities/", get(Entity::search_entity_handler))
         .route("/api/entities/{id}", get(Entity::get_one_handler))
         .route("/api/entities/{id}/route", get(find_route))
         .route("/api/entities/{id}/route/", get(find_route))
+        .route("/api/entities/{id}/route/point", get(find_route))
+        .route("/api/entities/{id}/route/point/", get(find_route))
         .route("/api/entities", post(Entity::create_handler))
         .route("/api/entities", put(Entity::update_handler))
         .route("/api/entities/", post(Entity::create_handler))
