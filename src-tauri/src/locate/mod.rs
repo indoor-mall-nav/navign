@@ -21,7 +21,7 @@ use sqlx::{migrate, SqlitePool};
 use std::str::FromStr;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_blec::models::WriteType;
-use tauri_plugin_blec::OnDisconnectHandler;
+use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
 use tauri_plugin_log::log::{debug, error, info, trace};
 use uuid::Uuid;
@@ -142,7 +142,7 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
     trace!("Connecting to device with MAC: {}", mac);
 
     let object_id = {
-        let handler = tauri_plugin_blec::get_handler()
+        let handler = get_handler()
             .map_err(|e| anyhow::anyhow!("BLE not initialized: {}", e))?;
 
         handler
@@ -156,7 +156,8 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         handler
             .send_data(characteristic, Some(service), &[0x01], WriteType::WithResponse)
             .await?;
-
+        // Wait for 0.5 seconds to let the device process the request
+        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
         let received = handler.recv_data(characteristic, Some(service)).await?;
         debug!("Received data from device {}: {:x?}", mac, received);
         let depacketized = BleMessage::depacketize(received.as_slice())
@@ -316,6 +317,9 @@ pub async fn locate_handler(app: AppHandle, area: String, entity: String) -> Res
             Ok(result.to_string())
         }
         Err(e) => {
+            if let Ok(handler) = get_handler() {
+                handler.disconnect().await.ok();
+            }
             let result = serde_json::json!({
                 "status": "error",
                 "message": e.to_string(),

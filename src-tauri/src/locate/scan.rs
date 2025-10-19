@@ -3,7 +3,7 @@
 //! After
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tauri_plugin_blec::get_handler;
 use tauri_plugin_blec::models::{BleDevice, ScanFilter};
 use uuid::Uuid;
@@ -57,7 +57,7 @@ pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
         .await
         .map_err(|e| ScanError::ScanFailed(e.to_string()))?;
     let mut devices = Vec::new();
-    while let Some(devs) = rx.recv().await {
+    if let Some(devs) = rx.recv().await {
         devices.extend(
             devs.into_iter()
                 .filter(|d| d.rssi.is_some() && d.name == "NAVIGN-BEACON")
@@ -68,7 +68,7 @@ pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
     if devices.is_empty() {
         Err(ScanError::NoDevicesFound)
     } else {
-        Ok(devices)
+        Ok(devices.into_iter().collect())
     }
 }
 
@@ -144,7 +144,7 @@ mod tests {
         let mock_devices = vec![
             BleDevice {
                 address: "48:F6:EE:21:B0:7C".to_string(),
-                name: "NAVIGN_BEACON".to_string(),
+                name: "NAVIGN-BEACON".to_string(),
                 rssi: Some(-45),
                 services: vec![],
                 manufacturer_data: HashMap::new(),
@@ -154,7 +154,7 @@ mod tests {
             },
             BleDevice {
                 address: "AA:BB:CC:DD:EE:FF".to_string(),
-                name: "OTHER_BEACON".to_string(),
+                name: "OTHER-BEACON".to_string(),
                 rssi: Some(-60),
                 services: vec![],
                 manufacturer_data: HashMap::new(),
@@ -164,7 +164,7 @@ mod tests {
             },
             BleDevice {
                 address: "11:22:33:44:55:66".to_string(),
-                name: "NAVIGN_BEACON".to_string(),
+                name: "NAVIGN-BEACON".to_string(),
                 rssi: None, // Should be filtered out
                 services: vec![],
                 manufacturer_data: HashMap::new(),
@@ -176,7 +176,7 @@ mod tests {
 
         let filtered: Vec<BleDevice> = mock_devices
             .into_iter()
-            .filter(|d| d.rssi.is_some() && d.name == "NAVIGN_BEACON")
+            .filter(|d| d.rssi.is_some() && d.name == "NAVIGN-BEACON")
             .collect();
 
         assert_eq!(filtered.len(), 1);
