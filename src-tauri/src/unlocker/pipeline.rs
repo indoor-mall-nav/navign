@@ -19,6 +19,7 @@ use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_blec::models::WriteType;
 use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
+use tauri_plugin_log::log::info;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -46,6 +47,14 @@ pub async fn unlock_pipeline(
     handler
         .connect(target.as_str(), OnDisconnectHandler::None, true)
         .await?;
+
+    handler.subscribe(
+        Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?,
+        Some(Uuid::from_str(UNLOCKER_SERVICE_UUID)?),
+        |data| {
+            info!("Notification received: {:x?}", data);
+        }
+    ).await?;
 
     let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;
     let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
@@ -264,6 +273,11 @@ pub async fn unlock_pipeline(
         .text()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to get response text: {}", e))?;
+
+    handler.unsubscribe(
+        Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?,
+    ).await?;
+    handler.disconnect().await?;
 
     if eventual == "Unlock result recorded" {
         Ok("Unlock successful".to_string())
