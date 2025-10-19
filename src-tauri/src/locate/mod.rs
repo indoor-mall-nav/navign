@@ -153,6 +153,10 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;
         let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
+        handler.subscribe(characteristic, Some(service), |data| {
+            info!("Notification received: {:x?}", data);
+        }).await?;
+
         handler
             .send_data(characteristic, Some(service), &[0x01], WriteType::WithResponse)
             .await?;
@@ -160,6 +164,8 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
         let received = handler.recv_data(characteristic, Some(service)).await?;
         debug!("Received data from device {}: {:x?}", mac, received);
+        handler.unsubscribe(characteristic).await?;
+        handler.disconnect().await?;
         let depacketized = BleMessage::depacketize(received.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 

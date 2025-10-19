@@ -17,7 +17,7 @@
     "@iconify-icons/mdi": "^1.2.48",
     "@iconify/icons-mdi": "^1.2.48",
     "@iconify/json": "^2.2.377",
-    "@mnlphlp/plugin-blec": "^0.7.0",
+    "@mnlphlp/plugin-blec": "^0.8.0",
     "@tailwindcss/vite": "^4.1.12",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-biometric": "~2",
