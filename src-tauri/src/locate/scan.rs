@@ -3,7 +3,7 @@
 //! After
 
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use tauri_plugin_blec::get_handler;
 use tauri_plugin_blec::models::{BleDevice, ScanFilter};
 use uuid::Uuid;
@@ -94,6 +94,7 @@ pub async fn stop_scan() -> Result<(), ScanError> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use super::*;
     #[test]
     fn test_uuid_conversion() {

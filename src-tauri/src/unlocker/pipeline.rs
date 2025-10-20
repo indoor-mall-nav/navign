@@ -1,4 +1,5 @@
 use crate::locate::beacon::BeaconInfo;
+use crate::locate::fetch_device;
 use crate::locate::scan::{scan_devices, stop_scan};
 use crate::shared::BASE_URL;
 use crate::unlocker::challenge::ServerChallenge;
@@ -25,7 +26,6 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_log::log::info;
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::locate::fetch_device;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStageResult {
@@ -59,17 +59,21 @@ pub async fn unlock_pipeline(
         eprintln!("Failed to create app local data dir: {}", e);
         anyhow::anyhow!("Failed to create app local data dir")
     })?;
+    let db_str = format!("{}", dbpath.to_string_lossy());
     let conn = SqlitePool::connect_with(
         sqlx::sqlite::SqliteConnectOptions::new()
-            .filename(dbpath.as_os_str())
+            .filename(db_str.as_str())
             .create_if_missing(true),
-    ).await.map_err(|e| {
+    )
+    .await
+    .map_err(|e| {
         eprintln!("Failed to connect to database: {}", e);
         anyhow::anyhow!("Failed to connect to database")
     })?;
-    let db_str = format!("{}", dbpath.to_string_lossy());
     let devices = scan_devices(true).await?;
-    stop_scan().await.map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
+    stop_scan()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
     let mut result_address = None;
     let target_list = BeaconInfo::get_specific_merchant_beacons(&conn, target.as_str()).await?;
     for device in devices.iter() {
@@ -79,7 +83,8 @@ pub async fn unlock_pipeline(
             break;
         }
     }
-    let target_addr = result_address.ok_or_else(|| anyhow::anyhow!("Target device not found during scan"))?;
+    let target_addr =
+        result_address.ok_or_else(|| anyhow::anyhow!("Target device not found during scan"))?;
     info!("Target device address found: {}", target_addr);
     let handler = get_handler()?;
 
@@ -87,13 +92,15 @@ pub async fn unlock_pipeline(
         .connect(target_addr.as_str(), OnDisconnectHandler::None, true)
         .await?;
 
-    handler.subscribe(
-        Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?,
-        Some(Uuid::from_str(UNLOCKER_SERVICE_UUID)?),
-        |data| {
-            info!("Notification received: {:x?}", data);
-        },
-    ).await?;
+    handler
+        .subscribe(
+            Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?,
+            Some(Uuid::from_str(UNLOCKER_SERVICE_UUID)?),
+            |data| {
+                info!("Notification received: {:x?}", data);
+            },
+        )
+        .await?;
 
     let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;
     let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
@@ -313,9 +320,9 @@ pub async fn unlock_pipeline(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to get response text: {}", e))?;
 
-    handler.unsubscribe(
-        Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?,
-    ).await?;
+    handler
+        .unsubscribe(Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?)
+        .await?;
     handler.disconnect().await?;
 
     if eventual == "Unlock result recorded" {

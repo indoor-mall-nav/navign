@@ -23,7 +23,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_blec::models::{BleDevice, WriteType};
 use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
-use tauri_plugin_log::log::{debug, error, info, trace};
+use tauri_plugin_log::log::{error, info, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -73,7 +73,10 @@ pub async fn locate_device(
             error!("Failed to fetch device info for MAC: {}", device.address);
         }
     }
-    let devices: Vec<BleDevice> = devices.into_iter().filter(|d| d.address != "NAVIGN-BEACON").collect();
+    let devices: Vec<BleDevice> = devices
+        .into_iter()
+        .filter(|d| d.address != "NAVIGN-BEACON")
+        .collect();
     let result = locator::handle_devices(devices.clone(), &conn, area.as_str()).await;
     match result {
         LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
