@@ -78,6 +78,11 @@ impl BleProtocolHandler {
         } else {
             max_terminal
         };
+        let max_terminal = if max_terminal > self.send_buffer.len() {
+            self.send_buffer.len() - offset
+        } else {
+            max_terminal
+        };
         output[..terminal].copy_from_slice(&self.send_buffer[offset..offset + max_terminal]);
         output
     }

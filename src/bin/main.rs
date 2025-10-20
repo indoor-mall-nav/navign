@@ -294,7 +294,7 @@ fn main() -> ! {
                     }
                     Some(BleMessage::DebugRequest(_)) => {
                         let length = rng.random().wrapping_rem(16) + 1;
-                        let mut data = [0u8; 128];
+                        let mut data = [0u8; 16];
                         for i in 0..length {
                             data[i as usize] = rng.random() as u8;
                         }
