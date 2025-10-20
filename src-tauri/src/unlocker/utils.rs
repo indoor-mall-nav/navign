@@ -166,10 +166,10 @@ impl BleMessage {
             return None;
         }
         match data[0] {
-            DEVICE_REQUEST if data.len() == DEVICE_REQUEST_LENGTH => {
+            DEVICE_REQUEST if data.len() >= DEVICE_REQUEST_LENGTH => {
                 Some(BleMessage::DeviceRequest(data[1]))
             }
-            DEVICE_RESPONSE if data.len() == DEVICE_RESPONSE_LENGTH => {
+            DEVICE_RESPONSE if data.len() >= DEVICE_RESPONSE_LENGTH => {
                 let device_type = DeviceType::depacketize(data[1])?;
                 let capabilities = DeviceCapability::depacketize(data[2]);
                 let mut object_id = [0u8; 24];
@@ -180,19 +180,19 @@ impl BleMessage {
                     object_id,
                 ))
             }
-            NONCE_REQUEST if data.len() == NONCE_REQUEST_LENGTH => Some(BleMessage::NonceRequest),
-            NONCE_RESPONSE if data.len() == NONCE_RESPONSE_LENGTH => {
+            NONCE_REQUEST if data.len() >= NONCE_REQUEST_LENGTH => Some(BleMessage::NonceRequest),
+            NONCE_RESPONSE if data.len() >= NONCE_RESPONSE_LENGTH => {
                 let mut nonce = [0u8; NONCE_LENGTH];
                 nonce.copy_from_slice(&data[1..NONCE_LENGTH + 1]);
                 let mut signature_tail = [0u8; SIGNATURE_TAIL_LENGTH];
                 signature_tail.copy_from_slice(&data[NONCE_LENGTH + 1..NONCE_RESPONSE_LENGTH]);
                 Some(BleMessage::NonceResponse(nonce, signature_tail))
             }
-            UNLOCK_REQUEST if data.len() == UNLOCK_REQUEST_LENGTH => {
+            UNLOCK_REQUEST if data.len() >= UNLOCK_REQUEST_LENGTH => {
                 let proof = Proof::depacketize(&data[1..])?;
                 Some(BleMessage::UnlockRequest(proof))
             }
-            UNLOCK_RESPONSE if data.len() == UNLOCK_RESPONSE_LENGTH => {
+            UNLOCK_RESPONSE if data.len() >= UNLOCK_RESPONSE_LENGTH => {
                 let success = data[1] != UNLOCK_SUCCESS;
                 let error = CryptoError::depacketize(data[2])?;
                 Some(BleMessage::UnlockResponse(success, error))

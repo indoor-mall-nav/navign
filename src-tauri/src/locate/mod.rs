@@ -3,7 +3,7 @@ pub mod beacon;
 mod locator;
 pub mod merchant;
 mod migration;
-mod scan;
+pub(crate) mod scan;
 
 use crate::api::map::AreaResponse;
 use crate::api::page_results::PaginationResponse;
@@ -20,7 +20,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{migrate, SqlitePool};
 use std::str::FromStr;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_blec::models::WriteType;
+use tauri_plugin_blec::models::{BleDevice, WriteType};
 use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
 use tauri_plugin_log::log::{debug, error, info, trace};
@@ -57,35 +57,23 @@ pub async fn locate_device(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
     trace!("Previous scan stopped. Now scanning for devices...");
-    let devices = scan::scan_devices()
+    let mut devices = scan::scan_devices(false)
         .await
         .map_err(|e| anyhow::anyhow!("Scan error: {}", e))?;
     trace!("Scan completed. Found {} devices.", devices.len());
     if devices.is_empty() {
         return Err(anyhow::anyhow!("No devices found"));
     }
-    let mut devices_unknown = Vec::new();
-    for device in devices.iter().filter(|x| x.rssi.is_some()) {
-        if BeaconInfo::get_from_mac(&conn, &device.address)
-            .await
-            .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
-            .is_none()
-        {
-            trace!(
-                "Unknown device found: {} with RSSI {}",
-                device.address,
-                device.rssi.unwrap()
-            );
-            devices_unknown.push((device.address.clone(), device.rssi.unwrap()));
+    for device in devices.iter_mut() {
+        trace!("Fetching info for unknown device: {}", device.address);
+        if let Ok(object_id) = fetch_device(&conn, device.address.as_str(), entity.as_str()).await {
+            device.address = object_id;
+            trace!("Updated device address to object ID: {}", device.address);
+        } else {
+            error!("Failed to fetch device info for MAC: {}", device.address);
         }
     }
-    devices_unknown.sort_by(|a, b| b.1.cmp(&a.1)); // Sort by RSSI descending
-    for (mac, _) in devices_unknown.iter() {
-        trace!("Fetching info for unknown device: {}", mac);
-        if let Err(e) = fetch_device(&conn, mac, entity.as_str()).await {
-            eprintln!("Failed to fetch device {}: {}", mac, e);
-        }
-    }
+    let devices: Vec<BleDevice> = devices.into_iter().filter(|d| d.address != "NAVIGN-BEACON").collect();
     let result = locator::handle_devices(devices.clone(), &conn, area.as_str()).await;
     match result {
         LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
@@ -128,22 +116,20 @@ pub struct Beacon {
     pub mac: String,
 }
 
-async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Result<()> {
+pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Result<String> {
     // It might be updated, so we need to check it in local database first.
-    if BeaconInfo::get_from_mac(conn, mac)
+    if let Some(addr) = BeaconInfo::get_from_mac(conn, mac)
         .await
         .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
-        .is_some()
     {
         trace!("Beacon with MAC {} already exists in the database.", mac);
-        return Ok(());
+        return Ok(addr.id);
     }
 
     trace!("Connecting to device with MAC: {}", mac);
 
     let object_id = {
-        let handler = get_handler()
-            .map_err(|e| anyhow::anyhow!("BLE not initialized: {}", e))?;
+        let handler = get_handler().map_err(|e| anyhow::anyhow!("BLE not initialized: {}", e))?;
 
         handler
             .connect(mac, OnDisconnectHandler::None, true)
@@ -153,30 +139,37 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;
         let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
-        handler.subscribe(characteristic, Some(service), |data| {
-            info!("Notification received: {:x?}", data);
-        }).await?;
+        handler
+            .subscribe(characteristic, Some(service), |data| {
+                info!("Notification received: {:x?}", data);
+            })
+            .await?;
 
         handler
-            .send_data(characteristic, Some(service), &[0x01], WriteType::WithResponse)
+            .send_data(
+                characteristic,
+                Some(service),
+                &[0x01],
+                WriteType::WithoutResponse,
+            )
             .await?;
-        // Wait for 0.5 seconds to let the device process the request
-        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
         let received = handler.recv_data(characteristic, Some(service)).await?;
-        debug!("Received data from device {}: {:x?}", mac, received);
+        info!("Received data from device {}: {:x?}", mac, received);
         handler.unsubscribe(characteristic).await?;
         handler.disconnect().await?;
         let depacketized = BleMessage::depacketize(received.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 
+        println!("Depacketized message: {:?}", depacketized);
+
         let BleMessage::DeviceResponse(_, _, obj_id) = depacketized else {
             return Err(anyhow::anyhow!("Failed to extract device response"));
         };
 
-        let object_id = obj_id
-            .iter()
-            .map(|b| format!("{:02x}", b))
-            .collect::<String>();
+        let object_id = String::from_utf8(Vec::from(obj_id))
+            .map_err(|e| anyhow::anyhow!("Invalid object ID format: {}", e))?;
+
+        println!("Extracted object ID: {}", object_id);
 
         if object_id.len() != 24 {
             return Err(anyhow::anyhow!("Invalid object ID length"));
@@ -185,40 +178,58 @@ async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Res
         object_id
     };
 
-    trace!("Fetched object ID: {} for MAC: {}", object_id, mac);
-
-    let client = reqwest::Client::new();
-    let url = format!("{BASE_URL}api/entities/{entity}/beacons/{object_id}");
-    println!("Fetching beacon info from URL: {}", url);
-    let res = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| anyhow::anyhow!("HTTP request failed: {}", e))?
-        .json::<Beacon>()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
-
-    if ActiveArea::get_by_id(conn, &res.area)
+    if let Some(beacon) = BeaconInfo::get_from_id(conn, &object_id)
         .await
         .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
-        .is_some()
     {
-        let beacon_info = BeaconInfo::new(
-            res.id.to_string(),
-            res.mac,
-            res.location,
-            "unknown".to_string(),
-            res.area.to_string(),
-            entity.to_string(),
+        trace!(
+            "Beacon with ID {} already exists in the database.",
+            object_id
         );
-        beacon_info.insert(conn).await?;
-        println!("Beacon {} inserted/updated in the database.", res.id);
+        if ActiveArea::get_by_id(conn, &beacon.area)
+            .await
+            .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
+            .is_none()
+        {
+            update_area(conn, &beacon.area, entity).await?;
+        }
     } else {
-        update_area(conn, &res.area, entity).await?;
-    }
+        trace!("Fetched object ID: {} for MAC: {}", object_id, mac);
 
-    Ok(())
+        let client = reqwest::Client::new();
+        let url = format!("{BASE_URL}api/entities/{entity}/beacons/{object_id}");
+        println!("Fetching beacon info from URL: {}", url);
+
+        let res = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("HTTP request failed: {}", e))?
+            .json::<Beacon>()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
+
+        if ActiveArea::get_by_id(conn, &res.area)
+            .await
+            .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
+            .is_some()
+        {
+            let beacon_info = BeaconInfo::new(
+                res.id.to_string(),
+                res.mac,
+                res.location,
+                "unknown".to_string(),
+                res.area.to_string(),
+                entity.to_string(),
+            );
+            beacon_info.insert(conn).await?;
+            println!("Beacon {} inserted/updated in the database.", res.id);
+        } else {
+            update_area(conn, &res.area, entity).await?;
+        }
+    };
+
+    Ok(object_id)
 }
 
 async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Result<()> {

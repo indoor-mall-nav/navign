@@ -1,3 +1,5 @@
+use crate::locate::beacon::BeaconInfo;
+use crate::locate::scan::{scan_devices, stop_scan};
 use crate::shared::BASE_URL;
 use crate::unlocker::challenge::ServerChallenge;
 use crate::unlocker::constants::{
@@ -9,9 +11,10 @@ use crate::unlocker::Unlocker;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlx::SqlitePool;
 use std::str::FromStr;
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 #[cfg(mobile)]
 use tauri_plugin_biometric::AuthOptions;
 #[cfg(mobile)]
@@ -22,6 +25,7 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_log::log::info;
 use tokio::sync::Mutex;
 use uuid::Uuid;
+use crate::locate::fetch_device;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStageResult {
@@ -42,10 +46,45 @@ pub async fn unlock_pipeline(
     state: State<'_, Arc<Mutex<Unlocker>>>,
 ) -> anyhow::Result<String> {
     let app_state = state.lock().await;
+    let dbpath = handle
+        .path()
+        .app_local_data_dir()
+        .map(|p| p.join("navign.db"))
+        .map_err(|e| {
+            eprintln!("Failed to get app local data dir: {}", e);
+            anyhow::anyhow!("Failed to get app local data dir")
+        })?;
+    // Create the directory if it doesn't exist
+    std::fs::create_dir_all(dbpath.parent().unwrap()).map_err(|e| {
+        eprintln!("Failed to create app local data dir: {}", e);
+        anyhow::anyhow!("Failed to create app local data dir")
+    })?;
+    let conn = SqlitePool::connect_with(
+        sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(dbpath.as_os_str())
+            .create_if_missing(true),
+    ).await.map_err(|e| {
+        eprintln!("Failed to connect to database: {}", e);
+        anyhow::anyhow!("Failed to connect to database")
+    })?;
+    let db_str = format!("{}", dbpath.to_string_lossy());
+    let devices = scan_devices(true).await?;
+    stop_scan().await.map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
+    let mut result_address = None;
+    let target_list = BeaconInfo::get_specific_merchant_beacons(&conn, target.as_str()).await?;
+    for device in devices.iter() {
+        let dev = fetch_device(&conn, device.address.as_str(), entity.as_str()).await?;
+        if target_list.iter().any(|b| b.id == dev) {
+            result_address = Some(device.address.clone());
+            break;
+        }
+    }
+    let target_addr = result_address.ok_or_else(|| anyhow::anyhow!("Target device not found during scan"))?;
+    info!("Target device address found: {}", target_addr);
     let handler = get_handler()?;
 
     handler
-        .connect(target.as_str(), OnDisconnectHandler::None, true)
+        .connect(target_addr.as_str(), OnDisconnectHandler::None, true)
         .await?;
 
     handler.subscribe(
@@ -53,7 +92,7 @@ pub async fn unlock_pipeline(
         Some(Uuid::from_str(UNLOCKER_SERVICE_UUID)?),
         |data| {
             info!("Notification received: {:x?}", data);
-        }
+        },
     ).await?;
 
     let characteristic = Uuid::from_str(UNLOCKER_CHARACTERISTIC_UUID)?;

@@ -33,7 +33,7 @@ pub async fn handle_devices(
     let mut info = Vec::with_capacity(devices.len());
     for device in devices.iter() {
         trace!("Processing device: {:?}", device);
-        if let Some(beacon_info) = BeaconInfo::get_from_mac(pool, &device.address)
+        if let Some(beacon_info) = BeaconInfo::get_from_id(pool, &device.address)
             .await
             .ok()
             .flatten()

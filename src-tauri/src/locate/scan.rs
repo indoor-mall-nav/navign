@@ -38,7 +38,7 @@ impl std::fmt::Display for ScanError {
 
 impl std::error::Error for ScanError {}
 
-pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
+pub async fn scan_devices(require_unlock: bool) -> Result<Vec<BleDevice>, ScanError> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<BleDevice>>(10);
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;
     if handler.is_scanning().await {
@@ -47,11 +47,17 @@ pub async fn scan_devices() -> Result<Vec<BleDevice>, ScanError> {
             .await
             .map_err(|_| ScanError::CannotStartScan)?;
     }
+    let mut expected_services = vec![service_id_to_uuid(0x1819), service_id_to_uuid(0x1821)]
+        .into_iter()
+        .collect::<HashSet<_>>();
+    if require_unlock {
+        expected_services.insert(service_id_to_uuid(0x183D));
+    }
     handler
         .discover(
             Some(tx),
             3000,
-            ScanFilter::AnyService(vec![service_id_to_uuid(0x1819), service_id_to_uuid(0x1821)]),
+            ScanFilter::AllServices(expected_services.into_iter().collect()),
             true,
         )
         .await
@@ -126,7 +132,7 @@ mod tests {
     #[tokio::test]
     async fn test_scan_devices_desktop_mock() {
         // This test runs the mock data path for desktop development
-        let result = scan_devices().await;
+        let result = scan_devices(false).await;
 
         if cfg!(all(desktop, dev)) {
             assert!(result.is_ok());

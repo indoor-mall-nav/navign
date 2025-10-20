@@ -57,6 +57,14 @@ impl BeaconInfo {
             .await?;
         Ok(info)
     }
+    
+    pub async fn get_specific_merchant_beacons(pool: &SqlitePool, merchant_id: &str) -> Result<Vec<Self>, sqlx::Error> {
+        let beacons = sqlx::query_as::<_, BeaconInfo>("SELECT * FROM beacons WHERE merchant = ?")
+            .bind(merchant_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(beacons)
+    }
 
     pub async fn insert(&self, pool: &SqlitePool) -> Result<(), sqlx::Error> {
         sqlx::query("INSERT INTO beacons (id, mac, location, merchant, area, entity) VALUES (?, ?, ?, ?, ?, ?)")
