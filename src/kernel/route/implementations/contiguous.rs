@@ -1,6 +1,6 @@
-use bumpalo::Bump;
 use crate::kernel::route::{AgentInstance, ConnectivityGraph};
 use crate::kernel::route::{Area, Atom, ConnectivityLimits};
+use bumpalo::Bump;
 
 pub trait Contiguous<'a> {
     fn is_contiguous(

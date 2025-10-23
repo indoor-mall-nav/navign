@@ -1,8 +1,8 @@
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use crate::kernel::route::{Area, Atom, ConnectivityLimits, Entity};
+use crate::kernel::route::{ConnectivityGraph, Contiguous};
 use bumpalo::Bump;
 use log::trace;
-use crate::kernel::route::{ConnectivityGraph, Contiguous};
-use crate::kernel::route::{Area, Atom, ConnectivityLimits, Entity};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 /// Simplified priority node for pathfinding: lower distance = higher priority
 #[derive(Debug, Clone)]
@@ -121,11 +121,11 @@ pub trait ConnectWithInstance<'a>: Sized {
         distance_map.insert(departure_area.database_id, 0);
 
         while let Some(PathNode {
-                           area_id: current_area,
-                           distance: current_distance,
-                           x,
-                           y,
-                       }) = heap.pop()
+            area_id: current_area,
+            distance: current_distance,
+            x,
+            y,
+        }) = heap.pop()
         {
             if visited.contains(&current_area) {
                 continue;
@@ -184,7 +184,7 @@ impl<'a> ConnectWithInstance<'a> for Entity<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kernel::route::types::{CloneIn, ConnectivityLimits, Dummy, Connection, Area};
+    use crate::kernel::route::types::{Area, CloneIn, Connection, ConnectivityLimits, Dummy};
     use crate::schema::ConnectionType;
     use bumpalo::boxed::Box;
 

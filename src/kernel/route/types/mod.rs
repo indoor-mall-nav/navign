@@ -6,11 +6,11 @@ mod connection;
 mod entity;
 mod merchant;
 
+use crate::schema::ConnectionType;
 pub use area::Area;
 pub use connection::Connection;
 pub use entity::Entity;
 pub use merchant::Merchant;
-use crate::schema::ConnectionType;
 
 pub trait CloneIn<'a>: Sized {
     type Cloned;
@@ -122,4 +122,10 @@ impl Default for ConnectivityLimits {
     }
 }
 
-pub type ConnectivityNode<'a> = (bumpalo::boxed::Box<'a, Area<'a>>, Atom<'a>, ConnectionType, f64, f64);
+pub type ConnectivityNode<'a> = (
+    bumpalo::boxed::Box<'a, Area<'a>>,
+    Atom<'a>,
+    ConnectionType,
+    f64,
+    f64,
+);

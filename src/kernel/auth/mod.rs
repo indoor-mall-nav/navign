@@ -2,8 +2,8 @@
 mod github;
 mod google;
 mod password;
-mod wechat;
 mod token;
+mod wechat;
 
 pub use token::UserData;
 

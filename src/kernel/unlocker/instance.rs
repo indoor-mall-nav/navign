@@ -1,14 +1,14 @@
 #![allow(unused)]
+use crate::AppState;
 use crate::kernel::auth::UserData;
 use crate::kernel::cryptography::UnlockChallenge;
 use crate::schema::{Beacon, Service};
 use crate::schema::{BeaconSecrets, User, UserPublicKeys};
-use crate::AppState;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
 use base64::Engine;
 use bson::doc;
 use bson::oid::ObjectId;

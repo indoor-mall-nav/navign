@@ -1,11 +1,11 @@
+use crate::AppState;
 use crate::kernel::auth::UserData;
 use crate::kernel::unlocker::instance::UnlockInstance;
 use crate::schema::{Beacon, Service};
-use crate::AppState;
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
 use base64::Engine;
 use log::info;
 use serde::{Deserialize, Serialize};

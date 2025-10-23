@@ -33,28 +33,37 @@ pub fn route(
         if parts.len() != 3 {
             return Err(NavigationError::InvalidDeparture);
         }
-        let lon = parts[0].parse::<f64>().map_err(|_| NavigationError::InvalidDeparture)?;
-        let lat = parts[1].parse::<f64>().map_err(|_| NavigationError::InvalidDeparture)?;
+        let lon = parts[0]
+            .parse::<f64>()
+            .map_err(|_| NavigationError::InvalidDeparture)?;
+        let lat = parts[1]
+            .parse::<f64>()
+            .map_err(|_| NavigationError::InvalidDeparture)?;
         let area = parts[2].to_string();
         (lon, lat, area)
     } else {
-        let departure = match merchants
-            .iter()
-            .find(|m| m.id.to_hex() == departure)
-        {
+        let departure = match merchants.iter().find(|m| m.id.to_hex() == departure) {
             Some(m) => m,
             None => return Err(NavigationError::InvalidDeparture),
         }
-            .clone();
-        (departure.location.0, departure.location.1, departure.area.to_hex())
+        .clone();
+        (
+            departure.location.0,
+            departure.location.1,
+            departure.area.to_hex(),
+        )
     };
     let arrival = if arrival.contains(",") {
         let parts: Vec<&str> = arrival.split(',').collect();
         if parts.len() != 3 {
             return Err(NavigationError::InvalidArrival);
         }
-        let lon = parts[0].parse::<f64>().map_err(|_| NavigationError::InvalidArrival)?;
-        let lat = parts[1].parse::<f64>().map_err(|_| NavigationError::InvalidArrival)?;
+        let lon = parts[0]
+            .parse::<f64>()
+            .map_err(|_| NavigationError::InvalidArrival)?;
+        let lat = parts[1]
+            .parse::<f64>()
+            .map_err(|_| NavigationError::InvalidArrival)?;
         let area = parts[2].to_string();
         (lon, lat, area)
     } else {
@@ -62,8 +71,12 @@ pub fn route(
             Some(m) => m,
             None => return Err(NavigationError::InvalidArrival),
         }
-            .clone();
-        (arrival.location.0, arrival.location.1, arrival.area.to_hex())
+        .clone();
+        (
+            arrival.location.0,
+            arrival.location.1,
+            arrival.area.to_hex(),
+        )
     };
     route_point(
         departure,
@@ -86,13 +99,7 @@ pub fn route_point(
     limits: ConnectivityLimits,
 ) -> Result<Vec<InstructionType>, NavigationError> {
     let alloc = Bump::default();
-    let entity = match Entity::convert_entity_in(
-        &alloc,
-        entity_id,
-        areas,
-        connections,
-        merchants,
-    ) {
+    let entity = match Entity::convert_entity_in(&alloc, entity_id, areas, connections, merchants) {
         Some(e) => e,
         None => return Err(NavigationError::InvalidArrival),
     };
@@ -100,17 +107,9 @@ pub fn route_point(
     trace!("Routing within entity: {}", entity.name);
     let dep_area = departure.2;
     let arr_area = arrival.2;
-    let src = (
-        departure.0,
-        departure.1,
-        Atom::from_in(dep_area, &alloc),
-    );
+    let src = (departure.0, departure.1, Atom::from_in(dep_area, &alloc));
     trace!("Source location: {:?}", src);
-    let dest = (
-        arrival.0,
-        arrival.1,
-        Atom::from_in(arr_area, &alloc),
-    );
+    let dest = (arrival.0, arrival.1, Atom::from_in(arr_area, &alloc));
     trace!("Destination location: {:?}", dest);
     entity.navigate(src, dest, limits, &alloc)
 }

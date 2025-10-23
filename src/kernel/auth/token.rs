@@ -1,11 +1,11 @@
 use crate::kernel::auth::Token;
+use axum::RequestPartsExt;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::response::IntoResponse;
-use axum::RequestPartsExt;
-use axum_extra::headers::authorization::Bearer;
-use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
+use axum_extra::headers::Authorization;
+use axum_extra::headers::authorization::Bearer;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 

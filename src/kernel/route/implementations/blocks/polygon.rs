@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
-use crate::kernel::route::implementations::{BoundedBlockArray, BoundedBlock};
+use crate::kernel::route::implementations::{BoundedBlock, BoundedBlockArray};
 use crate::kernel::route::types::CloneIn;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<'a> {

@@ -56,12 +56,15 @@ impl BeaconSecrets {
     }
 
     pub async fn increment_counter(&mut self, db: &mongodb::Database) -> anyhow::Result<()> {
-        let new_counter = self.counter
+        let new_counter = self
+            .counter
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("Counter overflow"))?;
 
         if new_counter > i64::MAX as u64 {
-            return Err(anyhow::anyhow!("Counter exceeds max value allowed in database"));
+            return Err(anyhow::anyhow!(
+                "Counter exceeds max value allowed in database"
+            ));
         }
 
         let collection = db.collection::<BeaconSecrets>(Self::get_collection_name());

@@ -26,18 +26,10 @@ impl PaginationResponseMetadata {
         } else {
             None
         };
-        let next_page_url = next_offset.map(|offset| {
-            format!(
-                "{}?offset={}&limit={}",
-                api_base_url, offset, current_limit
-            )
-        });
-        let prev_page_url = prev_offset.map(|offset| {
-            format!(
-                "{}?offset={}&limit={}",
-                api_base_url, offset, current_limit
-            )
-        });
+        let next_page_url = next_offset
+            .map(|offset| format!("{}?offset={}&limit={}", api_base_url, offset, current_limit));
+        let prev_page_url = prev_offset
+            .map(|offset| format!("{}?offset={}&limit={}", api_base_url, offset, current_limit));
         Self {
             total_items,
             current_offset,

@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use crate::AppState;
+use crate::schema::metadata::{PaginationResponse, PaginationResponseMetadata};
 use crate::shared::ReadQuery;
 use async_trait::async_trait;
 use axum::extract::{Path, Query, State};
@@ -13,7 +13,7 @@ use mongodb::{Collection, Database};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::schema::metadata::{PaginationResponse, PaginationResponseMetadata};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {
@@ -228,7 +228,10 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
             }))
             .build();
 
-        let cursor = collection.find(filter.clone()).with_options(find_options).await?;
+        let cursor = collection
+            .find(filter.clone())
+            .with_options(find_options)
+            .await?;
         let result: Vec<Self> = cursor.try_collect().await?;
         let total_count = collection.count_documents(filter).await?;
         Ok(PaginationResponse::new(
@@ -462,9 +465,17 @@ pub trait OneInArea: Service {
             total_items,
             offset,
             limit,
-            &format!("/entities/{}/areas/{}/{}", entity_id, area_id, Self::get_collection_name()),
+            &format!(
+                "/entities/{}/areas/{}/{}",
+                entity_id,
+                area_id,
+                Self::get_collection_name()
+            ),
         );
-        Ok(PaginationResponse { metadata, data: items })
+        Ok(PaginationResponse {
+            metadata,
+            data: items,
+        })
     }
 
     async fn get_all_in_area_handler(
@@ -481,13 +492,10 @@ pub trait OneInArea: Service {
             params.sort.as_deref(),
             params.asc.unwrap_or(true),
         )
-            .await
+        .await
         {
             Ok(items) => (StatusCode::OK, serde_json::to_string(&items).unwrap()),
-            Err(e) => (
-                StatusCode::BAD_REQUEST,
-                e.to_string(),
-            ),
+            Err(e) => (StatusCode::BAD_REQUEST, e.to_string()),
         }
     }
 }

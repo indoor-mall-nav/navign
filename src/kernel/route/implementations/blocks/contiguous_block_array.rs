@@ -1,6 +1,6 @@
 #![allow(unused)]
-use std::ops::Index;
 use super::{BoundedBlock, BoundedBlockArray};
+use std::ops::Index;
 
 /// A trait for blocks that can be part of a contiguous grid, allowing navigation to adjacent blocks.
 pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T> {
@@ -67,9 +67,9 @@ pub trait ContiguousBlockArray<T: Sized + Clone + Copy>: Index<usize, Output = T
             self.access_left(x, y),
             self.access_right(x, y),
         ]
-            .into_iter()
-            .flatten()
-            .collect()
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 

@@ -55,8 +55,8 @@ impl AsInstructions for Vec<BoundedBlock> {
 
 #[cfg(test)]
 mod tests {
-    use crate::kernel::route::instructions::AsInstructions;
     use crate::kernel::route::BoundedBlock;
+    use crate::kernel::route::instructions::AsInstructions;
 
     #[test]
     fn test_instruction_display() {
