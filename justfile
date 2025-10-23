@@ -1,4 +1,4 @@
-format:
+fmt:
   pnpm run format
   cd src-tauri && cargo fmt
 
@@ -13,3 +13,7 @@ fix:
 test:
   pnpm run test
   cd src-tauri && cargo test
+
+fmt-check:
+  pnpm run format:check
+  cd src-tauri && cargo fmt -- --check

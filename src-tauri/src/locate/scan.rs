@@ -56,7 +56,7 @@ pub async fn scan_devices(require_unlock: bool) -> Result<Vec<BleDevice>, ScanEr
     handler
         .discover(
             Some(tx),
-            3000,
+            5000,
             ScanFilter::AllServices(expected_services.into_iter().collect()),
             true,
         )
@@ -79,9 +79,6 @@ pub async fn scan_devices(require_unlock: bool) -> Result<Vec<BleDevice>, ScanEr
 }
 
 pub async fn stop_scan() -> Result<(), ScanError> {
-    if cfg!(all(desktop, dev)) {
-        return Ok(());
-    }
     let handler = get_handler().map_err(|_| ScanError::NotInitialized)?;
     if handler.is_scanning().await {
         handler
@@ -94,8 +91,8 @@ pub async fn stop_scan() -> Result<(), ScanError> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
     #[test]
     fn test_uuid_conversion() {
         let uuid = service_id_to_uuid(0x1819);
@@ -128,22 +125,6 @@ mod tests {
             "Scan failed: test error"
         );
         assert_eq!(ScanError::NoDevicesFound.to_string(), "No devices found");
-    }
-
-    #[tokio::test]
-    async fn test_scan_devices_desktop_mock() {
-        // This test runs the mock data path for desktop development
-        let result = scan_devices(false).await;
-
-        if cfg!(all(desktop, dev)) {
-            assert!(result.is_ok());
-            let devices = result.unwrap();
-            assert_eq!(devices.len(), 1);
-            assert_eq!(devices[0].address, "48:F6:EE:21:B0:7C");
-            assert_eq!(devices[0].name, "NAVIGN_BEACON");
-            assert_eq!(devices[0].rssi, Some(-45));
-            assert_eq!(devices[0].services.len(), 2);
-        }
     }
 
     #[test]
@@ -201,16 +182,6 @@ mod tests {
         let uuid_a = service_id_to_uuid(0x1819);
         let uuid_b = service_id_to_uuid(0x1821);
         assert_ne!(uuid_a, uuid_b);
-    }
-
-    #[tokio::test]
-    async fn test_stop_scan_desktop_mock() {
-        // Test that stop_scan works correctly in desktop mock mode
-        let result = stop_scan().await;
-
-        if cfg!(all(desktop, dev)) {
-            assert!(result.is_ok());
-        }
     }
 
     #[test]

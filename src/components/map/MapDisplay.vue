@@ -101,8 +101,8 @@ function addUserLocationToSvg() {
   const scale = Math.min(scale_x, scale_y);
 
   // FIXME Swap x and y to match SVG coordinate system
-  const ty = (userLocation.value.x - min_x) * scale + 10;
-  const tx = (userLocation.value.y - min_y) * scale + 10;
+  const tx = (userLocation.value.x - min_x) * scale + 10;
+  const ty = (userLocation.value.y - min_y) * scale + 10;
 
   // Create user location marker with pulsing animation
   const locationMarker = `

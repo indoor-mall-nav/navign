@@ -97,7 +97,7 @@ async function calculateRoute() {
   try {
     const result = await getRoute(
       props.entityId,
-      `${props.currentExactLocation[1]},${props.currentExactLocation[0]},${props.currentLocation}`,
+      `${props.currentExactLocation[0]},${props.currentExactLocation[1]},${props.currentLocation}`,
       selectedTarget.value.id,
       {
         elevator: allowElevator.value,
@@ -172,6 +172,7 @@ const unlockErrorMessage = ref("");
 function unlockDoor() {
   const targetMerchant = selectedTarget.value;
   if (!targetMerchant) return;
+  console.log("Unlocking door for", targetMerchant.name);
   unlockDevice(props.entityId, targetMerchant.id).then((res) => {
     if (res.status === "success") {
       nextStep();

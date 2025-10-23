@@ -3,9 +3,7 @@ use crate::locate::fetch_device;
 use crate::locate::scan::{scan_devices, stop_scan};
 use crate::shared::BASE_URL;
 use crate::unlocker::challenge::ServerChallenge;
-use crate::unlocker::constants::{
-    NONCE_RESPONSE_LENGTH, UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID,
-};
+use crate::unlocker::constants::{UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID};
 use crate::unlocker::proof::Proof;
 use crate::unlocker::utils::{BleMessage, DeviceCapability};
 use crate::unlocker::Unlocker;
@@ -23,7 +21,7 @@ use tauri_plugin_biometric::BiometricExt;
 use tauri_plugin_blec::models::WriteType;
 use tauri_plugin_blec::{get_handler, OnDisconnectHandler};
 use tauri_plugin_http::reqwest;
-use tauri_plugin_log::log::info;
+use tauri_plugin_log::log::{error, info};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -45,18 +43,22 @@ pub async fn unlock_pipeline(
     target: String,
     state: State<'_, Arc<Mutex<Unlocker>>>,
 ) -> anyhow::Result<String> {
+    info!(
+        "Starting unlock pipeline for target: {} in {}",
+        target, entity
+    );
     let app_state = state.lock().await;
     let dbpath = handle
         .path()
         .app_local_data_dir()
         .map(|p| p.join("navign.db"))
         .map_err(|e| {
-            eprintln!("Failed to get app local data dir: {}", e);
+            error!("Failed to get app local data dir: {}", e);
             anyhow::anyhow!("Failed to get app local data dir")
         })?;
     // Create the directory if it doesn't exist
     std::fs::create_dir_all(dbpath.parent().unwrap()).map_err(|e| {
-        eprintln!("Failed to create app local data dir: {}", e);
+        error!("Failed to create app local data dir: {}", e);
         anyhow::anyhow!("Failed to create app local data dir")
     })?;
     let db_str = format!("{}", dbpath.to_string_lossy());
@@ -67,18 +69,35 @@ pub async fn unlock_pipeline(
     )
     .await
     .map_err(|e| {
-        eprintln!("Failed to connect to database: {}", e);
+        error!("Failed to connect to database: {}", e);
         anyhow::anyhow!("Failed to connect to database")
     })?;
-    let devices = scan_devices(true).await?;
+    let devices = scan_devices(true).await.map_err(|e| {
+        anyhow::anyhow!("Failed to scan devices: {}", e)
+    })?;
     stop_scan()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
     let mut result_address = None;
-    let target_list = BeaconInfo::get_specific_merchant_beacons(&conn, target.as_str()).await?;
     for device in devices.iter() {
-        let dev = fetch_device(&conn, device.address.as_str(), entity.as_str()).await?;
-        if target_list.iter().any(|b| b.id == dev) {
+        let device_id = fetch_device(&conn, device.address.as_str(), entity.as_str()).await?;
+        let device_info = BeaconInfo::get_from_id(&conn, device_id.as_str())
+            .await
+            .map_err(|e| anyhow::anyhow!("Database error: {}", e))?
+            .ok_or_else(|| anyhow::anyhow!("Beacon info not found for device"))?;
+        info!(
+            "Scanned device: {} ({}) - Merchant: {}",
+            device_info.id.as_str(),
+            device.address.as_str(),
+            device_info.merchant.as_str()
+        );
+        // FIXME merchant not loaded properly from DB?
+        if device_info.merchant == target || device_info.merchant == "unknown" {
+            info!(
+                "Found target device: {} ({})",
+                device_info.id.as_str(),
+                device.address.as_str()
+            );
             result_address = Some(device.address.clone());
             break;
         }
@@ -86,11 +105,21 @@ pub async fn unlock_pipeline(
     let target_addr =
         result_address.ok_or_else(|| anyhow::anyhow!("Target device not found during scan"))?;
     info!("Target device address found: {}", target_addr);
-    let handler = get_handler()?;
+    let handler = get_handler().map_err(|e| {
+        anyhow::anyhow!("Failed to get BLE handler: {}", e)
+    })?;
+
+    info!("Connecting to device: {}", target_addr);
+
+    handler.disconnect().await.ok();
+    handler.stop_scan().await.ok();
 
     handler
         .connect(target_addr.as_str(), OnDisconnectHandler::None, true)
-        .await?;
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to connect to device {}: {}", target_addr, e))?;
+
+    info!("Connected to device: {}", target_addr);
 
     handler
         .subscribe(
@@ -106,7 +135,7 @@ pub async fn unlock_pipeline(
     let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
     handler
-        .send_data(characteristic, Some(service), &[], WriteType::WithResponse)
+        .send_data(characteristic, Some(service), &BleMessage::DeviceRequest.packetize(), WriteType::WithResponse)
         .await?;
 
     let received = handler.recv_data(characteristic, Some(service)).await?;
@@ -117,16 +146,16 @@ pub async fn unlock_pipeline(
         return Err(anyhow::anyhow!("Failed to extract device response"));
     };
 
-    let object_id = obj_id
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>();
+    let object_id = String::from_utf8(obj_id.as_slice().to_vec())
+        .map_err(|_| anyhow::anyhow!("Invalid object ID encoding"))?;
+
+    info!("Object ID: {}", object_id);
 
     if object_id.len() != 24 {
         return Err(anyhow::anyhow!("Invalid object ID length"));
     }
 
-    println!(
+    info!(
         "Device Type: {:?}, Capabilities: {:?}, Object ID: {}",
         d_type, d_capabilities, object_id
     );
@@ -146,10 +175,6 @@ pub async fn unlock_pipeline(
         .await?;
     let received = handler.recv_data(characteristic, Some(service)).await?;
 
-    if received.len() != NONCE_RESPONSE_LENGTH {
-        return Err(anyhow::anyhow!("Invalid nonce response length"));
-    }
-
     let nonce_packet = BleMessage::depacketize(received.as_slice())
         .ok_or_else(|| anyhow::anyhow!("Failed to depacketize nonce"))?;
 
@@ -158,14 +183,14 @@ pub async fn unlock_pipeline(
         return Err(anyhow::anyhow!("Failed to extract nonce"));
     };
 
-    println!("Nonce: {:x?}", nonce);
-    println!("Verification: {:x?}", verification);
+    info!("Nonce: {:x?}", nonce);
+    info!("Verification: {:x?}", verification);
 
     let mut payload = [0u8; 24];
     payload.copy_from_slice(nonce.as_slice());
     payload[16..24].copy_from_slice(&verification[0..8]);
     let encoded = base64::engine::general_purpose::STANDARD.encode(payload);
-    println!("Payload: {}", encoded);
+    info!("Payload: {}", encoded);
 
     let client = reqwest::Client::new();
     let instance = client
@@ -198,7 +223,7 @@ pub async fn unlock_pipeline(
         current,
         app_state.user_id.clone(),
     );
-    println!("Challenge: {:?}", challenge);
+    info!("Challenge: {:?}", challenge);
     let device_key = app_state
         .ensure_signing_key(&handle)
         .map_err(|e| anyhow::anyhow!("Failed to get device key: {}", e))?;
@@ -221,7 +246,7 @@ pub async fn unlock_pipeline(
 
     let (challenge_packet, validator) = challenge.packetize(&device_key);
 
-    println!("Challenge Packet: {}", challenge_packet);
+    info!("Challenge Packet: {}", challenge_packet);
 
     let client_response = client
         .put(
@@ -259,8 +284,8 @@ pub async fn unlock_pipeline(
     let mut beacon_verifier = [0u8; 8];
     beacon_verifier.copy_from_slice(&server_proof[64..72]);
 
-    println!("Server Signature: {:x?}", server_signature);
-    println!("Beacon Verifier: {:x?}", beacon_verifier);
+    info!("Server Signature: {:x?}", server_signature);
+    info!("Beacon Verifier: {:x?}", beacon_verifier);
 
     // Step 4: send the unlock request
     let proof = Proof::new(
@@ -273,7 +298,7 @@ pub async fn unlock_pipeline(
 
     let proof_packet = BleMessage::UnlockRequest(proof).packetize();
 
-    println!("Proof Packet: {:x?}", proof_packet);
+    info!("Proof Packet: {:x?}", proof_packet);
 
     handler
         .send_data(
@@ -297,7 +322,7 @@ pub async fn unlock_pipeline(
         success,
         outcome: error.to_string(),
     };
-    println!("Unlock Result: {:?}", result);
+    info!("Unlock Result: {:?}", result);
 
     let eventual = client
         .put(
@@ -345,16 +370,16 @@ pub async fn unlock_handler(
                 "status": "success",
                 "message": res
             });
-            println!("Unlock pipeline succeeded: {}", res);
+            info!("Unlock pipeline succeeded: {}", res);
             Ok(payload.to_string())
         }
         Err(e) => {
-            println!("Unlock pipeline failed: {}", e);
+            info!("Unlock pipeline failed: {}", e);
             let payload = json!({
                 "status": "error",
                 "message": e.to_string()
             });
-            println!("Unlock pipeline error payload: {}", payload);
+            info!("Unlock pipeline error payload: {}", payload);
             Ok(payload.to_string())
         }
     }

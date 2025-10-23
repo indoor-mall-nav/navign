@@ -5,7 +5,7 @@ pub mod merchant;
 mod migration;
 pub(crate) mod scan;
 
-use crate::api::map::AreaResponse;
+use crate::api::map::{AreaResponse};
 use crate::api::page_results::PaginationResponse;
 use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;
@@ -152,7 +152,7 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             .send_data(
                 characteristic,
                 Some(service),
-                &[0x01],
+                &BleMessage::DeviceRequest.packetize(),
                 WriteType::WithoutResponse,
             )
             .await?;
@@ -163,7 +163,7 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
         let depacketized = BleMessage::depacketize(received.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 
-        println!("Depacketized message: {:?}", depacketized);
+        info!("Depacketized message: {:?}", depacketized);
 
         let BleMessage::DeviceResponse(_, _, obj_id) = depacketized else {
             return Err(anyhow::anyhow!("Failed to extract device response"));
@@ -172,7 +172,7 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
         let object_id = String::from_utf8(Vec::from(obj_id))
             .map_err(|e| anyhow::anyhow!("Invalid object ID format: {}", e))?;
 
-        println!("Extracted object ID: {}", object_id);
+        info!("Extracted object ID: {}", object_id);
 
         if object_id.len() != 24 {
             return Err(anyhow::anyhow!("Invalid object ID length"));
@@ -201,7 +201,7 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
 
         let client = reqwest::Client::new();
         let url = format!("{BASE_URL}api/entities/{entity}/beacons/{object_id}");
-        println!("Fetching beacon info from URL: {}", url);
+        info!("Fetching beacon info from URL: {}", url);
 
         let res = client
             .get(&url)
@@ -226,7 +226,7 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
                 entity.to_string(),
             );
             beacon_info.insert(conn).await?;
-            println!("Beacon {} inserted/updated in the database.", res.id);
+            info!("Beacon {} inserted/updated in the database.", res.id);
         } else {
             update_area(conn, &res.area, entity).await?;
         }
@@ -319,11 +319,11 @@ pub async fn locate_handler(app: AppHandle, area: String, entity: String) -> Res
         .app_local_data_dir()
         .map(|p| p.join("navign.db"))
         .map_err(|e| {
-            eprintln!("Failed to get app local data dir: {}", e);
+            error!("Failed to get app local data dir: {}", e);
         })?;
     // Create the directory if it doesn't exist
     std::fs::create_dir_all(dbpath.parent().unwrap()).map_err(|e| {
-        eprintln!("Failed to create app local data dir: {}", e);
+        error!("Failed to create app local data dir: {}", e);
     })?;
     let db_str = format!("{}", dbpath.to_string_lossy());
     match locate_device(db_str, area, entity).await {

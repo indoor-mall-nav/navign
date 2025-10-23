@@ -99,8 +99,8 @@ fn rssi_to_distance(mut rssi: f64) -> f64 {
 
 /// # Locate via Beacons
 ///
-/// 1. If there are RSSI values greater than -80 dBm, use the beacon with the highest RSSI value.
-/// 2. If ALL RSSI values are within -80 dBm to -160 dBm, use the weighted area centroid method.
+/// 1. If there are RSSI values greater than -60 dBm, use the beacon with the highest RSSI value.
+/// 2. If ALL RSSI values are within -60 dBm to -160 dBm, use the weighted area centroid method.
 /// 3. Remove RSSI values less than -160 dBm.
 pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
     trace!("Located position via beacons in: {:?}", beacons);
@@ -109,7 +109,7 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
     }
     let strong_beacons: Vec<&Locator> = beacons
         .iter()
-        .filter(|&&(_, _, rssi)| rssi <= 80.0)
+        .filter(|&&(_, _, rssi)| rssi.abs() <= 60.0)
         .collect();
     trace!("{} strong beacons", strong_beacons.len());
     if !strong_beacons.is_empty() {
@@ -125,7 +125,7 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
     // Filter out beacons with RSSI less than -160 dBm
     let filtered_beacons: Vec<&Locator> = beacons
         .iter()
-        .filter(|&&(_, _, rssi)| rssi <= 160.0)
+        .filter(|&&(_, _, rssi)| rssi.abs() <= 160.0)
         .collect();
     trace!("{} beacons after filtering", filtered_beacons.len());
     if filtered_beacons.is_empty() {

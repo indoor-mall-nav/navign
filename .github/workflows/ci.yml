@@ -76,3 +76,5 @@ jobs:
         uses: extractions/setup-just@v3
       - name: Run lint
         run: just lint
+      - name: Format check
+        run: just fmt-check

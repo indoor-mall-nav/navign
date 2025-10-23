@@ -118,7 +118,7 @@ impl CryptoError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BleMessage {
-    DeviceRequest(u8),
+    DeviceRequest,
     DeviceResponse(DeviceType, Vec<DeviceCapability>, [u8; 24]), // 24-byte MongoDB ObjectId segment
     NonceRequest,
     NonceResponse([u8; 16], [u8; 8]),
@@ -130,9 +130,8 @@ impl BleMessage {
     pub fn packetize(&self) -> Vec<u8> {
         let mut packet = Vec::new();
         match self {
-            BleMessage::DeviceRequest(segment) => {
+            BleMessage::DeviceRequest => {
                 packet.push(DEVICE_REQUEST);
-                packet.push(*segment);
             }
             BleMessage::DeviceResponse(device_type, capabilities, object_id) => {
                 packet.push(DEVICE_RESPONSE);
@@ -167,7 +166,7 @@ impl BleMessage {
         }
         match data[0] {
             DEVICE_REQUEST if data.len() >= DEVICE_REQUEST_LENGTH => {
-                Some(BleMessage::DeviceRequest(data[1]))
+                Some(BleMessage::DeviceRequest)
             }
             DEVICE_RESPONSE if data.len() >= DEVICE_RESPONSE_LENGTH => {
                 let device_type = DeviceType::depacketize(data[1])?;
