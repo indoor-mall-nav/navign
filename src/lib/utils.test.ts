@@ -10,6 +10,12 @@ import {
   isPointInPolygon,
   retryWithBackoff,
 } from "./utils";
+import { error, info } from "@tauri-apps/plugin-log";
+
+vi.mock("@tauri-apps/plugin-log", () => ({
+  info: vi.fn(),
+  error: vi.fn(),
+}));
 
 describe("rssiToDistance", () => {
   it("should return -1 for RSSI of 0", () => {
@@ -88,11 +94,15 @@ describe("safeJsonParse", () => {
   });
 
   it("should return fallback for invalid JSON", () => {
+    (info as any).mockResolvedValue(undefined);
+    (error as any).mockResolvedValue(undefined);
     const result = safeJsonParse("invalid json", { default: true });
     expect(result).toEqual({ default: true });
   });
 
   it("should handle empty string", () => {
+    (info as any).mockResolvedValue(undefined);
+    (error as any).mockResolvedValue(undefined);
     const result = safeJsonParse("", null);
     expect(result).toBeNull();
   });

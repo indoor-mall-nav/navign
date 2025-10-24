@@ -21,6 +21,7 @@
     "sql:default",
     "sql:allow-execute",
     "log:default",
-    "store:default"
+    "store:default",
+    "fs:default"
   ]
 }

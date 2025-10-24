@@ -33,6 +33,7 @@ pub fn run() {
                 kind: MigrationKind::Up,
             }];
             app.handle().plugin(tauri_plugin_opener::init())?;
+            app.handle().plugin(tauri_plugin_fs::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
             app.handle().plugin(tauri_plugin_notification::init())?;
             app.handle().plugin(tauri_plugin_blec::init())?;

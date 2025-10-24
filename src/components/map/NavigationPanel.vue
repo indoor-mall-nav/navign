@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/vue";
 import { Label } from "@/components/ui/label";
-import { info } from '@tauri-apps/plugin-log';
+import { info } from "@tauri-apps/plugin-log";
 
 const props = defineProps<{
   entityId: string;

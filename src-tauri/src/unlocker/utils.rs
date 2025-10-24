@@ -203,9 +203,9 @@ impl BleMessage {
 
 #[cfg(test)]
 mod tests {
-    use tauri_plugin_log::log::info;
     use super::*;
     use crate::unlocker::proof::Proof;
+    use tauri_plugin_log::log::info;
 
     #[test]
     fn test_device_capability_packetize_depacketize() {

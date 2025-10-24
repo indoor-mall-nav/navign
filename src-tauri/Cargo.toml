@@ -57,4 +57,5 @@ tauri-plugin-log = "2"
 tauri-plugin-barcode-scanner = "2"
 tauri-plugin-biometric = "2"
 tauri-plugin-nfc = "2"
+tauri-plugin-fs = "2"
 #tauri-plugin-gyroscope = { path = "../../tauri-plugin-gyroscope" }

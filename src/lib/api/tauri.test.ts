@@ -14,10 +14,16 @@ import {
   type RouteResponse,
 } from "./tauri";
 import { invoke } from "@tauri-apps/api/core";
+import { error, info } from "@tauri-apps/plugin-log";
 
 // Mock Tauri invoke
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/plugin-log", () => ({
+  info: vi.fn(),
+  error: vi.fn(),
 }));
 
 describe("Authentication APIs", () => {
@@ -33,6 +39,8 @@ describe("Authentication APIs", () => {
     };
 
     (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
+    (info as any).mockResolvedValue(undefined);
+    (error as any).mockResolvedValue(undefined);
 
     const result = await login("test@example.com", "password123");
 
@@ -195,6 +203,8 @@ describe("Location APIs", () => {
     };
 
     (invoke as any).mockResolvedValue(JSON.stringify(mockLocationResponse));
+    (info as any).mockResolvedValue(undefined);
+    (error as any).mockResolvedValue(undefined);
 
     const result = await locateDevice("area_123", "entity_1");
 
@@ -210,6 +220,8 @@ describe("Location APIs", () => {
     };
 
     (invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse));
+    (info as any).mockResolvedValue(undefined);
+    (error as any).mockResolvedValue(undefined);
 
     const result = await locateDevice("area_123", "entity_1");
 
