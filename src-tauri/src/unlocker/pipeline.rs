@@ -72,9 +72,9 @@ pub async fn unlock_pipeline(
         error!("Failed to connect to database: {}", e);
         anyhow::anyhow!("Failed to connect to database")
     })?;
-    let devices = scan_devices(true).await.map_err(|e| {
-        anyhow::anyhow!("Failed to scan devices: {}", e)
-    })?;
+    let devices = scan_devices(true)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to scan devices: {}", e))?;
     stop_scan()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
@@ -105,9 +105,7 @@ pub async fn unlock_pipeline(
     let target_addr =
         result_address.ok_or_else(|| anyhow::anyhow!("Target device not found during scan"))?;
     info!("Target device address found: {}", target_addr);
-    let handler = get_handler().map_err(|e| {
-        anyhow::anyhow!("Failed to get BLE handler: {}", e)
-    })?;
+    let handler = get_handler().map_err(|e| anyhow::anyhow!("Failed to get BLE handler: {}", e))?;
 
     info!("Connecting to device: {}", target_addr);
 
@@ -135,7 +133,12 @@ pub async fn unlock_pipeline(
     let service = Uuid::from_str(UNLOCKER_SERVICE_UUID)?;
 
     handler
-        .send_data(characteristic, Some(service), &BleMessage::DeviceRequest.packetize(), WriteType::WithResponse)
+        .send_data(
+            characteristic,
+            Some(service),
+            &BleMessage::DeviceRequest.packetize(),
+            WriteType::WithResponse,
+        )
         .await?;
 
     let received = handler.recv_data(characteristic, Some(service)).await?;

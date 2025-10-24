@@ -1,5 +1,6 @@
 // API service layer for Tauri commands
 import { invoke } from "@tauri-apps/api/core";
+import { info } from "@tauri-apps/plugin-log";
 
 export interface ApiResponse<T = any> {
   status: "success" | "error";
@@ -37,7 +38,7 @@ export async function logout(token: string): Promise<ApiResponse> {
 
 export async function guestLogin(): Promise<ApiResponse> {
   const response = await invoke<string>("guest_login_handler");
-  console.log(response);
+  await info("Message received from guest_login:" + JSON.stringify(response));
   return JSON.parse(response);
 }
 
@@ -149,7 +150,7 @@ export async function locateDevice(
   entity: string,
 ): Promise<ApiResponse<{ area: string; x: number; y: number }>> {
   const response = await invoke<string>("locate_handler", { area, entity });
-  console.log(response);
+  await info("Message received from locate_device:" + JSON.stringify(response));
   return JSON.parse(response);
 }
 
@@ -162,7 +163,7 @@ export async function unlockDevice(
     entity,
     target,
   });
-  console.log(response);
+  await info("Message received from unlock_device:" + JSON.stringify(response));
   return JSON.parse(response);
 }
 

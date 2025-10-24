@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/vue";
 import { Label } from "@/components/ui/label";
+import { info } from '@tauri-apps/plugin-log';
 
 const props = defineProps<{
   entityId: string;
@@ -172,7 +173,7 @@ const unlockErrorMessage = ref("");
 function unlockDoor() {
   const targetMerchant = selectedTarget.value;
   if (!targetMerchant) return;
-  console.log("Unlocking door for", targetMerchant.name);
+  info("Unlocking door for", targetMerchant.name);
   unlockDevice(props.entityId, targetMerchant.id).then((res) => {
     if (res.status === "success") {
       nextStep();

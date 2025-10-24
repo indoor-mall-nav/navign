@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn test_locate_via_beacons() {
         let beacons = vec![
-            (0.0, 0.0, 70.0),
+            (0.0, 0.0, 40.0),
             (1.0, 1.0, 90.0),
             (2.0, 2.0, 85.0),
             (3.0, 3.0, 160.0),
@@ -177,6 +177,16 @@ mod tests {
         ];
         let location = locate_via_beacons(&beacons);
         assert_eq!(location, Some((0.0, 0.0)));
+
+        let beacons = vec![
+            (0.0, 0.0, 70.0),
+            (1.0, 1.0, 90.0),
+            (2.0, 2.0, 85.0),
+            (3.0, 3.0, 160.0),
+            (4.0, 4.0, 170.0),
+        ];
+        let location = locate_via_beacons(&beacons);
+        assert_eq!(location, Some((0.35665167226144173, 0.35665167226144173)));
 
         let beacons = vec![
             (1.0, 1.0, 90.0),

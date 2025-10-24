@@ -5,7 +5,7 @@ pub mod merchant;
 mod migration;
 pub(crate) mod scan;
 
-use crate::api::map::{AreaResponse};
+use crate::api::map::AreaResponse;
 use crate::api::page_results::PaginationResponse;
 use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { login, register, guestLogin } from "@/lib/api/tauri";
 import { useSessionStore } from "@/states/session";
+import { info } from "@tauri-apps/plugin-log";
 
 const router = useRouter();
 const session = useSessionStore();
@@ -97,7 +98,7 @@ async function handleGuestLogin() {
     if (result.status === "success") {
       session.setUserToken("guest");
       session.setUserId("guest");
-      console.log("Guest login successful");
+      await info("Guest login successful");
       await router.push("/");
     } else {
       errorMessage.value = result.message || "Guest login failed";

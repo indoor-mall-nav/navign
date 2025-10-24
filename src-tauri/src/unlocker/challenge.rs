@@ -73,6 +73,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey};
+    use tauri_plugin_log::log::info;
 
     #[test]
     fn test_server_challenge() {
@@ -91,8 +92,8 @@ mod tests {
         );
 
         let (packet_b64, validator) = challenge.packetize(&device_key);
-        println!("Packet (base64): {}", packet_b64);
-        println!("Validator: {:?}", validator);
+        info!("Packet (base64): {}", packet_b64);
+        info!("Validator: {:?}", validator);
 
         assert_eq!(packet_b64.len(), 96);
         let decoded = base64::engine::general_purpose::STANDARD

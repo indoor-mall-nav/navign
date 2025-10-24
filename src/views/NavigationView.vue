@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
 import { Separator } from "@/components/ui/separator";
+import { info, error as logError } from "@tauri-apps/plugin-log";
 
 const route = useRoute();
 
@@ -43,7 +44,6 @@ async function loadMapData() {
       mapData.value = result.data;
     }
     const merchants = await getAllMerchants(entityId.value);
-    console.log(merchants);
     if (merchants.status === "success" && merchants.data) {
       merchantsData.value = merchants.data.map((x) => ({
         ...x,
@@ -51,7 +51,7 @@ async function loadMapData() {
       }));
     }
   } catch (err) {
-    console.error("Failed to load map data:", err);
+    await logError("Failed to load map data: " + JSON.stringify(err));
   }
 }
 
@@ -60,7 +60,7 @@ async function locateUserPosition() {
   locationError.value = "";
 
   try {
-    console.log(`Locating device in area ${areaId.value}...`);
+    await info(`Locating device in area ${areaId.value}...`);
     const result = await locateDevice(areaId.value, entityId.value);
     if (result.status === "success" && result.x && result.y) {
       userLocation.value = { x: result.x, y: result.y };

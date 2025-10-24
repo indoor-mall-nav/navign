@@ -42,7 +42,7 @@ describe("Extract Instructions", () => {
       },
       { type: "turn", turn: "right" },
       { type: "straight", straight: 22.5 },
-      { type: "unlock" }
+      { type: "unlock" },
     ]);
   });
 });

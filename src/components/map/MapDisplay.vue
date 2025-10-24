@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@iconify/vue";
 import RouteOverlay from "./RouteOverlay.vue";
+import { error as logError } from "@tauri-apps/plugin-log";
 
 const props = defineProps<{
   entityId: string;
@@ -203,7 +204,7 @@ async function generateMap() {
       }
     }
   } catch (err) {
-    console.error("Failed to generate SVG map:", err);
+    await logError("Failed to generate SVG map: " + JSON.stringify(err));
   }
 }
 

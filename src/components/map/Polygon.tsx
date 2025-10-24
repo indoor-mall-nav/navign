@@ -37,8 +37,6 @@ export default function Polygon(props: {
       Math.max(screenHeight / height, 1),
     ) / 1.6;
 
-  console.log(screenWidth, width);
-
   const pathData =
     points
       .map((point, index) => {

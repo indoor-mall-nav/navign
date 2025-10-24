@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "no-alert": "error",
+    "oxc/approx-constant": "warn",
+    "no-plusplus": "off",
+    "no-console": "error"
+  }
+}

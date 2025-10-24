@@ -10,6 +10,7 @@ use login::handlers::{
 use login::handshake::bind_with_server;
 use std::sync::Arc;
 use tauri::Manager;
+use tauri_plugin_log::log::info;
 use tauri_plugin_sql::{Migration, MigrationKind};
 use tokio::sync::Mutex;
 use unlocker::unlock_handler;
@@ -52,10 +53,10 @@ pub fn run() {
                 .map(|x| x.join("salt.txt").exists())
                 .unwrap_or(false)
             {
-                println!("Salt file exists.");
+                info!("Salt file exists.");
             } else {
                 let salt = nanoid::nanoid!();
-                println!("Hello, {:?}", app.path().app_local_data_dir());
+                info!("Hello, {:?}", app.path().app_local_data_dir());
                 if !app
                     .path()
                     .app_local_data_dir()

@@ -203,6 +203,7 @@ impl BleMessage {
 
 #[cfg(test)]
 mod tests {
+    use tauri_plugin_log::log::info;
     use super::*;
     use crate::unlocker::proof::Proof;
 
@@ -241,7 +242,7 @@ mod tests {
             [1u8; 24],
         );
         let packet = original_message.packetize();
-        println!("Packet: {:?}", packet);
+        info!("Packet: {:?}", packet);
         assert_eq!(packet.len(), DEVICE_RESPONSE_LENGTH);
         let depacketized_message = BleMessage::depacketize(&packet).unwrap();
         match (original_message, depacketized_message) {
