@@ -178,6 +178,11 @@ export async function getRoute(
   to: string,
   limits?: ConnectivityLimits,
 ): Promise<ApiResponse<RouteResponse>> {
+  await info(
+    `Requesting route from ${from} to ${to} with limits: ${JSON.stringify(
+      limits,
+    )}`,
+  );
   const response = await invoke<string>("get_route_handler", {
     entity,
     from,

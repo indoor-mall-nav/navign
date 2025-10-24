@@ -357,7 +357,7 @@ watch(
             <div class="flex items-center space-x-2">
               <Checkbox
                 :id="`elevator-${entityId}`"
-                v-model:checked="allowElevator"
+                v-model="allowElevator"
               />
               <label
                 :for="`elevator-${entityId}`"
@@ -370,7 +370,7 @@ watch(
             <div class="flex items-center space-x-2">
               <Checkbox
                 :id="`stairs-${entityId}`"
-                v-model:checked="allowStairs"
+                v-model="allowStairs"
               />
               <label
                 :for="`stairs-${entityId}`"
@@ -383,7 +383,7 @@ watch(
             <div class="flex items-center space-x-2">
               <Checkbox
                 :id="`escalator-${entityId}`"
-                v-model:checked="allowEscalator"
+                v-model="allowEscalator"
               />
               <label
                 :for="`escalator-${entityId}`"
