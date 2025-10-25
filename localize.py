@@ -1,10 +1,12 @@
 from manim import *
 import numpy as np
 
+# Add amsmath package
+
 class LocalizationVisualization(Scene):
     def construct(self):
         # Title (0.5s)
-        title = Text("Navign BLE Localization Pipeline").scale(0.6).to_edge(UP)
+        title = Tex("Navign BLE Localization Pipeline").scale(0.6).to_edge(UP)
         self.play(Write(title), run_time=0.5)
         
         # Part 1: BLE Scanning (3s)
@@ -20,12 +22,12 @@ class LocalizationVisualization(Scene):
     
     def ble_scanning(self):
         """BLE beacon scanning"""
-        step_label = Text("1. BLE Scan (5s)", font_size=20, color=BLUE).to_edge(UP).shift(DOWN*0.5)
+        step_label = Tex("1. BLE Scan (5s)", font_size=20, color=BLUE).to_edge(UP).shift(DOWN*0.5)
         self.play(Write(step_label), run_time=0.3)
         
         # Phone
         phone = Rectangle(width=0.6, height=1.0, color=BLUE, stroke_width=3, fill_opacity=0.2)
-        phone_icon = Text("📱", font_size=32).move_to(phone.get_center())
+        phone_icon = Tex("Phone", font_size=32).move_to(phone.get_center())
         phone_group = VGroup(phone, phone_icon)
         
         self.play(FadeIn(phone_group), run_time=0.4)
@@ -42,8 +44,8 @@ class LocalizationVisualization(Scene):
         
         for pos, rssi, label in beacon_data:
             beacon = Circle(radius=0.15, color=GREEN, fill_opacity=0.8).move_to(pos)
-            rssi_text = Text(f"{rssi}dBm", font_size=12, color=WHITE).next_to(beacon, UP, buff=0.1)
-            label_text = Text(label, font_size=10, color=GRAY).next_to(beacon, DOWN, buff=0.05)
+            rssi_text = Tex(f"{rssi}dBm", font_size=12, color=WHITE).next_to(beacon, UP, buff=0.1)
+            label_text = Tex(label, font_size=10, color=GRAY).next_to(beacon, DOWN, buff=0.05)
             
             # Signal waves
             wave = Circle(radius=0.3, color=GREEN, stroke_width=1.5, fill_opacity=0).move_to(pos)
@@ -77,15 +79,15 @@ class LocalizationVisualization(Scene):
     def area_selection(self):
         """Group by area and select best area"""
         self.play(Transform(self.step_label, 
-            Text("2. Area Selection", font_size=20, color=GREEN).to_edge(UP).shift(DOWN*0.5)),
+            Tex("2. Area Selection", font_size=20, color=GREEN).to_edge(UP).shift(DOWN*0.5)),
             run_time=0.3)
         
         # Draw area boundaries
         area_a = Rectangle(width=3, height=3.5, color=BLUE, stroke_width=2, fill_opacity=0.05).shift(LEFT*2)
         area_b = Rectangle(width=3, height=3.5, color=ORANGE, stroke_width=2, fill_opacity=0.05).shift(RIGHT*2)
         
-        area_a_label = Text("Area A (3 beacons)", font_size=14, color=BLUE).next_to(area_a, UP, buff=0.1)
-        area_b_label = Text("Area B (2 beacons)", font_size=14, color=ORANGE).next_to(area_b, UP, buff=0.1)
+        area_a_label = Tex("Area A (3 beacons)", font_size=14, color=BLUE).next_to(area_a, UP, buff=0.1)
+        area_b_label = Tex("Area B (2 beacons)", font_size=14, color=ORANGE).next_to(area_b, UP, buff=0.1)
         
         self.play(
             Create(area_a),
@@ -97,11 +99,11 @@ class LocalizationVisualization(Scene):
         
         # Highlight effective beacons (RSSI >= -160)
         threshold_line = DashedLine(LEFT*3.5 + DOWN*2.5, RIGHT*3.5 + DOWN*2.5, color=RED, stroke_width=2)
-        threshold_label = Text("RSSI threshold: -160 dBm", font_size=12, color=RED).next_to(threshold_line, DOWN, buff=0.1)
+        threshold_label = Tex("RSSI threshold: -160 dBm", font_size=12, color=RED).next_to(threshold_line, DOWN, buff=0.1)
         
         # Show selection
         selection_box = SurroundingRectangle(area_a, color=YELLOW, stroke_width=4, buff=0.1)
-        selection_text = Text("✓ Area A selected", font_size=16, color=YELLOW).to_edge(DOWN)
+        selection_text = Tex("Area A selected", font_size=16, color=YELLOW).to_edge(DOWN)
         
         self.play(
             Create(selection_box),
@@ -128,21 +130,21 @@ class LocalizationVisualization(Scene):
     def position_calculation(self):
         """Calculate position using RSSI"""
         self.play(Transform(self.step_label,
-            Text("3. Position Calculation", font_size=20, color=PURPLE).to_edge(UP).shift(DOWN*0.5)),
+            Tex("3. Position Calculation", font_size=20, color=PURPLE).to_edge(UP).shift(DOWN*0.5)),
             run_time=0.3)
         
         # Show RSSI thresholds
         threshold_box = VGroup(
-            Text("RSSI Thresholds:", font_size=14, color=YELLOW),
-            Text("≥ -60 dBm: Use strongest", font_size=12, color=GREEN),
-            Text("-60 to -160: Weighted centroid", font_size=12, color=BLUE),
-            Text("< -160: Ignore", font_size=12, color=RED)
+            Tex("RSSI Thresholds:", font_size=14, color=YELLOW),
+            Tex("$\\geq -60$ dBm: Use strongest", font_size=12, color=GREEN),
+            Tex("$-60$ to $-160$: Weighted centroid", font_size=12, color=BLUE),
+            Tex("$\\leq -160$: Ignore", font_size=12, color=RED)
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.1).to_corner(UR).shift(LEFT*0.2 + DOWN*0.5)
         
         self.play(FadeIn(threshold_box), run_time=0.5)
         
         # Scenario: Weighted centroid (all beacons -60 to -160)
-        calc_label = Text("Weighted Centroid Method", font_size=16, color=BLUE).to_edge(DOWN).shift(UP*2)
+        calc_label = Tex("Weighted Centroid Method", font_size=16, color=BLUE).to_edge(DOWN).shift(UP*2)
         self.play(Write(calc_label), run_time=0.4)
         
         # Show formula
@@ -181,7 +183,7 @@ class LocalizationVisualization(Scene):
                 color=BLUE,
                 stroke_width=2 + weight * 3
             )
-            weight_text = Text(f"w={weight:.2f}", font_size=10, color=BLUE).move_to(
+            weight_text = Tex(f"w={weight:.2f}", font_size=10, color=BLUE).move_to(
                 (self.phone_group.get_center() + b["beacon"].get_center()) / 2
             ).shift(UP*0.2)
             
@@ -195,7 +197,7 @@ class LocalizationVisualization(Scene):
         # Animate phone moving to calculated position
         result_marker = Dot(final_pos, color=YELLOW, radius=0.15)
         result_circle = Circle(radius=0.3, color=YELLOW, stroke_width=3).move_to(final_pos)
-        coords_text = Text(f"({final_x:.1f}, {final_y:.1f})", font_size=14, color=YELLOW).next_to(result_marker, DOWN, buff=0.3)
+        coords_text = Tex(f"({final_x:.1f}, {final_y:.1f})", font_size=14, color=YELLOW).next_to(result_marker, DOWN, buff=0.3)
         
         self.play(
             self.phone_group.animate.move_to(final_pos),
@@ -207,7 +209,7 @@ class LocalizationVisualization(Scene):
         self.play(Write(coords_text), run_time=0.4)
         
         # Success message
-        success = Text("✓ Position Calculated", font_size=18, color=GREEN).to_edge(DOWN)
+        success = Tex("Position Calculated", font_size=18, color=GREEN).to_edge(DOWN)
         self.play(Write(success), run_time=0.4)
         
         self.wait(0.5)

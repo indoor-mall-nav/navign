@@ -3,19 +3,19 @@ from manim import *
 class FullUnlockPipeline(Scene):
     def construct(self):
         # 0. Setup and Initialization (1.5s)
-        title = Text("Navign Secure Unlock Pipeline (Rust Code Flow)").scale(0.65).to_edge(UP)
+        title = Tex("Navign Secure Unlock Pipeline (Rust Code Flow)").scale(0.65).to_edge(UP)
         
         # Define Actors (Placement based on logical flow)
-        phone = Text("Client (Tauri)").scale(0.6).to_edge(LEFT).shift(UP*1.5)
-        beacon = Text("Beacon (ESP32-C3)").scale(0.6).to_edge(RIGHT).shift(UP*1.5)
-        server = Text("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)
+        phone = Tex("Client (Tauri)").scale(0.6).to_edge(LEFT).shift(UP*1.5)
+        beacon = Tex("Beacon (ESP32-C3)").scale(0.6).to_edge(RIGHT).shift(UP*1.5)
+        server = Tex("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)
         
         actors = VGroup(phone, beacon, server)
         self.play(Write(title), FadeIn(actors), run_time=1.0)
         self.wait(0.5)
         
         # 1. Device Discovery & Capability Check (2.5s)
-        scan_text = Text("1. Scan, Connect, and Subscribe").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
+        scan_text = Tex("1. Scan, Connect, and Subscribe").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
         self.play(Write(scan_text), phone.animate.set_color(BLUE), run_time=0.8)
         
         # 0x01 Packet Structure - FIXED POSITION
@@ -51,7 +51,7 @@ class FullUnlockPipeline(Scene):
         self.play(FadeOut(packet_0x01), FadeOut(arrow_to_beacon), FadeOut(scan_text), run_time=0.5)
         
         # 2. Beacon Nonce Challenge (BLE) (2.5s)
-        nonce_text = Text("2. Request Beacon Nonce").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
+        nonce_text = Tex("2. Request Beacon Nonce").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
         self.play(Write(nonce_text), run_time=0.5)
         
         # 0x03 Packet Structure - FIXED POSITION
@@ -86,7 +86,7 @@ class FullUnlockPipeline(Scene):
         self.play(FadeOut(packet_0x03), FadeOut(arrow_nonce_req), FadeOut(nonce_text), run_time=0.5)
         
         # 3. Server Challenge Creation (HTTPS) (3.5s)
-        https_text1 = Text("3a. Create Server Challenge").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(GREEN)
+        https_text1 = Tex("3a. Create Server Challenge").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(GREEN)
         self.play(Write(https_text1), run_time=0.5)
         
         # POST request to create challenge with beacon nonce
@@ -102,7 +102,7 @@ class FullUnlockPipeline(Scene):
         self.wait(0.5)
         
         # Server generates its own challenge nonce
-        server_process_1 = Text("Generate Server\nChallenge Nonce").scale(0.4).set_color(ORANGE).move_to(server.get_center()).shift(DOWN*0.3)
+        server_process_1 = Tex("Generate Server\\\\Challenge Nonce").scale(0.4).set_color(ORANGE).move_to(server.get_center()).shift(DOWN*0.3)
         self.play(
             Transform(server, server_process_1),
             json_create_challenge.animate.set_opacity(0.4),
@@ -124,18 +124,18 @@ class FullUnlockPipeline(Scene):
             FadeOut(arrow_create_req),
             Transform(json_create_challenge, json_challenge_response),
             GrowArrow(arrow_challenge_resp),
-            Transform(server, Text("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)),
+            Transform(server, Tex("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)),
             run_time=0.8
         )
         self.wait(0.5)
         self.play(FadeOut(arrow_challenge_resp), FadeOut(json_create_challenge), FadeOut(https_text1), run_time=0.3)
         
         # 4. Client Authentication (4.5s)
-        https_text2 = Text("3b. Client Signs Server Challenge").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
+        https_text2 = Tex("3b. Client Signs Server Challenge").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
         self.play(Write(https_text2), run_time=0.5)
         
         # Client performs biometric auth and signs
-        client_process = Text("Biometric Auth\n+ ECDSA Sign\nServer Challenge").scale(0.35).set_color(BLUE).move_to(phone.get_center()).shift(DOWN*0.3)
+        client_process = Tex("Biometric Auth\\\\+ ECDSA Sign\\\\Server Challenge").scale(0.35).set_color(BLUE).move_to(phone.get_center()).shift(DOWN*0.3)
         self.play(Transform(phone, client_process), run_time=0.8)
         self.wait(0.8)
         
@@ -151,13 +151,13 @@ class FullUnlockPipeline(Scene):
         self.play(
             GrowArrow(arrow_sign_req),
             FadeIn(json_sign_request),
-            Transform(phone, Text("Client (Tauri)").scale(0.6).to_edge(LEFT).shift(UP*1.5)),
+            Transform(phone, Tex("Client (Tauri)").scale(0.6).to_edge(LEFT).shift(UP*1.5)),
             run_time=0.8
         )
         self.wait(0.5)
         
         # Server verifies and generates proof
-        server_process_2 = Text("Verify Client Signature\n+ Generate Proof\n+ Sign with Server Key").scale(0.35).set_color(RED).move_to(server.get_center()).shift(DOWN*0.3)
+        server_process_2 = Tex("Verify Client Signature\\\\+ Generate Proof\\\\+ Sign with Server Key").scale(0.35).set_color(RED).move_to(server.get_center()).shift(DOWN*0.3)
         self.play(
             Transform(server, server_process_2),
             json_sign_request.animate.set_opacity(0.4),
@@ -178,7 +178,7 @@ class FullUnlockPipeline(Scene):
             FadeOut(arrow_sign_req),
             Transform(json_sign_request, json_proof_response),
             GrowArrow(arrow_proof_resp),
-            Transform(server, Text("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)),
+            Transform(server, Tex("Server (Rust Backend)").scale(0.6).move_to(ORIGIN).shift(UP*1.5)),
             run_time=0.8
         )
         self.wait(0.5)
@@ -190,7 +190,7 @@ class FullUnlockPipeline(Scene):
         )
         
         # 5. Final Proof Transmission (BLE) (2.5s)
-        unlock_text = Text("4. Transmit Unlock Proof to Beacon").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
+        unlock_text = Tex("4. Transmit Unlock Proof to Beacon").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(BLUE)
         self.play(Write(unlock_text), run_time=0.5)
         
         # 0x05 Packet Structure - FIXED POSITION
@@ -212,7 +212,7 @@ class FullUnlockPipeline(Scene):
         self.wait(0.5)
         
         # Beacon verification
-        verify_text = Text("Verify Server\nSignature").scale(0.35).set_color(ORANGE).move_to(beacon.get_center()).shift(DOWN*0.3)
+        verify_text = Tex("Verify Server\\\\Signature").scale(0.35).set_color(ORANGE).move_to(beacon.get_center()).shift(DOWN*0.3)
         self.play(
             Transform(beacon, verify_text),
             packet_0x05.animate.set_opacity(0.4),
@@ -242,7 +242,7 @@ class FullUnlockPipeline(Scene):
         self.wait(0.3)
         
         # 6. Report Outcome (1.5s)
-        report_text = Text("5. Report Outcome to Server").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(GREEN)
+        report_text = Tex("5. Report Outcome to Server").scale(0.4).next_to(phone, DOWN, buff=0.2).set_color(GREEN)
         self.play(Write(report_text), run_time=0.5)
         
         json_outcome = self.create_json_payload(
@@ -262,7 +262,7 @@ class FullUnlockPipeline(Scene):
         self.wait(0.5)
         
         # Final success message
-        final_report = Text("✓ Unlock Successful - Access Granted").scale(0.5).next_to(json_outcome, DOWN, buff=0.3).set_color(GREEN)
+        final_report = Tex("Unlock Successful - Access Granted").scale(0.5).next_to(json_outcome, DOWN, buff=0.3).set_color(GREEN)
         self.play(
             Write(final_report),
             FadeOut(report_text),

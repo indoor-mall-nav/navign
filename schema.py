@@ -50,8 +50,8 @@ class DatabaseSchema(Scene):
     def create_box(self, name, color, detail):
         """Create a collection box"""
         box = Rectangle(width=2, height=0.9, color=color, stroke_width=2, fill_opacity=0.1)
-        name_text = Text(name, font_size=16, color=color, weight=BOLD)
-        detail_text = Text(detail, font_size=10, color=GRAY)
+        name_text = Tex(name, font_size=16, color=color)
+        detail_text = Tex(detail, font_size=10, color=GRAY)
         
         content = VGroup(name_text, detail_text).arrange(DOWN, buff=0.1)
         content.move_to(box.get_center())
