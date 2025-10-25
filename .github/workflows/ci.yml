@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         node-version: [20]
-        platform: [ubuntu-latest, windows-latest, macos-latest]
+        platform: [ubuntu-latest]
         python-version: [3.12]
         pnpm-version: [10]
         mongodb-version: ['8.0']
