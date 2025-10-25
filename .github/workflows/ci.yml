@@ -48,7 +48,7 @@ jobs:
           libwebkit2gtk-4.1-dev \
           libayatana-appindicator3-dev \
           webkit2gtk-driver \
-          xvfb
+          xvfb portaudio19-dev
       - name: Setup just
         uses: extractions/setup-just@v3
       - name: Install dependencies

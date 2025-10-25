@@ -1,5 +1,6 @@
 init:
   cd animations && uv sync
+  cd gesture_space && uv sync
   cd beacon && cargo build
   cd mobile && just init
   cd server && cargo build
@@ -7,6 +8,7 @@ init:
 
 fmt:
   cd animations && uvx ruff format
+  cd gesture_space && uvx ruff format
   cd beacon && cargo fmt
   cd mobile && just fmt
   cd server && cargo fmt
@@ -14,6 +16,7 @@ fmt:
 
 lint:
   cd animations && uvx ruff check
+  cd gesture_space && uvx ruff check
   cd beacon && cargo clippy -- -D warnings
   cd mobile && just lint
   cd server && cargo clippy --all-targets --all-features -- -D warnings
@@ -21,6 +24,7 @@ lint:
 
 fix:
   cd animations && uvx ruff fix
+  cd gesture_space && uvx ruff fix
   cd beacon && cargo fix --allow-dirty
   cd mobile && just fix
   cd server && cargo fix --allow-dirty --all-targets --all-features
@@ -34,6 +38,7 @@ test:
 
 fmt-check:
   cd animations && uvx ruff check --diff
+  cd gesture_space && uvx ruff check --diff
   cd beacon && cargo fmt -- --check
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check

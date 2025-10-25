@@ -18,9 +18,9 @@ audio_model = AutoModelForCTC.from_pretrained("facebook/wav2vec2-large-960h")
 
 def record_audio():
     audio = pyaudio.PyAudio()
-    stream = audio.open(format=FORMAT, channels=CHANNELS,
-                        rate=RATE, input=True,
-                        frames_per_buffer=CHUNK)
+    stream = audio.open(
+        format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK
+    )
     audio_buffer = np.empty((0,), dtype=np.int16)
     silent_chunks = 0
     recording = True
@@ -37,7 +37,7 @@ def record_audio():
         else:
             silent_chunks = 0
 
-    print(f"Recording: {len(audio_buffer) / RATE:.2f}s", end='\r')
+    print(f"Recording: {len(audio_buffer) / RATE:.2f}s", end="\r")
     stream.stop_stream()
     stream.close()
     return audio_buffer
@@ -45,7 +45,7 @@ def record_audio():
 
 def db_level(data):
     """Calculate the dB level of the audio data."""
-    rms = np.sqrt(np.mean(data ** 2))
+    rms = np.sqrt(np.mean(data**2))
     if rms > 0:
         return 20 * np.log10(rms)
     else:
@@ -53,7 +53,11 @@ def db_level(data):
 
 
 def recognize_audio(audio: np.ndarray) -> str:
-    inputs = processor(audio, return_tensors="pt", sampling_rate=16000).input_values.float().to(device)
+    inputs = (
+        processor(audio, return_tensors="pt", sampling_rate=16000)
+        .input_values.float()
+        .to(device)
+    )
     with torch.no_grad():
         logits = audio_model(inputs).logits
         predicted_ids = torch.argmax(logits, dim=-1)

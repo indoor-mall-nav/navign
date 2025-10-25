@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from accelerate import infer_auto_device_map
 from torchvision import transforms
 from transform import ToNumpy, HandleGestureDataset, ExtractKeypoints, hands
 
@@ -71,7 +70,7 @@ class GestureClassifier(nn.Module):
 
 model = GestureClassifier()
 # device = 'mps' if torch.backends.mps.is_available() else 'cpu'
-device = 'cpu'
+device = "cpu"
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()

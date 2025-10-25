@@ -17,8 +17,7 @@ def generate_local_response(content: str, user: str) -> str:
         [
             {
                 "role": "user",
-                "content": message
-                + f"Now the user is asking: {user}\n"
+                "content": message + f"Now the user is asking: {user}\n",
                 # + f"You should be aware that you may be unable to solve this question. If you don't think yourself able to solve the user's problem, please output the special token <remote> instead of returning other sentences.",
             }
         ],
@@ -35,6 +34,7 @@ def generate_local_response(content: str, user: str) -> str:
     result = tokenizer.decode(output_ids, skip_special_tokens=True).strip("\n")
 
     return result
+
 
 def generate_response(content: str, user: str) -> str:
     """

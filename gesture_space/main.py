@@ -46,7 +46,10 @@ try:
 
             for u, v, name, conf in objects:
                 pt = get_point_3d_place(
-                    np.array([[[u, v]]], dtype=np.float32), Z0, camera_pos=t_world, R=R_world
+                    np.array([[[u, v]]], dtype=np.float32),
+                    Z0,
+                    camera_pos=t_world,
+                    R=R_world,
                 )
                 points_3d.append(pt)
                 if conf < 0.6:

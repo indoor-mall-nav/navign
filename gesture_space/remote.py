@@ -12,7 +12,17 @@ def is_chatgpt_api_available():
     country = geo_response.json().get("country_name")
 
     # Step 2: Check against OpenAI's supported regions
-    unsupported_countries = ["China", "Hong Kong", "Macau", "Russia", "Belarus", "Iran", "Syria", "North Korea", "Cuba"]
+    unsupported_countries = [
+        "China",
+        "Hong Kong",
+        "Macau",
+        "Russia",
+        "Belarus",
+        "Iran",
+        "Syria",
+        "North Korea",
+        "Cuba",
+    ]
     return country not in unsupported_countries
 
 
@@ -28,12 +38,18 @@ def get_appropriate_client() -> tuple[OpenAI, str]:
 def run_remote_response(env: str, user: str) -> str:
     client, model = get_appropriate_client()
 
-    content = 'The environment involves following surroundings:\n' + env + \
-        f'\nThe user is asking: {user}\n'
+    content = (
+        "The environment involves following surroundings:\n"
+        + env
+        + f"\nThe user is asking: {user}\n"
+    )
 
     response = client.responses.create(
         model=model,
-        input=prompt + content + "\n" + "Now, please provide a response to the user's question.\n",
+        input=prompt
+        + content
+        + "\n"
+        + "Now, please provide a response to the user's question.\n",
     )
 
     result = response.output_text
