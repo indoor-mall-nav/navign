@@ -12,7 +12,8 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "test": "vitest run",
-    "format:check": "prettier --check . --filter='{**,!src-tauri}/*.{js,ts,vue,json,md}'"
+    "format:check": "prettier --check . --filter='{**,!src-tauri}/*.{js,ts,vue,json,md}'",
+    "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
     "@iconify-icons/mdi": "^1.2.48",

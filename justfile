@@ -43,3 +43,9 @@ fmt-check:
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check
   cd maintenance-tool && cargo fmt -- --check
+
+clean:
+  uv cache clean
+  cargo clean
+  rm -rf mobile/.turbo
+  rm -rf mobile/dist

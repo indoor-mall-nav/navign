@@ -57,5 +57,7 @@ jobs:
         run: just lint
       - name: Format check
         run: just fmt-check
+      - name: Clean build artifacts
+        run: just clean
       - name: Run test
         run: just test
