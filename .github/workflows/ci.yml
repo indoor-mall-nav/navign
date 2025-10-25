@@ -1,0 +1,57 @@
+name: Rust Unit Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        node-version: [20]
+        platform: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.12]
+        pnpm-version: [10]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ matrix.pnpm-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+      - name: Tauri dependencies
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update &&
+          sudo apt-get install -y \
+          libwebkit2gtk-4.1-dev \
+          libayatana-appindicator3-dev \
+          webkit2gtk-driver \
+          xvfb
+      - name: Setup just
+        uses: extractions/setup-just@v3
+      - name: Install dependencies
+        run: just init
+      - name: Run lint
+        run: just lint
+      - name: Format check
+        run: just fmt-check
+      - name: Setup just
+        uses: extractions/setup-just@v3
+      - name: Run test
+        run: just test
