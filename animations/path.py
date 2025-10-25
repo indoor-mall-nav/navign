@@ -1,4 +1,31 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Circle,
+    Rectangle,
+    Dot,
+    Write,
+    FadeIn,
+    FadeOut,
+    Create,
+    DashedLine,
+    VMobject,
+    Polygon,
+    Arrow,
+    DR,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    GRAY,
+    WHITE,
+)
 import numpy as np
 
 
@@ -166,9 +193,6 @@ class PathfindingVisualization(Scene):
             step2, DOWN, buff=0.15, aligned_edge=LEFT
         )
         self.play(Write(step3), run_time=0.3)
-
-        # Highlight bounded blocks and show path
-        bounded_blocks = [b for b, inside, _ in blocks if inside]
 
         # Show a simple path
         start_point = np.array([-1.25, 0.25, 0])

@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "beacon",
+    "server",
+    "mobile/src-tauri",
+    "maintenance-tool",
+]
+
+# Exclude members from default workspace builds if needed
+# This is useful since beacon needs special cross-compilation
+default-members = [
+    "server",
+    "maintenance-tool",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]

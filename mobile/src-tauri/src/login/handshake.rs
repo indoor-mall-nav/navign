@@ -60,11 +60,15 @@ async fn perform_handshake(
         .map_err(|e| anyhow::anyhow!("AES encryption failed: {}", e))?;
 
     let mut message = Vec::new();
-    message.extend_from_slice(nonce.as_slice());
+    message.extend_from_slice(nonce.to_vec().as_slice());
     message.extend_from_slice(&ciphertext);
 
     let encrypted_key = key
-        .encrypt(&mut AesOsRng, rsa::Pkcs1v15Encrypt, aes_key.as_slice())
+        .encrypt(
+            &mut AesOsRng,
+            rsa::Pkcs1v15Encrypt,
+            aes_key.to_vec().as_slice(),
+        )
         .map_err(|e| anyhow::anyhow!("RSA encryption failed: {}", e))?;
 
     let mut final_message = Vec::with_capacity(encrypted_key.len() + message.len());

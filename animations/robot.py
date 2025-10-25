@@ -1,11 +1,40 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Circle,
+    Line,
+    VMobject,
+    Arrow,
+    Write,
+    FadeIn,
+    FadeOut,
+    RoundedRectangle,
+    Create,
+    Transform,
+    MathTex,
+    DashedLine,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    PURPLE,
+    GRAY,
+    WHITE,
+    TEAL,
+    GOLD,
+    PINK,
+)
 
 
 class RobotArchitecture(Scene):
     def construct(self):
         # Define layout boundaries
-        upper_boundary = 2.5
-        lower_boundary = -1.5
         separator_line = Line(LEFT * 7, RIGHT * 7, color=GRAY).shift(DOWN * 1)
 
         # Title with LaTeX
@@ -38,7 +67,6 @@ class RobotArchitecture(Scene):
         ros_text = Tex(
             r"\texttt{ROS2} \\ \texttt{Core}", font_size=24, color=WHITE
         ).move_to(ros_core.get_center())
-        ros_group = VGroup(ros_core, ros_text)
 
         self.play(FadeIn(ros_core), Write(ros_text))
         self.wait(0.5)
@@ -586,12 +614,6 @@ class ControlLoop(Scene):
         )
         arrow4 = Arrow(
             motor_box.get_bottom(), encoder_box.get_top(), color=WHITE, stroke_width=3
-        )
-        arrow5 = Arrow(
-            encoder_box.get_left(),
-            encoder_box.get_left() + LEFT * 4,
-            color=WHITE,
-            stroke_width=3,
         )
 
         # Feedback arrow

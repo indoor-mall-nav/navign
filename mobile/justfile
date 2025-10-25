@@ -1,3 +1,7 @@
+init:
+  pnpm install
+  cd src-tauri && cargo build
+
 fmt:
   pnpm run format
   cd src-tauri && cargo fmt

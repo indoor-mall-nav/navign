@@ -1,4 +1,29 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Rectangle,
+    Text,
+    GrowArrow,
+    Arrow,
+    FadeIn,
+    LaggedStart,
+    Create,
+    DR,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    PURPLE,
+    GRAY,
+    GRAY_A,
+    ORIGIN,
+)
 
 
 class DatabaseSchema(Scene):

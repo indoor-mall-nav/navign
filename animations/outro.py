@@ -1,6 +1,31 @@
-from manim import *
-
-config.text_font = "Latin Modern Math"
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    CurvedArrow,
+    Text,
+    Rectangle,
+    GrowArrow,
+    Write,
+    Arrow,
+    FadeIn,
+    LaggedStart,
+    Create,
+    ITALIC,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    PURPLE,
+    GRAY,
+    WHITE,
+    TAU,
+)
 
 
 class NavignOutro(Scene):
@@ -84,7 +109,10 @@ class NavignOutro(Scene):
 
         # Animate arrows separately (GrowArrow for straight arrows, Create for curved)
         self.play(GrowArrow(arrow1), GrowArrow(arrow2), Create(ble_path), run_time=0.6)
-        self.play(LaggedStart(*[Write(l) for l in labels], lag_ratio=0.1), run_time=0.4)
+        self.play(
+            LaggedStart(*[Write(label) for label in labels], lag_ratio=0.1),
+            run_time=0.4,
+        )
 
         self.arch_group = VGroup(
             rust_badge, components, arrow1, arrow2, ble_path, labels

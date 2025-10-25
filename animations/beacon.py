@@ -1,4 +1,26 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Circle,
+    Rectangle,
+    Write,
+    FadeIn,
+    FadeOut,
+    Create,
+    Transform,
+    DashedLine,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    GRAY,
+)
 
 
 class BeaconUnlockLogic(Scene):

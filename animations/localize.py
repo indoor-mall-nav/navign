@@ -1,4 +1,32 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Circle,
+    Line,
+    Rectangle,
+    Dot,
+    Write,
+    FadeIn,
+    FadeOut,
+    Create,
+    Transform,
+    SurroundingRectangle,
+    MathTex,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    PURPLE,
+    GRAY,
+    WHITE,
+    UR,
+)
 import numpy as np
 
 # Add amsmath package
@@ -125,14 +153,6 @@ class LocalizationVisualization(Scene):
             Write(area_b_label),
             run_time=0.8,
         )
-
-        # Highlight effective beacons (RSSI >= -160)
-        threshold_line = DashedLine(
-            LEFT * 3.5 + DOWN * 2.5, RIGHT * 3.5 + DOWN * 2.5, color=RED, stroke_width=2
-        )
-        threshold_label = Tex(
-            "RSSI threshold: -160 dBm", font_size=12, color=RED
-        ).next_to(threshold_line, DOWN, buff=0.1)
 
         # Show selection
         selection_box = SurroundingRectangle(

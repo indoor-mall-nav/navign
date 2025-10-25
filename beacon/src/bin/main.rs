@@ -39,15 +39,15 @@ use esp_alloc::heap_allocator;
 use esp_hal::delay::Delay;
 use esp_hal::efuse::{Efuse, BLOCK_KEY0};
 use esp_hal::gpio::{Flex, Level};
-use esp_hal::rng::{Trng, TrngSource};
 use esp_hal::interrupt::software::SoftwareInterruptControl;
+use esp_hal::rng::{Trng, TrngSource};
+use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{
     clock::CpuClock,
     gpio::{Input, InputConfig},
     gpio::{Output, OutputConfig},
     main, time,
 };
-use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 use esp_radio::ble::Config;
 use esp_radio::{ble::controller::BleConnector, init};

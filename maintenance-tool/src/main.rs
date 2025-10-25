@@ -1,13 +1,13 @@
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use p256::{SecretKey, PublicKey};
+use p256::SecretKey;
 use p256::elliptic_curve::rand_core::OsRng;
+use p256::elliptic_curve::sec1::ToEncodedPoint;
+use serde::{Deserialize, Serialize};
 use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use anyhow::{Result, Context, bail};
-use serde::{Serialize, Deserialize};
-use p256::elliptic_curve::sec1::ToEncodedPoint;
 
 #[derive(Parser)]
 #[command(name = "esp32c3-efuse")]
@@ -24,19 +24,19 @@ enum Commands {
         /// Output directory for key files
         #[arg(short, long, default_value = "./keys")]
         output_dir: PathBuf,
-        
+
         /// Key name prefix
         #[arg(short, long, default_value = "esp32c3_key")]
         key_name: String,
-        
+
         /// Skip confirmation prompts
         #[arg(short, long)]
         force: bool,
-        
+
         /// ESP32-C3 port (e.g., /dev/ttyUSB0 or COM3)
         #[arg(short, long)]
         port: Option<String>,
-        
+
         /// Dry run - generate and store key but don't fuse
         #[arg(long)]
         dry_run: bool,
@@ -57,12 +57,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::FusePrivKey { 
-            output_dir, 
-            key_name, 
-            force, 
+        Commands::FusePrivKey {
+            output_dir,
+            key_name,
+            force,
             port,
-            dry_run 
+            dry_run,
         } => {
             fuse_private_key(output_dir, key_name, *force, port.as_deref(), *dry_run)?;
         }
@@ -72,11 +72,11 @@ fn main() -> Result<()> {
 }
 
 fn fuse_private_key(
-    output_dir: &Path, 
-    key_name: &str, 
-    force: bool, 
+    output_dir: &Path,
+    key_name: &str,
+    force: bool,
     port: Option<&str>,
-    dry_run: bool
+    dry_run: bool,
 ) -> Result<()> {
     println!("🔑 ESP32-C3 eFuse Private Key Management");
     println!("==========================================");
@@ -85,8 +85,7 @@ fn fuse_private_key(
     check_espefuse_command()?;
 
     // Step 2: Create output directory
-    create_dir_all(output_dir)
-        .context("Failed to create output directory")?;
+    create_dir_all(output_dir).context("Failed to create output directory")?;
 
     // Step 3: Generate ECDSA private key
     println!("\n📋 Step 1: Generating ECDSA P-256 private key...");
@@ -95,7 +94,10 @@ fn fuse_private_key(
     let private_key_bytes = private_key.to_bytes();
 
     println!("✅ Private key generated successfully");
-    println!("   Public key: {}", hex::encode(public_key.to_encoded_point(false).as_bytes()));
+    println!(
+        "   Public key: {}",
+        hex::encode(public_key.to_encoded_point(false).as_bytes())
+    );
 
     // Step 4: Store key files
     println!("\n💾 Step 2: Storing key files...");
@@ -108,15 +110,20 @@ fn fuse_private_key(
     }
 
     // Write private key binary file
-    let mut private_file = File::create(&private_key_path)
-        .context("Failed to create private key file")?;
-    private_file.write_all(&private_key_bytes)
+    let mut private_file =
+        File::create(&private_key_path).context("Failed to create private key file")?;
+    private_file
+        .write_all(&private_key_bytes)
         .context("Failed to write private key")?;
 
     // Create metadata
     let metadata = KeyMetadata {
         key_name: key_name.to_string(),
-        private_key_file: private_key_path.file_name().unwrap().to_string_lossy().to_string(),
+        private_key_file: private_key_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string(),
         public_key_hex: hex::encode(public_key.to_encoded_point(false).as_bytes()),
         generated_at: chrono::Utc::now().to_rfc3339(),
         fused: false,
@@ -124,10 +131,9 @@ fn fuse_private_key(
     };
 
     // Write metadata
-    let metadata_json = serde_json::to_string_pretty(&metadata)
-        .context("Failed to serialize metadata")?;
-    std::fs::write(&metadata_path, metadata_json)
-        .context("Failed to write metadata file")?;
+    let metadata_json =
+        serde_json::to_string_pretty(&metadata).context("Failed to serialize metadata")?;
+    std::fs::write(&metadata_path, metadata_json).context("Failed to write metadata file")?;
 
     println!("✅ Key files stored:");
     println!("   Private key: {}", private_key_path.display());
@@ -152,10 +158,10 @@ fn fuse_private_key(
         println!("   This will permanently write the private key to BLOCK_KEY0");
         print!("   Continue? (y/N): ");
         std::io::Write::flush(&mut std::io::stdout()).unwrap();
-        
+
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
-        
+
         if !input.trim().to_lowercase().starts_with('y') {
             println!("❌ Operation cancelled");
             return Ok(());
@@ -164,8 +170,7 @@ fn fuse_private_key(
 
     // Step 7: Fuse the key
     println!("\n🔥 Step 4: Fusing private key to BLOCK_KEY0...");
-    fuse_key_to_efuse(&private_key_path, port)
-        .context("Failed to fuse key to eFuse")?;
+    fuse_key_to_efuse(&private_key_path, port).context("Failed to fuse key to eFuse")?;
 
     // Step 8: Update metadata
     let mut updated_metadata = metadata;
@@ -189,7 +194,7 @@ fn fuse_private_key(
 
 fn check_espefuse_command() -> Result<()> {
     println!("🔍 Checking for espefuse.py command...");
-    
+
     match which::which("espefuse.py") {
         Ok(path) => {
             println!("✅ Found espefuse.py at: {}", path.display());
@@ -198,21 +203,21 @@ fn check_espefuse_command() -> Result<()> {
         Err(_) => {
             // Try alternative locations
             let alternatives = ["esptool.py", "python", "python3"];
-            
+
             for alt in &alternatives {
                 if which::which(alt).is_ok() {
                     // Check if espefuse.py can be run via python
                     let output = Command::new(alt)
                         .args(["-m", "espefuse", "--help"])
                         .output();
-                    
+
                     if output.is_ok() {
                         println!("✅ Found espefuse via: {} -m espefuse", alt);
                         return Ok(());
                     }
                 }
             }
-            
+
             bail!(
                 "❌ espefuse.py not found!\n\
                 Please install ESP-IDF tools:\n\
@@ -226,16 +231,15 @@ fn check_espefuse_command() -> Result<()> {
 fn get_chip_info(port: Option<&str>) -> Result<String> {
     let mut cmd = Command::new("espefuse.py");
     cmd.args(["--chip", "esp32c3"]);
-    
+
     if let Some(p) = port {
         cmd.args(["--port", p]);
     }
-    
+
     cmd.arg("summary");
-    
-    let output = cmd.output()
-        .context("Failed to execute espefuse.py")?;
-    
+
+    let output = cmd.output().context("Failed to execute espefuse.py")?;
+
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Extract relevant chip info from output
@@ -254,25 +258,23 @@ fn get_chip_info(port: Option<&str>) -> Result<String> {
 fn fuse_key_to_efuse(key_file: &Path, port: Option<&str>) -> Result<()> {
     let mut cmd = Command::new("espefuse.py");
     cmd.args(["--chip", "esp32c3"]);
-    
+
     if let Some(p) = port {
         cmd.args(["--port", p]);
     }
-    
-    cmd.args([
-        "burn_key",
-        "BLOCK_KEY0",
-        key_file.to_str().unwrap(),
-        "USER"
-    ]);
-    
-    println!("   Executing: espefuse.py --chip esp32c3 {} burn_key BLOCK_KEY0 {} USER", 
-             port.map(|p| format!("--port {}", p)).unwrap_or_default(),
-             key_file.display());
-    
-    let output = cmd.output()
+
+    cmd.args(["burn_key", "BLOCK_KEY0", key_file.to_str().unwrap(), "USER"]);
+
+    println!(
+        "   Executing: espefuse.py --chip esp32c3 {} burn_key BLOCK_KEY0 {} USER",
+        port.map(|p| format!("--port {}", p)).unwrap_or_default(),
+        key_file.display()
+    );
+
+    let output = cmd
+        .output()
         .context("Failed to execute espefuse.py burn_key command")?;
-    
+
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         println!("   eFuse programming output:");

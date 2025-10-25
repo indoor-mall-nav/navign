@@ -1,4 +1,22 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Line,
+    Write,
+    FadeIn,
+    Create,
+    LaggedStart,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    BLUE,
+    GREEN,
+    RED,
+    GRAY,
+    WHITE,
+)
 
 
 class NavignIntro(Scene):

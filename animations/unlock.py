@@ -1,4 +1,28 @@
-from manim import *
+from manim import (
+    Tex,
+    Scene,
+    VGroup,
+    Rectangle,
+    Text,
+    Arrow,
+    Write,
+    FadeIn,
+    FadeOut,
+    GrowArrow,
+    Transform,
+    SurroundingRectangle,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    ORANGE,
+    BLUE,
+    GREEN,
+    RED,
+    YELLOW,
+    ORIGIN,
+    WHITE,
+)
 
 
 class FullUnlockPipeline(Scene):

@@ -192,7 +192,8 @@ impl UnlockInstance {
         let device_signature: Signature = device_signing_key.sign(&proof);
         let mut final_proof = Vec::with_capacity(64 + 8);
         final_proof.extend_from_slice(proof.as_slice());
-        final_proof.extend_from_slice(device_signature.to_bytes().as_slice()[56..64].as_ref());
+        final_proof
+            .extend_from_slice(device_signature.to_bytes().to_vec().as_slice()[56..64].as_ref());
 
         let proof_b64 = base64::engine::general_purpose::STANDARD.encode(final_proof);
         Ok(proof_b64)
