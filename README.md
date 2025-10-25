@@ -44,36 +44,36 @@ Navign is an advanced indoor positioning and navigation application that leverag
 
 ### Frontend
 
-| Technology | Purpose |
-|------------|---------|
-| **Vue 3** | Progressive JavaScript framework with Composition API |
-| **TypeScript** | Type-safe development |
-| **Reka UI** | Accessible component primitives |
-| **Tailwind CSS 4** | Utility-first CSS framework |
-| **Pinia** | State management with persistence |
-| **Vue Router** | Client-side routing |
-| **Vee-Validate + Zod** | Form validation with schema validation |
-| **MapLibre GL** | Map rendering library |
-| **Konva** | 2D canvas library for custom map elements |
-| **VueUse** | Collection of Vue composition utilities |
-| **Motion-v** | Animation library |
-| **Lucide Vue** | Icon library |
-| **dayjs** | Date/time manipulation |
+| Technology             | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| **Vue 3**              | Progressive JavaScript framework with Composition API |
+| **TypeScript**         | Type-safe development                                 |
+| **Reka UI**            | Accessible component primitives                       |
+| **Tailwind CSS 4**     | Utility-first CSS framework                           |
+| **Pinia**              | State management with persistence                     |
+| **Vue Router**         | Client-side routing                                   |
+| **Vee-Validate + Zod** | Form validation with schema validation                |
+| **MapLibre GL**        | Map rendering library                                 |
+| **Konva**              | 2D canvas library for custom map elements             |
+| **VueUse**             | Collection of Vue composition utilities               |
+| **Motion-v**           | Animation library                                     |
+| **Lucide Vue**         | Icon library                                          |
+| **dayjs**              | Date/time manipulation                                |
 
 ### Backend (Tauri)
 
-| Technology | Purpose |
-|------------|---------|
-| **Tauri 2.0** | Cross-platform desktop/mobile runtime |
-| **Rust** | Systems programming language |
+| Technology        | Purpose                                           |
+| ----------------- | ------------------------------------------------- |
+| **Tauri 2.0**     | Cross-platform desktop/mobile runtime             |
+| **Rust**          | Systems programming language                      |
 | **SQLite + SQLx** | Local database with compile-time SQL verification |
-| **P256** | ECDSA cryptography for signatures |
-| **AES-GCM** | Authenticated encryption |
-| **RSA** | Asymmetric encryption |
-| **SHA-2** | Cryptographic hashing |
-| **Tokio** | Async runtime |
-| **Serde** | Serialization/deserialization |
-| **Chrono** | Date/time handling |
+| **P256**          | ECDSA cryptography for signatures                 |
+| **AES-GCM**       | Authenticated encryption                          |
+| **RSA**           | Asymmetric encryption                             |
+| **SHA-2**         | Cryptographic hashing                             |
+| **Tokio**         | Async runtime                                     |
+| **Serde**         | Serialization/deserialization                     |
+| **Chrono**        | Date/time handling                                |
 
 ### Tauri Plugins
 
@@ -153,12 +153,14 @@ mobile/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd mobile
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
@@ -180,11 +182,13 @@ just dev
 #### Mobile Development
 
 **iOS:**
+
 ```bash
 pnpm tauri ios dev
 ```
 
 **Android:**
+
 ```bash
 pnpm tauri android dev
 ```
@@ -200,11 +204,13 @@ pnpm tauri build
 #### Mobile Build
 
 **iOS:**
+
 ```bash
 pnpm tauri ios build
 ```
 
 **Android:**
+
 ```bash
 pnpm tauri android build
 ```
@@ -216,7 +222,9 @@ The application uses SQLite for local data caching:
 ### Tables
 
 #### `active_areas`
+
 Stores area/zone information with polygon boundaries.
+
 - `id` (TEXT PRIMARY KEY): Unique area identifier
 - `name` (TEXT): Area name
 - `polygon` (TEXT): WKT polygon geometry
@@ -225,7 +233,9 @@ Stores area/zone information with polygon boundaries.
 - `stored_at` (INTEGER): Local storage timestamp
 
 #### `beacons`
+
 BLE beacon information for positioning.
+
 - `id` (TEXT PRIMARY KEY): Beacon identifier
 - `mac` (TEXT): MAC address
 - `location` (TEXT): WKT point geometry
@@ -234,7 +244,9 @@ BLE beacon information for positioning.
 - `entity` (TEXT): Parent entity ID
 
 #### `merchants`
+
 Store/merchant information.
+
 - `id` (TEXT PRIMARY KEY): Merchant identifier
 - `name` (TEXT): Merchant name
 - `entry` (TEXT): Entry point location
@@ -245,9 +257,11 @@ Navign uses a sophisticated BLE-based triangulation system:
 
 1. **Beacon Scanning**: Continuously scans for nearby BLE beacons
 2. **RSSI to Distance Conversion**: Converts signal strength to distance using the formula:
+
    ```
    distance = 10^((TxPower - RSSI) / (10 * n))
    ```
+
    where `TxPower = -59 dBm` and `n = 2.0` (free space propagation)
 
 3. **Triangulation**: Uses multiple beacon positions and distances to calculate user location
@@ -260,7 +274,7 @@ Navign uses a sophisticated BLE-based triangulation system:
 
 1. **Key Generation**: ECDSA private key generated and stored in Stronghold
 2. **Server Handshake**: Device binds with server using RSA-encrypted AES key
-3. **Challenge-Response**: 
+3. **Challenge-Response**:
    - Server sends encrypted challenge
    - Device signs challenge with ECDSA key
    - Encrypted proof sent via BLE
@@ -275,6 +289,7 @@ Navign uses a sophisticated BLE-based triangulation system:
 ## API Integration
 
 The app communicates with a backend server for:
+
 - User authentication and registration
 - Map data synchronization
 - Merchant information
@@ -320,6 +335,7 @@ pnpm format       # Format code
 ### Tauri Configuration
 
 Edit `src-tauri/tauri.conf.json` for:
+
 - App identifier and version
 - Window configuration
 - Build settings
@@ -328,6 +344,7 @@ Edit `src-tauri/tauri.conf.json` for:
 ### Vite Configuration
 
 Customize `vite.config.ts` for:
+
 - Port settings (default: 1420)
 - Path aliases
 - Plugin configuration
