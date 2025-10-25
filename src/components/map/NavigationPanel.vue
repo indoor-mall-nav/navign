@@ -355,10 +355,7 @@ watch(
           <Label class="text-sm font-medium">Route Preferences</Label>
           <div class="flex flex-col gap-2">
             <div class="flex items-center space-x-2">
-              <Checkbox
-                :id="`elevator-${entityId}`"
-                v-model="allowElevator"
-              />
+              <Checkbox :id="`elevator-${entityId}`" v-model="allowElevator" />
               <label
                 :for="`elevator-${entityId}`"
                 class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
@@ -368,10 +365,7 @@ watch(
               </label>
             </div>
             <div class="flex items-center space-x-2">
-              <Checkbox
-                :id="`stairs-${entityId}`"
-                v-model="allowStairs"
-              />
+              <Checkbox :id="`stairs-${entityId}`" v-model="allowStairs" />
               <label
                 :for="`stairs-${entityId}`"
                 class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
