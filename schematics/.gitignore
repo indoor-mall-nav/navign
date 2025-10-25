@@ -1,0 +1,23 @@
+# KiCad backup files
+*.bak
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-backups/
+fp-info-cache
+
+# KiCad auto-saved files
+*-save.kicad_pcb
+*-save.kicad_sch
+*.lck
+
+# Build outputs (commit these separately if needed)
+# hardware/**/fabrication/*.zip
+
+# KiCad cache files
+*.xml
+*.dcm
+*.lib
+
+# OS files
+.DS_Store
+Thumbs.db

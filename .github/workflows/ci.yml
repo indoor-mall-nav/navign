@@ -18,6 +18,7 @@ jobs:
         platform: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.12]
         pnpm-version: [10]
+        mongodb-version: ['8.0']
 
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +36,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
       - name: Tauri dependencies
         if: matrix.platform == 'ubuntu-latest'
         run: |
