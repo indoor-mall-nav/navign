@@ -1,0 +1,26 @@
+name: Rust Clippy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run build
+        run: cargo build --verbose
+      - name: Run lint
+        run: cargo clippy --verbose -- --deny warnings
+      - name: Install cargo-shear
+        run: cargo install cargo-shear
+      - name: Run shear
+        run: cargo shear
