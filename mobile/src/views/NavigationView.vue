@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import MapDisplay from "@/components/map/MapDisplay.vue";
 import NavigationPanel from "@/components/map/NavigationPanel.vue";
 import {
@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { info, error as logError } from "@tauri-apps/plugin-log";
 
 const route = useRoute();
+const router = useRouter();
 
 // Entity and area from route params or defaults
 const entityId = ref((route.query.entity as string) || "default-entity");
@@ -120,7 +121,7 @@ onMounted(() => {
     <div class="bg-background border-b px-4 py-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <Button variant="ghost" size="icon" @click="$router.back()">
+          <Button variant="ghost" size="icon" @click="router.back()">
             <Icon icon="mdi:arrow-left" class="w-5 h-5" />
           </Button>
           <div>

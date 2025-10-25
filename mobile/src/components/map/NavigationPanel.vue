@@ -23,12 +23,15 @@ import { Icon } from "@iconify/vue";
 import { Label } from "@/components/ui/label";
 import { info } from "@tauri-apps/plugin-log";
 
-const props = defineProps<{
-  entityId: string;
-  currentLocation?: string; // merchant/area id
-  currentExactLocation?: [number, number]; // precise coordinates if available
-  merchants: MapMerchant[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    entityId: string;
+    currentLocation?: string; // merchant/area id
+    currentExactLocation?: [number, number]; // precise coordinates if available
+    merchants: MapMerchant[];
+  }>(),
+  {},
+);
 
 const emit = defineEmits<{
   routeCalculated: [route: RouteResponse];
@@ -43,6 +46,9 @@ const currentStep = ref(0);
 const loading = ref(false);
 const error = ref("");
 const isNavigating = ref(false);
+const currentExactLocation = computed(
+  () => props.currentExactLocation || [0, 0],
+);
 
 // Connectivity options
 const allowElevator = ref(true);
@@ -98,7 +104,7 @@ async function calculateRoute() {
   try {
     const result = await getRoute(
       props.entityId,
-      `${props.currentExactLocation[0]},${props.currentExactLocation[1]},${props.currentLocation}`,
+      `${currentExactLocation.value[0]},${currentExactLocation.value[1]},${props.currentLocation}`,
       selectedTarget.value.id,
       {
         elevator: allowElevator.value,
@@ -173,7 +179,7 @@ const unlockErrorMessage = ref("");
 function unlockDoor() {
   const targetMerchant = selectedTarget.value;
   if (!targetMerchant) return;
-  info("Unlocking door for", targetMerchant.name);
+  info("Unlocking door for " + targetMerchant.name);
   unlockDevice(props.entityId, targetMerchant.id).then((res) => {
     if (res.status === "success") {
       nextStep();

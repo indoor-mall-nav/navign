@@ -49,3 +49,12 @@ clean:
   cargo clean
   rm -rf mobile/.turbo
   rm -rf mobile/dist
+
+check:
+  cd animations && uvx ty check
+  # FIXME: Enable gesture_space type checking
+  # cd gesture_space && uvx ty check
+  cd beacon && cargo check
+  cd mobile && just check
+  cd server && cargo check
+  cd maintenance-tool && cargo check

@@ -237,7 +237,9 @@ async function handleLocateMe() {
           session.setArea(area);
           locationError.value += `, Area changed to ${area.name}`;
         } catch (error) {
-          err("Error fetching new area details:", error);
+          await logError(
+            "Error fetching new area details: " + JSON.stringify(error),
+          );
           locationError.value += ", but failed to load new area details";
         }
       }

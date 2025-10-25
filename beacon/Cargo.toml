@@ -1,6 +1,6 @@
 [package]
-edition = "2021"
-name = "beacon-c3"
+edition = "2024"
+name = "beacon"
 rust-version = "1.86"
 version = "0.1.0"
 

@@ -1,7 +1,7 @@
 #![allow(unused)]
 //! TODO proof management
-use crate::shared::constants::*;
 use crate::shared::CryptoError;
+use crate::shared::constants::*;
 use esp_hal::sha::Digest;
 use esp_println::println;
 use heapless::Vec;

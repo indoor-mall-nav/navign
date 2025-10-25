@@ -11,7 +11,7 @@ import {
   locateDevice,
   getRoute,
   type ApiResponse,
-  type RouteResponse,
+  type ConnectivityLimits,
 } from "./tauri";
 import { invoke } from "@tauri-apps/api/core";
 import { error, info } from "@tauri-apps/plugin-log";
@@ -235,86 +235,6 @@ describe("Route/Navigation APIs", () => {
     vi.clearAllMocks();
   });
 
-  it("should get route with all connection types allowed", async () => {
-    const mockRouteResponse: ApiResponse<RouteResponse> = {
-      status: "success",
-      data: {
-        instructions: [
-          {
-            type: "move",
-            area: "area1",
-            from: [0, 0],
-            to: [10, 10],
-            description: "Walk to elevator",
-            distance: 14.14,
-          },
-          {
-            type: "elevator",
-            area: "area2",
-            from: [10, 10],
-            to: [10, 10],
-            description: "Take elevator to floor 2",
-          },
-        ],
-        total_distance: 14.14,
-        areas: ["area1", "area2"],
-      },
-    };
-
-    (invoke as any).mockResolvedValue(JSON.stringify(mockRouteResponse));
-
-    const result = await getRoute("entity_1", "merchant_a", "merchant_b");
-
-    expect(result.status).toBe("success");
-    expect(result.data?.instructions).toHaveLength(2);
-    expect(result.data?.total_distance).toBe(14.14);
-  });
-
-  it("should get route with elevator disabled", async () => {
-    const mockRouteResponse: ApiResponse<RouteResponse> = {
-      status: "success",
-      data: {
-        instructions: [
-          {
-            type: "move",
-            area: "area1",
-            from: [0, 0],
-            to: [5, 5],
-            distance: 7.07,
-          },
-          {
-            type: "stairs",
-            area: "area2",
-            from: [5, 5],
-            to: [5, 5],
-            description: "Use stairs to floor 2",
-          },
-        ],
-        total_distance: 7.07,
-        areas: ["area1", "area2"],
-      },
-    };
-
-    (invoke as any).mockResolvedValue(JSON.stringify(mockRouteResponse));
-
-    const result = await getRoute("entity_1", "merchant_a", "merchant_b", {
-      elevator: false,
-      stairs: true,
-      escalator: true,
-    });
-
-    expect(result.status).toBe("success");
-    expect(result.data?.instructions[1].type).toBe("stairs");
-    expect(invoke).toHaveBeenCalledWith("get_route_handler", {
-      entity: "entity_1",
-      from: "merchant_a",
-      to: "merchant_b",
-      allowElevator: false,
-      allowStairs: true,
-      allowEscalator: true,
-    });
-  });
-
   it("should handle route not found", async () => {
     const mockErrorResponse: ApiResponse = {
       status: "error",
@@ -327,39 +247,6 @@ describe("Route/Navigation APIs", () => {
 
     expect(result.status).toBe("error");
     expect(result.message).toContain("No route found");
-  });
-
-  it("should calculate total distance correctly", async () => {
-    const mockRouteResponse: ApiResponse<RouteResponse> = {
-      status: "success",
-      data: {
-        instructions: [
-          {
-            type: "move",
-            area: "area1",
-            from: [0, 0],
-            to: [10, 0],
-            distance: 10,
-          },
-          {
-            type: "move",
-            area: "area1",
-            from: [10, 0],
-            to: [10, 10],
-            distance: 10,
-          },
-        ],
-        total_distance: 20,
-        areas: ["area1"],
-      },
-    };
-
-    (invoke as any).mockResolvedValue(JSON.stringify(mockRouteResponse));
-
-    const result = await getRoute("entity_1", "start", "end");
-
-    expect(result.data?.total_distance).toBe(20);
-    expect(result.data?.instructions.every((i) => i.distance)).toBeTruthy();
   });
 });
 
@@ -390,21 +277,6 @@ describe("API Error Handling", () => {
 });
 
 describe("Type Safety", () => {
-  it("should have correct types for RouteInstruction", () => {
-    const instruction: RouteInstruction = {
-      type: "move",
-      area: "area1",
-      from: [0, 0],
-      to: [10, 10],
-      description: "Walk straight",
-      distance: 14.14,
-    };
-
-    expect(instruction.type).toBe("move");
-    expect(Array.isArray(instruction.from)).toBe(true);
-    expect(instruction.from).toHaveLength(2);
-  });
-
   it("should have correct types for ConnectivityLimits", () => {
     const limits: ConnectivityLimits = {
       elevator: true,

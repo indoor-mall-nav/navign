@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatMerchantType } from "@/lib/structure/merchant.ts";
+import { info } from "@tauri-apps/plugin-log";
 
 const props = defineProps<{
   merchant: Merchant;
@@ -163,7 +164,7 @@ function processTodayOpeningHours(
           @click="
             social.type === 'url'
               ? openUrl(social.url ?? '#')
-              : alert(`WeChat QR Code: ${social.url}`)
+              : info(`WeChat QR Code: ${social.url}`)
           "
         >
           <Icon

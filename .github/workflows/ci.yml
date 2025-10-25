@@ -53,6 +53,8 @@ jobs:
         uses: extractions/setup-just@v3
       - name: Install dependencies
         run: just init
+      - name: Check repository health
+        run: just check
       - name: Run lint
         run: just lint
       - name: Format check

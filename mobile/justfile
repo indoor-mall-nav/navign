@@ -25,3 +25,7 @@ fmt-check:
 clean:
   pnpm run clean
   cd src-tauri && cargo clean
+
+check:
+  pnpm run check
+  cd src-tauri && cargo check

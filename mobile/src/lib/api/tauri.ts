@@ -1,6 +1,7 @@
 // API service layer for Tauri commands
 import { invoke } from "@tauri-apps/api/core";
 import { info } from "@tauri-apps/plugin-log";
+import { Merchant } from "@/schema";
 
 export interface ApiResponse<T = any> {
   status: "success" | "error";
@@ -109,7 +110,7 @@ export async function getMapData(
 
 export async function getAllMerchants(
   entity: string,
-): Promise<ApiResponse<MapMerchant[]>> {
+): Promise<ApiResponse<Merchant[]>> {
   const response = await invoke<string>("get_all_merchants_handler", {
     entity,
   });

@@ -1,17 +1,17 @@
 use crate::ble::protocol::BleProtocolHandler;
-use crate::crypto::proof::ProofManager;
 use crate::crypto::Nonce;
+use crate::crypto::proof::ProofManager;
 use crate::shared::constants::{MAX_ATTEMPTS, MAX_PACKET_SIZE};
 use crate::shared::{BleError, CryptoError};
 use crate::storage::nonce_manager::NonceManager;
+use esp_hal::Blocking;
 use esp_hal::delay::Delay;
 use esp_hal::gpio::{Input, Level, Output};
+use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel as PwmChannel, ChannelIFace};
 use esp_hal::ledc::timer::Timer as PwmTimer;
-use esp_hal::ledc::LowSpeed;
 use esp_hal::rmt::{Channel, Rmt, Tx, TxChannelConfig, TxChannelCreator};
 use esp_hal::rng::Trng;
-use esp_hal::Blocking;
 use esp_println::println;
 
 #[allow(dead_code)]

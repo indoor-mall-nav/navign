@@ -27,17 +27,18 @@ use alloc::rc::Rc;
 use bleps::att::Uuid;
 use bleps::attribute_server::WorkResult;
 use bleps::{
+    Ble, HciConnector,
     ad_structure::{
-        create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
+        AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE, create_advertising_data,
     },
     attribute_server::{AttributeServer, NotificationData},
-    gatt, Ble, HciConnector,
+    gatt,
 };
 use core::cell::RefCell;
 use embedded_dht_rs::dht11::Dht11;
 use esp_alloc::heap_allocator;
 use esp_hal::delay::Delay;
-use esp_hal::efuse::{Efuse, BLOCK_KEY0};
+use esp_hal::efuse::{BLOCK_KEY0, Efuse};
 use esp_hal::gpio::{Flex, Level};
 use esp_hal::interrupt::software::SoftwareInterruptControl;
 use esp_hal::rng::{Trng, TrngSource};
