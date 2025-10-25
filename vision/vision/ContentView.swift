@@ -5,19 +5,19 @@
 //  Created by Ethan Goh on 10/25/25.
 //
 
-import SwiftUI
 import RealityKit
+import SwiftUI
 
 struct ContentView: View {
 
-    var body: some View {
-        VStack {
-            ToggleImmersiveSpaceButton()
-        }
+  var body: some View {
+    VStack {
+      ToggleImmersiveSpaceButton()
     }
+  }
 }
 
 #Preview(windowStyle: .automatic) {
-    ContentView()
-        .environment(AppModel())
+  ContentView()
+    .environment(AppModel())
 }
