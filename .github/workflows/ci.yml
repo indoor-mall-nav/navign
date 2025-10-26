@@ -30,6 +30,8 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Setup Taplo
+        uses: uncenter/setup-taplo@v1.0.8
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:

@@ -58,6 +58,7 @@
 		"typescript": "catalog:",
 		"vite": "catalog:",
 		"vite-plugin-vue-devtools": "catalog:",
-		"vue-tsc": "catalog:"
+		"vue-tsc": "catalog:",
+		"vitepress": "^1.6.4"
 	}
 }
