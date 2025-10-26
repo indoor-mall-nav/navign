@@ -129,9 +129,16 @@ class NavignOutro(Scene):
         github_icon.next_to(github_box.get_top(), DOWN, buff=0.15)
 
         repos = VGroup(
-            Tex("github.com/indoor-mall-nav/mobile", font_size=12, color=BLUE),
-            Tex("github.com/indoor-mall-nav/server", font_size=12, color=GREEN),
-            Tex("github.com/indoor-mall-nav/beacon", font_size=12, color=RED),
+            Tex(
+                "https://github.com/indoor-mall-nav/navign.git",
+                font_size=16,
+                color=BLUE,
+            ),
+            Tex(
+                "Merged into one standalone repo for simplicity!",
+                font_size=12,
+                color=GRAY,
+            ),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.12)
         repos.next_to(github_icon, DOWN, buff=0.15)
 

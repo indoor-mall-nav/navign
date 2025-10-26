@@ -2,21 +2,38 @@
 resolver = "2"
 
 members = [
-    "beacon",
-    "server",
-    "mobile/src-tauri",
-    "maintenance-tool",
+  "beacon",
+  "server",
+  "mobile/src-tauri",
+  "maintenance-tool",
+  "shared",
+  "ts-schema",
 ]
 
 # Exclude members from default workspace builds if needed
 # This is useful since beacon needs special cross-compilation
-default-members = [
-    "server",
-    "maintenance-tool",
-]
+default-members = ["server", "maintenance-tool", "shared", "ts-schema"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 
 [workspace.dependencies]
+
+
+[profile.dev.package.navign-beacon]
+# Rust debug is too slow.
+# For debug builds always builds with some optimization
+opt-level = "s"
+
+[profile.release.package.navign-beacon]
+codegen-units = 1        # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+opt-level = 's'
+overflow-checks = false
+
+[profile.release.package.ts-schema]
+strip = "symbols"

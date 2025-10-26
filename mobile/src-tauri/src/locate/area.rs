@@ -2,8 +2,8 @@ use crate::api::map::AreaResponse;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::str::FromStr;
-use wkt::types::{Coord, Dimension, LineString, Polygon};
 use wkt::Wkt;
+use wkt::types::{Coord, Dimension, LineString, Polygon};
 
 #[derive(Clone, Debug, FromRow, Serialize, Deserialize, Default)]
 pub struct ActiveArea {

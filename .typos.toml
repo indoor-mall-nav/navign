@@ -1,0 +1,13 @@
+[files]
+extend-exclude = [
+  "*.json",
+  "schematics/**",
+  "node_modules/**",
+  "/CHANGELOG-*.md",
+  "/CHANGELOG.md",
+  "miniapp/typings/**",
+  "mobile/src-tauri/gen/**",
+]
+
+[default]
+extend-words = { "ND" = "ND", "solvePnP" = "solvePnP", "Pn" = "Pn" }

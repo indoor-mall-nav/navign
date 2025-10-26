@@ -7,7 +7,7 @@
 
 import Testing
 
-@testable import vision
+@testable import Vision
 
 struct VisionTests {
 

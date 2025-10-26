@@ -1,60 +1,87 @@
 [package]
-edition = "2024"
-name = "beacon"
+name = "navign-beacon"
 rust-version = "1.86"
-version = "0.1.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [[bin]]
-name = "beacon-c3"
+name = "navign-beacon"
 path = "./src/bin/main.rs"
 test = false
 bench = false
 
 [package.metadata.cargo-shear]
 ignored = [
-    "esp-backtrace",
-    "esp-storage",
-    "futures",
-    "esp-mbedtls",
-    "cfg-if",
-    "embedded-io",
-    "cfg-if",
-    "embedded-io",
-    "reqwless",
-    "chrono",
-    "critical-section",
+  "esp-backtrace",
+  "esp-storage",
+  "futures",
+  "esp-mbedtls",
+  "cfg-if",
+  "embedded-io",
+  "cfg-if",
+  "embedded-io",
+  "reqwless",
+  "chrono",
+  "critical-section",
+  "smoltcp",
+  "esp-radio-rtos-driver",
+  "blocking-network-stack",
 ]
 
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.3.0", features = ["esp32c3"] }
 esp-hal = { version = "=1.0.0-rc.1", features = ["esp32c3", "unstable"] }
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5148d8ae679e021b78f53fd33afb8bb35d0b62e", features = [
-    "async",
-    "macros",
-    "mtu128"
+  "async",
+  "macros",
+  "mtu128",
 ] }
 critical-section = "1.2.0"
 embedded-io = "0.7.1"
 esp-alloc = "0.9.0"
 esp-radio = { version = "0.16.0", features = [
-    "ble",
-    "coex",
-    "esp-alloc",
-    "esp32c3",
-    "smoltcp",
-    "wifi",
-    "unstable"
+  "ble",
+  "coex",
+  "esp-alloc",
+  "esp32c3",
+  "smoltcp",
+  "wifi",
+  "unstable",
 ] }
 esp-radio-rtos-driver = { version = "0.1.0" }
-esp-rtos = { version = "0.1.1", features = ["esp32c3", "esp-radio", "esp-alloc"] }
-smoltcp = { version = "0.12.0", default-features = false, features = ["medium-ethernet", "multicast", "proto-dhcpv4", "proto-dns", "proto-ipv4", "socket-dns", "socket-icmp", "socket-raw", "socket-tcp", "socket-udp", "socket-dhcpv4"] }
+esp-rtos = { version = "0.1.1", features = [
+  "esp32c3",
+  "esp-radio",
+  "esp-alloc",
+] }
+smoltcp = { version = "0.12.0", default-features = false, features = [
+  "medium-ethernet",
+  "multicast",
+  "proto-dhcpv4",
+  "proto-dns",
+  "proto-ipv4",
+  "socket-dns",
+  "socket-icmp",
+  "socket-raw",
+  "socket-tcp",
+  "socket-udp",
+  "socket-dhcpv4",
+] }
 #esp-mbedtls = { git = "https://github.com/esp-rs/esp-mbedtls.git", features = ["esp32c3"] }
-esp-backtrace = { version = "0.18.0", features = ["esp32c3", "println", "panic-handler"] }
+esp-backtrace = { version = "0.18.0", features = [
+  "esp32c3",
+  "println",
+  "panic-handler",
+] }
 esp-println = { version = "0.16.0", features = ["auto", "esp32c3", "log-04"] }
 cfg-if = "1.0.1"
 heapless = { version = "0.9.1" }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
-p256 = { version = "0.13.2", default-features = false, features = ["sha256", "ecdsa"] }
+p256 = { version = "0.13.2", default-features = false, features = [
+  "sha256",
+  "ecdsa",
+] }
 sha2 = { version = "0.10.9", default-features = false }
 esp-storage = { version = "0.8.0", features = ["esp32c3"] }
 reqwless = { version = "0.13.0", features = ["log"] }
@@ -62,23 +89,9 @@ serde-json-core = { version = "0.6.0", features = ["heapless"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 embedded-nal = "0.9.0"
 nb = "1.1.0"
-futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"] }
-blocking-network-stack = { git = "https://github.com/bjoernQ/blocking-network-stack.git", rev = "b3ecefc222d8806edd221f266999ca339c52d34e" }
+futures = { version = "0.3.31", default-features = false, features = [
+  "alloc",
+  "async-await",
+] }
 embedded-dht-rs = { version = "0.5.0", features = ["dht11"] }
 chrono = { version = "0.4.42", default-features = false }
-
-
-
-[profile.dev]
-# Rust debug is too slow.
-# For debug builds always builds with some optimization
-opt-level = "s"
-
-[profile.release]
-codegen-units = 1     # LLVM can perform better optimizations using a single thread
-debug = 2
-debug-assertions = false
-incremental = false
-lto = 'fat'
-opt-level = 's'
-overflow-checks = false

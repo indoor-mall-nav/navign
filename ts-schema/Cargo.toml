@@ -1,0 +1,16 @@
+[package]
+authors           = ["Ethan Wu"]
+edition.workspace = true
+license.workspace = true
+name              = "navgin-ts-schema"
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi        = "3.0.0"
+napi-derive = "3.0.0"
+
+[build-dependencies]
+napi-build = "2"

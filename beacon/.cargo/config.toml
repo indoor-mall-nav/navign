@@ -7,7 +7,8 @@ runner = "espflash flash --monitor --chip esp32c3"
 rustflags = [
   # Required to obtain backtraces (e.g. when using the "esp-backtrace" crate.)
   # NOTE: May negatively impact performance of produced code
-  "-C", "force-frame-pointers",
+  "-C",
+  "force-frame-pointers",
 ]
 
 target = "riscv32imc-unknown-none-elf"

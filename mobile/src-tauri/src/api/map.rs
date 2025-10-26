@@ -3,7 +3,7 @@ use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::fmt::Display;
 use tauri::AppHandle;
@@ -170,8 +170,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
 
     trace!(
         "Fetched area: {} with ID {}",
-        area_response.name,
-        area_response.id
+        area_response.name, area_response.id
     );
 
     // Fetch beacons in the area

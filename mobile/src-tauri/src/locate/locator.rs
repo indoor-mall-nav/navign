@@ -148,9 +148,7 @@ pub fn locate_via_beacons(beacons: &[Locator]) -> Option<(f64, f64)> {
     }
     trace!(
         "Sum_x: {}, Sum_y: {}, Total_weight: {}",
-        sum_x,
-        sum_y,
-        total_weight
+        sum_x, sum_y, total_weight
     );
     if total_weight == 0.0 {
         return None;
