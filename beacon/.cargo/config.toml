@@ -9,7 +9,7 @@ rustflags = [
   # NOTE: May negatively impact performance of produced code
   "-C",
   "force-frame-pointers",
-]
+] 
 
 target = "riscv32imc-unknown-none-elf"
 

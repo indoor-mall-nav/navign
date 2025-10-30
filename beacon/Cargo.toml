@@ -11,6 +11,11 @@ path = "./src/bin/main.rs"
 test = false
 bench = false
 
+[[test]]
+name = "unit-tests"
+harness = false
+
+
 [package.metadata.cargo-shear]
 ignored = [
   "esp-backtrace",
@@ -95,3 +100,6 @@ futures = { version = "0.3.31", default-features = false, features = [
 ] }
 embedded-dht-rs = { version = "0.5.0", features = ["dht11"] }
 chrono = { version = "0.4.42", default-features = false }
+
+[dev-dependencies]
+embedded-test = "0.6.2"
