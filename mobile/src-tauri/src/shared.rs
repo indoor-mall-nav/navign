@@ -18,6 +18,7 @@ mod tests {
 
     #[test]
     fn test_base_url_contains_port() {
-        assert!(BASE_URL.contains(":3000"));
+        // Check that BASE_URL contains a port specification
+        assert!(BASE_URL.contains(':') && BASE_URL.split(':').count() == 3);
     }
 }

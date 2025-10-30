@@ -234,6 +234,9 @@ mod tests {
 
         assert!(response.success);
         assert!(response.user_id.is_some());
-        assert_eq!(response.user_id.unwrap(), "user_789");
+        assert_eq!(
+            response.user_id.expect("user_id should be present"),
+            "user_789"
+        );
     }
 }
