@@ -60,5 +60,6 @@
 		"vite-plugin-vue-devtools": "catalog:",
 		"vue-tsc": "catalog:",
 		"vitepress": "^1.6.4"
-	}
+	},
+	"packageManager": "pnpm@10.20.0"
 }

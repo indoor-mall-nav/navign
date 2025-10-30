@@ -2385,6 +2385,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-test"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebf10fe8d8fcdca0d69d961e2ffdc51b5101811649342078d4efa8ca2370fe17"
+dependencies = [
+ "embedded-test-macros",
+ "heapless 0.8.0",
+ "semihosting",
+ "serde",
+ "serde-json-core",
+]
+
+[[package]]
+name = "embedded-test-macros"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "832520ef06a9dd2970a9106f94aca45dc47b746d14dbecc0819a47a7b5c1b5be"
+dependencies = [
+ "darling 0.20.11",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
 name = "embedded-tls"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5205,6 +5230,7 @@ dependencies = [
  "embedded-dht-rs",
  "embedded-io 0.7.1",
  "embedded-nal",
+ "embedded-test",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -7424,6 +7450,12 @@ dependencies = [
  "servo_arc",
  "smallvec",
 ]
+
+[[package]]
+name = "semihosting"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e1c7d2b77d80283c750a39c52f1ab4d17234e8f30bca43550f5b2375f41d5f"
 
 [[package]]
 name = "semver"
