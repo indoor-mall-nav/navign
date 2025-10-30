@@ -1,6 +1,7 @@
 packages:
   - mobile
   - ts-schema
+  - presentation
 catalog:
   "@emnapi/core": ^1.5.0
   "@emnapi/runtime": ^1.5.0

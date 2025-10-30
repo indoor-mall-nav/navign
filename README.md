@@ -25,6 +25,7 @@ navign/
 ├── miniapp/             # WeChat Mini Program
 ├── gesture_space/       # Computer vision gesture recognition (Python)
 ├── animations/          # Manim animations for presentations (Python)
+├── presentation/        # Slidev presentation for GestureSpace project
 ├── vision/              # Apple Vision Pro spatial computing app (Swift)
 ├── robot/               # Robotics delivery system (empty/planned)
 ├── maintenance-tool/    # ESP32-C3 key management CLI (Rust)
@@ -98,6 +99,17 @@ Professional presentation animations using Manim:
 - **Video Generation**: High-quality animation rendering for presentations
 
 **Tech Stack**: Python, Manim, NumPy, SciPy
+
+#### 📊 **Presentation** (`presentation/`)
+
+Interactive Slidev presentation for the GestureSpace project:
+
+- **4.5-minute presentation** covering market situation, GestureSpace techniques, Navign integration, and robot system
+- **Interactive slides** with code highlighting, diagrams, and animations
+- **Export capabilities**: PDF, PNG, or host as web application
+- **Responsive design** for presenting on any device
+
+**Tech Stack**: Slidev, Vue, Markdown, Mermaid
 
 #### 🥽 **Vision** (`vision/`)
 
@@ -249,6 +261,15 @@ cd animations
 uv run manim intro.py NavignIntro
 ```
 
+#### Presentation (Slidev)
+
+```bash
+cd presentation
+pnpm dev          # Start presentation in dev mode
+pnpm build        # Build for production
+pnpm export       # Export as PDF
+```
+
 #### Vision (Apple Vision Pro)
 
 ```bash
@@ -309,6 +330,7 @@ Merchant types include:
 | Beacon           | Rust             | ESP32-C3, BLE, embedded-hal          |
 | Gesture Space    | Python           | MediaPipe, OpenCV, PyTorch, YOLOv8   |
 | Animations       | Python           | Manim, NumPy, SciPy                  |
+| Presentation     | Markdown, Vue    | Slidev, Mermaid                      |
 | Vision           | Swift            | SwiftUI, RealityKit, visionOS        |
 | Mini App         | TypeScript       | WeChat Mini Program SDK              |
 | Maintenance Tool | Rust             | Clap, P-256, esptool                 |
@@ -335,6 +357,8 @@ For technical documentation, refer to individual component READMEs:
 - [Mobile App Documentation](mobile/README.md)
 - [Beacon Documentation](beacon/README.md)
 - [TypeScript Schema Documentation](ts-schema/README.md)
+- [GestureSpace Presentation](presentation/README.md)
+- [Presentation Outline](PRESENTATION_OUTLINE.md)
 
 ## 🎯 Roadmap
 
