@@ -75,11 +75,17 @@ class: text-center
 
 <v-clicks>
 
-## 🎯 Vision + Voice + Gesture + Location
+## 🎯 Camera Pipeline for Environment Understanding
 
-A comprehensive multimodal interaction system combining:
+A comprehensive spatial interaction system combining:
 
-**Computer Vision** • **Gesture Recognition** • **Voice Control** • **BLE Indoor Positioning**
+**AprilTag Pose Estimation** • **YOLOv12 Detection** • **3D Transformation** • **Voice Control** • **BLE Positioning**
+
+### Key Capabilities
+- 📍 Camera position: **~2cm** accuracy
+- 🎯 Object localization: **~5cm** accuracy  
+- 🗺️ BLE indoor positioning: **<2m** accuracy
+- 🤖 Real-time 3D environment mapping
 
 </v-clicks>
 
@@ -89,102 +95,107 @@ layout: section
 
 # Part 1: GestureSpace Core Techniques
 
-**6 Key Technologies in 2 Minutes**
+**Camera Pipeline for Environment Understanding**
 
 ---
 
-# 1. Hand Gesture Recognition
+# 1. Camera Pose Estimation with AprilTags
 
 <v-clicks>
 
 ## Technology Stack
-- **MediaPipe Hands**: 21 hand landmarks per hand in real-time
-- **Custom CNN Classifier**: 4-class gesture recognition
-  - Conv2D → MaxPool2D → FC (40→64→4)
-  - 70% dropout for robustness
-  - Data augmentation: rotation, flip
+- **AprilTag Detection**: tag36h11 family markers at known positions
+- **PnP Solving**: solvePnP algorithm for camera pose
+- **Camera Calibration**: Intrinsic parameters from chessboard calibration
+
+## How It Works
+1. Detect AprilTags in camera frame (8 tags at known world positions)
+2. Extract 2D image corners and match to 3D world coordinates
+3. Solve PnP problem: Find camera rotation (R) and translation (t)
+4. Achieve ~2cm camera position accuracy
 
 ## Applications
-- 👉 Point-and-command interface
-- 🧭 Direction indication for robot navigation
-- ✋ Natural gesture-based control
+- Precise robot localization in indoor space
+- Foundation for 3D point reconstruction
+- Integration with BLE positioning for map alignment
 
 </v-clicks>
 
 ---
 
-# 2. Finger Pointing Direction Detection
+# 2. 3D Point Transformation Pipeline
 
 <v-clicks>
 
-## How It Works
+## Transform 2D Image to 3D World Coordinates
 
 ```python
-# 1. Extract index finger landmarks (base MCP + tip)
-base = hand_landmarks.landmark[5]  # MCP joint
-tip = hand_landmarks.landmark[8]   # Fingertip
+# 1. Undistort image points using camera intrinsics
+norm = cv2.undistortPoints(point_2d, K, dist)
+x, y = norm[0][0]
+ray_cam = np.array([x, y, 1.0])
 
-# 2. Transform to 3D world coordinates
-base_3d = get_point_3d_place(base, Z0, camera_pos, R)
-tip_3d = get_point_3d_place(tip, Z0, camera_pos, R)
+# 2. Transform ray to world coordinates using camera pose
+ray_world = R_world @ ray_cam.T
+ray_world /= np.linalg.norm(ray_world)
 
-# 3. Calculate normalized direction vector
-direction = (tip_3d - base_3d) / ||tip_3d - base_3d||
+# 3. Intersect ray with ground plane (Z = Z0)
+s = (Z0 - camera_pos[2]) / ray_world[2]
+point_3d = camera_pos + s * ray_world
 ```
 
-## Use Cases
-- Point to objects for identification
-- Indicate desired navigation direction
-- Spatial interaction with environment
+## Precision
+- Object localization: **~5cm** accuracy on ground plane
+- Enables spatial understanding of environment
 
 </v-clicks>
 
 ---
 
-# 3. Object Detection with YOLOv8
+# 3. Object Detection with YOLOv12
 
 <v-clicks>
 
 ## Technology
-- **Ultralytics YOLOv8 Large** (yolo12l.pt)
+- **Ultralytics YOLOv12 Large** (yolo12l.pt)
+- **Transformer-based architecture** (not CNN)
 - Real-time detection & classification
-- Outputs:
-  - Object class names
-  - Confidence scores
-  - Bounding boxes (xyxy format)
-  - 3D center point localization
+
+## Pipeline
+1. Detect objects in camera frame
+2. Extract bounding boxes (xyxy format) and class names
+3. Calculate center points (u, v) in image space
+4. Transform to 3D world coordinates using camera pose
+5. Output: Object name, position (x, y, z), confidence score
 
 ## Integration
-Works seamlessly with finger pointing:
-- "Bring me **that bottle**" + 👉 pointing gesture
-- Robot identifies object and navigates to it
+- Object positions mapped to 3D space
+- Combined with voice commands: "Bring me that bottle"
+- Robot can navigate to detected objects
 
 </v-clicks>
 
 ---
 
-# 4. 3D Localization & Camera Pose
+# 4. Hand Landmark Detection & Finger Pointing
 
 <v-clicks>
 
-## AprilTag-Based Calibration
-- **8 AprilTags** (tag36h11) at known world positions
-- Camera intrinsics from chessboard calibration
-- Real-time pose estimation using **solvePnP**
+## MediaPipe Hands
+- Detects 21 hand landmarks in real-time
+- Tracks finger positions for interaction
+- **Note**: Used for pointing detection, not gesture classification
 
-## 3D Point Reconstruction Pipeline
+## Finger Direction Pipeline
+1. Extract index finger MCP (base) and tip landmarks
+2. Transform both points to 3D world coordinates
+3. Calculate normalized direction vector
+4. Output: Pointing direction in 3D space
 
-```python
-1. Undistort image points → camera matrix K
-2. Generate ray in camera coordinates
-3. Transform ray to world coords → R_world
-4. Intersect ray with ground plane (Z = Z0)
-5. Calculate 3D world position
-```
-
-## Accuracy
-- Camera position: **~2cm**
-- Object localization: **~5cm** on ground plane
+## Applications
+- Point to objects for robot to identify
+- Indicate navigation directions
+- Spatial interaction with environment
 
 </v-clicks>
 
@@ -225,9 +236,9 @@ graph LR
 5. **Text-to-speech** audio feedback
 
 ## Multimodal Integration
-- 🗣️ "Show me the bottle" + 👉 finger pointing
-- 🗣️ "Navigate to exit" + 🧭 gesture direction
-- Voice + Vision + Gesture = Natural interaction
+- 🗣️ "Show me the bottle" + 👉 finger pointing to location
+- 🗣️ "Bring me that object" → identifies via YOLO + locates in 3D
+- Voice + Vision + Spatial Understanding = Natural interaction
 
 </v-clicks>
 
@@ -236,22 +247,24 @@ layout: center
 class: text-center
 ---
 
-# System Integration
+# Camera Pipeline Integration
 
-All 6 components work together in real-time
+All components work together for environment understanding
 
 ```mermaid
 graph TB
-    A[Camera Frame] --> B[Hand Detection]
-    A --> C[Object Detection]
-    A --> D[AprilTag Localization]
-    E[Audio Stream] --> F[Wake Word]
-    F --> G[Speech Recognition]
-    B --> H[Unified 3D Understanding]
-    C --> H
-    D --> H
-    G --> H
-    H --> I[Robot Control Commands]
+    A[Camera Frame] --> B[AprilTag Detection]
+    A --> C[YOLOv12 Object Detection]
+    A --> D[Hand Landmark Detection]
+    B --> E[PnP Solving: Camera Pose R, t]
+    E --> F[3D Transformation Pipeline]
+    C --> F
+    D --> F
+    G[Audio Stream] --> H[Wake Word + Speech]
+    F --> I[3D Environment Model]
+    H --> I
+    I --> J[Robot Control + Navigation]
+    K[BLE Beacons] --> J
 ```
 
 ---
@@ -363,10 +376,10 @@ layout: section
 
 <v-clicks>
 
-## Vision-Based Control
-- 👁️ **Object Recognition**: "Bring me the bottle" → YOLOv8 detection
-- 👉 **Gesture Commands**: Point to destination → Robot navigates
-- 🗣️ **Voice + Gesture**: "Go there" + pointing → Combined input
+## Camera Pipeline Control
+- 👁️ **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
+- 👉 **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
+- 🗣️ **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
 
 ## Autonomous Navigation
 - BLE positioning from Navign beacons
@@ -457,15 +470,15 @@ layout: two-cols
 <v-clicks>
 
 ## 🎯 Three Pillars
-1. **GestureSpace**: Natural multimodal interaction
-2. **Navign**: Precise indoor positioning & security
+1. **GestureSpace**: Camera pipeline for spatial understanding
+2. **Navign**: BLE indoor positioning & security
 3. **Integrated Robot**: Autonomous assistance & delivery
 
 ## 💡 Impact
 - Empowering **17.31M** visually impaired people
+- **~2cm** camera pose, **~5cm** object localization
 - Cost-effective BLE solution
 - Scalable to malls, hospitals, offices
-- Military-grade cryptography
 
 </v-clicks>
 
@@ -481,7 +494,7 @@ layout: two-cols
 - TypeScript (mobile)
 
 **Frameworks:**
-- ROS2, MediaPipe, YOLOv8
+- ROS2, MediaPipe, **YOLOv12 (Transformer)**
 - Vue 3, Tauri 2.0
 - OpenCV, PyTorch
 
