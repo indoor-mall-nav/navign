@@ -1,4 +1,4 @@
-# Navign Project Presentation Outline
+# GestureSpace Project Presentation Outline
 
 **Total Duration: 4.5 minutes (270 seconds)**
 
@@ -29,14 +29,14 @@
 - **Dog-type robots**: Lack pulling power and stability
 - **Existing robots**: Cannot smoothly avoid crowds, limited functionality
 
-**Our Solution:** Bluetooth Low Energy (BLE) based indoor navigation system combining gesture control and robotics
+**Our Solution: GestureSpace** - An intelligent multimodal interaction system combining computer vision, gesture recognition, voice control, and BLE-based indoor navigation for accessible robotics
 
 ---
 
-## 2. Gesture Space Techniques (2 minutes / 120 seconds)
+## 2. GestureSpace Core Techniques (2 minutes / 120 seconds)
 
 ### Overview
-Computer vision-based multimodal interaction system for intuitive human-robot communication
+**GestureSpace** is a comprehensive computer vision and AI-based multimodal interaction system that enables intuitive, natural human-robot communication through gestures, voice, and spatial understanding. It serves as the intelligent interface layer for accessible robotics and indoor assistance.
 
 ### Core Technologies (6 key techniques)
 
@@ -149,9 +149,10 @@ Audio Stream → [Wake Word] → [Speech Recognition]
 
 ---
 
-## 3. Navign Project (1 minute / 60 seconds)
+## 3. GestureSpace Navigation System (Navign Integration) (1 minute / 60 seconds)
 
-### Core System Architecture
+### Overview
+GestureSpace integrates with **Navign**, our custom-built indoor positioning infrastructure, to provide precise location awareness and navigation capabilities for the gesture-controlled robot system.
 
 #### 3.1 BLE Beacon-Based Indoor Positioning (15 seconds)
 **Hardware:**
@@ -202,14 +203,17 @@ Audio Stream → [Wake Word] → [Speech Recognition]
 
 ---
 
-## 4. Integrated Robot System (1.5 minutes / 90 seconds)
+## 4. GestureSpace-Powered Robotic Assistant (1.5 minutes / 90 seconds)
 
 ### Robot Architecture Overview (20 seconds)
+
+GestureSpace controls a quadruped robotic assistant designed as an accessible, affordable alternative to guide dogs.
 
 #### Dual-Layer Design
 **Upper Layer (Raspberry Pi / Jetson Nano):**
 - ROS2 core for high-level coordination
-- 6 subsystems: Vision, Audio, Bluetooth, Navign, Tasks, Serial
+- 6 subsystems integrated with GestureSpace: Vision, Audio, Bluetooth, Navign, Tasks, Serial
+- **GestureSpace runs here** - processing gestures, voice, and spatial understanding
 
 **Lower Layer (STM32 + Embassy Rust):**
 - Real-time motor control
@@ -217,7 +221,7 @@ Audio Stream → [Wake Word] → [Speech Recognition]
 - Hardware abstraction layer
 - Emergency stop and safety systems
 
-### Integration with Gesture Space (25 seconds)
+### How GestureSpace Controls the Robot (25 seconds)
 
 #### Vision-Based Control
 - **Object Recognition**: "Bring me the bottle" → YOLOv8 detection
@@ -274,48 +278,57 @@ Audio Stream → [Wake Word] → [Speech Recognition]
 
 ## Key Takeaways (Final Summary)
 
-### The Complete Solution
-1. **Gesture Space**: Natural, multimodal human-robot interaction
-2. **Navign**: Precise indoor positioning and secure access control
-3. **Integrated Robot**: Autonomous assistance and delivery
+### The Complete GestureSpace Solution
+1. **GestureSpace Core**: Natural, multimodal human-robot interaction through vision, voice, and gestures
+2. **Navign Integration**: Precise indoor positioning and secure access control infrastructure
+3. **Robotic Assistant**: Autonomous guidance and delivery powered by GestureSpace
 
 ### Impact
-- **Accessibility**: Empowering 17.31 million visually impaired people
-- **Cost-Effective**: BLE-based solution vs. expensive alternatives
+- **Accessibility**: Empowering 17.31 million visually impaired people in China
+- **Cost-Effective**: BLE-based solution vs. expensive UWB or traditional robots
 - **Scalable**: Applicable to malls, hospitals, offices, transportation hubs
 - **Secure**: Military-grade cryptography for all communications
+- **Natural Interaction**: Intuitive gesture and voice control anyone can use
 
 ### Technology Stack Highlights
 - **Languages**: Rust (backend/embedded), Python (AI/vision), TypeScript (mobile), Swift (iOS)
-- **Frameworks**: ROS2, Tauri, Vue 3, MediaPipe, YOLOv8
-- **Hardware**: ESP32-C3, Raspberry Pi, STM32, cameras, BLE beacons
+- **Frameworks**: ROS2, MediaPipe, YOLOv8, Tauri, Vue 3, PyTorch, OpenCV
+- **Hardware**: ESP32-C3, Raspberry Pi/Jetson, STM32, cameras, BLE beacons
 
 ---
 
 ## Presentation Tips
 
 ### Timing Breakdown
-- **Market (30s)**: Start with shocking statistics, end with problem statement
-- **Gesture Space (120s)**: Demonstrate each technique with 1-2 sentence explanation + visual
-- **Navign (60s)**: Focus on positioning accuracy and security features
-- **Robot (90s)**: Show architecture diagram, emphasize integration, demo delivery mode
+- **Market (30s)**: Start with shocking statistics (17.31M vs. 400 guide dogs), end with GestureSpace solution
+- **GestureSpace Core (120s)**: Demonstrate each of 6 techniques with 1-2 sentence explanation + visual (20s each)
+- **Navign Integration (60s)**: Show how GestureSpace leverages Navign for positioning and security
+- **Robot System (90s)**: Emphasize how GestureSpace powers the robot, show architecture, demo modes
 
 ### Visual Aids Recommended
-- Market data infographic (17.31M vs. 400 guide dogs)
-- Gesture Space: Live demo or pre-recorded video of hand tracking
-- Navign: Interactive map with beacon placement and pathfinding
-- Robot: Architecture diagram from animations/robot.py
-- Integration diagram: All three systems working together
+- Market data infographic (17.31M vs. 400 guide dogs ratio)
+- **GestureSpace demos**: Live or pre-recorded video showing:
+  - Hand tracking with MediaPipe
+  - Finger pointing detection
+  - Object recognition (YOLOv8)
+  - AprilTag 3D localization
+  - Voice wake word activation
+- Navign: Beacon placement and pathfinding visualization
+- Robot: ROS2 architecture diagram from animations/robot.py
+- **Integration diagram**: GestureSpace controlling robot with Navign positioning
 
-### Demo Suggestions
-1. Show hand gesture controlling virtual robot
-2. Display object detection + finger pointing in real-time
-3. Demonstrate mobile app navigation
-4. Play robot delivery animation
+### Demo Suggestions (Focus on GestureSpace)
+1. **Hand gesture demo**: Show real-time hand tracking and gesture classification
+2. **Object detection + pointing**: User points at object, robot identifies it
+3. **Voice command**: "Hey GestureSpace, bring me that bottle" + pointing
+4. **Mobile app navigation**: Show Navign integration
+5. **Robot delivery animation**: Full pipeline demonstration
 
 ### Q&A Preparation
-- Cost comparison with traditional solutions
-- Accuracy benchmarks for positioning
-- Scalability to different venue types
-- Privacy and security considerations
-- Timeline for deployment
+- How does GestureSpace compare to other gesture control systems?
+- Accuracy benchmarks for positioning (<2m) and localization (~5cm)
+- Cost comparison: BLE beacons vs. UWB vs. traditional robots
+- Scalability to different venue types and robot platforms
+- Privacy: Is video/audio data stored? (No, processed locally)
+- Security: Cryptographic protection details
+- Timeline for deployment and current stage
