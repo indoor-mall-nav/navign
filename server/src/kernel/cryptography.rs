@@ -87,3 +87,84 @@ impl CryptoServer {
         Ok(challenge)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use p256::ecdsa::SigningKey;
+
+    fn create_test_crypto_server() -> CryptoServer {
+        let private_key = SigningKey::random(&mut p256::elliptic_curve::rand_core::OsRng);
+        let public_key = private_key.verifying_key().into();
+        CryptoServer::new(private_key, public_key)
+    }
+
+    #[test]
+    fn test_crypto_server_creation() {
+        let server = create_test_crypto_server();
+        // Server should be created successfully
+        assert!(std::mem::size_of_val(&server) > 0);
+    }
+
+    #[test]
+    fn test_handle_unlocker_valid_request() {
+        let server = create_test_crypto_server();
+        let current_timestamp = chrono::Utc::now().timestamp() as u64;
+        let nonce = [1u8; 16];
+        
+        let request = UnlockRequest {
+            user_id: "test_user".to_string(),
+            nonce,
+            timestamp: current_timestamp,
+        };
+
+        let result = server.handle_unlocker(request);
+        assert!(result.is_ok());
+
+        let challenge = result.unwrap();
+        assert_eq!(challenge.nonce, nonce);
+        assert_eq!(challenge.timestamp, current_timestamp);
+        assert_eq!(challenge.server_signature.len(), 64);
+    }
+
+    #[test]
+    fn test_handle_unlocker_expired_timestamp() {
+        let server = create_test_crypto_server();
+        let old_timestamp = chrono::Utc::now().timestamp() as u64 - 400; // 400 seconds ago
+        let nonce = [2u8; 16];
+        
+        let request = UnlockRequest {
+            user_id: "test_user".to_string(),
+            nonce,
+            timestamp: old_timestamp,
+        };
+
+        let result = server.handle_unlocker(request);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("too old"));
+    }
+
+    #[test]
+    fn test_unlock_challenge_signature_uniqueness() {
+        let server = create_test_crypto_server();
+        let current_timestamp = chrono::Utc::now().timestamp() as u64;
+        
+        let request1 = UnlockRequest {
+            user_id: "user1".to_string(),
+            nonce: [1u8; 16],
+            timestamp: current_timestamp,
+        };
+        
+        let request2 = UnlockRequest {
+            user_id: "user2".to_string(),
+            nonce: [2u8; 16],
+            timestamp: current_timestamp,
+        };
+
+        let challenge1 = server.handle_unlocker(request1).unwrap();
+        let challenge2 = server.handle_unlocker(request2).unwrap();
+
+        // Different nonces should produce different signatures
+        assert_ne!(challenge1.server_signature, challenge2.server_signature);
+    }
+}
