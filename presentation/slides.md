@@ -1,5 +1,5 @@
 ---
-theme: default
+theme: seriph
 background: https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920
 class: text-center
 highlighter: shiki
@@ -103,18 +103,18 @@ layout: section
 
 <v-clicks>
 
-## Technology Stack
-- **AprilTag Detection**: tag36h11 family markers at known positions
+### Technology Stack
+- **AprilTag Detection**: `tag36h11` family markers at known positions
 - **PnP Solving**: solvePnP algorithm for camera pose
 - **Camera Calibration**: Intrinsic parameters from chessboard calibration
 
-## How It Works
+### How It Works
 1. Detect AprilTags in camera frame (8 tags at known world positions)
 2. Extract 2D image corners and match to 3D world coordinates
 3. Solve PnP problem: Find camera rotation (R) and translation (t)
 4. Achieve ~2cm camera position accuracy
 
-## Applications
+### Applications
 - Precise robot localization in indoor space
 - Foundation for 3D point reconstruction
 - Integration with BLE positioning for map alignment
@@ -127,7 +127,7 @@ layout: section
 
 <v-clicks>
 
-## Transform 2D Image to 3D World Coordinates
+### Transform 2D Image to 3D World Coordinates
 
 ```python
 # 1. Undistort image points using camera intrinsics
@@ -144,7 +144,7 @@ s = (Z0 - camera_pos[2]) / ray_world[2]
 point_3d = camera_pos + s * ray_world
 ```
 
-## Precision
+### Precision
 - Object localization: **~5cm** accuracy on ground plane
 - Enables spatial understanding of environment
 
@@ -156,19 +156,19 @@ point_3d = camera_pos + s * ray_world
 
 <v-clicks>
 
-## Technology
+### Technology
 - **Ultralytics YOLOv12 Large** (yolo12l.pt)
 - **Transformer-based architecture** (not CNN)
 - Real-time detection & classification
 
-## Pipeline
+### Pipeline
 1. Detect objects in camera frame
 2. Extract bounding boxes (xyxy format) and class names
 3. Calculate center points (u, v) in image space
 4. Transform to 3D world coordinates using camera pose
 5. Output: Object name, position (x, y, z), confidence score
 
-## Integration
+### Integration
 - Object positions mapped to 3D space
 - Combined with voice commands: "Bring me that bottle"
 - Robot can navigate to detected objects
@@ -181,18 +181,18 @@ point_3d = camera_pos + s * ray_world
 
 <v-clicks>
 
-## MediaPipe Hands
+### MediaPipe Hands
 - Detects 21 hand landmarks in real-time
 - Tracks finger positions for interaction
 - **Note**: Used for pointing detection, not gesture classification
 
-## Finger Direction Pipeline
+### Finger Direction Pipeline
 1. Extract index finger MCP (base) and tip landmarks
 2. Transform both points to 3D world coordinates
 3. Calculate normalized direction vector
 4. Output: Pointing direction in 3D space
 
-## Applications
+### Applications
 - Point to objects for robot to identify
 - Indicate navigation directions
 - Spatial interaction with environment
@@ -205,12 +205,12 @@ point_3d = camera_pos + s * ray_world
 
 <v-clicks>
 
-## Porcupine Wake Word Engine
+### Porcupine Wake Word Engine
 - Always-listening mode with **low CPU usage**
 - Keyword index-based trigger
 - Instant activation
 
-## Workflow
+### Workflow
 ```mermaid
 graph LR
     A[Continuous Audio Stream] --> B[Wake Word Detected]
@@ -228,14 +228,14 @@ graph LR
 
 <v-clicks>
 
-## Audio Pipeline
+### Audio Pipeline
 1. **Wake word** triggers recording
 2. **Speech-to-text** recognition
 3. **Natural language understanding** for user requests
 4. **Context-aware response** using local LLM
 5. **Text-to-speech** audio feedback
 
-## Multimodal Integration
+### Multimodal Integration
 - 🗣️ "Show me the bottle" + 👉 finger pointing to location
 - 🗣️ "Bring me that object" → identifies via YOLO + locates in 3D
 - Voice + Vision + Spatial Understanding = Natural interaction
@@ -283,7 +283,7 @@ layout: two-cols
 
 <v-clicks>
 
-## Hardware
+### Hardware
 - **ESP32-C3** microcontrollers
 - Four beacon types:
   - 🏪 Merchant
@@ -291,7 +291,7 @@ layout: two-cols
   - 🔗 Connection
   - 🚪 Turnstile
 
-## Positioning
+### Positioning
 - **RSSI-based triangulation**
 - Real-time distance calculation
 - **<2m accuracy** in malls
@@ -304,14 +304,14 @@ layout: two-cols
 
 # Security
 
-## Cryptographic Protection
+### Cryptographic Protection
 - ✅ **P-256 ECDSA** signatures
 - ✅ **TOTP** authentication
 - ✅ **Nonce-based** challenge-response
 - ✅ Replay attack prevention
 - ✅ Hardware key storage (ESP32 efuse)
 
-## Access Control
+### Access Control
 - Door unlocking via mobile app
 - Turnstile authentication
 - Merchant space authorization
@@ -324,7 +324,7 @@ layout: two-cols
 
 <v-clicks>
 
-## Backend (Rust)
+### Backend (Rust)
 - **Dijkstra algorithm** with bump allocation
 - Ultra-fast routing: **<1ms** for typical layouts
 - Multi-floor support:
@@ -333,7 +333,7 @@ layout: two-cols
   - Stairs
 - Dynamic area connectivity graph
 
-## Mobile Experience (Vue 3 + Tauri 2.0)
+### Mobile Experience (Vue 3 + Tauri 2.0)
 - Cross-platform: iOS, Android, macOS, Windows, Linux
 - **MapLibre GL** + Konva canvas
 - Real-time navigation overlay
@@ -376,17 +376,17 @@ layout: section
 
 <v-clicks>
 
-## Camera Pipeline Control
+### Camera Pipeline Control
 - 👁️ **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
 - 👉 **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
 - 🗣️ **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
 
-## Autonomous Navigation
+### Autonomous Navigation
 - BLE positioning from Navign beacons
 - AprilTag landmarks for precise pose correction
 - Obstacle avoidance using object detection
 
-## Multimodal Feedback
+### Multimodal Feedback
 - 🔊 Audio confirmation of commands
 - 💡 Visual LED indicators on robot
 - 📱 Real-time status updates to mobile app
@@ -399,17 +399,17 @@ layout: section
 
 <v-clicks>
 
-## BLE-Based Localization
+### BLE-Based Localization
 - Robot equipped with **BLE scanner**
 - Receives beacon signals for indoor positioning
 - Synchronizes with Navign server
 
-## Pathfinding & Execution
+### Pathfinding & Execution
 1. Server sends optimal path to robot
 2. Robot follows waypoints with local obstacle avoidance
 3. Dynamic re-routing on path blockage
 
-## Multi-Floor Capability
+### Multi-Floor Capability
 - Autonomous elevator usage (future)
 - Stair/escalator detection and avoidance
 - Floor transition coordination
@@ -422,19 +422,19 @@ layout: section
 
 <v-clicks>
 
-## Guide Mode for Visually Impaired 🦮
+### Guide Mode for Visually Impaired 🦮
 - Robot acts as **robotic guide dog**
 - Voice-guided navigation
 - Obstacle detection and warning
 - Physical guidance via haptic handle (future)
 
-## Delivery Mode 📦
+### Delivery Mode 📦
 - Item transport in cargo bay
 - Autonomous navigation to destination
 - Secure delivery confirmation via app
 - Return to charging station
 
-## Interaction Modes
+### Interaction Modes
 - **Passive Following**: Robot follows user with BLE tracking
 - **Active Guidance**: Robot leads user along optimal path
 - **Fetch & Retrieve**: Voice command → Find object → Bring back
@@ -469,12 +469,12 @@ layout: two-cols
 
 <v-clicks>
 
-## 🎯 Three Pillars
+### 🎯 Three Pillars
 1. **GestureSpace**: Camera pipeline for spatial understanding
 2. **Navign**: BLE indoor positioning & security
 3. **Integrated Robot**: Autonomous assistance & delivery
 
-## 💡 Impact
+### 💡 Impact
 - Empowering **17.31M** visually impaired people
 - **~2cm** camera pose, **~5cm** object localization
 - Cost-effective BLE solution
@@ -486,7 +486,7 @@ layout: two-cols
 
 <v-clicks>
 
-## 🛠️ Technology Stack
+### 🛠️ Technology Stack
 
 **Languages:**
 - Rust (backend/embedded)
@@ -494,38 +494,16 @@ layout: two-cols
 - TypeScript (mobile)
 
 **Frameworks:**
-- ROS2, MediaPipe, **YOLOv12 (Transformer)**
+- ROS2, MediaPipe, YOLOv12
 - Vue 3, Tauri 2.0
 - OpenCV, PyTorch
 
 **Hardware:**
 - ESP32-C3 beacons
-- Raspberry Pi / Jetson
+- Orange Pi
 - STM32 motor control
 
 </v-clicks>
-
----
-layout: center
-class: text-center
----
-
-# Demo Time! 🎬
-
-<v-clicks>
-
-1. 👋 Hand gesture controlling robot
-2. 👁️ Object detection + finger pointing in real-time
-3. 📱 Mobile app navigation
-4. 🤖 Robot delivery animation
-
-</v-clicks>
-
-<div class="pt-12">
-  <a href="https://github.com/indoor-mall-nav/navign" target="_blank" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">
-    View on GitHub
-  </a>
-</div>
 
 ---
 layout: end
