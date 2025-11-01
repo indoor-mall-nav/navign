@@ -19,7 +19,7 @@ jobs:
         python-version: ['3.12']
         pnpm-version: ['10.20.0']
         mongodb-version: ['8.0']
-        runs-for: [repo, shared, server, mobile, desktop, beacon]
+        runs-for: [shared, server, mobile, desktop, beacon]
 
     steps:
       - uses: actions/checkout@v4
