@@ -73,12 +73,12 @@ mod tests {
             offset: None,
             limit: None,
             query: None,
-            sort: Some(alloc::string::String::from("name")),
+            sort: Some(String::from("name")),
             asc: Some(true),
             case_sensitive: None,
         };
         
-        assert_eq!(query.sort, Some(alloc::string::String::from("name")));
+        assert_eq!(query.sort, Some(String::from("name")));
         assert_eq!(query.asc, Some(true));
     }
 
