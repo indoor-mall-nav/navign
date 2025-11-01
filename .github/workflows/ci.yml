@@ -19,7 +19,7 @@ jobs:
         python-version: ['3.12']
         pnpm-version: ['10.20.0']
         mongodb-version: ['8.0']
-        runs-for: [repo, shared, server, mobile, desktop, beacon]
+        runs-for: [shared, server, mobile, desktop, beacon]
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,12 @@ jobs:
         if: matrix.runs-for == 'repo'
       - name: Setup Taplo
         uses: uncenter/setup-taplo@v1.0.8
+      - name: Setup Typos
+        uses: crate-ci/typos@v1.39.0
+      - name: Setup Cargo Deny
+        uses: EmbarkStudios/cargo-deny-action@v2.0.13
+        with:
+          command: check bans licenses sources
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:

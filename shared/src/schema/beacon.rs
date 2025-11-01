@@ -7,31 +7,43 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "mongodb")]
 use bson::oid::ObjectId;
 
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use bson::serde_helpers::object_id::AsHexString;
+
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use serde_with::serde_as;
+
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Beacon {
     #[cfg_attr(feature = "serde", serde(rename = "_id"))]
+    #[serde_as(as = "AsHexString")]
     #[cfg(feature = "mongodb")]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
     /// Reference to the Entity
+    #[serde_as(as = "AsHexString")]
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
     /// Reference to the Area where the beacon is located
+    #[serde_as(as = "AsHexString")]
     #[cfg(feature = "mongodb")]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
     /// Optional reference to the Merchant associated with the beacon.
+    #[serde_as(as = "Option<AsHexString>")]
     #[cfg(feature = "mongodb")]
     pub merchant: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub merchant: Option<String>,
     /// Optional reference to the Connection associated with the beacon.
+    #[serde_as(as = "Option<AsHexString>")]
     #[cfg(feature = "mongodb")]
     pub connection: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]

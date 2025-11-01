@@ -2,6 +2,10 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use bson::serde_helpers::object_id::AsHexString;
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use serde_with::serde_as;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -11,27 +15,27 @@ use bson::oid::ObjectId;
 
 /// Merchant schema - represents a shop, store, or service location
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Merchant {
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
     #[cfg(feature = "mongodb")]
+    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
+    #[serde_as(as = "AsHexString")]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-
     pub name: String,
     pub description: Option<String>,
     pub chain: Option<String>,
-
     #[cfg(feature = "mongodb")]
+    #[serde_as(as = "AsHexString")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-
     pub beacon_code: String,
-
     #[cfg(feature = "mongodb")]
+    #[serde_as(as = "AsHexString")]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,

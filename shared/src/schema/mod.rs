@@ -4,6 +4,8 @@ pub mod read_query;
 #[cfg(all(feature = "serde", feature = "alloc"))]
 pub use read_query::ReadQuery;
 
+pub mod utils;
+
 // Core schema modules
 #[cfg(feature = "alloc")]
 pub mod area;
