@@ -1,4 +1,7 @@
-pub mod constants;
+// Re-export constants from navign-shared
+pub mod constants {
+    pub use navign_shared::constants::*;
+}
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 /// Capabilities that the device can report to the client.

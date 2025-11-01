@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(any(feature = "std", feature = "sql")), no_std)]
 
 #[cfg(all(feature = "heapless", feature = "alloc"))]
 compile_error!("Features 'heapless' and 'alloc' cannot be enabled at the same time.");
@@ -24,3 +24,18 @@ pub use ble::message::BleMessage;
 pub use ble::nonce::Nonce;
 pub use ble::proof::Proof;
 pub use traits::{depacketize::Depacketize, packetize::Packetize};
+
+#[cfg(all(feature = "serde", feature = "alloc"))]
+pub use schema::ReadQuery;
+
+// Export core schemas
+#[cfg(feature = "alloc")]
+pub use schema::{
+    Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, ConnectedArea, Connection,
+    ConnectionType, Entity, EntityType, FacilityType, Floor, FloorType, FoodCuisine, FoodType,
+    Merchant, MerchantStyle, MerchantType, SocialMedia, SocialMediaPlatform,
+};
+
+// Export mobile-specific schemas
+#[cfg(feature = "sql")]
+pub use schema::{AreaMobile, BeaconMobile, ConnectionMobile, EntityMobile, MerchantMobile};

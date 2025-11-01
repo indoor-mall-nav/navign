@@ -1,74 +1,7 @@
 use crate::schema::service::Service;
-use bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 
-pub type ConnectedArea = (ObjectId, f64, f64, bool);
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct Connection {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
-    /// Reference to the Entity
-    pub entity: ObjectId,
-    pub name: String,
-    pub description: Option<String>,
-    pub r#type: ConnectionType,
-    /// List of Area IDs that this connection links
-    /// Format: Vec<(ObjectId, f64, f64, bool)>
-    /// where ObjectId is the ID of the area, and f64 values are coordinates (x, y)
-    /// representing the connection's position in the area.
-    /// The coordinates are relative to the area polygon.
-    /// For example, if the connection is a gate between two areas, the coordinates
-    /// would represent the position of the gate in the first area.
-    /// If the connection is a rail or shuttle, the coordinates would represent the
-    /// position of the rail or shuttle stop in the first area.
-    pub connected_areas: Vec<ConnectedArea>,
-    /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
-    pub available_period: Vec<(i32, i32)>,
-    pub tags: Vec<String>,
-    pub gnd: Option<(f64, f64)>, // Ground (x, y) coordinates if it connects to outside
-}
-
-impl Connection {
-    pub fn get_connected_areas(&self) -> &Vec<ConnectedArea> {
-        &self.connected_areas
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Eq, Copy)]
-#[serde(rename_all = "kebab-case")]
-/// Represents the type of connection between areas or entities.
-pub enum ConnectionType {
-    /// A connection that allows people to pass through, such as a door or gate.
-    /// Usually involve authentication or access control.
-    Gate,
-    /// A connection that allows people to move between different areas, such as a hallway or corridor.
-    #[default]
-    Escalator,
-    /// A connection that allows people to move between different levels, such as stairs or elevators.
-    Elevator,
-    /// A connection that allows people to move between different areas, such as a pathway or tunnel.
-    Stairs,
-    /// Like in Hong Kong International Airport, Singapore Changi Airport, or Shanghai Pudong International Airport.
-    /// There is a dedicated transportation system that connects different terminals or areas.
-    Rail,
-    /// Shuttle bus.
-    Shuttle,
-}
-
-impl Display for ConnectionType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ConnectionType::Gate => write!(f, "gate"),
-            ConnectionType::Escalator => write!(f, "escalator"),
-            ConnectionType::Elevator => write!(f, "elevator"),
-            ConnectionType::Stairs => write!(f, "stairs"),
-            ConnectionType::Rail => write!(f, "rail"),
-            ConnectionType::Shuttle => write!(f, "shuttle"),
-        }
-    }
-}
+// Re-export from navign-shared
+pub use navign_shared::{ConnectedArea, Connection, ConnectionType};
 
 impl Service for Connection {
     fn get_id(&self) -> String {

@@ -64,4 +64,4 @@ tauri-plugin-biometric = "2"
 tauri-plugin-nfc = "2"
 tauri-plugin-fs = "2"
 #tauri-plugin-gyroscope = { path = "../../tauri-plugin-gyroscope" }
-navign-shared = { path = "../../shared" }
+navign-shared = { path = "../../shared", features = ["std", "serde", "sql"] }

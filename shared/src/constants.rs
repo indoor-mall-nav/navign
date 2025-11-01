@@ -1,12 +1,20 @@
+// BLE Protocol Message Identifiers
 pub const DEVICE_REQUEST: u8 = 0x01;
 pub const DEVICE_RESPONSE: u8 = 0x02;
 pub const NONCE_REQUEST: u8 = 0x03;
 pub const NONCE_RESPONSE: u8 = 0x04;
 pub const UNLOCK_REQUEST: u8 = 0x05;
 pub const UNLOCK_RESPONSE: u8 = 0x06;
+pub const DEBUG_REQUEST: u8 = 0xFF;
+pub const DEBUG_RESPONSE: u8 = 0xFE;
 
+// Unlock Status Codes
 pub const UNLOCK_SUCCESS: u8 = 0x01;
 pub const UNLOCK_FAILURE: u8 = 0x00;
+
+// Beacon-specific constants
+pub const MAX_PACKET_SIZE: usize = 128;
+pub const MAX_ATTEMPTS: u8 = 5;
 
 pub const DEVICE_REQUEST_COUNT_LENGTH: usize = 1;
 pub const IDENTIFIER_LENGTH: usize = 1;

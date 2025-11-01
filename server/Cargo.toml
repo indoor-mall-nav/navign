@@ -44,3 +44,8 @@ axum-extra = { version = "0.10.3", features = [
   "typed-header",
   "typed-routing",
 ] }
+navign-shared = { path = "../shared", default-features = false, features = [
+  "std",
+  "serde",
+  "mongodb",
+] }

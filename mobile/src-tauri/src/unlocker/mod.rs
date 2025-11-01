@@ -7,10 +7,14 @@
 //! It uses ECDSA for signing and RSA for encrypting AES keys, ensuring secure communication.
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
 mod challenge;
-pub mod constants;
 mod pipeline;
 mod proof;
 mod utils;
+
+// Re-export constants from navign-shared
+pub mod constants {
+    pub use navign_shared::constants::*;
+}
 
 pub use pipeline::unlock_handler;
 pub use utils::BleMessage;

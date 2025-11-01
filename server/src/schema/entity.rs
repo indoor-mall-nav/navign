@@ -9,44 +9,8 @@ use futures::TryStreamExt;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct Entity {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
-    pub r#type: EntityType,
-    pub name: String,
-    pub description: Option<String>,
-    pub longitude_range: (f64, f64), // (min_longitude, max_longitude)
-    pub latitude_range: (f64, f64),  // (min_latitude, max_latitude)
-    pub altitude_range: Option<(f64, f64)>, // (min_altitude, max_altitude)
-    pub nation: Option<String>,
-    pub region: Option<String>,
-    pub city: Option<String>,
-    pub tags: Vec<String>,
-    pub created_at: i64, // Timestamp in milliseconds
-    pub updated_at: i64, // Timestamp in milliseconds
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum EntityType {
-    #[default]
-    Mall,
-    Transportation,
-    School,
-    Hospital,
-}
-
-impl std::fmt::Display for EntityType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EntityType::Mall => write!(f, "Mall"),
-            EntityType::Transportation => write!(f, "Transportation"),
-            EntityType::School => write!(f, "School"),
-            EntityType::Hospital => write!(f, "Hospital"),
-        }
-    }
-}
+// Re-export from navign-shared
+pub use navign_shared::{Entity, EntityType};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EntityQuery {
