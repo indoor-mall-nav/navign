@@ -133,11 +133,11 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS beacons (
-                    id TEXT PRIMARY KEY,
-                    entity TEXT NOT NULL,
-                    area TEXT NOT NULL,
-                    merchant TEXT,
-                    connection TEXT,
+                    id VARCHAR(24) PRIMARY KEY,
+                    entity VARCHAR(24) NOT NULL,
+                    area VARCHAR(24) NOT NULL,
+                    merchant VARCHAR(24),
+                    connection VARCHAR(24),
                     name TEXT NOT NULL,
                     description TEXT,
                     type TEXT NOT NULL,

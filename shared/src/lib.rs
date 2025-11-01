@@ -30,8 +30,12 @@ pub use schema::ReadQuery;
 
 // Export core schemas
 #[cfg(feature = "alloc")]
-pub use schema::{Area, Beacon, BeaconDevice, BeaconType, Floor, FloorType};
+pub use schema::{
+    Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, Connection, ConnectedArea,
+    ConnectionType, Entity, EntityType, FacilityType, Floor, FloorType, FoodCuisine, FoodType,
+    Merchant, MerchantStyle, MerchantType, SocialMedia, SocialMediaPlatform,
+};
 
 // Export mobile-specific schemas
 #[cfg(feature = "sql")]
-pub use schema::{AreaMobile, BeaconMobile};
+pub use schema::{AreaMobile, BeaconMobile, ConnectionMobile, EntityMobile, MerchantMobile};

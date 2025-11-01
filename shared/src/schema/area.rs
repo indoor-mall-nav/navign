@@ -137,8 +137,8 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS areas (
-                    id TEXT PRIMARY KEY,
-                    entity TEXT NOT NULL,
+                    id VARCHAR(24) PRIMARY KEY,
+                    entity VARCHAR(24) NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT,
                     beacon_code TEXT NOT NULL,
