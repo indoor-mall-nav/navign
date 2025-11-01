@@ -75,7 +75,6 @@ mod tests {
             asc: Some(true),
             case_sensitive: None,
         };
-
         assert_eq!(query.sort, Some(String::from("name")));
         assert_eq!(query.asc, Some(true));
     }
