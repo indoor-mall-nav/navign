@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, toRefs, watch } from "vue";
+import { computed, onMounted, ref, toRefs, watch } from 'vue'
 import {
   generateSvgMap,
   getMapData,
   type MapData,
   type RouteResponse,
-} from "@/lib/api/tauri";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Icon } from "@iconify/vue";
-import RouteOverlay from "./RouteOverlay.vue";
-import { error as logError } from "@tauri-apps/plugin-log";
+} from '@/lib/api/tauri'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Icon } from '@iconify/vue'
+import RouteOverlay from './RouteOverlay.vue'
+import { error as logError } from '@tauri-apps/plugin-log'
 
 const props = defineProps<{
-  entityId: string;
-  areaId: string;
-  width?: number;
-  height?: number;
-  userLocation?: { x: number; y: number } | null;
-  route?: RouteResponse | null;
-  currentStep?: number;
-  targetMerchantId?: string | null;
-}>();
+  entityId: string
+  areaId: string
+  width?: number
+  height?: number
+  userLocation?: { x: number; y: number } | null
+  route?: RouteResponse | null
+  currentStep?: number
+  targetMerchantId?: string | null
+}>()
 
 const {
   entityId,
@@ -34,76 +34,76 @@ const {
   height,
   route,
   currentStep,
-} = toRefs(props);
+} = toRefs(props)
 
 const emit = defineEmits<{
-  beaconClick: [beaconId: string];
-  merchantClick: [merchantId: string];
-}>();
+  beaconClick: [beaconId: string]
+  merchantClick: [merchantId: string]
+}>()
 
-const mapData = ref<MapData | null>(null);
-const svgContent = ref<string>("");
-const loading = ref(false);
-const error = ref<string>("");
-const searchQuery = ref("");
-const mapWidth = computed(() => width.value || 800);
-const mapHeight = computed(() => height.value || 600);
-const showBeacons = ref(true);
-const showMerchants = ref(true);
-const zoomLevel = ref(1);
+const mapData = ref<MapData | null>(null)
+const svgContent = ref<string>('')
+const loading = ref(false)
+const error = ref<string>('')
+const searchQuery = ref('')
+const mapWidth = computed(() => width.value || 800)
+const mapHeight = computed(() => height.value || 600)
+const showBeacons = ref(true)
+const showMerchants = ref(true)
+const zoomLevel = ref(1)
 
 async function loadMapData() {
   if (!entityId.value || !areaId.value) {
-    error.value = "Entity ID and Area ID are required";
-    return;
+    error.value = 'Entity ID and Area ID are required'
+    return
   }
 
-  loading.value = true;
-  error.value = "";
+  loading.value = true
+  error.value = ''
 
   try {
-    const result = await getMapData(entityId.value, areaId.value);
-    if (result.status === "success" && result.data) {
-      mapData.value = result.data;
-      await generateMap();
+    const result = await getMapData(entityId.value, areaId.value)
+    if (result.status === 'success' && result.data) {
+      mapData.value = result.data
+      await generateMap()
     } else {
-      error.value = result.message || "Failed to load map data";
+      error.value = result.message || 'Failed to load map data'
     }
   } catch (err) {
-    error.value = `Error: ${err}`;
+    error.value = `Error: ${err}`
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 const targetMerchant = computed(() => {
-  if (!targetMerchantId.value || !mapData.value) return null;
-  return mapData.value.merchants.find((m) => m.id === targetMerchantId.value);
-});
+  if (!targetMerchantId.value || !mapData.value) return null
+  return mapData.value.merchants.find((m) => m.id === targetMerchantId.value)
+})
 
 function addUserLocationToSvg() {
-  if (!svgContent.value || !userLocation.value || !mapData.value) return;
+  if (!svgContent.value || !userLocation.value || !mapData.value) return
 
   // Calculate bounds for scaling (same as backend)
-  let min_x = Number.MAX_VALUE;
-  let max_x = Number.MIN_VALUE;
-  let min_y = Number.MAX_VALUE;
-  let max_y = Number.MIN_VALUE;
+  let min_x = Number.MAX_VALUE
+  let max_x = Number.MIN_VALUE
+  let min_y = Number.MAX_VALUE
+  let max_y = Number.MIN_VALUE
 
   for (const [x, y] of mapData.value.polygon) {
-    min_x = Math.min(min_x, x);
-    max_x = Math.max(max_x, x);
-    min_y = Math.min(min_y, y);
-    max_y = Math.max(max_y, y);
+    min_x = Math.min(min_x, x)
+    max_x = Math.max(max_x, x)
+    min_y = Math.min(min_y, y)
+    max_y = Math.max(max_y, y)
   }
 
-  const scale_x = (mapWidth.value - 20) / (max_x - min_x);
-  const scale_y = (mapHeight.value - 20) / (max_y - min_y);
-  const scale = Math.min(scale_x, scale_y);
+  const scale_x = (mapWidth.value - 20) / (max_x - min_x)
+  const scale_y = (mapHeight.value - 20) / (max_y - min_y)
+  const scale = Math.min(scale_x, scale_y)
 
   // FIXME Swap x and y to match SVG coordinate system
-  const tx = (userLocation.value.x - min_x) * scale + 10;
-  const ty = (userLocation.value.y - min_y) * scale + 10;
+  const tx = (userLocation.value.x - min_x) * scale + 10
+  const ty = (userLocation.value.y - min_y) * scale + 10
 
   // Create user location marker with pulsing animation
   const locationMarker = `
@@ -125,37 +125,37 @@ function addUserLocationToSvg() {
       <!-- Label -->
       <text x="${tx}" y="${ty + 25}" font-size="12" font-weight="bold" text-anchor="middle" fill="#4CAF50">You are here</text>
     </g>
-  `;
+  `
 
   // Insert before closing </svg> tag
   svgContent.value = svgContent.value.replace(
-    "</svg>",
-    locationMarker + "</svg>",
-  );
+    '</svg>',
+    locationMarker + '</svg>',
+  )
 }
 
 function addTargetMarkerToSvg() {
-  if (!svgContent.value || !targetMerchant.value || !mapData.value) return;
+  if (!svgContent.value || !targetMerchant.value || !mapData.value) return
 
   // Calculate bounds for scaling (same as backend)
-  let min_x = Number.MAX_VALUE;
-  let max_x = Number.MIN_VALUE;
-  let min_y = Number.MAX_VALUE;
-  let max_y = Number.MIN_VALUE;
+  let min_x = Number.MAX_VALUE
+  let max_x = Number.MIN_VALUE
+  let min_y = Number.MAX_VALUE
+  let max_y = Number.MIN_VALUE
 
   for (const [x, y] of mapData.value.polygon) {
-    min_x = Math.min(min_x, x);
-    max_x = Math.max(max_x, x);
-    min_y = Math.min(min_y, y);
-    max_y = Math.max(max_y, y);
+    min_x = Math.min(min_x, x)
+    max_x = Math.max(max_x, x)
+    min_y = Math.min(min_y, y)
+    max_y = Math.max(max_y, y)
   }
 
-  const scale_x = (mapWidth.value - 20) / (max_x - min_x);
-  const scale_y = (mapHeight.value - 20) / (max_y - min_y);
-  const scale = Math.min(scale_x, scale_y);
+  const scale_x = (mapWidth.value - 20) / (max_x - min_x)
+  const scale_y = (mapHeight.value - 20) / (max_y - min_y)
+  const scale = Math.min(scale_x, scale_y)
 
-  const tx = (targetMerchant.value.location[0] - min_x) * scale + 10;
-  const ty = (targetMerchant.value.location[1] - min_y) * scale + 10;
+  const tx = (targetMerchant.value.location[0] - min_x) * scale + 10
+  const ty = (targetMerchant.value.location[1] - min_y) * scale + 10
 
   // Create target marker with pulsing animation
   const targetMarker = `
@@ -173,17 +173,14 @@ function addTargetMarkerToSvg() {
       <!-- Label -->
       <text x="${tx}" y="${ty + 28}" font-size="12" font-weight="bold" text-anchor="middle" fill="#ef4444">Target</text>
     </g>
-  `;
+  `
 
   // Insert before closing </svg> tag
-  svgContent.value = svgContent.value.replace(
-    "</svg>",
-    targetMarker + "</svg>",
-  );
+  svgContent.value = svgContent.value.replace('</svg>', targetMarker + '</svg>')
 }
 
 async function generateMap() {
-  if (!entityId.value || !areaId.value) return;
+  if (!entityId.value || !areaId.value) return
 
   try {
     const result = await generateSvgMap(
@@ -191,81 +188,81 @@ async function generateMap() {
       areaId.value,
       mapWidth.value,
       mapHeight.value,
-    );
-    if (result.status === "success" && result.svg) {
-      svgContent.value = result.svg;
+    )
+    if (result.status === 'success' && result.svg) {
+      svgContent.value = result.svg
       // Add user location marker if available
       if (userLocation.value) {
-        addUserLocationToSvg();
+        addUserLocationToSvg()
       }
       // Add target marker if available
       if (targetMerchantId.value) {
-        addTargetMarkerToSvg();
+        addTargetMarkerToSvg()
       }
     }
   } catch (err) {
-    await logError("Failed to generate SVG map: " + JSON.stringify(err));
+    await logError('Failed to generate SVG map: ' + JSON.stringify(err))
   }
 }
 
 function handleSvgClick(event: MouseEvent) {
-  const target = event.target as SVGElement;
-  const parentId = target.parentElement?.id;
+  const target = event.target as SVGElement
+  const parentId = target.parentElement?.id
 
-  if (parentId?.startsWith("beacon-")) {
-    const beaconId = parentId.replace("beacon-", "");
-    emit("beaconClick", beaconId);
-  } else if (parentId?.startsWith("merchant-")) {
-    const merchantId = parentId.replace("merchant-", "");
-    emit("merchantClick", merchantId);
+  if (parentId?.startsWith('beacon-')) {
+    const beaconId = parentId.replace('beacon-', '')
+    emit('beaconClick', beaconId)
+  } else if (parentId?.startsWith('merchant-')) {
+    const merchantId = parentId.replace('merchant-', '')
+    emit('merchantClick', merchantId)
   }
 }
 
 const filteredBeacons = computed(() => {
-  if (!mapData.value || !searchQuery.value) return mapData.value?.beacons || [];
-  const query = searchQuery.value.toLowerCase();
+  if (!mapData.value || !searchQuery.value) return mapData.value?.beacons || []
+  const query = searchQuery.value.toLowerCase()
   return mapData.value.beacons.filter((b) =>
     b.name.toLowerCase().includes(query),
-  );
-});
+  )
+})
 
 const filteredMerchants = computed(() => {
   if (!mapData.value || !searchQuery.value)
-    return mapData.value?.merchants || [];
-  const query = searchQuery.value.toLowerCase();
+    return mapData.value?.merchants || []
+  const query = searchQuery.value.toLowerCase()
   return mapData.value.merchants.filter(
     (m) =>
       m.name.toLowerCase().includes(query) ||
       m.tags.some((tag) => tag.toLowerCase().includes(query)),
-  );
-});
+  )
+})
 
 function zoomIn() {
-  zoomLevel.value = Math.min(zoomLevel.value + 0.1, 3);
+  zoomLevel.value = Math.min(zoomLevel.value + 0.1, 3)
 }
 
 function zoomOut() {
-  zoomLevel.value = Math.max(zoomLevel.value - 0.1, 0.5);
+  zoomLevel.value = Math.max(zoomLevel.value - 0.1, 0.5)
 }
 
 function resetZoom() {
-  zoomLevel.value = 1;
+  zoomLevel.value = 1
 }
 
 onMounted(() => {
-  loadMapData();
-});
+  loadMapData()
+})
 
-watch(entityId, loadMapData, { immediate: true });
-watch(areaId, loadMapData, { immediate: true });
-watch(userLocation, loadMapData, { immediate: true });
-watch(targetMerchantId, loadMapData, { immediate: true });
+watch(entityId, loadMapData, { immediate: true })
+watch(areaId, loadMapData, { immediate: true })
+watch(userLocation, loadMapData, { immediate: true })
+watch(targetMerchantId, loadMapData, { immediate: true })
 
 watch([mapWidth, mapHeight], () => {
   if (mapData.value) {
-    generateMap();
+    generateMap()
   }
-});
+})
 </script>
 
 <template>
@@ -273,7 +270,7 @@ watch([mapWidth, mapHeight], () => {
     <Card class="w-full">
       <CardHeader>
         <CardTitle class="flex items-center justify-between">
-          <span>{{ mapData?.name || "Map View" }}</span>
+          <span>{{ mapData?.name || 'Map View' }}</span>
           <div class="flex gap-2">
             <Button variant="outline" size="icon" @click="zoomOut">
               <Icon icon="mdi:magnify-minus" class="w-5 h-5" />

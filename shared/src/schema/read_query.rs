@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use alloc::string::String;
 
 /// Query parameters for reading/listing resources
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ReadQuery {
     pub offset: Option<u64>,
@@ -14,19 +14,6 @@ pub struct ReadQuery {
     pub sort: Option<String>,
     pub asc: Option<bool>,
     pub case_sensitive: Option<bool>,
-}
-
-impl Default for ReadQuery {
-    fn default() -> Self {
-        Self {
-            offset: None,
-            limit: None,
-            query: None,
-            sort: None,
-            asc: None,
-            case_sensitive: None,
-        }
-    }
 }
 
 #[cfg(all(test, feature = "serde", feature = "alloc"))]

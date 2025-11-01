@@ -165,7 +165,7 @@ pub mod mobile {
             .bind(&self.description)
             .bind(&self.beacon_code)
             .bind(&self.floor_type)
-            .bind(&self.floor_name)
+            .bind(self.floor_name)
             .bind(&self.polygon)
             .execute(pool)
             .await?;

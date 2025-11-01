@@ -1,19 +1,19 @@
-import type { Area, Merchant } from "@/schema";
+import type { Area, Merchant } from '@/schema'
 
 export const mockMerchants: Merchant[] = [
   {
-    _id: { $oid: "507f1f77bcf86cd799439011" },
-    name: "Brew & Beans Coffee",
+    _id: { $oid: '507f1f77bcf86cd799439011' },
+    name: 'Brew & Beans Coffee',
     description:
-      "Artisanal coffee shop serving locally roasted beans and fresh pastries",
+      'Artisanal coffee shop serving locally roasted beans and fresh pastries',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439001" },
-    beacon_code: "BB-COFFEE-001",
-    area: { $oid: "507f1f77bcf86cd799439101" },
-    type: { food: { cuisine: "american", type: "cafe" } },
-    tags: ["coffee", "breakfast", "pastries", "wifi", "study-space"],
+    entity: { $oid: '507f1f77bcf86cd799439001' },
+    beacon_code: 'BB-COFFEE-001',
+    area: { $oid: '507f1f77bcf86cd799439101' },
+    type: { food: { cuisine: 'american', type: 'cafe' } },
+    tags: ['coffee', 'breakfast', 'pastries', 'wifi', 'study-space'],
     location: [-74.006, 40.7128], // NYC coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-74.0061, 40.7129],
       [-74.0059, 40.7129],
@@ -21,9 +21,9 @@ export const mockMerchants: Merchant[] = [
       [-74.0061, 40.7127],
       [-74.0061, 40.7129],
     ],
-    website: "https://brewandbeans.com",
-    phone: "+1-212-555-0123",
-    email: "hello@brewandbeans.com",
+    website: 'https://brewandbeans.com',
+    phone: '+1-212-555-0123',
+    email: 'hello@brewandbeans.com',
     opening_hours: [
       [21600000, 79200000], // Monday: 6:00-22:00
       [21600000, 79200000], // Tuesday: 6:00-22:00
@@ -34,36 +34,36 @@ export const mockMerchants: Merchant[] = [
       [25200000, 75600000], // Sunday: 7:00-21:00
     ],
     images: [
-      "https://example.com/images/brew-beans-exterior.jpg",
-      "https://example.com/images/brew-beans-interior.jpg",
-      "https://example.com/images/brew-beans-coffee.jpg",
+      'https://example.com/images/brew-beans-exterior.jpg',
+      'https://example.com/images/brew-beans-interior.jpg',
+      'https://example.com/images/brew-beans-coffee.jpg',
     ],
     social_media: [
       {
-        platform: "instagram",
-        handle: "@brewandbeansnyc",
-        url: "https://instagram.com/brewandbeansnyc",
+        platform: 'instagram',
+        handle: '@brewandbeansnyc',
+        url: 'https://instagram.com/brewandbeansnyc',
       },
       {
-        platform: "facebook",
-        handle: "BrewAndBeansNYC",
-        url: "https://facebook.com/BrewAndBeansNYC",
+        platform: 'facebook',
+        handle: 'BrewAndBeansNYC',
+        url: 'https://facebook.com/BrewAndBeansNYC',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439012" },
-    name: "Starbucks",
+    _id: { $oid: '507f1f77bcf86cd799439012' },
+    name: 'Starbucks',
     description:
       "World's largest coffeehouse chain serving coffee, tea, and light snacks",
-    chain: "Starbucks",
-    entity: { $oid: "507f1f77bcf86cd799439002" },
-    beacon_code: "SB-TIMES-001",
-    area: { $oid: "507f1f77bcf86cd799439101" },
-    type: { food: { cuisine: "american", type: "cafe" } },
-    tags: ["coffee", "chain", "quick-service", "wifi", "mobile-order"],
+    chain: 'Starbucks',
+    entity: { $oid: '507f1f77bcf86cd799439002' },
+    beacon_code: 'SB-TIMES-001',
+    area: { $oid: '507f1f77bcf86cd799439101' },
+    type: { food: { cuisine: 'american', type: 'cafe' } },
+    tags: ['coffee', 'chain', 'quick-service', 'wifi', 'mobile-order'],
     location: [-73.9857, 40.7589], // Times Square
-    style: "store",
+    style: 'store',
     polygon: [
       [-73.9858, 40.759],
       [-73.9856, 40.759],
@@ -71,8 +71,8 @@ export const mockMerchants: Merchant[] = [
       [-73.9858, 40.7588],
       [-73.9858, 40.759],
     ],
-    website: "https://starbucks.com",
-    phone: "+1-212-555-0456",
+    website: 'https://starbucks.com',
+    phone: '+1-212-555-0456',
     email: null,
     opening_hours: [
       [18000000, 86400000], // Monday: 5:00-24:00
@@ -84,31 +84,31 @@ export const mockMerchants: Merchant[] = [
       [21600000, 82800000], // Sunday: 6:00-23:00
     ],
     images: [
-      "https://example.com/images/starbucks-exterior.jpg",
-      "https://example.com/images/starbucks-menu.jpg",
+      'https://example.com/images/starbucks-exterior.jpg',
+      'https://example.com/images/starbucks-menu.jpg',
     ],
     social_media: [
       {
-        platform: "instagram",
-        handle: "@starbucks",
-        url: "https://instagram.com/starbucks",
+        platform: 'instagram',
+        handle: '@starbucks',
+        url: 'https://instagram.com/starbucks',
       },
       {
-        platform: "twitter",
-        handle: "@Starbucks",
-        url: "https://twitter.com/Starbucks",
+        platform: 'twitter',
+        handle: '@Starbucks',
+        url: 'https://twitter.com/Starbucks',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439013" },
-    name: "TechGear Electronics",
+    _id: { $oid: '507f1f77bcf86cd799439013' },
+    name: 'TechGear Electronics',
     description:
-      "Your one-stop shop for the latest smartphones, laptops, and tech accessories",
+      'Your one-stop shop for the latest smartphones, laptops, and tech accessories',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439003" },
-    beacon_code: "TG-ELEC-001",
-    area: { $oid: "507f1f77bcf86cd799439102" },
+    entity: { $oid: '507f1f77bcf86cd799439003' },
+    beacon_code: 'TG-ELEC-001',
+    area: { $oid: '507f1f77bcf86cd799439102' },
     type: {
       electronics: {
         is_mobile: true,
@@ -116,9 +116,9 @@ export const mockMerchants: Merchant[] = [
         is_accessories: true,
       },
     },
-    tags: ["electronics", "smartphones", "laptops", "accessories", "repairs"],
+    tags: ['electronics', 'smartphones', 'laptops', 'accessories', 'repairs'],
     location: [-118.2437, 34.0522], // LA coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-118.244, 34.0525],
       [-118.2434, 34.0525],
@@ -126,9 +126,9 @@ export const mockMerchants: Merchant[] = [
       [-118.244, 34.0519],
       [-118.244, 34.0525],
     ],
-    website: "https://techgearelectronics.com",
-    phone: "+1-323-555-0789",
-    email: "info@techgearelectronics.com",
+    website: 'https://techgearelectronics.com',
+    phone: '+1-323-555-0789',
+    email: 'info@techgearelectronics.com',
     opening_hours: [
       [36000000, 75600000], // Monday: 10:00-21:00
       [36000000, 75600000], // Tuesday: 10:00-21:00
@@ -139,50 +139,50 @@ export const mockMerchants: Merchant[] = [
       [39600000, 72000000], // Sunday: 11:00-20:00
     ],
     images: [
-      "https://example.com/images/techgear-storefront.jpg",
-      "https://example.com/images/techgear-interior.jpg",
-      "https://example.com/images/techgear-products.jpg",
+      'https://example.com/images/techgear-storefront.jpg',
+      'https://example.com/images/techgear-interior.jpg',
+      'https://example.com/images/techgear-products.jpg',
     ],
     social_media: [
       {
-        platform: "youtube",
-        handle: "@TechGearElectronics",
-        url: "https://youtube.com/@TechGearElectronics",
+        platform: 'youtube',
+        handle: '@TechGearElectronics',
+        url: 'https://youtube.com/@TechGearElectronics',
       },
       {
-        platform: "tiktok",
-        handle: "@techgearla",
-        url: "https://tiktok.com/@techgearla",
+        platform: 'tiktok',
+        handle: '@techgearla',
+        url: 'https://tiktok.com/@techgearla',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439014" },
-    name: "Golden Dragon Restaurant",
+    _id: { $oid: '507f1f77bcf86cd799439014' },
+    name: 'Golden Dragon Restaurant',
     description:
-      "Authentic Cantonese cuisine with traditional dim sum and modern Chinese dishes",
+      'Authentic Cantonese cuisine with traditional dim sum and modern Chinese dishes',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439004" },
-    beacon_code: "GD-REST-001",
-    area: { $oid: "507f1f77bcf86cd799439103" },
+    entity: { $oid: '507f1f77bcf86cd799439004' },
+    beacon_code: 'GD-REST-001',
+    area: { $oid: '507f1f77bcf86cd799439103' },
     type: {
       food: {
         cuisine: {
           chinese: {
-            cuisine: "cantonese",
-            specific: "Dim Sum",
+            cuisine: 'cantonese',
+            specific: 'Dim Sum',
           },
         },
         type: {
           restaurant: {
-            chinese: { cuisine: "cantonese", specific: "Dim Sum" },
+            chinese: { cuisine: 'cantonese', specific: 'Dim Sum' },
           },
         },
       },
     },
-    tags: ["chinese", "dim-sum", "authentic", "family-dining", "takeout"],
+    tags: ['chinese', 'dim-sum', 'authentic', 'family-dining', 'takeout'],
     location: [-122.4194, 37.7749], // San Francisco Chinatown
-    style: "store",
+    style: 'store',
     polygon: [
       [-122.4197, 37.7752],
       [-122.4191, 37.7752],
@@ -190,9 +190,9 @@ export const mockMerchants: Merchant[] = [
       [-122.4197, 37.7746],
       [-122.4197, 37.7752],
     ],
-    website: "https://goldendragonrestaurant.com",
-    phone: "+1-415-555-0234",
-    email: "reservations@goldendragonrestaurant.com",
+    website: 'https://goldendragonrestaurant.com',
+    phone: '+1-415-555-0234',
+    email: 'reservations@goldendragonrestaurant.com',
     opening_hours: [
       [39600000, 79200000], // Monday: 11:00-22:00
       [39600000, 79200000], // Tuesday: 11:00-22:00
@@ -203,36 +203,36 @@ export const mockMerchants: Merchant[] = [
       [36000000, 79200000], // Sunday: 10:00-22:00
     ],
     images: [
-      "https://example.com/images/golden-dragon-exterior.jpg",
-      "https://example.com/images/golden-dragon-dimsum.jpg",
-      "https://example.com/images/golden-dragon-dining.jpg",
+      'https://example.com/images/golden-dragon-exterior.jpg',
+      'https://example.com/images/golden-dragon-dimsum.jpg',
+      'https://example.com/images/golden-dragon-dining.jpg',
     ],
     social_media: [
       {
-        platform: "wechat",
-        handle: "GoldenDragonSF",
-        url: "https://weixin.qq.com/goldendragon",
+        platform: 'wechat',
+        handle: 'GoldenDragonSF',
+        url: 'https://weixin.qq.com/goldendragon',
       },
       {
-        platform: "yelp",
-        handle: "Golden Dragon Restaurant",
-        url: "https://yelp.com/biz/golden-dragon-restaurant-san-francisco",
+        platform: 'yelp',
+        handle: 'Golden Dragon Restaurant',
+        url: 'https://yelp.com/biz/golden-dragon-restaurant-san-francisco',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439015" },
-    name: "Zen Wellness Spa",
+    _id: { $oid: '507f1f77bcf86cd799439015' },
+    name: 'Zen Wellness Spa',
     description:
-      "Luxury spa offering massages, facials, and holistic wellness treatments",
+      'Luxury spa offering massages, facials, and holistic wellness treatments',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439005" },
-    beacon_code: "ZW-SPA-001",
-    area: { $oid: "507f1f77bcf86cd799439104" },
-    type: "service",
-    tags: ["spa", "wellness", "massage", "facial", "relaxation", "luxury"],
+    entity: { $oid: '507f1f77bcf86cd799439005' },
+    beacon_code: 'ZW-SPA-001',
+    area: { $oid: '507f1f77bcf86cd799439104' },
+    type: 'service',
+    tags: ['spa', 'wellness', 'massage', 'facial', 'relaxation', 'luxury'],
     location: [-87.6298, 41.8781], // Chicago coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-87.6301, 41.8784],
       [-87.6295, 41.8784],
@@ -240,9 +240,9 @@ export const mockMerchants: Merchant[] = [
       [-87.6301, 41.8778],
       [-87.6301, 41.8784],
     ],
-    website: "https://zenwellnessspa.com",
-    phone: "+1-312-555-0567",
-    email: "bookings@zenwellnessspa.com",
+    website: 'https://zenwellnessspa.com',
+    phone: '+1-312-555-0567',
+    email: 'bookings@zenwellnessspa.com',
     opening_hours: [
       [32400000, 75600000], // Monday: 9:00-21:00
       [32400000, 75600000], // Tuesday: 9:00-21:00
@@ -253,43 +253,43 @@ export const mockMerchants: Merchant[] = [
       [36000000, 72000000], // Sunday: 10:00-20:00
     ],
     images: [
-      "https://example.com/images/zen-spa-entrance.jpg",
-      "https://example.com/images/zen-spa-treatment-room.jpg",
-      "https://example.com/images/zen-spa-relaxation.jpg",
+      'https://example.com/images/zen-spa-entrance.jpg',
+      'https://example.com/images/zen-spa-treatment-room.jpg',
+      'https://example.com/images/zen-spa-relaxation.jpg',
     ],
     social_media: [
       {
-        platform: "instagram",
-        handle: "@zenwellnessspa",
-        url: "https://instagram.com/zenwellnessspa",
+        platform: 'instagram',
+        handle: '@zenwellnessspa',
+        url: 'https://instagram.com/zenwellnessspa',
       },
       {
-        platform: "facebook",
-        handle: "ZenWellnessSpaChicago",
-        url: "https://facebook.com/ZenWellnessSpaChicago",
+        platform: 'facebook',
+        handle: 'ZenWellnessSpaChicago',
+        url: 'https://facebook.com/ZenWellnessSpaChicago',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439016" },
-    name: "GameZone Arcade",
+    _id: { $oid: '507f1f77bcf86cd799439016' },
+    name: 'GameZone Arcade',
     description:
-      "Classic and modern arcade games, pinball machines, and competitive gaming",
+      'Classic and modern arcade games, pinball machines, and competitive gaming',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439006" },
-    beacon_code: "GZ-ARC-001",
-    area: { $oid: "507f1f77bcf86cd799439105" },
-    type: "entertainment",
+    entity: { $oid: '507f1f77bcf86cd799439006' },
+    beacon_code: 'GZ-ARC-001',
+    area: { $oid: '507f1f77bcf86cd799439105' },
+    type: 'entertainment',
     tags: [
-      "arcade",
-      "gaming",
-      "pinball",
-      "entertainment",
-      "family-fun",
-      "tournaments",
+      'arcade',
+      'gaming',
+      'pinball',
+      'entertainment',
+      'family-fun',
+      'tournaments',
     ],
     location: [-71.0589, 42.3601], // Boston coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-71.0592, 42.3604],
       [-71.0586, 42.3604],
@@ -297,9 +297,9 @@ export const mockMerchants: Merchant[] = [
       [-71.0592, 42.3598],
       [-71.0592, 42.3604],
     ],
-    website: "https://gamezone-arcade.com",
-    phone: "+1-617-555-0890",
-    email: "events@gamezone-arcade.com",
+    website: 'https://gamezone-arcade.com',
+    phone: '+1-617-555-0890',
+    email: 'events@gamezone-arcade.com',
     opening_hours: [
       [50400000, 82800000], // Monday: 14:00-23:00
       [50400000, 82800000], // Tuesday: 14:00-23:00
@@ -310,31 +310,31 @@ export const mockMerchants: Merchant[] = [
       [43200000, 82800000], // Sunday: 12:00-23:00
     ],
     images: [
-      "https://example.com/images/gamezone-exterior.jpg",
-      "https://example.com/images/gamezone-arcade.jpg",
-      "https://example.com/images/gamezone-pinball.jpg",
+      'https://example.com/images/gamezone-exterior.jpg',
+      'https://example.com/images/gamezone-arcade.jpg',
+      'https://example.com/images/gamezone-pinball.jpg',
     ],
     social_media: [
       {
-        platform: "discord",
-        handle: "GameZoneArcade",
-        url: "https://discord.gg/gamezonearc",
+        platform: 'discord',
+        handle: 'GameZoneArcade',
+        url: 'https://discord.gg/gamezonearc',
       },
       {
-        platform: "twitch",
-        handle: "GameZoneArcadeBoston",
-        url: "https://twitch.tv/gamezonearc",
+        platform: 'twitch',
+        handle: 'GameZoneArcadeBoston',
+        url: 'https://twitch.tv/gamezonearc',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439017" },
-    name: "Fashion Forward Boutique",
-    description: "Trendy clothing and accessories for the modern fashionista",
+    _id: { $oid: '507f1f77bcf86cd799439017' },
+    name: 'Fashion Forward Boutique',
+    description: 'Trendy clothing and accessories for the modern fashionista',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439007" },
-    beacon_code: "FF-BOUT-001",
-    area: { $oid: "507f1f77bcf86cd799439106" },
+    entity: { $oid: '507f1f77bcf86cd799439007' },
+    beacon_code: 'FF-BOUT-001',
+    area: { $oid: '507f1f77bcf86cd799439106' },
     type: {
       clothing: {
         is_menswear: false,
@@ -342,9 +342,9 @@ export const mockMerchants: Merchant[] = [
         is_childrenswear: false,
       },
     },
-    tags: ["fashion", "women", "trendy", "accessories", "boutique"],
+    tags: ['fashion', 'women', 'trendy', 'accessories', 'boutique'],
     location: [-77.0369, 38.9072], // Washington DC coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-77.0372, 38.9075],
       [-77.0366, 38.9075],
@@ -352,9 +352,9 @@ export const mockMerchants: Merchant[] = [
       [-77.0372, 38.9069],
       [-77.0372, 38.9075],
     ],
-    website: "https://fashionforwardboutique.com",
-    phone: "+1-202-555-0345",
-    email: "info@fashionforwardboutique.com",
+    website: 'https://fashionforwardboutique.com',
+    phone: '+1-202-555-0345',
+    email: 'info@fashionforwardboutique.com',
     opening_hours: [
       [36000000, 75600000], // Monday: 10:00-21:00
       [36000000, 75600000], // Tuesday: 10:00-21:00
@@ -365,36 +365,36 @@ export const mockMerchants: Merchant[] = [
       [43200000, 72000000], // Sunday: 12:00-20:00
     ],
     images: [
-      "https://example.com/images/fashion-forward-exterior.jpg",
-      "https://example.com/images/fashion-forward-interior.jpg",
-      "https://example.com/images/fashion-forward-clothes.jpg",
+      'https://example.com/images/fashion-forward-exterior.jpg',
+      'https://example.com/images/fashion-forward-interior.jpg',
+      'https://example.com/images/fashion-forward-clothes.jpg',
     ],
     social_media: [
       {
-        platform: "instagram",
-        handle: "@fashionforwarddc",
-        url: "https://instagram.com/fashionforwarddc",
+        platform: 'instagram',
+        handle: '@fashionforwarddc',
+        url: 'https://instagram.com/fashionforwarddc',
       },
       {
-        platform: "pinterest",
-        handle: "FashionForwardBoutique",
-        url: "https://pinterest.com/fashionforwarddc",
+        platform: 'pinterest',
+        handle: 'FashionForwardBoutique',
+        url: 'https://pinterest.com/fashionforwarddc',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439018" },
-    name: "Fresh Market",
+    _id: { $oid: '507f1f77bcf86cd799439018' },
+    name: 'Fresh Market',
     description:
-      "Local supermarket with fresh produce, organic options, and everyday essentials",
+      'Local supermarket with fresh produce, organic options, and everyday essentials',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439008" },
-    beacon_code: "FM-SUPER-001",
-    area: { $oid: "507f1f77bcf86cd799439107" },
-    type: "supermarket",
-    tags: ["grocery", "fresh-produce", "organic", "essentials", "local"],
+    entity: { $oid: '507f1f77bcf86cd799439008' },
+    beacon_code: 'FM-SUPER-001',
+    area: { $oid: '507f1f77bcf86cd799439107' },
+    type: 'supermarket',
+    tags: ['grocery', 'fresh-produce', 'organic', 'essentials', 'local'],
     location: [-122.3321, 47.6062], // Seattle coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-122.3325, 47.6065],
       [-122.3317, 47.6065],
@@ -402,9 +402,9 @@ export const mockMerchants: Merchant[] = [
       [-122.3325, 47.6059],
       [-122.3325, 47.6065],
     ],
-    website: "https://freshmarket-seattle.com",
-    phone: "+1-206-555-0678",
-    email: "customerservice@freshmarket-seattle.com",
+    website: 'https://freshmarket-seattle.com',
+    phone: '+1-206-555-0678',
+    email: 'customerservice@freshmarket-seattle.com',
     opening_hours: [
       [21600000, 79200000], // Monday: 6:00-22:00
       [21600000, 79200000], // Tuesday: 6:00-22:00
@@ -415,41 +415,41 @@ export const mockMerchants: Merchant[] = [
       [25200000, 75600000], // Sunday: 7:00-21:00
     ],
     images: [
-      "https://example.com/images/fresh-market-exterior.jpg",
-      "https://example.com/images/fresh-market-produce.jpg",
-      "https://example.com/images/fresh-market-aisles.jpg",
+      'https://example.com/images/fresh-market-exterior.jpg',
+      'https://example.com/images/fresh-market-produce.jpg',
+      'https://example.com/images/fresh-market-aisles.jpg',
     ],
     social_media: [
       {
-        platform: "facebook",
-        handle: "FreshMarketSeattle",
-        url: "https://facebook.com/freshmarketseattle",
+        platform: 'facebook',
+        handle: 'FreshMarketSeattle',
+        url: 'https://facebook.com/freshmarketseattle',
       },
       {
-        platform: "instagram",
-        handle: "@freshmarketseattle",
-        url: "https://instagram.com/freshmarketseattle",
+        platform: 'instagram',
+        handle: '@freshmarketseattle',
+        url: 'https://instagram.com/freshmarketseattle',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439019" },
-    name: "Sakura Sushi Bar",
+    _id: { $oid: '507f1f77bcf86cd799439019' },
+    name: 'Sakura Sushi Bar',
     description:
-      "Traditional Japanese sushi and sashimi prepared by master chefs",
+      'Traditional Japanese sushi and sashimi prepared by master chefs',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439009" },
-    beacon_code: "SS-SUSHI-001",
-    area: { $oid: "507f1f77bcf86cd799439108" },
+    entity: { $oid: '507f1f77bcf86cd799439009' },
+    beacon_code: 'SS-SUSHI-001',
+    area: { $oid: '507f1f77bcf86cd799439108' },
     type: {
       food: {
-        cuisine: "japanese",
-        type: { restaurant: "japanese" },
+        cuisine: 'japanese',
+        type: { restaurant: 'japanese' },
       },
     },
-    tags: ["japanese", "sushi", "sashimi", "traditional", "omakase"],
+    tags: ['japanese', 'sushi', 'sashimi', 'traditional', 'omakase'],
     location: [-104.9903, 39.7392], // Denver coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-104.9906, 39.7395],
       [-104.99, 39.7395],
@@ -457,9 +457,9 @@ export const mockMerchants: Merchant[] = [
       [-104.9906, 39.7389],
       [-104.9906, 39.7395],
     ],
-    website: "https://sakurasushibar.com",
-    phone: "+1-303-555-0901",
-    email: "reservations@sakurasushibar.com",
+    website: 'https://sakurasushibar.com',
+    phone: '+1-303-555-0901',
+    email: 'reservations@sakurasushibar.com',
     opening_hours: [
       [], // Monday: Closed
       [64800000, 79200000], // Tuesday: 18:00-22:00
@@ -470,42 +470,42 @@ export const mockMerchants: Merchant[] = [
       [64800000, 79200000], // Sunday: 18:00-22:00
     ],
     images: [
-      "https://example.com/images/sakura-exterior.jpg",
-      "https://example.com/images/sakura-sushi-bar.jpg",
-      "https://example.com/images/sakura-sashimi.jpg",
+      'https://example.com/images/sakura-exterior.jpg',
+      'https://example.com/images/sakura-sushi-bar.jpg',
+      'https://example.com/images/sakura-sashimi.jpg',
     ],
     social_media: [
       {
-        platform: "instagram",
-        handle: "@sakurasushibardenver",
-        url: "https://instagram.com/sakurasushibardenver",
+        platform: 'instagram',
+        handle: '@sakurasushibardenver',
+        url: 'https://instagram.com/sakurasushibardenver',
       },
       {
-        platform: "yelp",
-        handle: "Sakura Sushi Bar",
-        url: "https://yelp.com/biz/sakura-sushi-bar-denver",
+        platform: 'yelp',
+        handle: 'Sakura Sushi Bar',
+        url: 'https://yelp.com/biz/sakura-sushi-bar-denver',
       },
     ],
   },
   {
-    _id: { $oid: "507f1f77bcf86cd799439020" },
-    name: "HealthFirst Clinic",
+    _id: { $oid: '507f1f77bcf86cd799439020' },
+    name: 'HealthFirst Clinic',
     description:
-      "Comprehensive healthcare services including general practice and specialty care",
+      'Comprehensive healthcare services including general practice and specialty care',
     chain: null,
-    entity: { $oid: "507f1f77bcf86cd799439010" },
-    beacon_code: "HF-CLINIC-001",
-    area: { $oid: "507f1f77bcf86cd799439109" },
-    type: "health",
+    entity: { $oid: '507f1f77bcf86cd799439010' },
+    beacon_code: 'HF-CLINIC-001',
+    area: { $oid: '507f1f77bcf86cd799439109' },
+    type: 'health',
     tags: [
-      "healthcare",
-      "clinic",
-      "general-practice",
-      "specialists",
-      "insurance-accepted",
+      'healthcare',
+      'clinic',
+      'general-practice',
+      'specialists',
+      'insurance-accepted',
     ],
     location: [-80.1918, 25.7617], // Miami coordinates
-    style: "store",
+    style: 'store',
     polygon: [
       [-80.1921, 25.762],
       [-80.1915, 25.762],
@@ -513,9 +513,9 @@ export const mockMerchants: Merchant[] = [
       [-80.1921, 25.7614],
       [-80.1921, 25.762],
     ],
-    website: "https://healthfirstclinic.com",
-    phone: "+1-305-555-0234",
-    email: "appointments@healthfirstclinic.com",
+    website: 'https://healthfirstclinic.com',
+    phone: '+1-305-555-0234',
+    email: 'appointments@healthfirstclinic.com',
     opening_hours: [
       [28800000, 61200000], // Monday: 8:00-17:00
       [28800000, 61200000], // Tuesday: 8:00-17:00
@@ -526,24 +526,24 @@ export const mockMerchants: Merchant[] = [
       [], // Sunday: Closed
     ],
     images: [
-      "https://example.com/images/healthfirst-exterior.jpg",
-      "https://example.com/images/healthfirst-lobby.jpg",
-      "https://example.com/images/healthfirst-exam-room.jpg",
+      'https://example.com/images/healthfirst-exterior.jpg',
+      'https://example.com/images/healthfirst-lobby.jpg',
+      'https://example.com/images/healthfirst-exam-room.jpg',
     ],
     social_media: [
       {
-        platform: "facebook",
-        handle: "HealthFirstClinicMiami",
-        url: "https://facebook.com/healthfirstmiami",
+        platform: 'facebook',
+        handle: 'HealthFirstClinicMiami',
+        url: 'https://facebook.com/healthfirstmiami',
       },
       {
-        platform: "linkedin",
-        handle: "HealthFirst Clinic",
-        url: "https://linkedin.com/company/healthfirst-clinic",
+        platform: 'linkedin',
+        handle: 'HealthFirst Clinic',
+        url: 'https://linkedin.com/company/healthfirst-clinic',
       },
     ],
   },
-];
+]
 
 export const polygonMock = [
   {
@@ -564,25 +564,25 @@ export const polygonMock = [
       [5.0, 0.0],
       [5.0, 0.0],
     ],
-    fillColor: "#e8f4fd",
-    strokeColor: "#2196f3",
+    fillColor: '#e8f4fd',
+    strokeColor: '#2196f3',
     strokeWidth: 1,
   },
-];
+]
 
 export const mockAreas = [
   {
     _id: {
-      $oid: "68a83067bdfa76608b934ae9",
+      $oid: '68a83067bdfa76608b934ae9',
     },
     entity: {
-      $oid: "68a8301fbdfa76608b934ae1",
+      $oid: '68a8301fbdfa76608b934ae1',
     },
-    name: "Library & Multimedia Building F2 Main Corridor",
+    name: 'Library & Multimedia Building F2 Main Corridor',
     description: null,
-    beacon_code: "02",
+    beacon_code: '02',
     floor: {
-      type: "floor",
+      type: 'floor',
       name: 2,
     },
     polygon: [
@@ -605,16 +605,16 @@ export const mockAreas = [
   } as Area,
   {
     _id: {
-      $oid: "68a83067bdfa76608b934aea",
+      $oid: '68a83067bdfa76608b934aea',
     },
     entity: {
-      $oid: "68a8301fbdfa76608b934ae1",
+      $oid: '68a8301fbdfa76608b934ae1',
     },
-    name: "Library & Multimedia Building F3 Main Corridor",
+    name: 'Library & Multimedia Building F3 Main Corridor',
     description: null,
-    beacon_code: "03",
+    beacon_code: '03',
     floor: {
-      type: "floor",
+      type: 'floor',
       name: 3,
     },
     polygon: [
@@ -632,16 +632,16 @@ export const mockAreas = [
   } as Area,
   {
     _id: {
-      $oid: "68a83067bdfa76608b934aeb",
+      $oid: '68a83067bdfa76608b934aeb',
     },
     entity: {
-      $oid: "68a8301fbdfa76608b934ae1",
+      $oid: '68a8301fbdfa76608b934ae1',
     },
-    name: "Library & Multimedia Building F4 Main Corridor",
+    name: 'Library & Multimedia Building F4 Main Corridor',
     description: null,
-    beacon_code: "04",
+    beacon_code: '04',
     floor: {
-      type: "floor",
+      type: 'floor',
       name: 4,
     },
     polygon: [
@@ -657,4 +657,4 @@ export const mockAreas = [
       [5, 60],
     ],
   } as Area,
-];
+]

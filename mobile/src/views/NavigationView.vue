@@ -1,118 +1,118 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import MapDisplay from "@/components/map/MapDisplay.vue";
-import NavigationPanel from "@/components/map/NavigationPanel.vue";
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import MapDisplay from '@/components/map/MapDisplay.vue'
+import NavigationPanel from '@/components/map/NavigationPanel.vue'
 import {
   getAllMerchants,
   getMapData,
   locateDevice,
   type RouteResponse,
-} from "@/lib/api/tauri";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@iconify/vue";
-import { Separator } from "@/components/ui/separator";
-import { info, error as logError } from "@tauri-apps/plugin-log";
+} from '@/lib/api/tauri'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Icon } from '@iconify/vue'
+import { Separator } from '@/components/ui/separator'
+import { info, error as logError } from '@tauri-apps/plugin-log'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 
 // Entity and area from route params or defaults
-const entityId = ref((route.query.entity as string) || "default-entity");
-const areaId = ref((route.query.area as string) || "default-area");
+const entityId = ref((route.query.entity as string) || 'default-entity')
+const areaId = ref((route.query.area as string) || 'default-area')
 
 // Navigation state
-const currentRoute = ref<RouteResponse | null>(null);
-const currentStep = ref<number>(0);
-const targetMerchantId = ref<string | null>(null);
-const userLocation = ref<{ x: number; y: number } | null>(null);
-const currentLocationId = ref<string | undefined>(undefined);
+const currentRoute = ref<RouteResponse | null>(null)
+const currentStep = ref<number>(0)
+const targetMerchantId = ref<string | null>(null)
+const userLocation = ref<{ x: number; y: number } | null>(null)
+const currentLocationId = ref<string | undefined>(undefined)
 
 // Map data for navigation panel
-const mapData = ref<any>(null);
-const isLocating = ref(false);
-const locationError = ref("");
-const merchantsData = ref<Array<any>>([]);
+const mapData = ref<any>(null)
+const isLocating = ref(false)
+const locationError = ref('')
+const merchantsData = ref<Array<any>>([])
 
 // Layout state
-const showNavigationPanel = ref(true);
+const showNavigationPanel = ref(true)
 
 async function loadMapData() {
   try {
-    const result = await getMapData(entityId.value, areaId.value);
-    if (result.status === "success" && result.data) {
-      mapData.value = result.data;
+    const result = await getMapData(entityId.value, areaId.value)
+    if (result.status === 'success' && result.data) {
+      mapData.value = result.data
     }
-    const merchants = await getAllMerchants(entityId.value);
-    if (merchants.status === "success" && merchants.data) {
+    const merchants = await getAllMerchants(entityId.value)
+    if (merchants.status === 'success' && merchants.data) {
       merchantsData.value = merchants.data.map((x) => ({
         ...x,
         id: x._id.$oid,
-      }));
+      }))
     }
   } catch (err) {
-    await logError("Failed to load map data: " + JSON.stringify(err));
+    await logError('Failed to load map data: ' + JSON.stringify(err))
   }
 }
 
 async function locateUserPosition() {
-  isLocating.value = true;
-  locationError.value = "";
+  isLocating.value = true
+  locationError.value = ''
 
   try {
-    await info(`Locating device in area ${areaId.value}...`);
-    const result = await locateDevice(areaId.value, entityId.value);
-    if (result.status === "success" && result.x && result.y) {
-      userLocation.value = { x: result.x, y: result.y };
+    await info(`Locating device in area ${areaId.value}...`)
+    const result = await locateDevice(areaId.value, entityId.value)
+    if (result.status === 'success' && result.x && result.y) {
+      userLocation.value = { x: result.x, y: result.y }
       if (result.area && result.area !== areaId.value) {
-        areaId.value = result.area;
-        await loadMapData();
+        areaId.value = result.area
+        await loadMapData()
       }
-      currentLocationId.value = result.area;
+      currentLocationId.value = result.area
     } else {
-      locationError.value = result.message || "Failed to locate position";
+      locationError.value = result.message || 'Failed to locate position'
     }
   } catch (err) {
-    locationError.value = `Error: ${err}`;
+    locationError.value = `Error: ${err}`
   } finally {
-    isLocating.value = false;
+    isLocating.value = false
   }
 }
 
 function handleRouteCalculated(route: RouteResponse) {
-  currentRoute.value = route;
-  currentStep.value = 0;
+  currentRoute.value = route
+  currentStep.value = 0
 }
 
 function handleNavigationStarted(targetId: string) {
-  targetMerchantId.value = targetId;
-  currentStep.value = 0;
+  targetMerchantId.value = targetId
+  currentStep.value = 0
 }
 
 function handleNavigationEnded() {
-  currentRoute.value = null;
-  targetMerchantId.value = null;
-  currentStep.value = 0;
+  currentRoute.value = null
+  targetMerchantId.value = null
+  currentStep.value = 0
 }
 
 function toggleNavigationPanel() {
-  showNavigationPanel.value = !showNavigationPanel.value;
+  showNavigationPanel.value = !showNavigationPanel.value
 }
 
 function formatDistance(meters: number): string {
   if (meters < 1) {
-    return `${Math.round(meters * 100)} cm`;
+    return `${Math.round(meters * 100)} cm`
   } else if (meters < 1000) {
-    return `${Math.round(meters)} m`;
+    return `${Math.round(meters)} m`
   } else {
-    return `${(meters / 1000).toFixed(2)} km`;
+    return `${(meters / 1000).toFixed(2)} km`
   }
 }
 
 onMounted(() => {
-  loadMapData();
-});
+  loadMapData()
+})
 </script>
 
 <template>
@@ -140,7 +140,7 @@ onMounted(() => {
               :icon="isLocating ? 'mdi:loading' : 'mdi:crosshairs-gps'"
               :class="['w-4 h-4 mr-2', { 'animate-spin': isLocating }]"
             />
-            {{ isLocating ? "Locating..." : "Locate Me" }}
+            {{ isLocating ? 'Locating...' : 'Locate Me' }}
           </Button>
           <Button
             variant="outline"

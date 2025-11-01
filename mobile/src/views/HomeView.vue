@@ -1,105 +1,103 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import { useSessionStore } from "@/states/session";
-import { useRouter } from "vue-router";
-import { locateDevice } from "@/lib/api/tauri";
-import MapDisplay from "@/components/map/MapDisplay.vue";
+import { computed, onMounted, ref, watch } from 'vue'
+import { useSessionStore } from '@/states/session'
+import { useRouter } from 'vue-router'
+import { locateDevice } from '@/lib/api/tauri'
+import MapDisplay from '@/components/map/MapDisplay.vue'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Icon } from "@iconify/vue";
-import { Badge } from "@/components/ui/badge";
-import { fetch } from "@tauri-apps/plugin-http";
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@iconify/vue'
+import { Badge } from '@/components/ui/badge'
+import { fetch } from '@tauri-apps/plugin-http'
 import {
   checkPermissions,
   getCurrentPosition,
   requestPermissions,
-} from "@tauri-apps/plugin-geolocation";
-import { baseUrl } from "@/lib/shared";
-import type { Area, Entity } from "@/schema";
-import { error as logError, info } from "@tauri-apps/plugin-log";
+} from '@tauri-apps/plugin-geolocation'
+import { baseUrl } from '@/lib/shared'
+import type { Area, Entity } from '@/schema'
+import { error as logError, info } from '@tauri-apps/plugin-log'
 
-const session = useSessionStore();
-const router = useRouter();
+const session = useSessionStore()
+const router = useRouter()
 
-const locating = ref(false);
-const locationError = ref("");
-const currentPosition = ref<{ area: string; x: number; y: number } | null>(
-  null,
-);
+const locating = ref(false)
+const locationError = ref('')
+const currentPosition = ref<{ area: string; x: number; y: number } | null>(null)
 
 // Entity finding state
-const geolocation = ref<[number, number]>([0, 0]);
-const entityString = ref("");
-const entities = ref<Entity[]>([]);
-const findingEntity = ref(false);
-const geolocationError = ref("");
+const geolocation = ref<[number, number]>([0, 0])
+const entityString = ref('')
+const entities = ref<Entity[]>([])
+const findingEntity = ref(false)
+const geolocationError = ref('')
 
 // Area finding state (using backend locate API)
-const findingArea = ref(false);
-const areaFindingError = ref("");
+const findingArea = ref(false)
+const areaFindingError = ref('')
 
-const entityId = computed(() => session.entity?._id?.$oid || "");
-const areaId = computed(() => session.area?._id?.$oid || "");
+const entityId = computed(() => session.entity?._id?.$oid || '')
+const areaId = computed(() => session.area?._id?.$oid || '')
 
 onMounted(() => {
   // Check if user is authenticated
   if (!session.isAuthenticated) {
-    router.push("/login");
+    router.push('/login')
   }
-  info("HomeView mounted, session:" + JSON.stringify(session.$state));
-});
+  info('HomeView mounted, session:' + JSON.stringify(session.$state))
+})
 
 // Get geolocation
 async function getGeolocation() {
-  geolocationError.value = "";
+  geolocationError.value = ''
 
   try {
-    await info("Checking permissions...");
-    const permission = await checkPermissions();
-    await info("Current permissions: " + JSON.stringify(permission));
+    await info('Checking permissions...')
+    const permission = await checkPermissions()
+    await info('Current permissions: ' + JSON.stringify(permission))
 
-    if (permission.location !== "granted") {
-      await info("Requesting permissions...");
-      const request = await requestPermissions(["location", "coarseLocation"]);
-      await info("Permission request result: " + JSON.stringify(request));
+    if (permission.location !== 'granted') {
+      await info('Requesting permissions...')
+      const request = await requestPermissions(['location', 'coarseLocation'])
+      await info('Permission request result: ' + JSON.stringify(request))
 
-      if (request.location !== "granted") {
-        geolocationError.value = "Location permission is required to proceed.";
-        return;
+      if (request.location !== 'granted') {
+        geolocationError.value = 'Location permission is required to proceed.'
+        return
       }
     }
 
-    await info("Requesting geolocation...");
-    const position = await getCurrentPosition();
-    await info("Position obtained: " + JSON.stringify(position));
-    geolocation.value = [position.coords.latitude, position.coords.longitude];
-    geolocationError.value = "";
+    await info('Requesting geolocation...')
+    const position = await getCurrentPosition()
+    await info('Position obtained: ' + JSON.stringify(position))
+    geolocation.value = [position.coords.latitude, position.coords.longitude]
+    geolocationError.value = ''
   } catch (error) {
-    await logError("Geolocation error: " + JSON.stringify(error));
+    await logError('Geolocation error: ' + JSON.stringify(error))
     geolocationError.value =
-      "Failed to obtain geolocation. Please ensure location services are enabled.";
+      'Failed to obtain geolocation. Please ensure location services are enabled.'
   }
 }
 
 // Find entities based on location and name
 async function findEntity() {
-  findingEntity.value = true;
-  geolocationError.value = "";
+  findingEntity.value = true
+  geolocationError.value = ''
 
   try {
     const query = new URLSearchParams({
-      country: "China",
-      region: "Zhejiang",
-      city: "Ningbo",
-      entity: entityString.value || "",
-    });
+      country: 'China',
+      region: 'Zhejiang',
+      city: 'Ningbo',
+      entity: entityString.value || '',
+    })
 
     // Add geolocation if available
     if (
@@ -107,79 +105,79 @@ async function findEntity() {
       geolocation.value[0] !== 0.0 &&
       geolocation.value[1] !== 0.0
     ) {
-      query.append("latitude", geolocation.value[0].toString());
-      query.append("longitude", geolocation.value[1].toString());
+      query.append('latitude', geolocation.value[0].toString())
+      query.append('longitude', geolocation.value[1].toString())
     }
 
     await info(
-      "Fetching entities: " + baseUrl + "/api/entities/?" + query.toString(),
-    );
+      'Fetching entities: ' + baseUrl + '/api/entities/?' + query.toString(),
+    )
 
     const response = await fetch(
-      baseUrl + "/api/entities/?" + query.toString(),
+      baseUrl + '/api/entities/?' + query.toString(),
       {
-        method: "GET",
+        method: 'GET',
       },
-    );
+    )
 
-    const data: Entity[] = await response.json();
-    await info("Entities found: " + JSON.stringify(data));
+    const data: Entity[] = await response.json()
+    await info('Entities found: ' + JSON.stringify(data))
 
-    entities.value = data;
+    entities.value = data
 
     if (data.length === 1) {
       // Auto-select if only one entity found
-      session.setEntity(data[0]);
-      geolocationError.value = `Found: ${data[0].name}`;
+      session.setEntity(data[0])
+      geolocationError.value = `Found: ${data[0].name}`
     } else if (data.length > 1) {
-      geolocationError.value = `Found ${data.length} entities. Please select one below.`;
+      geolocationError.value = `Found ${data.length} entities. Please select one below.`
     } else {
-      geolocationError.value = "No entities found matching your criteria.";
+      geolocationError.value = 'No entities found matching your criteria.'
     }
   } catch (error) {
-    await logError("Error finding entity: " + JSON.stringify(error));
-    geolocationError.value = `Error: ${error}`;
+    await logError('Error finding entity: ' + JSON.stringify(error))
+    geolocationError.value = `Error: ${error}`
   } finally {
-    findingEntity.value = false;
+    findingEntity.value = false
   }
 }
 
 // Select an entity
 function selectEntity(entity: Entity) {
-  session.setEntity(entity);
-  geolocationError.value = `Selected: ${entity.name}`;
-  entities.value = []; // Clear the list after selection
+  session.setEntity(entity)
+  geolocationError.value = `Selected: ${entity.name}`
+  entities.value = [] // Clear the list after selection
 }
 
 // Find area using backend BLE scanning and location API
 async function findAreaWithBackend() {
   if (!entityId.value) {
-    areaFindingError.value = "Please select an entity first";
-    return;
+    areaFindingError.value = 'Please select an entity first'
+    return
   }
 
-  findingArea.value = true;
-  areaFindingError.value = "";
+  findingArea.value = true
+  areaFindingError.value = ''
 
   try {
     // Call backend locate_device which handles BLE scanning internally
     // For initial area detection, we pass empty area string
-    await info("Calling backend locate API for entity: " + entityId.value);
+    await info('Calling backend locate API for entity: ' + entityId.value)
 
-    const result = await locateDevice("", entityId.value);
+    const result = await locateDevice('', entityId.value)
 
-    if (result.status === "success") {
+    if (result.status === 'success') {
       // Backend returns the detected area
-      areaFindingError.value = `Found area: ${result.area}`;
+      areaFindingError.value = `Found area: ${result.area}`
 
       // Fetch the full area details
       try {
         const areaResponse = await fetch(
           `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`,
-        );
+        )
 
-        const area: Area = await areaResponse.json();
-        session.setArea(area);
+        const area: Area = await areaResponse.json()
+        session.setArea(area)
 
         // Set initial position if provided
         if (result.x !== undefined && result.y !== undefined) {
@@ -187,98 +185,98 @@ async function findAreaWithBackend() {
             area: result.area,
             x: result.x,
             y: result.y,
-          };
-          session.setCurrentLocation({ x: result.x, y: result.y });
+          }
+          session.setCurrentLocation({ x: result.x, y: result.y })
         }
 
-        areaFindingError.value = `Successfully detected: ${area.name}`;
+        areaFindingError.value = `Successfully detected: ${area.name}`
       } catch (error) {
-        await logError("Error fetching area details: " + JSON.stringify(error));
-        areaFindingError.value = "Area detected but failed to load details";
+        await logError('Error fetching area details: ' + JSON.stringify(error))
+        areaFindingError.value = 'Area detected but failed to load details'
       }
     } else {
       areaFindingError.value =
-        result.message || "Failed to detect area. No beacons found nearby.";
+        result.message || 'Failed to detect area. No beacons found nearby.'
     }
   } catch (error) {
-    await logError("Area detection error: " + JSON.stringify(error));
-    areaFindingError.value = `Error: ${error}`;
+    await logError('Area detection error: ' + JSON.stringify(error))
+    areaFindingError.value = `Error: ${error}`
   } finally {
-    findingArea.value = false;
+    findingArea.value = false
   }
 }
 
 async function handleLocateMe() {
   if (!entityId.value || !areaId.value) {
-    locationError.value = "Please select an entity and area first";
-    return;
+    locationError.value = 'Please select an entity and area first'
+    return
   }
 
-  locating.value = true;
-  locationError.value = "";
+  locating.value = true
+  locationError.value = ''
 
   try {
-    const result = await locateDevice(areaId.value, entityId.value);
-    if (result.status === "success") {
+    const result = await locateDevice(areaId.value, entityId.value)
+    if (result.status === 'success') {
       currentPosition.value = {
         area: result.area || areaId.value,
         x: result.x || 0,
         y: result.y || 0,
-      };
-      session.setCurrentLocation({ x: result.x || 0, y: result.y || 0 });
-      locationError.value = `Located at (${result.x?.toFixed(2)}, ${result.y?.toFixed(2)})`;
+      }
+      session.setCurrentLocation({ x: result.x || 0, y: result.y || 0 })
+      locationError.value = `Located at (${result.x?.toFixed(2)}, ${result.y?.toFixed(2)})`
       if (result.area && result.area !== areaId.value) {
         // Area has changed
         try {
           const areaResponse = await fetch(
             `${baseUrl}/api/entities/${entityId.value}/areas/${result.area}`,
-          );
-          const area: Area = await areaResponse.json();
-          session.setArea(area);
-          locationError.value += `, Area changed to ${area.name}`;
+          )
+          const area: Area = await areaResponse.json()
+          session.setArea(area)
+          locationError.value += `, Area changed to ${area.name}`
         } catch (error) {
           await logError(
-            "Error fetching new area details: " + JSON.stringify(error),
-          );
-          locationError.value += ", but failed to load new area details";
+            'Error fetching new area details: ' + JSON.stringify(error),
+          )
+          locationError.value += ', but failed to load new area details'
         }
       }
     } else {
-      locationError.value = result.message || "Failed to locate device";
+      locationError.value = result.message || 'Failed to locate device'
     }
   } catch (error) {
-    locationError.value = `Error: ${error}`;
+    locationError.value = `Error: ${error}`
   } finally {
-    locating.value = false;
+    locating.value = false
   }
 }
 
 async function handleBeaconClick(beaconId: string) {
-  await info("Beacon clicked:" + beaconId);
+  await info('Beacon clicked:' + beaconId)
 }
 
 async function handleMerchantClick(merchantId: string) {
-  await info("Merchant clicked: " + merchantId);
+  await info('Merchant clicked: ' + merchantId)
 }
 
 function handleStartNavigation() {
   if (!entityId.value || !areaId.value) {
-    locationError.value = "Please select an entity and area first";
-    return;
+    locationError.value = 'Please select an entity and area first'
+    return
   }
 
   router.push({
-    name: "navigation",
+    name: 'navigation',
     query: {
       entity: entityId.value,
       area: areaId.value,
     },
-  });
+  })
 }
 
 function handleLogout() {
-  session.clearSession();
-  router.push("/login");
+  session.clearSession()
+  router.push('/login')
 }
 
 // Watch for entity changes
@@ -286,10 +284,10 @@ watch(
   () => session.entity,
   (newEntity) => {
     if (newEntity) {
-      info("Entity selected: " + newEntity.name);
+      info('Entity selected: ' + newEntity.name)
     }
   },
-);
+)
 </script>
 
 <template>
@@ -333,7 +331,7 @@ watch(
               {{
                 geolocation[0] !== 0
                   ? `Location: ${geolocation[0].toFixed(4)}, ${geolocation[1].toFixed(4)}`
-                  : "Get Current Location"
+                  : 'Get Current Location'
               }}
             </Button>
           </div>
@@ -354,7 +352,7 @@ watch(
               class="w-4 h-4 mr-2"
               :class="{ 'animate-spin': findingEntity }"
             />
-            {{ findingEntity ? "Searching..." : "Find Entity" }}
+            {{ findingEntity ? 'Searching...' : 'Find Entity' }}
           </Button>
 
           <!-- Error/Success Messages -->
@@ -443,7 +441,7 @@ watch(
               class="w-4 h-4 mr-2"
               :class="{ 'animate-spin': findingArea }"
             />
-            {{ findingArea ? "Detecting Area..." : "Detect Current Area" }}
+            {{ findingArea ? 'Detecting Area...' : 'Detect Current Area' }}
           </Button>
 
           <p
@@ -494,7 +492,7 @@ watch(
                 class="w-4 h-4 mr-2"
                 :class="{ 'animate-spin': locating }"
               />
-              {{ locating ? "Locating..." : "Locate Me" }}
+              {{ locating ? 'Locating...' : 'Locate Me' }}
             </Button>
 
             <p

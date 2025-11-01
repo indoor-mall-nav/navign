@@ -19,6 +19,7 @@ jobs:
         python-version: ['3.12']
         pnpm-version: ['10.20.0']
         mongodb-version: ['8.0']
+        runs-for: [repo, shared, server, mobile, desktop, beacon]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +31,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+        if: matrix.runs-for == 'misc'
       - name: Setup Taplo
         uses: uncenter/setup-taplo@v1.0.8
       - name: Use Node.js ${{ matrix.node-version }}
@@ -38,20 +40,28 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
+        if: matrix.runs-for != 'firmware'
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.0
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
+        if: matrix.runs-for == 'server'
       - name: Tauri dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-latest' && (matrix.runs-for == 'desktop' || matrix.runs-for == 'mobile')
         run: |
           sudo apt-get update &&
           sudo apt-get install -y \
           libwebkit2gtk-4.1-dev \
           libayatana-appindicator3-dev \
           webkit2gtk-driver \
-          xvfb portaudio19-dev
+          xvfb
+      - name: Misc dependencies
+        if: matrix.runs-for == 'misc'
+        run: |
+          sudo apt-get update &&
+          sudo apt-get install -y \
+          portaudio19-dev
       - name: Setup just
         uses: extractions/setup-just@v3
       - name: Run CI tasks
-        run: just ci
+        run: just ci-${{ matrix.runs-for }}

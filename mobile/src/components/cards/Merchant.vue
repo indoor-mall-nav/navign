@@ -5,50 +5,50 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Merchant } from "@/schema";
-import { Icon } from "@iconify/vue";
-import { toRefs } from "vue";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { formatMerchantType } from "@/lib/structure/merchant.ts";
-import { info } from "@tauri-apps/plugin-log";
+} from '@/components/ui/card'
+import { Merchant } from '@/schema'
+import { Icon } from '@iconify/vue'
+import { toRefs } from 'vue'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import { formatMerchantType } from '@/lib/structure/merchant.ts'
+import { info } from '@tauri-apps/plugin-log'
 
 const props = defineProps<{
-  merchant: Merchant;
-}>();
+  merchant: Merchant
+}>()
 
-const { merchant } = toRefs(props);
+const { merchant } = toRefs(props)
 
-function generateSocialMediaUrl(media: Merchant["social_media"][0]): {
-  type: "url" | "qrcode";
-  url?: string;
+function generateSocialMediaUrl(media: Merchant['social_media'][0]): {
+  type: 'url' | 'qrcode'
+  url?: string
 } {
-  const handle = media.handle.replace(/^@/, ""); // Remove leading '@' if present
+  const handle = media.handle.replace(/^@/, '') // Remove leading '@' if present
   if (!handle) {
-    return { type: "url", url: "#" }; // Fallback to direct URL if handle is empty
+    return { type: 'url', url: '#' } // Fallback to direct URL if handle is empty
   }
   if (media.url) {
-    return { type: "url", url: media.url };
+    return { type: 'url', url: media.url }
   }
   switch (media.platform) {
-    case "twitter":
-      return { type: "url", url: `https://twitter.com/${handle}` };
-    case "facebook":
-      return { type: "url", url: `https://facebook.com/${handle}` };
-    case "instagram":
-      return { type: "url", url: `https://instagram.com/${handle}` };
-    case "linkedin":
-      return { type: "url", url: `https://linkedin.com/in/${handle}` };
-    case "wechat":
-      return { type: "qrcode", url: handle }; // WeChat typically uses QR codes
-    case "whatsapp":
-      return { type: "url", url: `https://wa.me/${handle}` };
-    case "telegram":
-      return { type: "url", url: `https://t.me/${handle}` };
+    case 'twitter':
+      return { type: 'url', url: `https://twitter.com/${handle}` }
+    case 'facebook':
+      return { type: 'url', url: `https://facebook.com/${handle}` }
+    case 'instagram':
+      return { type: 'url', url: `https://instagram.com/${handle}` }
+    case 'linkedin':
+      return { type: 'url', url: `https://linkedin.com/in/${handle}` }
+    case 'wechat':
+      return { type: 'qrcode', url: handle } // WeChat typically uses QR codes
+    case 'whatsapp':
+      return { type: 'url', url: `https://wa.me/${handle}` }
+    case 'telegram':
+      return { type: 'url', url: `https://t.me/${handle}` }
     default:
-      return { type: "url", url: "#" }; // Fallback to direct URL
+      return { type: 'url', url: '#' } // Fallback to direct URL
   }
 }
 
@@ -56,30 +56,30 @@ function generateSocialMediaUrl(media: Merchant["social_media"][0]): {
 // representing the opening hours of the merchant in a day.
 function processOpeningHours(opening_hours: [number, number] | []): string {
   if (opening_hours.length === 0) {
-    return "Closed";
+    return 'Closed'
   }
   if (opening_hours[0] === 0 && opening_hours[1] === 86400000) {
-    return "Open 24 hours";
+    return 'Open 24 hours'
   }
-  const [start, end] = opening_hours;
-  const startDate = new Date(start);
-  const endDate = new Date(end);
+  const [start, end] = opening_hours
+  const startDate = new Date(start)
+  const endDate = new Date(end)
   const options: Intl.DateTimeFormatOptions = {
-    hour: "2-digit",
-    minute: "2-digit",
-  };
-  return `${startDate.toLocaleTimeString([], options)} – ${endDate.toLocaleTimeString([], options)}`;
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  return `${startDate.toLocaleTimeString([], options)} – ${endDate.toLocaleTimeString([], options)}`
 }
 
 function processTodayOpeningHours(
   opening_hours: ([number, number] | [])[],
 ): string {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+  const today = new Date()
+  const dayOfWeek = today.getDay() // 0 (Sunday) to 6 (Saturday)
   if (dayOfWeek < opening_hours.length) {
-    return processOpeningHours(opening_hours[dayOfWeek]);
+    return processOpeningHours(opening_hours[dayOfWeek])
   }
-  return "Closed";
+  return 'Closed'
 }
 </script>
 

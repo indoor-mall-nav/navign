@@ -100,11 +100,51 @@ check:
   cd maintenance-tool && cargo check
 
 
-ci:
-  just init
-  just roll
-  just clean
-  just test
+ci-server:
+  cd server && cargo check
+  cd server && cargo fmt -- --check
+  cd server && cargo clippy -- -D warnings
+  cd server && cargo test
+
+ci-beacon:
+  cd beacon && cargo check --release
+  cd beacon && cargo fmt -- --check
+  cd beacon && cargo clippy -- -D warnings
+  # cd beacon && cargo test --release
+  echo "No tests for beacons yet..."
+
+ci-mobile:
+  cd mobile && just check
+  cd mobile && just fmt-check
+  cd mobile && just lint
+  cd mobile && just test
+
+ci-desktop:
+  echo "No desktop-specific CI tasks yet..."
+
+ci-shared:
+  cd shared && cargo check
+  cd shared && cargo check --features heapless --no-default-features
+  cd shared && cargo check --features alloc --no-default-features
+  cd shared && cargo check --features heapless --features serde --features crypto --no-default-features
+  cd shared && cargo check --features base64 --features alloc --features serde --features crypto --no-default-features
+  cd shared && cargo fmt -- --check
+  cd shared && cargo clippy
+  cd shared && cargo clippy --features heapless --no-default-features
+  cd shared && cargo clippy --features alloc --no-default-features
+  cd shared && cargo clippy --features heapless --features serde --features crypto --no-default-features
+  cd shared && cargo clippy --features base64 --features alloc --features serde --features crypto --no-default-features
+  cd shared && cargo test
+
+ci-repo:
+  taplo format --diff
+  typos
+  cargo deny check bans
+  cargo deny check licenses
+  cargo deny check sources
+  pnpm ls-lint
+  cd animations && uvx ruff check --diff
+  cd gesture_space && uvx ruff check --diff
 
 roll:
   just fmt-check

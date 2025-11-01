@@ -12,7 +12,6 @@ mod tests {
 
     #[test]
     fn test_base_url_not_empty() {
-        assert!(!BASE_URL.is_empty());
         assert!(BASE_URL.len() > 10);
     }
 

@@ -8,6 +8,7 @@ fmt:
 
 lint:
   pnpm run lint
+  echo "Oxlint Tsgolint hasn't production-ready yet, and we couldn't disable certain rules for now."
   cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
 
 fix:

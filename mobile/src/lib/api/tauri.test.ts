@@ -1,5 +1,6 @@
+/* oxlint-disable */
 // Comprehensive unit tests for Tauri API integration
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   login,
   register,
@@ -12,118 +13,118 @@ import {
   getRoute,
   type ApiResponse,
   type ConnectivityLimits,
-} from "./tauri";
-import { invoke } from "@tauri-apps/api/core";
-import { error, info } from "@tauri-apps/plugin-log";
+} from './tauri'
+import { invoke } from '@tauri-apps/api/core'
+import { error, info } from '@tauri-apps/plugin-log'
 
 // Mock Tauri invoke
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
-}));
+}))
 
-vi.mock("@tauri-apps/plugin-log", () => ({
+vi.mock('@tauri-apps/plugin-log', () => ({
   info: vi.fn(),
   error: vi.fn(),
-}));
+}))
 
-describe("Authentication APIs", () => {
+describe('Authentication APIs', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("should login successfully with valid credentials", async () => {
+  it('should login successfully with valid credentials', async () => {
     const mockResponse: ApiResponse = {
-      status: "success",
-      token: "test_token_123",
-      message: "Login successful",
-    };
+      status: 'success',
+      token: 'test_token_123',
+      message: 'Login successful',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
-    (info as any).mockResolvedValue(undefined);
-    (error as any).mockResolvedValue(undefined);
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockResponse))
+    ;(info as any).mockResolvedValue(undefined)
+    ;(error as any).mockResolvedValue(undefined)
 
-    const result = await login("test@example.com", "password123");
+    const result = await login('test@example.com', 'password123')
 
-    expect(result.status).toBe("success");
-    expect(result.token).toBe("test_token_123");
-    expect(invoke).toHaveBeenCalledWith("login_handler", {
-      email: "test@example.com",
-      password: "password123",
-    });
-  });
+    expect(result.status).toBe('success')
+    expect(result.token).toBe('test_token_123')
+    expect(invoke).toHaveBeenCalledWith('login_handler', {
+      email: 'test@example.com',
+      password: 'password123',
+    })
+  })
 
-  it("should handle login failure", async () => {
+  it('should handle login failure', async () => {
     const mockResponse: ApiResponse = {
-      status: "error",
-      message: "Invalid credentials",
-    };
+      status: 'error',
+      message: 'Invalid credentials',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockResponse))
 
-    const result = await login("wrong@example.com", "wrongpass");
+    const result = await login('wrong@example.com', 'wrongpass')
 
-    expect(result.status).toBe("error");
-    expect(result.message).toBe("Invalid credentials");
-  });
+    expect(result.status).toBe('error')
+    expect(result.message).toBe('Invalid credentials')
+  })
 
-  it("should register new user successfully", async () => {
+  it('should register new user successfully', async () => {
     const mockResponse: ApiResponse = {
-      status: "success",
-      user_id: "new_user_456",
-      message: "Registration successful",
-    };
+      status: 'success',
+      user_id: 'new_user_456',
+      message: 'Registration successful',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockResponse))
 
-    const result = await register("new@example.com", "newuser", "securepass");
+    const result = await register('new@example.com', 'newuser', 'securepass')
 
-    expect(result.status).toBe("success");
-    expect(result.user_id).toBe("new_user_456");
-  });
+    expect(result.status).toBe('success')
+    expect(result.user_id).toBe('new_user_456')
+  })
 
-  it("should allow guest login", async () => {
+  it('should allow guest login', async () => {
     const mockResponse: ApiResponse = {
-      status: "success",
-      user_id: "guest_789",
-      message: "Logged in as guest",
-    };
+      status: 'success',
+      user_id: 'guest_789',
+      message: 'Logged in as guest',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockResponse))
 
-    const result = await guestLogin();
+    const result = await guestLogin()
 
-    expect(result.status).toBe("success");
-    expect(result.user_id).toContain("guest");
-  });
+    expect(result.status).toBe('success')
+    expect(result.user_id).toContain('guest')
+  })
 
-  it("should logout user", async () => {
+  it('should logout user', async () => {
     const mockResponse: ApiResponse = {
-      status: "success",
-      message: "Logged out successfully",
-    };
+      status: 'success',
+      message: 'Logged out successfully',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockResponse))
 
-    const result = await logout("test_token");
+    const result = await logout('test_token')
 
-    expect(result.status).toBe("success");
-    expect(invoke).toHaveBeenCalledWith("logout_handler", {
-      token: "test_token",
-    });
-  });
-});
+    expect(result.status).toBe('success')
+    expect(invoke).toHaveBeenCalledWith('logout_handler', {
+      token: 'test_token',
+    })
+  })
+})
 
-describe("Map APIs", () => {
+describe('Map APIs', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("should fetch map data successfully", async () => {
+  it('should fetch map data successfully', async () => {
     const mockMapData = {
-      status: "success",
+      status: 'success',
       data: {
-        id: "area_123",
-        name: "Main Hall",
+        id: 'area_123',
+        name: 'Main Hall',
         polygon: [
           [0, 0],
           [100, 0],
@@ -132,160 +133,160 @@ describe("Map APIs", () => {
         ],
         beacons: [
           {
-            id: "beacon_1",
-            name: "Beacon A",
+            id: 'beacon_1',
+            name: 'Beacon A',
             location: [50, 50],
-            type: "navigation",
+            type: 'navigation',
           },
         ],
         merchants: [],
       },
-    };
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockMapData));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockMapData))
 
-    const result = await getMapData("entity_1", "area_123");
+    const result = await getMapData('entity_1', 'area_123')
 
-    expect(result.status).toBe("success");
-    expect(result.data?.name).toBe("Main Hall");
-    expect(result.data?.beacons).toHaveLength(1);
-  });
+    expect(result.status).toBe('success')
+    expect(result.data?.name).toBe('Main Hall')
+    expect(result.data?.beacons).toHaveLength(1)
+  })
 
-  it("should generate SVG map", async () => {
+  it('should generate SVG map', async () => {
     const mockSvgResponse = {
-      status: "success",
+      status: 'success',
       svg: '<svg width="800" height="600">...</svg>',
-    };
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockSvgResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockSvgResponse))
 
-    const result = await generateSvgMap("entity_1", "area_123", 800, 600);
+    const result = await generateSvgMap('entity_1', 'area_123', 800, 600)
 
-    expect(result.status).toBe("success");
-    expect(result.svg).toContain("<svg");
-    expect(invoke).toHaveBeenCalledWith("generate_svg_map_handler", {
-      entity: "entity_1",
-      area: "area_123",
+    expect(result.status).toBe('success')
+    expect(result.svg).toContain('<svg')
+    expect(invoke).toHaveBeenCalledWith('generate_svg_map_handler', {
+      entity: 'entity_1',
+      area: 'area_123',
       width: 800,
       height: 600,
-    });
-  });
+    })
+  })
 
-  it("should search merchants by query", async () => {
+  it('should search merchants by query', async () => {
     const mockSearchResponse = {
-      status: "success",
+      status: 'success',
       data: [
-        { id: "m1", name: "Coffee Shop", tags: ["food", "cafe"] },
-        { id: "m2", name: "Bookstore", tags: ["retail", "books"] },
+        { id: 'm1', name: 'Coffee Shop', tags: ['food', 'cafe'] },
+        { id: 'm2', name: 'Bookstore', tags: ['retail', 'books'] },
       ],
-    };
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockSearchResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockSearchResponse))
 
-    const result = await searchMerchants("entity_1", "area_123", "coffee");
+    const result = await searchMerchants('entity_1', 'area_123', 'coffee')
 
-    expect(result.status).toBe("success");
-    expect(result.data).toHaveLength(2);
-  });
-});
+    expect(result.status).toBe('success')
+    expect(result.data).toHaveLength(2)
+  })
+})
 
-describe("Location APIs", () => {
+describe('Location APIs', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("should locate device successfully", async () => {
+  it('should locate device successfully', async () => {
     const mockLocationResponse = {
-      status: "success",
-      area: "area_123",
+      status: 'success',
+      area: 'area_123',
       x: 45.5,
       y: 67.8,
-    };
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockLocationResponse));
-    (info as any).mockResolvedValue(undefined);
-    (error as any).mockResolvedValue(undefined);
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockLocationResponse))
+    ;(info as any).mockResolvedValue(undefined)
+    ;(error as any).mockResolvedValue(undefined)
 
-    const result = await locateDevice("area_123", "entity_1");
+    const result = await locateDevice('area_123', 'entity_1')
 
-    expect(result.status).toBe("success");
-    expect(result.x).toBe(45.5);
-    expect(result.y).toBe(67.8);
-  });
+    expect(result.status).toBe('success')
+    expect(result.x).toBe(45.5)
+    expect(result.y).toBe(67.8)
+  })
 
-  it("should handle location failure", async () => {
+  it('should handle location failure', async () => {
     const mockErrorResponse = {
-      status: "error",
-      message: "No beacons found",
-    };
+      status: 'error',
+      message: 'No beacons found',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse));
-    (info as any).mockResolvedValue(undefined);
-    (error as any).mockResolvedValue(undefined);
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
+    ;(info as any).mockResolvedValue(undefined)
+    ;(error as any).mockResolvedValue(undefined)
 
-    const result = await locateDevice("area_123", "entity_1");
+    const result = await locateDevice('area_123', 'entity_1')
 
-    expect(result.status).toBe("error");
-    expect(result.message).toContain("beacons");
-  });
-});
+    expect(result.status).toBe('error')
+    expect(result.message).toContain('beacons')
+  })
+})
 
-describe("Route/Navigation APIs", () => {
+describe('Route/Navigation APIs', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("should handle route not found", async () => {
+  it('should handle route not found', async () => {
     const mockErrorResponse: ApiResponse = {
-      status: "error",
-      message: "No route found between merchants",
-    };
+      status: 'error',
+      message: 'No route found between merchants',
+    }
 
-    (invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse));
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
 
-    const result = await getRoute("entity_1", "merchant_a", "merchant_z");
+    const result = await getRoute('entity_1', 'merchant_a', 'merchant_z')
 
-    expect(result.status).toBe("error");
-    expect(result.message).toContain("No route found");
-  });
-});
+    expect(result.status).toBe('error')
+    expect(result.message).toContain('No route found')
+  })
+})
 
-describe("API Error Handling", () => {
+describe('API Error Handling', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("should handle network errors gracefully", async () => {
-    (invoke as any).mockRejectedValue(new Error("Network error"));
+  it('should handle network errors gracefully', async () => {
+    ;(invoke as any).mockRejectedValue(new Error('Network error'))
 
-    await expect(login("test@test.com", "pass")).rejects.toThrow(
-      "Network error",
-    );
-  });
+    await expect(login('test@test.com', 'pass')).rejects.toThrow(
+      'Network error',
+    )
+  })
 
-  it("should handle malformed JSON responses", async () => {
-    (invoke as any).mockResolvedValue("invalid json {");
+  it('should handle malformed JSON responses', async () => {
+    ;(invoke as any).mockResolvedValue('invalid json {')
 
-    await expect(getMapData("e1", "a1")).rejects.toThrow();
-  });
+    await expect(getMapData('e1', 'a1')).rejects.toThrow()
+  })
 
-  it("should handle empty responses", async () => {
-    (invoke as any).mockResolvedValue("");
+  it('should handle empty responses', async () => {
+    ;(invoke as any).mockResolvedValue('')
 
-    await expect(locateDevice("a1", "e1")).rejects.toThrow();
-  });
-});
+    await expect(locateDevice('a1', 'e1')).rejects.toThrow()
+  })
+})
 
-describe("Type Safety", () => {
-  it("should have correct types for ConnectivityLimits", () => {
+describe('Type Safety', () => {
+  it('should have correct types for ConnectivityLimits', () => {
     const limits: ConnectivityLimits = {
       elevator: true,
       stairs: false,
       escalator: true,
-    };
+    }
 
-    expect(typeof limits.elevator).toBe("boolean");
-    expect(typeof limits.stairs).toBe("boolean");
-    expect(typeof limits.escalator).toBe("boolean");
-  });
-});
+    expect(typeof limits.elevator).toBe('boolean')
+    expect(typeof limits.stairs).toBe('boolean')
+    expect(typeof limits.escalator).toBe('boolean')
+  })
+})
