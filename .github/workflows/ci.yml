@@ -38,6 +38,8 @@ jobs:
         uses: crate-ci/typos@v1.39.0
       - name: Setup Cargo Deny
         uses: EmbarkStudios/cargo-deny-action@v2.0.13
+        with:
+          command: check bans licenses sources
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:

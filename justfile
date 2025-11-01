@@ -113,9 +113,6 @@ ci-shared:
 ci-repo:
   taplo format --diff
   typos
-  cargo deny check bans
-  cargo deny check licenses
-  cargo deny check sources
 
 roll:
   just fmt-check
