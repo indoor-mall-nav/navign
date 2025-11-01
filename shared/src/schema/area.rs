@@ -21,12 +21,12 @@ pub struct Area {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-    
+
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-    
+
     pub name: String,
     pub description: Option<String>,
     /// Unique identifier for the area for displaying in the beacon name.
@@ -95,9 +95,9 @@ pub mod mobile {
     use alloc::string::String;
     #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
-    use sqlx::FromRow;
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
+    use sqlx::FromRow;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -175,7 +175,10 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn get_by_id(pool: &sqlx::SqlitePool, id: &str) -> Result<Option<Self>, sqlx::Error> {
+        pub async fn get_by_id(
+            pool: &sqlx::SqlitePool,
+            id: &str,
+        ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM areas WHERE id = ?")
                 .bind(id)
                 .fetch_optional(pool)

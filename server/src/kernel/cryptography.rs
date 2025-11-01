@@ -111,7 +111,7 @@ mod tests {
         let server = create_test_crypto_server();
         let current_timestamp = chrono::Utc::now().timestamp() as u64;
         let nonce = [1u8; 16];
-        
+
         let request = UnlockRequest {
             user_id: "test_user".to_string(),
             nonce,
@@ -132,7 +132,7 @@ mod tests {
         let server = create_test_crypto_server();
         let old_timestamp = chrono::Utc::now().timestamp() as u64 - 400; // 400 seconds ago
         let nonce = [2u8; 16];
-        
+
         let request = UnlockRequest {
             user_id: "test_user".to_string(),
             nonce,
@@ -148,13 +148,13 @@ mod tests {
     fn test_unlock_challenge_signature_uniqueness() {
         let server = create_test_crypto_server();
         let current_timestamp = chrono::Utc::now().timestamp() as u64;
-        
+
         let request1 = UnlockRequest {
             user_id: "user1".to_string(),
             nonce: [1u8; 16],
             timestamp: current_timestamp,
         };
-        
+
         let request2 = UnlockRequest {
             user_id: "user2".to_string(),
             nonce: [2u8; 16],

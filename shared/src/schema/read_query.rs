@@ -43,7 +43,7 @@ mod tests {
             asc: None,
             case_sensitive: None,
         };
-        
+
         assert!(query.offset.is_none());
         assert!(query.limit.is_none());
         assert!(query.query.is_none());
@@ -62,7 +62,7 @@ mod tests {
             asc: None,
             case_sensitive: None,
         };
-        
+
         assert_eq!(query.offset, Some(10));
         assert_eq!(query.limit, Some(20));
     }
@@ -77,7 +77,7 @@ mod tests {
             asc: Some(true),
             case_sensitive: None,
         };
-        
+
         assert_eq!(query.sort, Some(String::from("name")));
         assert_eq!(query.asc, Some(true));
     }
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn test_read_query_default() {
         let query = ReadQuery::default();
-        
+
         assert!(query.offset.is_none());
         assert!(query.limit.is_none());
         assert!(query.query.is_none());

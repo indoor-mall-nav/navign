@@ -29,13 +29,13 @@ pub struct Connection {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-    
+
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-    
+
     pub name: String,
     pub description: Option<String>,
     pub r#type: ConnectionType,
@@ -88,9 +88,9 @@ pub mod mobile {
     use alloc::string::String;
     #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
-    use sqlx::FromRow;
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
+    use sqlx::FromRow;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -170,7 +170,10 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn get_by_id(pool: &sqlx::SqlitePool, id: &str) -> Result<Option<Self>, sqlx::Error> {
+        pub async fn get_by_id(
+            pool: &sqlx::SqlitePool,
+            id: &str,
+        ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM connections WHERE id = ?")
                 .bind(id)
                 .fetch_optional(pool)

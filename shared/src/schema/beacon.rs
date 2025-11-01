@@ -16,31 +16,31 @@ pub struct Beacon {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-    
+
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-    
+
     /// Reference to the Area where the beacon is located
     #[cfg(feature = "mongodb")]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
-    
+
     /// Optional reference to the Merchant associated with the beacon.
     #[cfg(feature = "mongodb")]
     pub merchant: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub merchant: Option<String>,
-    
+
     /// Optional reference to the Connection associated with the beacon.
     #[cfg(feature = "mongodb")]
     pub connection: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub connection: Option<String>,
-    
+
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     pub name: String,
     /// The displaying name of the beacon, which can be used for user-friendly identification.
@@ -84,9 +84,9 @@ pub mod mobile {
     use alloc::string::String;
     #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
-    use sqlx::FromRow;
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
+    use sqlx::FromRow;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -177,7 +177,10 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn get_by_id(pool: &sqlx::SqlitePool, id: &str) -> Result<Option<Self>, sqlx::Error> {
+        pub async fn get_by_id(
+            pool: &sqlx::SqlitePool,
+            id: &str,
+        ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM beacons WHERE id = ?")
                 .bind(id)
                 .fetch_optional(pool)
@@ -185,7 +188,10 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn get_by_mac(pool: &sqlx::SqlitePool, mac: &str) -> Result<Option<Self>, sqlx::Error> {
+        pub async fn get_by_mac(
+            pool: &sqlx::SqlitePool,
+            mac: &str,
+        ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM beacons WHERE mac = ?")
                 .bind(mac)
                 .fetch_optional(pool)
@@ -200,7 +206,10 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn get_by_area(pool: &sqlx::SqlitePool, area: &str) -> Result<Vec<Self>, sqlx::Error> {
+        pub async fn get_by_area(
+            pool: &sqlx::SqlitePool,
+            area: &str,
+        ) -> Result<Vec<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM beacons WHERE area = ?")
                 .bind(area)
                 .fetch_all(pool)

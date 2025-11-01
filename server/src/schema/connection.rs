@@ -1,7 +1,7 @@
 use crate::schema::service::Service;
 
 // Re-export from navign-shared
-pub use navign_shared::{Connection, ConnectedArea, ConnectionType};
+pub use navign_shared::{ConnectedArea, Connection, ConnectionType};
 
 impl Service for Connection {
     fn get_id(&self) -> String {

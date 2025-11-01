@@ -22,7 +22,7 @@ pub use area::{Area, Floor, FloorType};
 #[cfg(feature = "alloc")]
 pub use beacon::{Beacon, BeaconDevice, BeaconType};
 #[cfg(feature = "alloc")]
-pub use connection::{Connection, ConnectedArea, ConnectionType};
+pub use connection::{ConnectedArea, Connection, ConnectionType};
 #[cfg(feature = "alloc")]
 pub use entity::{Entity, EntityType};
 #[cfg(feature = "alloc")]

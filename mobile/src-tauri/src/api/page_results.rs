@@ -60,8 +60,15 @@ mod tests {
             prev_page_url: None,
         };
 
-        let data = vec!["item1".to_string(), "item2".to_string(), "item3".to_string()];
-        let response = PaginationResponse { metadata, data: data.clone() };
+        let data = vec![
+            "item1".to_string(),
+            "item2".to_string(),
+            "item3".to_string(),
+        ];
+        let response = PaginationResponse {
+            metadata,
+            data: data.clone(),
+        };
 
         assert_eq!(response.data.len(), 3);
         assert_eq!(response.data, data);
@@ -132,8 +139,14 @@ mod tests {
         }
 
         let items = vec![
-            TestItem { id: 1, name: "Item 1".to_string() },
-            TestItem { id: 2, name: "Item 2".to_string() },
+            TestItem {
+                id: 1,
+                name: "Item 1".to_string(),
+            },
+            TestItem {
+                id: 2,
+                name: "Item 2".to_string(),
+            },
         ];
 
         let metadata = PaginationResponseMetadata {

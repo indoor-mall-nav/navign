@@ -31,7 +31,7 @@ pub use schema::ReadQuery;
 // Export core schemas
 #[cfg(feature = "alloc")]
 pub use schema::{
-    Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, Connection, ConnectedArea,
+    Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, ConnectedArea, Connection,
     ConnectionType, Entity, EntityType, FacilityType, Floor, FloorType, FoodCuisine, FoodType,
     Merchant, MerchantStyle, MerchantType, SocialMedia, SocialMediaPlatform,
 };
