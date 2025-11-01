@@ -5345,8 +5345,10 @@ dependencies = [
 name = "navign-shared"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "bitflags 2.10.0",
+ "bson",
  "chrono",
  "defmt",
  "heapless 0.9.1",
@@ -5355,6 +5357,7 @@ dependencies = [
  "serde",
  "serde-big-array",
  "sha2 0.11.0-rc.2",
+ "sqlx",
 ]
 
 [[package]]
