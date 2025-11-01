@@ -39,7 +39,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
         if: matrix.runs-for == 'repo' || matrix.runs-for == 'desktop' || matrix.runs-for == 'mobile'
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.0
