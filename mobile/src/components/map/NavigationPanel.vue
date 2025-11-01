@@ -1,105 +1,105 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch } from 'vue'
 import {
   getRoute,
   type MapMerchant,
   type RouteResponse,
   unlockDevice,
-} from "@/lib/api/tauri";
-import { extractInstructions } from "./extractInstructions";
+} from '@/lib/api/tauri'
+import { extractInstructions } from './extractInstructions'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Icon } from "@iconify/vue";
-import { Label } from "@/components/ui/label";
-import { info } from "@tauri-apps/plugin-log";
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Icon } from '@iconify/vue'
+import { Label } from '@/components/ui/label'
+import { info } from '@tauri-apps/plugin-log'
 
 const props = withDefaults(
   defineProps<{
-    entityId: string;
-    currentLocation?: string; // merchant/area id
-    currentExactLocation?: [number, number]; // precise coordinates if available
-    merchants: MapMerchant[];
+    entityId: string
+    currentLocation?: string // merchant/area id
+    currentExactLocation?: [number, number] // precise coordinates if available
+    merchants: MapMerchant[]
   }>(),
   {},
-);
+)
 
 const emit = defineEmits<{
-  routeCalculated: [route: RouteResponse];
-  navigationStarted: [targetId: string];
-  navigationEnded: [];
-}>();
+  routeCalculated: [route: RouteResponse]
+  navigationStarted: [targetId: string]
+  navigationEnded: []
+}>()
 
-const searchQuery = ref("");
-const selectedTarget = ref<MapMerchant | null>(null);
-const route = ref<RouteResponse | null>(null);
-const currentStep = ref(0);
-const loading = ref(false);
-const error = ref("");
-const isNavigating = ref(false);
+const searchQuery = ref('')
+const selectedTarget = ref<MapMerchant | null>(null)
+const route = ref<RouteResponse | null>(null)
+const currentStep = ref(0)
+const loading = ref(false)
+const error = ref('')
+const isNavigating = ref(false)
 const currentExactLocation = computed(
   () => props.currentExactLocation || [0, 0],
-);
+)
 
 // Connectivity options
-const allowElevator = ref(true);
-const allowStairs = ref(true);
-const allowEscalator = ref(true);
+const allowElevator = ref(true)
+const allowStairs = ref(true)
+const allowEscalator = ref(true)
 
 const filteredMerchants = computed(() => {
-  if (!searchQuery.value) return props.merchants;
-  const query = searchQuery.value.toLowerCase();
+  if (!searchQuery.value) return props.merchants
+  const query = searchQuery.value.toLowerCase()
   return props.merchants.filter(
     (m) =>
       m.name.toLowerCase().includes(query) ||
       m.tags.some((tag) => tag.toLowerCase().includes(query)),
-  );
-});
+  )
+})
 
 const navigationSteps = computed(() => {
-  if (!route.value) return [];
-  return extractInstructions(route.value.instructions);
-});
+  if (!route.value) return []
+  return extractInstructions(route.value.instructions)
+})
 
 const currentNavigationStep = computed(() => {
-  if (!isNavigating.value || navigationSteps.value.length === 0) return null;
-  return navigationSteps.value[currentStep.value];
-});
+  if (!isNavigating.value || navigationSteps.value.length === 0) return null
+  return navigationSteps.value[currentStep.value]
+})
 
 const progress = computed(() => {
-  if (navigationSteps.value.length === 0) return 0;
-  return ((currentStep.value + 1) / navigationSteps.value.length) * 100;
-});
+  if (navigationSteps.value.length === 0) return 0
+  return ((currentStep.value + 1) / navigationSteps.value.length) * 100
+})
 
 const remainingDistance = computed(() => {
-  if (!route.value || !isNavigating.value) return 0;
+  if (!route.value || !isNavigating.value) return 0
   // Estimate based on progress through instructions
-  const progressRatio = currentStep.value / navigationSteps.value.length;
-  return route.value.total_distance * (1 - progressRatio);
-});
+  const progressRatio = currentStep.value / navigationSteps.value.length
+  return route.value.total_distance * (1 - progressRatio)
+})
 
 function selectTarget(merchant: MapMerchant) {
-  selectedTarget.value = merchant;
-  error.value = "";
+  selectedTarget.value = merchant
+  error.value = ''
 }
 
 async function calculateRoute() {
   if (!props.currentLocation || !selectedTarget.value) {
-    error.value = "Please select a destination";
-    return;
+    error.value = 'Please select a destination'
+    return
   }
 
-  loading.value = true;
-  error.value = "";
+  loading.value = true
+  error.value = ''
 
   try {
     const result = await getRoute(
@@ -111,107 +111,107 @@ async function calculateRoute() {
         stairs: allowStairs.value,
         escalator: allowEscalator.value,
       },
-    );
+    )
 
-    if (result.status === "success" && result.data) {
-      route.value = result.data;
-      currentStep.value = 0;
-      emit("routeCalculated", result.data);
+    if (result.status === 'success' && result.data) {
+      route.value = result.data
+      currentStep.value = 0
+      emit('routeCalculated', result.data)
     } else {
-      error.value = result.message || "Failed to calculate route";
+      error.value = result.message || 'Failed to calculate route'
     }
   } catch (err) {
-    error.value = `Error: ${err}`;
+    error.value = `Error: ${err}`
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 function startNavigation() {
-  if (!route.value || !selectedTarget.value) return;
-  isNavigating.value = true;
-  currentStep.value = 0;
-  emit("navigationStarted", selectedTarget.value.id);
+  if (!route.value || !selectedTarget.value) return
+  isNavigating.value = true
+  currentStep.value = 0
+  emit('navigationStarted', selectedTarget.value.id)
 }
 
 function stopNavigation() {
-  isNavigating.value = false;
-  currentStep.value = 0;
-  emit("navigationEnded");
+  isNavigating.value = false
+  currentStep.value = 0
+  emit('navigationEnded')
 }
 
 function nextStep() {
-  if (navigationSteps.value.length === 0) return;
+  if (navigationSteps.value.length === 0) return
   if (currentStep.value < navigationSteps.value.length - 1) {
-    currentStep.value++;
+    currentStep.value++
   } else {
-    stopNavigation();
+    stopNavigation()
   }
 }
 
 function previousStep() {
   if (currentStep.value > 0) {
-    currentStep.value--;
+    currentStep.value--
   }
 }
 
 function clearRoute() {
-  route.value = null;
-  selectedTarget.value = null;
-  currentStep.value = 0;
-  isNavigating.value = false;
-  searchQuery.value = "";
-  error.value = "";
+  route.value = null
+  selectedTarget.value = null
+  currentStep.value = 0
+  isNavigating.value = false
+  searchQuery.value = ''
+  error.value = ''
 }
 
 function formatDistance(meters: number): string {
   if (meters < 1) {
-    return `${Math.round(meters * 100)} cm`;
+    return `${Math.round(meters * 100)} cm`
   } else if (meters < 1000) {
-    return `${Math.round(meters)} m`;
+    return `${Math.round(meters)} m`
   } else {
-    return `${(meters / 1000).toFixed(2)} km`;
+    return `${(meters / 1000).toFixed(2)} km`
   }
 }
 
-const unlockErrorMessage = ref("");
+const unlockErrorMessage = ref('')
 
 function unlockDoor() {
-  const targetMerchant = selectedTarget.value;
-  if (!targetMerchant) return;
-  info("Unlocking door for " + targetMerchant.name);
+  const targetMerchant = selectedTarget.value
+  if (!targetMerchant) return
+  info('Unlocking door for ' + targetMerchant.name)
   unlockDevice(props.entityId, targetMerchant.id).then((res) => {
-    if (res.status === "success") {
-      nextStep();
+    if (res.status === 'success') {
+      nextStep()
     } else {
-      unlockErrorMessage.value = "Failed to unlock door: " + res.message;
+      unlockErrorMessage.value = 'Failed to unlock door: ' + res.message
     }
-  });
+  })
 }
 
 function getNavigationStepIcon(
   step: (typeof navigationSteps.value)[number],
 ): string {
   switch (step.type) {
-    case "straight":
-      return "mdi:arrow-up";
-    case "turn":
-      if (step.turn === "left") return "mdi:arrow-left";
-      if (step.turn === "right") return "mdi:arrow-right";
-      if (step.turn === "around") return "mdi:arrow-u-left-top";
-      return "mdi:navigation";
-    case "transport":
-      const transportType = step.transport?.[2];
-      if (transportType === "elevator") return "mdi:elevator";
-      if (transportType === "stairs") return "mdi:stairs";
-      if (transportType === "escalator") return "mdi:escalator";
-      if (transportType === "gate") return "mdi:gate";
-      if (transportType === "turnstile") return "mdi:turnstile";
-      return "mdi:transit-connection-variant";
-    case "unlock":
-      return "mdi:lock-open-variant";
+    case 'straight':
+      return 'mdi:arrow-up'
+    case 'turn':
+      if (step.turn === 'left') return 'mdi:arrow-left'
+      if (step.turn === 'right') return 'mdi:arrow-right'
+      if (step.turn === 'around') return 'mdi:arrow-u-left-top'
+      return 'mdi:navigation'
+    case 'transport':
+      const transportType = step.transport?.[2]
+      if (transportType === 'elevator') return 'mdi:elevator'
+      if (transportType === 'stairs') return 'mdi:stairs'
+      if (transportType === 'escalator') return 'mdi:escalator'
+      if (transportType === 'gate') return 'mdi:gate'
+      if (transportType === 'turnstile') return 'mdi:turnstile'
+      return 'mdi:transit-connection-variant'
+    case 'unlock':
+      return 'mdi:lock-open-variant'
     default:
-      return "mdi:navigation";
+      return 'mdi:navigation'
   }
 }
 
@@ -219,22 +219,22 @@ function getNavigationStepColor(
   step: (typeof navigationSteps.value)[number],
 ): string {
   switch (step.type) {
-    case "straight":
-      return "text-blue-500";
-    case "turn":
-      return "text-yellow-500";
-    case "transport":
-      const transportType = step.transport?.[2];
-      if (transportType === "elevator") return "text-purple-500";
-      if (transportType === "stairs") return "text-orange-500";
-      if (transportType === "escalator") return "text-green-500";
-      if (transportType === "gate" || transportType === "turnstile")
-        return "text-red-500";
-      return "text-gray-500";
-    case "unlock":
-      return "text-emerald-500";
+    case 'straight':
+      return 'text-blue-500'
+    case 'turn':
+      return 'text-yellow-500'
+    case 'transport':
+      const transportType = step.transport?.[2]
+      if (transportType === 'elevator') return 'text-purple-500'
+      if (transportType === 'stairs') return 'text-orange-500'
+      if (transportType === 'escalator') return 'text-green-500'
+      if (transportType === 'gate' || transportType === 'turnstile')
+        return 'text-red-500'
+      return 'text-gray-500'
+    case 'unlock':
+      return 'text-emerald-500'
     default:
-      return "text-gray-500";
+      return 'text-gray-500'
   }
 }
 
@@ -242,20 +242,20 @@ function getNavigationStepTitle(
   step: (typeof navigationSteps.value)[number],
 ): string {
   switch (step.type) {
-    case "straight":
-      return "Walk Straight";
-    case "turn":
-      if (step.turn === "left") return "Turn Left";
-      if (step.turn === "right") return "Turn Right";
-      if (step.turn === "around") return "Turn Around";
-      return "Turn";
-    case "transport":
-      const transportType = step.transport?.[2];
-      return `Take ${transportType?.charAt(0).toUpperCase()}${transportType?.slice(1)}`;
-    case "unlock":
-      return "Unlock Door";
+    case 'straight':
+      return 'Walk Straight'
+    case 'turn':
+      if (step.turn === 'left') return 'Turn Left'
+      if (step.turn === 'right') return 'Turn Right'
+      if (step.turn === 'around') return 'Turn Around'
+      return 'Turn'
+    case 'transport':
+      const transportType = step.transport?.[2]
+      return `Take ${transportType?.charAt(0).toUpperCase()}${transportType?.slice(1)}`
+    case 'unlock':
+      return 'Unlock Door'
     default:
-      return "Navigate";
+      return 'Navigate'
   }
 }
 
@@ -263,21 +263,21 @@ function getNavigationStepDescription(
   step: (typeof navigationSteps.value)[number],
 ): string {
   switch (step.type) {
-    case "straight":
-      return `Walk straight for ${formatDistance(step.straight || 0)}`;
-    case "turn":
-      if (step.turn === "left") return "Turn left";
-      if (step.turn === "right") return "Turn right";
-      if (step.turn === "around") return "Turn around";
-      return "Turn";
-    case "transport":
-      const transportType = step.transport?.[2];
-      const targetArea = step.transport?.[1];
-      return `Take ${transportType} to ${targetArea || "next area"}`;
-    case "unlock":
-      return "Unlock the door to access your destination";
+    case 'straight':
+      return `Walk straight for ${formatDistance(step.straight || 0)}`
+    case 'turn':
+      if (step.turn === 'left') return 'Turn left'
+      if (step.turn === 'right') return 'Turn right'
+      if (step.turn === 'around') return 'Turn around'
+      return 'Turn'
+    case 'transport':
+      const transportType = step.transport?.[2]
+      const targetArea = step.transport?.[1]
+      return `Take ${transportType} to ${targetArea || 'next area'}`
+    case 'unlock':
+      return 'Unlock the door to access your destination'
     default:
-      return "Continue";
+      return 'Continue'
   }
 }
 
@@ -285,10 +285,10 @@ watch(
   () => props.currentLocation,
   () => {
     if (isNavigating.value) {
-      stopNavigation();
+      stopNavigation()
     }
   },
-);
+)
 </script>
 
 <template>
@@ -411,7 +411,7 @@ watch(
             class="w-4 h-4 mr-2 animate-spin"
           />
           <Icon v-else icon="mdi:routes" class="w-4 h-4 mr-2" />
-          {{ loading ? "Calculating..." : "Calculate Route" }}
+          {{ loading ? 'Calculating...' : 'Calculate Route' }}
         </Button>
       </CardContent>
     </Card>
@@ -577,7 +577,7 @@ watch(
             Previous
           </Button>
           <Button class="flex-1" @click="nextStep">
-            {{ currentStep === navigationSteps.length - 1 ? "Finish" : "Next" }}
+            {{ currentStep === navigationSteps.length - 1 ? 'Finish' : 'Next' }}
             <Icon icon="mdi:chevron-right" class="w-4 h-4 ml-1" />
           </Button>
         </div>

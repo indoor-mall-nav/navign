@@ -1,13 +1,13 @@
-import type { ClassValue } from "clsx";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { error } from "@tauri-apps/plugin-log";
+import type { ClassValue } from 'clsx'
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+import { error } from '@tauri-apps/plugin-log'
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export type ObjectValues<T> = T[keyof T];
+export type ObjectValues<T> = T[keyof T]
 
 // Utility functions for the application
 
@@ -23,9 +23,9 @@ export function rssiToDistance(
   txPower: number = -59,
   pathLoss: number = 2.0,
 ): number {
-  if (rssi === 0) return -1.0;
-  const ratio = (txPower - rssi) / (10.0 * pathLoss);
-  return Math.pow(10, ratio);
+  if (rssi === 0) return -1.0
+  const ratio = (txPower - rssi) / (10.0 * pathLoss)
+  return Math.pow(10, ratio)
 }
 
 /**
@@ -34,7 +34,7 @@ export function rssiToDistance(
  * @returns Formatted date string
  */
 export function formatTimestamp(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleString()
 }
 
 /**
@@ -43,7 +43,7 @@ export function formatTimestamp(timestamp: number): string {
  * @returns true if valid, false otherwise
  */
 export function isValidObjectId(id: string): boolean {
-  return /^[a-f\d]{24}$/i.test(id);
+  return /^[a-f\d]{24}$/i.test(id)
 }
 
 /**
@@ -54,10 +54,10 @@ export function isValidObjectId(id: string): boolean {
  */
 export function safeJsonParse<T>(json: string, fallback: T): T {
   try {
-    return JSON.parse(json) as T;
+    return JSON.parse(json) as T
   } catch (err) {
-    error("Failed to parse JSON:" + JSON.stringify(err)).then();
-    return fallback;
+    error('Failed to parse JSON:' + JSON.stringify(err)).then()
+    return fallback
   }
 }
 
@@ -71,11 +71,11 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: NodeJS.Timeout | null = null
   return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
 }
 
 /**
@@ -92,18 +92,18 @@ export function calculateDistance(
   lat2: number,
   lon2: number,
 ): number {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const R = 6371e3 // Earth's radius in meters
+  const φ1 = (lat1 * Math.PI) / 180
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
-  return R * c;
+  return R * c
 }
 
 /**
@@ -116,19 +116,19 @@ export function isPointInPolygon(
   point: [number, number],
   polygon: [number, number][],
 ): boolean {
-  const [x, y] = point;
-  let inside = false;
+  const [x, y] = point
+  let inside = false
 
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const [xi, yi] = polygon[i];
-    const [xj, yj] = polygon[j];
+    const [xi, yi] = polygon[i]
+    const [xj, yj] = polygon[j]
 
     const intersect =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
   }
 
-  return inside;
+  return inside
 }
 
 /**
@@ -145,13 +145,13 @@ export async function retryWithBackoff<T>(
 ): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      return await fn();
+      return await fn()
     } catch (error) {
-      if (i === maxRetries - 1) throw error;
+      if (i === maxRetries - 1) throw error
       await new Promise((resolve) =>
         setTimeout(resolve, delay * Math.pow(2, i)),
-      );
+      )
     }
   }
-  throw new Error("Max retries reached");
+  throw new Error('Max retries reached')
 }

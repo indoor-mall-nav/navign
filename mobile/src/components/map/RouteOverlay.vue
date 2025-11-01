@@ -1,105 +1,105 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import type { RouteResponse, RouteInstruction, MapData } from "@/lib/api/tauri";
+import { computed } from 'vue'
+import type { RouteResponse, RouteInstruction, MapData } from '@/lib/api/tauri'
 
 const props = defineProps<{
-  route: RouteResponse;
-  mapData: MapData;
-  mapWidth: number;
-  mapHeight: number;
-  currentStep?: number;
-  showTarget?: boolean;
-  userLocation?: { x: number; y: number } | null;
-}>();
+  route: RouteResponse
+  mapData: MapData
+  mapWidth: number
+  mapHeight: number
+  currentStep?: number
+  showTarget?: boolean
+  userLocation?: { x: number; y: number } | null
+}>()
 
 // Calculate bounds and scaling (same as backend)
 const bounds = computed(() => {
-  let min_x = Number.MAX_VALUE;
-  let max_x = Number.MIN_VALUE;
-  let min_y = Number.MAX_VALUE;
-  let max_y = Number.MIN_VALUE;
+  let min_x = Number.MAX_VALUE
+  let max_x = Number.MIN_VALUE
+  let min_y = Number.MAX_VALUE
+  let max_y = Number.MIN_VALUE
 
   for (const [x, y] of props.mapData.polygon) {
-    min_x = Math.min(min_x, x);
-    max_x = Math.max(max_x, x);
-    min_y = Math.min(min_y, y);
-    max_y = Math.max(max_y, y);
+    min_x = Math.min(min_x, x)
+    max_x = Math.max(max_x, x)
+    min_y = Math.min(min_y, y)
+    max_y = Math.max(max_y, y)
   }
 
-  const scale_x = (props.mapWidth - 20) / (max_x - min_x);
-  const scale_y = (props.mapHeight - 20) / (max_y - min_y);
-  const scale = Math.min(scale_x, scale_y);
+  const scale_x = (props.mapWidth - 20) / (max_x - min_x)
+  const scale_y = (props.mapHeight - 20) / (max_y - min_y)
+  const scale = Math.min(scale_x, scale_y)
 
-  return { min_x, min_y, scale };
-});
+  return { min_x, min_y, scale }
+})
 
 const transform = (x: number, y: number) => {
-  const { min_x, min_y, scale } = bounds.value;
+  const { min_x, min_y, scale } = bounds.value
   return {
     x: (x - min_x) * scale + 10,
     y: (y - min_y) * scale + 10,
-  };
-};
+  }
+}
 
 // Extract coordinates from instruction
 function getInstructionCoords(
   instruction: RouteInstruction,
 ): [number, number] | null {
-  if ("move" in instruction) {
-    return instruction.move;
+  if ('move' in instruction) {
+    return instruction.move
   }
   // For transport instructions, we don't have exact coordinates in the instruction
-  return null;
+  return null
 }
 
 function getInstructionType(instruction: RouteInstruction): string {
-  if ("move" in instruction) {
-    return "move";
-  } else if ("transport" in instruction) {
-    return instruction.transport[2];
+  if ('move' in instruction) {
+    return 'move'
+  } else if ('transport' in instruction) {
+    return instruction.transport[2]
   }
-  return "move";
+  return 'move'
 }
 
 const routePoints = computed(() => {
-  if (!props.route || !props.route.instructions.length) return [];
+  if (!props.route || !props.route.instructions.length) return []
 
   const points: Array<{ x: number; y: number; type: string; index: number }> =
-    [];
+    []
 
   // Add user location as starting point if available
   if (props.userLocation) {
-    const startPoint = transform(props.userLocation.x, props.userLocation.y);
-    points.push({ ...startPoint, type: "start", index: -1 });
+    const startPoint = transform(props.userLocation.x, props.userLocation.y)
+    points.push({ ...startPoint, type: 'start', index: -1 })
   }
 
   // Add all instruction points
   props.route.instructions.forEach((inst, idx) => {
-    const coords = getInstructionCoords(inst);
+    const coords = getInstructionCoords(inst)
     if (coords) {
-      const point = transform(coords[0], coords[1]);
-      points.push({ ...point, type: getInstructionType(inst), index: idx });
+      const point = transform(coords[0], coords[1])
+      points.push({ ...point, type: getInstructionType(inst), index: idx })
     }
-  });
+  })
 
-  return points;
-});
+  return points
+})
 
 const routePath = computed(() => {
-  if (routePoints.value.length < 2) return "";
-  return routePoints.value.map((p) => `${p.x},${p.y}`).join(" ");
-});
+  if (routePoints.value.length < 2) return ''
+  return routePoints.value.map((p) => `${p.x},${p.y}`).join(' ')
+})
 
 const routeSegments = computed(() => {
-  if (routePoints.value.length < 2) return [];
+  if (routePoints.value.length < 2) return []
 
-  const segments = [];
+  const segments = []
   for (let i = 0; i < routePoints.value.length - 1; i++) {
-    const from = routePoints.value[i];
-    const to = routePoints.value[i + 1];
+    const from = routePoints.value[i]
+    const to = routePoints.value[i + 1]
 
-    const isPassed = props.currentStep !== undefined && i < props.currentStep;
-    const isCurrent = props.currentStep === i;
+    const isPassed = props.currentStep !== undefined && i < props.currentStep
+    const isCurrent = props.currentStep === i
 
     segments.push({
       from,
@@ -108,55 +108,55 @@ const routeSegments = computed(() => {
       isPassed,
       isCurrent,
       index: i,
-    });
+    })
   }
 
-  return segments;
-});
+  return segments
+})
 
 const startPoint = computed(() => {
-  return routePoints.value.length > 0 ? routePoints.value[0] : null;
-});
+  return routePoints.value.length > 0 ? routePoints.value[0] : null
+})
 
 const endPoint = computed(() => {
   return routePoints.value.length > 0
     ? routePoints.value[routePoints.value.length - 1]
-    : null;
-});
+    : null
+})
 
 const currentPosition = computed(() => {
-  if (props.currentStep === undefined || !routePoints.value.length) return null;
-  if (props.currentStep >= routePoints.value.length) return null;
-  return routePoints.value[props.currentStep];
-});
+  if (props.currentStep === undefined || !routePoints.value.length) return null
+  if (props.currentStep >= routePoints.value.length) return null
+  return routePoints.value[props.currentStep]
+})
 
 function getSegmentColor(
   type: string,
   isPassed: boolean,
   isCurrent: boolean,
 ): string {
-  if (isPassed) return "#9ca3af"; // gray for passed segments
-  if (isCurrent) return "#3b82f6"; // blue for current segment
+  if (isPassed) return '#9ca3af' // gray for passed segments
+  if (isCurrent) return '#3b82f6' // blue for current segment
 
   switch (type) {
-    case "move":
-      return "#10b981"; // green
-    case "elevator":
-      return "#8b5cf6"; // purple
-    case "stairs":
-      return "#f97316"; // orange
-    case "escalator":
-      return "#14b8a6"; // teal
-    case "gate":
-    case "turnstile":
-      return "#ef4444"; // red
+    case 'move':
+      return '#10b981' // green
+    case 'elevator':
+      return '#8b5cf6' // purple
+    case 'stairs':
+      return '#f97316' // orange
+    case 'escalator':
+      return '#14b8a6' // teal
+    case 'gate':
+    case 'turnstile':
+      return '#ef4444' // red
     default:
-      return "#6b7280"; // gray
+      return '#6b7280' // gray
   }
 }
 
 function getSegmentWidth(isCurrent: boolean): number {
-  return isCurrent ? 6 : 4;
+  return isCurrent ? 6 : 4
 }
 </script>
 

@@ -1,112 +1,112 @@
 <script setup lang="ts">
-import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useRouter } from "vue-router";
-import { ref } from "vue";
-import { Icon } from "@iconify/vue";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { login, register, guestLogin } from "@/lib/api/tauri";
-import { useSessionStore } from "@/states/session";
-import { info } from "@tauri-apps/plugin-log";
+import { Form } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { Icon } from '@iconify/vue'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { login, register, guestLogin } from '@/lib/api/tauri'
+import { useSessionStore } from '@/states/session'
+import { info } from '@tauri-apps/plugin-log'
 
-const router = useRouter();
-const session = useSessionStore();
+const router = useRouter()
+const session = useSessionStore()
 
-const email = ref("");
-const username = ref("");
-const password = ref("");
-const confirmPassword = ref("");
-const isRegister = ref(false);
-const loading = ref(false);
-const errorMessage = ref("");
-const acceptTerms = ref(false);
+const email = ref('')
+const username = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const isRegister = ref(false)
+const loading = ref(false)
+const errorMessage = ref('')
+const acceptTerms = ref(false)
 
 async function handleLogin() {
   if (!email.value || !password.value) {
-    errorMessage.value = "Please enter email and password";
-    return;
+    errorMessage.value = 'Please enter email and password'
+    return
   }
 
-  loading.value = true;
-  errorMessage.value = "";
+  loading.value = true
+  errorMessage.value = ''
 
   try {
-    const result = await login(email.value, password.value);
-    if (result.status === "success") {
+    const result = await login(email.value, password.value)
+    if (result.status === 'success') {
       // Store token in session
       if (result.token) {
-        localStorage.setItem("auth_token", result.token);
-        session.setUserToken(result.token);
+        localStorage.setItem('auth_token', result.token)
+        session.setUserToken(result.token)
       }
-      router.push("/");
+      router.push('/')
     } else {
-      errorMessage.value = result.message || "Login failed";
+      errorMessage.value = result.message || 'Login failed'
     }
   } catch (error) {
-    errorMessage.value = `Error: ${error}`;
+    errorMessage.value = `Error: ${error}`
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 async function handleRegister() {
   if (!email.value || !username.value || !password.value) {
-    errorMessage.value = "Please fill in all fields";
-    return;
+    errorMessage.value = 'Please fill in all fields'
+    return
   }
 
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = "Passwords do not match";
-    return;
+    errorMessage.value = 'Passwords do not match'
+    return
   }
 
   if (!acceptTerms.value) {
-    errorMessage.value = "Please accept the terms of service";
-    return;
+    errorMessage.value = 'Please accept the terms of service'
+    return
   }
 
-  loading.value = true;
-  errorMessage.value = "";
+  loading.value = true
+  errorMessage.value = ''
 
   try {
-    const result = await register(email.value, username.value, password.value);
-    if (result.status === "success") {
-      errorMessage.value = "Registration successful! Please login.";
-      isRegister.value = false;
+    const result = await register(email.value, username.value, password.value)
+    if (result.status === 'success') {
+      errorMessage.value = 'Registration successful! Please login.'
+      isRegister.value = false
       // Clear password fields
-      password.value = "";
-      confirmPassword.value = "";
+      password.value = ''
+      confirmPassword.value = ''
     } else {
-      errorMessage.value = result.message || "Registration failed";
+      errorMessage.value = result.message || 'Registration failed'
     }
   } catch (error) {
-    errorMessage.value = `Error: ${error}`;
+    errorMessage.value = `Error: ${error}`
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 async function handleGuestLogin() {
-  loading.value = true;
-  errorMessage.value = "";
+  loading.value = true
+  errorMessage.value = ''
 
   try {
-    const result = await guestLogin();
-    if (result.status === "success") {
-      session.setUserToken("guest");
-      session.setUserId("guest");
-      await info("Guest login successful");
-      await router.push("/");
+    const result = await guestLogin()
+    if (result.status === 'success') {
+      session.setUserToken('guest')
+      session.setUserId('guest')
+      await info('Guest login successful')
+      await router.push('/')
     } else {
-      errorMessage.value = result.message || "Guest login failed";
+      errorMessage.value = result.message || 'Guest login failed'
     }
   } catch (error) {
-    errorMessage.value = `Error: ${error}`;
+    errorMessage.value = `Error: ${error}`
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 </script>
@@ -161,7 +161,7 @@ async function handleGuestLogin() {
           {{ errorMessage }}
         </p>
         <Button class="w-full my-4" type="submit" :disabled="loading">
-          {{ loading ? "Registering..." : "Register" }}
+          {{ loading ? 'Registering...' : 'Register' }}
         </Button>
       </Form>
     </div>
@@ -191,7 +191,7 @@ async function handleGuestLogin() {
           {{ errorMessage }}
         </p>
         <Button class="w-full my-4" type="submit" :disabled="loading">
-          {{ loading ? "Logging in..." : "Login" }}
+          {{ loading ? 'Logging in...' : 'Login' }}
         </Button>
       </Form>
     </div>
@@ -219,7 +219,7 @@ async function handleGuestLogin() {
       <Icon icon="tabler:arrow-right" class="w-4 h-4 mr-2" />
       {{
         isRegister
-          ? "Already have an account? Login"
+          ? 'Already have an account? Login'
           : "Don't have an account? Register"
       }}
     </Button>

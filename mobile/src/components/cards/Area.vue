@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Area } from "@/schema";
-import { toRefs } from "vue";
+import { Area } from '@/schema'
+import { toRefs } from 'vue'
 
 const props = defineProps<{
-  area: Area;
-}>();
+  area: Area
+}>()
 
-const { area } = toRefs(props);
+const { area } = toRefs(props)
 </script>
 
 <template>

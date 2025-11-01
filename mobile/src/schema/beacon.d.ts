@@ -1,19 +1,19 @@
 // Auto-generated from Rust schema: beacon.rs
 
 export interface ObjectId {
-  $oid: string;
+  $oid: string
 }
 
 export interface Beacon {
-  _id: ObjectId;
+  _id: ObjectId
   /** Reference to the Entity */
-  entity: ObjectId;
+  entity: ObjectId
   /** Reference to the Area where the beacon is located */
-  area: ObjectId;
+  area: ObjectId
   /** Optional reference to the Merchant associated with the beacon. */
-  merchant: ObjectId | null;
+  merchant: ObjectId | null
   /** Optional reference to the Connection associated with the beacon. */
-  connection: ObjectId | null;
+  connection: ObjectId | null
   /** The ssid of the beacon, typically used for display purposes in BLE scanning.
    * Format:
    * ```
@@ -23,19 +23,19 @@ export interface Beacon {
    * They are incremental value from 0 and, the area id uses 2-byte hex encoding,
    * whereas the beacon id uses 4-byte hex encoding.
    */
-  name: string;
+  name: string
   /** The displaying name of the beacon, which can be used for user-friendly identification.
    * This can be the name of the area, merchant, or a custom name.
    */
-  description: string | null;
+  description: string | null
   /** The type of the beacon, which can indicate its purpose or functionality. */
-  type: BeaconType;
+  type: BeaconType
   /** The location of the beacon, represented as a pair of coordinates (longitude, latitude). */
-  location: [number, number];
-  device: BeaconDevice;
+  location: [number, number]
+  device: BeaconDevice
 }
 
-export type BeaconDevice = "esp32" | "esp32c3" | "esp32s3" | "esp32c6";
+export type BeaconDevice = 'esp32' | 'esp32c3' | 'esp32s3' | 'esp32c6'
 
 /** Represents the type of beacon, which can indicate its purpose or functionality. */
-export type BeaconType = "navigation" | "marketing";
+export type BeaconType = 'navigation' | 'marketing'
