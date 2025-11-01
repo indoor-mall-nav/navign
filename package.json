@@ -61,5 +61,8 @@
 		"vue-tsc": "catalog:",
 		"vitepress": "^1.6.4"
 	},
+	"scripts": {
+		"ls-lint": "Echo \"ls-lint\" is too slow."
+	},
 	"packageManager": "pnpm@10.20.0"
 }
