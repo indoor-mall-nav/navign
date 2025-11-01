@@ -21,7 +21,6 @@ pub struct Entity {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-
     pub r#type: EntityType,
     pub name: String,
     pub description: Option<String>,
