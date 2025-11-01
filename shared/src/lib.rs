@@ -24,3 +24,6 @@ pub use ble::message::BleMessage;
 pub use ble::nonce::Nonce;
 pub use ble::proof::Proof;
 pub use traits::{depacketize::Depacketize, packetize::Packetize};
+
+#[cfg(all(feature = "serde", feature = "alloc"))]
+pub use schema::ReadQuery;
