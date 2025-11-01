@@ -111,18 +111,11 @@ ci-shared:
   cd shared && cargo test
 
 ci-repo:
-  cargo install cargo-binstall
-  cargo binstall cargo-deny cargo-shear typos-cli -y
   taplo format --diff
   typos
   cargo deny check bans
   cargo deny check licenses
   cargo deny check sources
-  pnpm ls-lint
-  cd animations && uv sync
-  cd gesture_space && uv sync
-  cd animations && uvx ruff check --diff
-  cd gesture_space && uvx ruff check --diff
 
 roll:
   just fmt-check

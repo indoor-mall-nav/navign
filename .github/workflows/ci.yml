@@ -34,6 +34,10 @@ jobs:
         if: matrix.runs-for == 'repo'
       - name: Setup Taplo
         uses: uncenter/setup-taplo@v1.0.8
+      - name: Setup Typos
+        uses: crate-ci/typos@v1.39.0
+      - name: Setup Cargo Deny
+        uses: EmbarkStudios/cargo-deny-action@v2.0.13
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
