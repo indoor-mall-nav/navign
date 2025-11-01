@@ -9,6 +9,15 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "mongodb")]
 use bson::oid::ObjectId;
 
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use bson::serde_helpers::object_id::AsHexString;
+
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use serde_with::serde_as;
+
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use super::utils::{deserialize_connected_areas, serialize_connected_areas};
+
 use core::fmt::Display;
 
 /// ConnectedArea type for MongoDB
@@ -21,16 +30,19 @@ pub type ConnectedArea = (String, f64, f64, bool);
 
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Connection {
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
     #[cfg(feature = "mongodb")]
+    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
+    #[serde_as(as = "AsHexString")]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
+    #[serde_as(as = "AsHexString")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
@@ -38,6 +50,13 @@ pub struct Connection {
     pub description: Option<String>,
     pub r#type: ConnectionType,
     /// List of Area IDs that this connection links
+    #[cfg_attr(
+        all(feature = "mongodb", feature = "serde"),
+        serde(
+            serialize_with = "serialize_connected_areas",
+            deserialize_with = "deserialize_connected_areas"
+        )
+    )]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,

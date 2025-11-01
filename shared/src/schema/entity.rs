@@ -9,14 +9,22 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "mongodb")]
 use bson::oid::ObjectId;
 
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use bson::serde_helpers::object_id::AsHexString;
+
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use serde_with::serde_as;
+
 use core::fmt::Display;
 
 /// Entity schema - represents a physical building or complex (mall, hospital, etc.)
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Entity {
     #[cfg_attr(feature = "serde", serde(rename = "_id"))]
+    #[serde_as(as = "AsHexString")]
     #[cfg(feature = "mongodb")]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
