@@ -109,7 +109,7 @@ ci-server:
 ci-beacon:
   cd beacon && cargo check --release
   cd beacon && cargo fmt -- --check
-  cd beacon && cargo clippy -- -D warnings
+  cd beacon && cargo clippy --release -- -D warnings
   # cd beacon && cargo test --release
   echo "No tests for beacons yet..."
 
@@ -129,7 +129,7 @@ ci-shared:
   cd shared && cargo check --features heapless --features serde --features crypto --no-default-features
   cd shared && cargo check --features base64 --features alloc --features serde --features crypto --no-default-features
   cd shared && cargo fmt -- --check
-  cd shared && cargo clippy
+  cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features
   cd shared && cargo clippy --features alloc --no-default-features
   cd shared && cargo clippy --features heapless --features serde --features crypto --no-default-features

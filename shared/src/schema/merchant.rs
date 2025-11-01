@@ -35,10 +35,6 @@ pub struct Merchant {
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
-<<<<<<< HEAD
-=======
-
->>>>>>> a9ca819 (chore: format)
     pub r#type: MerchantType,
     pub color: Option<String>,
     pub tags: Vec<String>,
