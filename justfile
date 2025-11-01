@@ -137,6 +137,8 @@ ci-shared:
   cd shared && cargo test
 
 ci-repo:
+  cargo install cargo-binstall
+  cargo binstall cargo-deny cargo-shear typos-cli -y
   taplo format --diff
   typos
   cargo deny check bans
