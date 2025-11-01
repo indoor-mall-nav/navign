@@ -114,6 +114,8 @@ ci-beacon:
   echo "No tests for beacons yet..."
 
 ci-mobile:
+  corepack enable
+  pnpm install
   cd mobile && just check
   cd mobile && just fmt-check
   cd mobile && just lint
@@ -145,6 +147,8 @@ ci-repo:
   cargo deny check licenses
   cargo deny check sources
   pnpm ls-lint
+  cd animations && uv sync
+  cd gesture_space && uv sync
   cd animations && uvx ruff check --diff
   cd gesture_space && uvx ruff check --diff
 
