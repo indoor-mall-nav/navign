@@ -6,23 +6,15 @@ init:
   pnpm install
   cd animations && uv sync
   cd gesture_space && uv sync
-  cd shared && cargo build
-  cd beacon && cargo build --release
-  cd mobile/src-tauri && cargo build
-  cd server && cargo build
-  cd maintenance-tool && cargo build
+  cargo check
 
 fmt:
   taplo format
   cd animations && uvx ruff format
   cd gesture_space && uvx ruff format
-  cd shared && cargo fmt
-  cd beacon && cargo fmt
   pnpm run --filter mobile format
-  cd mobile/src-tauri && cargo fmt
-  cd server && cargo fmt
-  cd maintenance-tool && cargo fmt
   pnpm run --filter ts-schema format
+  cargo fmt
 
 lint:
   taplo lint
