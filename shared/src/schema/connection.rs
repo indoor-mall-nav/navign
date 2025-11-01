@@ -29,11 +29,19 @@ pub struct Connection {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9ca819 (chore: format)
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9ca819 (chore: format)
     pub name: String,
     pub description: Option<String>,
     pub r#type: ConnectionType,
