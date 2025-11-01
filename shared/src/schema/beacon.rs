@@ -16,31 +16,26 @@ pub struct Beacon {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-
     /// Reference to the Area where the beacon is located
     #[cfg(feature = "mongodb")]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
-
     /// Optional reference to the Merchant associated with the beacon.
     #[cfg(feature = "mongodb")]
     pub merchant: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub merchant: Option<String>,
-
     /// Optional reference to the Connection associated with the beacon.
     #[cfg(feature = "mongodb")]
     pub connection: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub connection: Option<String>,
-
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     pub name: String,
     /// The displaying name of the beacon, which can be used for user-friendly identification.

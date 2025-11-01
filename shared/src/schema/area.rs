@@ -21,12 +21,10 @@ pub struct Area {
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
-
     #[cfg(feature = "mongodb")]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
-
     pub name: String,
     pub description: Option<String>,
     /// Unique identifier for the area for displaying in the beacon name.
