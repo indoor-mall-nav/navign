@@ -31,7 +31,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-        if: matrix.runs-for == 'misc'
+        if: matrix.runs-for == 'repo'
       - name: Setup Taplo
         uses: uncenter/setup-taplo@v1.0.8
       - name: Use Node.js ${{ matrix.node-version }}
@@ -55,8 +55,8 @@ jobs:
           libayatana-appindicator3-dev \
           webkit2gtk-driver \
           xvfb
-      - name: Misc dependencies
-        if: matrix.runs-for == 'misc'
+      - name: Repo dependencies
+        if: matrix.runs-for == 'repo'
         run: |
           sudo apt-get update &&
           sudo apt-get install -y \
