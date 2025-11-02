@@ -38,7 +38,7 @@ layout: two-cols
 
 <v-clicks>
 
-## 🇨🇳 China's Challenge
+## China's Challenge
 
 - **17.31 million** visually impaired people
 - Only **~400 guide dogs** nationwide
@@ -51,7 +51,7 @@ layout: two-cols
 
 <v-clicks>
 
-## 🏢 Indoor Navigation Challenges
+## Indoor Navigation Challenges
 
 **Complex indoor environments:**
 - Weak GPS signals
@@ -59,10 +59,10 @@ layout: two-cols
 - Dynamic obstacles
 
 **Current solutions fall short:**
-- ❌ UWB: Too expensive
-- ❌ Delivery robots: $50k+, unstable
-- ❌ Dog robots: Weak pulling power
-- ❌ Can't navigate crowds
+- UWB: Too expensive
+- Delivery robots: $50k+, unstable
+- Dog robots: Weak pulling power
+- Can't navigate crowds
 
 </v-clicks>
 
@@ -75,17 +75,17 @@ class: text-center
 
 <v-clicks>
 
-## 🎯 Camera Pipeline for Environment Understanding
+## Camera Pipeline for Environment Understanding
 
 A comprehensive spatial interaction system combining:
 
 **AprilTag Pose Estimation** • **YOLOv12 Detection** • **3D Transformation** • **Voice Control** • **BLE Positioning**
 
 ### Key Capabilities
-- 📍 Camera position: **~2cm** accuracy
-- 🎯 Object localization: **~5cm** accuracy  
-- 🗺️ BLE indoor positioning: **<2m** accuracy
-- 🤖 Real-time 3D environment mapping
+- Camera position: **~2cm** accuracy
+- Object localization: **~5cm** accuracy  
+- BLE indoor positioning: **<2m** accuracy
+- Real-time 3D environment mapping
 
 </v-clicks>
 
@@ -245,8 +245,8 @@ graph LR
 5. **Text-to-speech** audio feedback
 
 ### Multimodal Integration
-- 🗣️ "Show me the bottle" + 👉 finger pointing to location
-- 🗣️ "Bring me that object" → identifies via YOLO + locates in 3D
+- "Show me the bottle" + finger pointing to location
+- "Bring me that object" → identifies via YOLO + locates in 3D
 - Voice + Vision + Spatial Understanding = Natural interaction
 
 </v-clicks>
@@ -295,10 +295,10 @@ layout: two-cols
 ### Hardware
 - **ESP32-C3** microcontrollers
 - Four beacon types:
-  - 🏪 Merchant
-  - 🛤️ Pathway
-  - 🔗 Connection
-  - 🚪 Turnstile
+  - Merchant
+  - Pathway
+  - Connection
+  - Turnstile
 
 ### Positioning
 - **RSSI-based triangulation**
@@ -314,11 +314,11 @@ layout: two-cols
 # Security
 
 ### Cryptographic Protection
-- ✅ **P-256 ECDSA** signatures
-- ✅ **TOTP** authentication
-- ✅ **Nonce-based** challenge-response
-- ✅ Replay attack prevention
-- ✅ Hardware key storage (ESP32 efuse)
+- **P-256 ECDSA** signatures
+- **TOTP** authentication
+- **Nonce-based** challenge-response
+- Replay attack prevention
+- Hardware key storage (ESP32 efuse)
 
 ### Access Control
 - Door unlocking via mobile app
@@ -368,12 +368,12 @@ layout: section
 
 ### Upper Layer (Raspberry Pi / Jetson Nano)
 - **ROS2 core** for coordination
-- **GestureSpace runs here** 🎯
+- **GestureSpace runs here**
 - 6 subsystems: Vision, Audio, Bluetooth, Navign, Tasks, Serial
 
 ### Lower Layer (STM32 + Embassy Rust)
 - Real-time motor control
-- **12-DOF** servo management (3 per leg × 4 legs)
+- **Wheel-based robot** drive control
 - Hardware abstraction layer
 - Emergency stop & safety systems
 
@@ -386,9 +386,9 @@ layout: section
 <v-clicks>
 
 ### Camera Pipeline Control
-- 👁️ **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
-- 👉 **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
-- 🗣️ **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
+- **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
+- **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
+- **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
 
 ### Autonomous Navigation
 - BLE positioning from Navign beacons
@@ -396,9 +396,9 @@ layout: section
 - Obstacle avoidance using object detection
 
 ### Multimodal Feedback
-- 🔊 Audio confirmation of commands
-- 💡 Visual LED indicators on robot
-- 📱 Real-time status updates to mobile app
+- Audio confirmation of commands
+- Visual LED indicators on robot
+- Real-time status updates to mobile app
 
 </v-clicks>
 
@@ -431,13 +431,13 @@ layout: section
 
 <v-clicks>
 
-### Guide Mode for Visually Impaired 🦮
+### Guide Mode for Visually Impaired
 - Robot acts as **robotic guide dog**
 - Voice-guided navigation
 - Obstacle detection and warning
 - Physical guidance via haptic handle (future)
 
-### Delivery Mode 📦
+### Delivery Mode
 - Item transport in cargo bay
 - Autonomous navigation to destination
 - Secure delivery confirmation via app
@@ -459,7 +459,7 @@ class: text-center
 
 ```mermaid
 graph TB
-    A[User] -->|Voice + Gesture| B[GestureSpace]
+    A[User] -->|Voice + Pointing| B[GestureSpace]
     B -->|Vision AI| C[Hand & Object Detection]
     B -->|3D Localization| D[Camera Pose Estimation]
     B -->|Indoor Position| E[Navign BLE System]
@@ -478,12 +478,12 @@ layout: two-cols
 
 <v-clicks>
 
-### 🎯 Three Pillars
+### Three Pillars
 1. **GestureSpace**: Camera pipeline for spatial understanding
 2. **Navign**: BLE indoor positioning & security
 3. **Integrated Robot**: Autonomous assistance & delivery
 
-### 💡 Impact
+### Impact
 - Empowering **17.31M** visually impaired people
 - **~2cm** camera pose, **~5cm** object localization
 - Cost-effective BLE solution
@@ -495,7 +495,7 @@ layout: two-cols
 
 <v-clicks>
 
-### 🛠️ Technology Stack
+### Technology Stack
 
 **Languages:**
 - Rust (backend/embedded)
