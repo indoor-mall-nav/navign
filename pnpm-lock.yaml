@@ -360,6 +360,9 @@ importers:
       clsx:
         specifier: 'catalog:'
         version: 2.1.1
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 0.4.0
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.3.1

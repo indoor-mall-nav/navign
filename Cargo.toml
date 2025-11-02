@@ -8,6 +8,7 @@ members = [
   "maintenance-tool",
   "shared",
   "ts-schema",
+  "admin/orchestrator",
 ]
 
 # Exclude members from default workspace builds if needed
