@@ -1,4 +1,3 @@
-/* oxlint-disable */
 // Comprehensive unit tests for Tauri API integration
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
