@@ -103,50 +103,59 @@ layout: section
 
 <v-clicks>
 
-### Technology Stack
-- **AprilTag Detection**: `tag36h11` family markers at known positions
-- **PnP Solving**: solvePnP algorithm for camera pose
-- **Camera Calibration**: Intrinsic parameters from chessboard calibration
+### Core Concept: Mapping Between Coordinate Spaces
+**Goal**: Find where the camera (robot) is in the real world by observing known landmarks (AprilTags)
 
-### How It Works
-1. Detect AprilTags in camera frame (8 tags at known world positions)
-2. Extract 2D image corners and match to 3D world coordinates
-3. Solve PnP problem: Find camera rotation (R) and translation (t)
-4. Achieve ~2cm camera position accuracy
+### Step 1: Camera Calibration - Getting Camera Parameters
+Use chessboard patterns to find intrinsic matrix $K$ and distortion coefficients:
+$$
+K = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}
+$$
+- $f_x, f_y$: focal lengths (how much camera zooms)
+- $c_x, c_y$: principal point (image center offset)
+- Corrects lens distortion for accurate measurements
 
-### Applications
-- Precise robot localization in indoor space
-- Foundation for 3D point reconstruction
-- Integration with BLE positioning for map alignment
+### Step 2: PnP (Perspective-n-Point) - Finding Camera Pose
+Given: 8 AprilTags at **known world positions** $(X_i, Y_i, Z_i)$ and their **detected image positions** $(u_i, v_i)$
+
+Find: Camera rotation $R$ and translation $t$ that best explains the projection:
+$$
+s \begin{bmatrix} u_i \\ v_i \\ 1 \end{bmatrix} = K [R | t] \begin{bmatrix} X_i \\ Y_i \\ Z_i \\ 1 \end{bmatrix}
+$$
+
+Camera position in world: $\mathbf{C} = -R^T t$ → Robot knows where it is! (~2cm accuracy)
 
 </v-clicks>
 
 ---
 
-# 2. 3D Point Transformation Pipeline
+# 2. Mapping Objects from Image to Real World
 
 <v-clicks>
 
-### Transform 2D Image to 3D World Coordinates
+### Core Concept: How to Find Object's Real World Position
+**Given**: Object at image pixel $(u, v)$ and camera pose $[R | t]$ from PnP
 
-```python
-# 1. Undistort image points using camera intrinsics
-norm = cv2.undistortPoints(point_2d, K, dist)
-x, y = norm[0][0]
-ray_cam = np.array([x, y, 1.0])
+**Problem**: A 2D pixel could correspond to any point along a 3D ray in space!
 
-# 2. Transform ray to world coordinates using camera pose
-ray_world = R_world @ ray_cam.T
-ray_world /= np.linalg.norm(ray_world)
+### The Transformation Pipeline
 
-# 3. Intersect ray with ground plane (Z = Z0)
-s = (Z0 - camera_pos[2]) / ray_world[2]
-point_3d = camera_pos + s * ray_world
-```
+**Step 1: Image → Camera Ray** (Reverse projection using $K$)
+$$
+\begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} \quad \text{(normalized camera coords)}
+$$
 
-### Precision
-- Object localization: **~5cm** accuracy on ground plane
-- Enables spatial understanding of environment
+**Step 2: Camera Ray → World Ray** (Using camera pose $R$)
+$$
+\mathbf{ray}_{world} = R \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}, \quad \text{normalize to unit vector}
+$$
+
+**Step 3: Ray-Plane Intersection** (Assume object on ground $Z = Z_0$)
+$$
+\mathbf{P}_{world} = \mathbf{C} + s \cdot \mathbf{ray}_{world}, \quad s = \frac{Z_0 - C_z}{ray_z}
+$$
+
+**Result**: Object's real world coordinates $(X, Y, Z_0)$ with ~5cm accuracy!
 
 </v-clicks>
 
