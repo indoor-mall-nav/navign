@@ -115,6 +115,12 @@ $$
 - $c_x, c_y$: principal point (image center offset)
 - Corrects lens distortion for accurate measurements
 
+</v-clicks>
+
+---
+
+<v-clicks>
+
 ### Step 2: PnP (Perspective-n-Point) - Finding Camera Pose
 Given: 8 AprilTags at **known world positions** $(X_i, Y_i, Z_i)$ and their **detected image positions** $(u_i, v_i)$
 
@@ -144,6 +150,12 @@ Camera position in world: $\mathbf{C} = -R^T t$ → Robot knows where it is! (~2
 $$
 \begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} \quad \text{(normalized camera coords)}
 $$
+
+</v-clicks>
+
+---
+
+<v-clicks>
 
 **Step 2: Camera Ray → World Ray** (Using camera pose $R$)
 $$

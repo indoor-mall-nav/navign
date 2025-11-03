@@ -115,6 +115,12 @@ $$
 - $c_x, c_y$：主点（图像中心偏移）
 - 校正镜头畸变以实现精确测量
 
+</v-clicks>
+
+---
+
+<v-clicks>
+
 ### 步骤2：PnP（透视n点问题）- 求解相机位姿
 已知：8个AprilTags的**已知世界位置** $(X_i, Y_i, Z_i)$ 和它们的**检测图像位置** $(u_i, v_i)$
 
@@ -144,6 +150,12 @@ $$
 $$
 \begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} \quad \text{（归一化相机坐标）}
 $$
+
+</v-clicks>
+
+---
+
+<v-clicks>
 
 **步骤2：相机射线 → 世界射线**（使用相机位姿 $R$）
 $$
@@ -519,8 +531,6 @@ layout: end
 ---
 
 # 谢谢！
-
-## 有问题吗？
 
 **GestureSpace** - 让所有人都能享受无障碍的室内导航
 
