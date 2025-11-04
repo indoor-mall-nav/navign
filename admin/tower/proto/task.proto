@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "github.com/indoor-mall-nav/navign/admin/tower/proto/task";
+
+// TaskType defines the type of task to be executed
+enum TaskType {
+  TASK_TYPE_UNSPECIFIED = 0;
+  TASK_TYPE_DELIVERY = 1;
+  TASK_TYPE_PATROL = 2;
+  TASK_TYPE_RETURN_HOME = 3;
+  TASK_TYPE_EMERGENCY = 4;
+}
+
+// Priority level for task execution
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_LOW = 1;
+  PRIORITY_NORMAL = 2;
+  PRIORITY_HIGH = 3;
+  PRIORITY_URGENT = 4;
+}
+
+// Location represents a point with coordinates
+message Location {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  string floor = 4;
+}
+
+// Task represents a work item to be assigned to a robot
+message Task {
+  string id = 1;
+  TaskType type = 2;
+  repeated Location sources = 3;  // Starting locations
+  repeated Location terminals = 4;  // Destination locations
+  Priority priority = 5;
+  int64 created_at = 6;  // Unix timestamp
+  string entity_id = 7;  // Entity/mall identifier
+  map<string, string> metadata = 8;  // Additional task parameters
+}
+
+// TaskRequest is sent from the Rust orchestrator to assign a task
+message TaskRequest {
+  Task task = 1;
+}
+
+// TaskResponse acknowledges task receipt and assignment
+message TaskResponse {
+  bool accepted = 1;
+  string robot_id = 2;  // ID of robot assigned to task
+  string message = 3;
+  int64 estimated_completion_time = 4;  // Unix timestamp
+}
+
+// RobotStatus represents the current state of a robot
+enum RobotState {
+  ROBOT_STATE_UNSPECIFIED = 0;
+  ROBOT_STATE_IDLE = 1;
+  ROBOT_STATE_BUSY = 2;
+  ROBOT_STATE_CHARGING = 3;
+  ROBOT_STATE_ERROR = 4;
+  ROBOT_STATE_OFFLINE = 5;
+}
+
+// RobotInfo contains robot identification and status
+message RobotInfo {
+  string id = 1;
+  string name = 2;
+  RobotState state = 3;
+  Location current_location = 4;
+  double battery_level = 5;  // Percentage 0-100
+  string current_task_id = 6;
+  int64 last_seen = 7;  // Unix timestamp
+  string entity_id = 8;
+}
+
+// RobotDistributionRequest asks for current robot status
+message RobotDistributionRequest {
+  string entity_id = 1;
+}
+
+// RobotDistributionResponse returns information about all robots
+message RobotDistributionResponse {
+  repeated RobotInfo robots = 1;
+  int32 total_count = 2;
+  int32 idle_count = 3;
+  int32 busy_count = 4;
+}
+
+// TaskScheduler service handles task assignment from orchestrator
+service TaskScheduler {
+  // SubmitTask is called by the Rust orchestrator to submit a new task
+  rpc SubmitTask(TaskRequest) returns (TaskResponse);
+  
+  // GetRobotDistribution returns current robot status
+  rpc GetRobotDistribution(RobotDistributionRequest) returns (RobotDistributionResponse);
+}
