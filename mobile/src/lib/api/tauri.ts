@@ -59,6 +59,7 @@ export interface MapData {
 
 export interface MapBeacon {
   id: string
+  area: string
   name: string
   location: [number, number]
   type: string
@@ -225,6 +226,8 @@ export interface AreaDetails {
     name: number
   } | null
   polygon: [number, number][]
+  created_at: number
+  updated_at: number
 }
 
 export async function getAreaDetails(
@@ -260,6 +263,8 @@ export interface MerchantDetails {
     handle: string
     url?: string
   }> | null
+  created_at: number
+  updated_at: number
 }
 
 export async function getMerchantDetails(

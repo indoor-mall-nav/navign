@@ -23,6 +23,7 @@ pub struct MapArea {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapBeacon {
     pub id: String,
+    pub area: String,
     pub name: String,
     pub location: (f64, f64),
     pub r#type: String,
@@ -177,6 +178,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .into_iter()
         .map(|b| MapBeacon {
             id: b.id, // Already a String
+            area: b.area,
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -724,12 +726,14 @@ mod tests {
             beacons: vec![
                 MapBeacon {
                     id: "beacon1".to_string(),
+                    area: "test_area".to_string(),
                     name: "Beacon 1".to_string(),
                     location: (50.0, 50.0),
                     r#type: "navigation".to_string(),
                 },
                 MapBeacon {
                     id: "beacon2".to_string(),
+                    area: "test_area".to_string(),
                     name: "Beacon 2".to_string(),
                     location: (75.0, 75.0),
                     r#type: "marketing".to_string(),
