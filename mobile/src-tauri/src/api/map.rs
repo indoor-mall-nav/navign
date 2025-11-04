@@ -2,10 +2,7 @@ use crate::api::page_results::PaginationResponse;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
-pub use navign_shared::{
-    Area, Beacon, BeaconDevice, BeaconType, ConnectionType, Floor, Merchant as SharedMerchant,
-    MerchantStyle, MerchantType, SocialMedia,
-};
+pub use navign_shared::{Area, Beacon, BeaconType, ConnectionType, Merchant as SharedMerchant};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqlitePool;

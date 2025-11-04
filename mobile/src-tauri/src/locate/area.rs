@@ -1,4 +1,4 @@
-use crate::api::map::AreaResponse;
+use crate::api::map::Area;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::str::FromStr;
@@ -35,15 +35,14 @@ fn coords_to_polygon(coords: &[(f64, f64)]) -> String {
     polygon.to_string()
 }
 
-impl From<AreaResponse> for ActiveArea {
-    fn from(area: AreaResponse) -> Self {
+impl From<Area> for ActiveArea {
+    fn from(area: Area) -> Self {
         Self {
             id: area.id,
             name: area.name,
             entity: area.entity,
             polygon: coords_to_polygon(area.polygon.as_slice()),
-            // TODO
-            updated_at: chrono::Utc::now().timestamp() as u64,
+            updated_at: area.updated_at as u64,
             stored_at: chrono::Utc::now().timestamp() as u64,
         }
     }

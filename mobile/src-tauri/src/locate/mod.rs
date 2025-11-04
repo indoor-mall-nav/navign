@@ -5,7 +5,7 @@ pub mod merchant;
 mod migration;
 pub(crate) mod scan;
 
-use crate::api::map::AreaResponse;
+use crate::api::map::Area;
 use crate::api::page_results::PaginationResponse;
 use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;
@@ -250,7 +250,7 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
     let client = reqwest::Client::new();
     let url = format!("{BASE_URL}api/entities/{entity}/areas/{area}");
     info!("Fetching area info from URL: {}", url);
-    let res: AreaResponse = client
+    let res: Area = client
         .get(&url)
         .send()
         .await
