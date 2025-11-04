@@ -2,7 +2,10 @@ use crate::api::page_results::PaginationResponse;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
-pub use navign_shared::{ConnectionType, Floor, MerchantStyle, MerchantType, SocialMedia};
+pub use navign_shared::{
+    Area, Beacon, BeaconDevice, BeaconType, ConnectionType, Floor, Merchant as SharedMerchant,
+    MerchantStyle, MerchantType, SocialMedia,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -26,7 +29,7 @@ pub struct MapBeacon {
     pub area: String,
     pub name: String,
     pub location: (f64, f64),
-    pub r#type: String,
+    pub r#type: BeaconType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,61 +41,8 @@ pub struct MapMerchant {
     pub tags: Vec<String>,
 }
 
-// API response types using shared types where possible
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AreaResponse {
-    #[serde(rename = "_id")]
-    pub id: String,
-    pub entity: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub beacon_code: String,
-    pub floor: Option<Floor>, // Using shared Floor type
-    pub polygon: Vec<(f64, f64)>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeaconResponse {
-    #[serde(rename = "_id")]
-    pub id: String,
-    pub entity: String,
-    pub area: String,
-    pub merchant: Option<String>,
-    pub connection: Option<String>,
-    pub name: String,
-    pub description: Option<String>,
-    pub r#type: String,
-    pub location: (f64, f64),
-    pub device: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-// API response for Merchant using shared types where possible
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MerchantResponse {
-    #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub chain: Option<String>,
-    pub entity: String,
-    pub beacon_code: String,
-    pub area: String,
-    pub location: (f64, f64),
-    pub polygon: Option<Vec<(f64, f64)>>,
-    pub tags: Vec<String>,
-    pub r#type: MerchantType, // Using shared MerchantType
-    pub style: MerchantStyle, // Using shared MerchantStyle
-    pub email: Option<String>,
-    pub phone: Option<String>,
-    pub website: Option<String>,
-    pub social_media: Option<Vec<SocialMedia>>, // Using shared SocialMedia
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+// Using shared types from navign_shared module
+// Area, Beacon, and SharedMerchant (aliased as SharedMerchant to avoid conflict with local Merchant)
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteRequest {
@@ -151,7 +101,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     // Fetch area data
     let area_url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
     trace!("Fetching area from URL: {}", area_url);
-    let area_response: AreaResponse = client
+    let area_response: Area = client
         .get(&area_url)
         .send()
         .await
@@ -168,7 +118,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     // Fetch beacons in the area
     let beacons_url = format!("{}/beacons", area_url);
     trace!("Fetching beacons from URL: {}", beacons_url);
-    let beacons_response: PaginationResponse<BeaconResponse> = client
+    let beacons_response: PaginationResponse<Beacon> = client
         .get(&beacons_url)
         .send()
         .await
@@ -183,7 +133,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id, // Already a String
+            id: b.id,
             area: b.area,
             name: b.name,
             location: b.location,
@@ -196,7 +146,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     // Fetch merchants in the area
     let merchants_url = format!("{}/merchants", area_url);
     trace!("Fetching merchants from URL: {}", merchants_url);
-    let merchants_response: PaginationResponse<MerchantResponse> = client
+    let merchants_response: PaginationResponse<SharedMerchant> = client
         .get(&merchants_url)
         .send()
         .await
@@ -211,7 +161,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id, // Already a String
+            id: m.id,
             name: m.name,
             location: m.location,
             polygon: m.polygon.unwrap_or_default(),
@@ -222,7 +172,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     Ok(MapArea {
-        id: area_response.id, // Already a String
+        id: area_response.id,
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
@@ -230,11 +180,11 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     })
 }
 
-pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantResponse>> {
+pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<SharedMerchant>> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/merchants?limit=1000", BASE_URL, entity);
     trace!("Fetching all merchants from URL: {}", url);
-    let response: PaginationResponse<MerchantResponse> = client
+    let response: PaginationResponse<SharedMerchant> = client
         .get(&url)
         .send()
         .await
@@ -245,11 +195,11 @@ pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantRespo
     Ok(response.data)
 }
 
-pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<AreaResponse>> {
+pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<Area>> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/areas?limit=1000", BASE_URL, entity);
     trace!("Fetching all areas from URL: {}", url);
-    let response: PaginationResponse<AreaResponse> = client
+    let response: PaginationResponse<Area> = client
         .get(&url)
         .send()
         .await
@@ -260,11 +210,11 @@ pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<AreaResponse>> {
     Ok(response.data)
 }
 
-pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<BeaconResponse>> {
+pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<Beacon>> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/beacons?limit=1000", BASE_URL, entity);
     trace!("Fetching all beacons from URL: {}", url);
-    let response: PaginationResponse<BeaconResponse> = client
+    let response: PaginationResponse<Beacon> = client
         .get(&url)
         .send()
         .await
@@ -276,12 +226,12 @@ pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<BeaconResponse>
 }
 
 /// Fetch detailed information for a specific area
-pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<AreaResponse> {
+pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<Area> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
     trace!("Fetching area details from URL: {}", url);
 
-    let response: AreaResponse = client
+    let response: Area = client
         .get(&url)
         .send()
         .await
@@ -297,12 +247,12 @@ pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<Area
 pub async fn fetch_merchant_details(
     entity: &str,
     merchant: &str,
-) -> anyhow::Result<MerchantResponse> {
+) -> anyhow::Result<SharedMerchant> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/merchants/{}", BASE_URL, entity, merchant);
     trace!("Fetching merchant details from URL: {}", url);
 
-    let response: MerchantResponse = client
+    let response: SharedMerchant = client
         .get(&url)
         .send()
         .await
@@ -735,14 +685,14 @@ mod tests {
                     area: "test_area".to_string(),
                     name: "Beacon 1".to_string(),
                     location: (50.0, 50.0),
-                    r#type: "navigation".to_string(),
+                    r#type: BeaconType::Navigation,
                 },
                 MapBeacon {
                     id: "beacon2".to_string(),
                     area: "test_area".to_string(),
                     name: "Beacon 2".to_string(),
                     location: (75.0, 75.0),
-                    r#type: "marketing".to_string(),
+                    r#type: BeaconType::Marketing,
                 },
             ],
             merchants: vec![],
