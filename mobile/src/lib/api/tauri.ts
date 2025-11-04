@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { info } from '@tauri-apps/plugin-log'
 import { Merchant } from '@/schema'
+import type { FloorType } from '@/schema'
 
 export interface ApiResponse<T = any> {
   status: 'success' | 'error'
@@ -59,6 +60,7 @@ export interface MapData {
 
 export interface MapBeacon {
   id: string
+  area: string
   name: string
   location: [number, number]
   type: string
@@ -112,6 +114,24 @@ export async function getAllMerchants(
   entity: string,
 ): Promise<ApiResponse<Merchant[]>> {
   const response = await invoke<string>('get_all_merchants_handler', {
+    entity,
+  })
+  return JSON.parse(response)
+}
+
+export async function getAllAreas(
+  entity: string,
+): Promise<ApiResponse<AreaDetails[]>> {
+  const response = await invoke<string>('get_all_areas_handler', {
+    entity,
+  })
+  return JSON.parse(response)
+}
+
+export async function getAllBeacons(
+  entity: string,
+): Promise<ApiResponse<MapBeacon[]>> {
+  const response = await invoke<string>('get_all_beacons_handler', {
     entity,
   })
   return JSON.parse(response)
@@ -203,10 +223,12 @@ export interface AreaDetails {
   description: string | null
   beacon_code: string
   floor: {
-    type: string
+    type: FloorType
     name: number
   } | null
   polygon: [number, number][]
+  created_at: number
+  updated_at: number
 }
 
 export async function getAreaDetails(
@@ -242,6 +264,8 @@ export interface MerchantDetails {
     handle: string
     url?: string
   }> | null
+  created_at: number
+  updated_at: number
 }
 
 export async function getMerchantDetails(

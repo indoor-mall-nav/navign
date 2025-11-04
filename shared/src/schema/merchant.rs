@@ -50,6 +50,8 @@ pub struct Merchant {
     pub phone: Option<String>,
     pub website: Option<String>,
     pub social_media: Option<Vec<SocialMedia>>,
+    pub created_at: i64, // Timestamp in milliseconds
+    pub updated_at: i64, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -294,6 +296,8 @@ pub mod mobile {
         pub phone: Option<String>,
         pub website: Option<String>,
         pub social_media: Option<String>, // JSON array
+        pub created_at: i64,
+        pub updated_at: i64,
     }
 
     impl MerchantMobile {
@@ -319,7 +323,9 @@ pub mod mobile {
                     email TEXT,
                     phone TEXT,
                     website TEXT,
-                    social_media TEXT
+                    social_media TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
                 )
                 "#,
             )
@@ -334,8 +340,9 @@ pub mod mobile {
                 r#"
                 INSERT OR REPLACE INTO merchants 
                 (id, name, description, chain, entity, beacon_code, area, type, color, tags, 
-                 location, style, polygon, available_period, email, phone, website, social_media)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 location, style, polygon, available_period, email, phone, website, social_media,
+                 created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&self.id)
@@ -356,6 +363,8 @@ pub mod mobile {
             .bind(&self.phone)
             .bind(&self.website)
             .bind(&self.social_media)
+            .bind(self.created_at)
+            .bind(self.updated_at)
             .execute(pool)
             .await?;
             Ok(())

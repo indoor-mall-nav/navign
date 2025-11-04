@@ -13,6 +13,8 @@ export interface Area {
   beacon_code: string
   floor: Floor | null
   polygon: [number, number][]
+  created_at: number // Timestamp in milliseconds
+  updated_at: number // Timestamp in milliseconds
 }
 
 export interface Floor {

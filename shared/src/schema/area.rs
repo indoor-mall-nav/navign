@@ -40,6 +40,8 @@ pub struct Area {
     pub beacon_code: String,
     pub floor: Option<Floor>,     // Floor number or name
     pub polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
+    pub created_at: i64,          // Timestamp in milliseconds
+    pub updated_at: i64,          // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -118,6 +120,8 @@ pub mod mobile {
         pub floor_name: Option<i32>,
         /// Stored as WKT POLYGON string
         pub polygon: String,
+        pub created_at: i64,
+        pub updated_at: i64,
     }
 
     impl AreaMobile {
@@ -151,7 +155,9 @@ pub mod mobile {
                     beacon_code TEXT NOT NULL,
                     floor_type TEXT,
                     floor_name INTEGER,
-                    polygon TEXT NOT NULL
+                    polygon TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
                 )
                 "#,
             )
@@ -164,8 +170,8 @@ pub mod mobile {
         pub async fn insert(&self, pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
             sqlx::query(
                 r#"
-                INSERT OR REPLACE INTO areas (id, entity, name, description, beacon_code, floor_type, floor_name, polygon)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO areas (id, entity, name, description, beacon_code, floor_type, floor_name, polygon, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&self.id)
@@ -176,6 +182,8 @@ pub mod mobile {
             .bind(&self.floor_type)
             .bind(self.floor_name)
             .bind(&self.polygon)
+            .bind(self.created_at)
+            .bind(self.updated_at)
             .execute(pool)
             .await?;
             Ok(())

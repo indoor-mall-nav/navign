@@ -33,6 +33,8 @@ export interface Beacon {
   /** The location of the beacon, represented as a pair of coordinates (longitude, latitude). */
   location: [number, number]
   device: BeaconDevice
+  created_at: number // Timestamp in milliseconds
+  updated_at: number // Timestamp in milliseconds
 }
 
 export type BeaconDevice = 'esp32' | 'esp32c3' | 'esp32s3' | 'esp32c6'
