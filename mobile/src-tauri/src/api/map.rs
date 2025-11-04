@@ -49,6 +49,8 @@ pub struct AreaResponse {
     pub beacon_code: String,
     pub floor: Option<Floor>, // Using shared Floor type
     pub polygon: Vec<(f64, f64)>,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +66,8 @@ pub struct BeaconResponse {
     pub r#type: String,
     pub location: (f64, f64),
     pub device: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 // API response for Merchant using shared types where possible
@@ -86,6 +90,8 @@ pub struct MerchantResponse {
     pub phone: Option<String>,
     pub website: Option<String>,
     pub social_media: Option<Vec<SocialMedia>>, // Using shared SocialMedia
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
