@@ -187,6 +187,114 @@ describe('Map APIs', () => {
     expect(result.status).toBe('success')
     expect(result.data).toHaveLength(2)
   })
+
+  it('should fetch area details successfully', async () => {
+    const mockAreaDetails = {
+      status: 'success',
+      data: {
+        _id: { $oid: 'area_123' },
+        entity: { $oid: 'entity_1' },
+        name: 'Main Hall',
+        description: 'The main entrance hall',
+        beacon_code: 'AREA001',
+        floor: { type: 'floor', name: 1 },
+        polygon: [
+          [0, 0],
+          [100, 0],
+          [100, 100],
+          [0, 100],
+        ],
+      },
+    }
+
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockAreaDetails))
+
+    const { getAreaDetails } = await import('./tauri')
+    const result = await getAreaDetails('entity_1', 'area_123')
+
+    expect(result.status).toBe('success')
+    expect(result.data?.name).toBe('Main Hall')
+    expect(result.data?.description).toBe('The main entrance hall')
+    expect(invoke).toHaveBeenCalledWith('get_area_details_handler', {
+      entity: 'entity_1',
+      area: 'area_123',
+    })
+  })
+
+  it('should fetch merchant details successfully', async () => {
+    const mockMerchantDetails = {
+      status: 'success',
+      data: {
+        _id: { $oid: 'merchant_456' },
+        name: 'Coffee Bean',
+        description: 'Premium coffee shop',
+        chain: 'Coffee Chain Co.',
+        entity: { $oid: 'entity_1' },
+        beacon_code: 'MERCH001',
+        area: { $oid: 'area_123' },
+        location: [25.5, 35.8],
+        polygon: null,
+        tags: ['food', 'coffee', 'cafe'],
+        type: { food: { cuisine: 'american', type: 'cafe' } },
+        style: 'store',
+        email: 'info@coffeebean.com',
+        phone: '+1234567890',
+        website: 'https://coffeebean.com',
+        social_media: [
+          {
+            platform: 'instagram',
+            handle: '@coffeebean',
+            url: 'https://instagram.com/coffeebean',
+          },
+        ],
+      },
+    }
+
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockMerchantDetails))
+
+    const { getMerchantDetails } = await import('./tauri')
+    const result = await getMerchantDetails('entity_1', 'merchant_456')
+
+    expect(result.status).toBe('success')
+    expect(result.data?.name).toBe('Coffee Bean')
+    expect(result.data?.description).toBe('Premium coffee shop')
+    expect(result.data?.email).toBe('info@coffeebean.com')
+    expect(result.data?.tags).toContain('coffee')
+    expect(invoke).toHaveBeenCalledWith('get_merchant_details_handler', {
+      entity: 'entity_1',
+      merchant: 'merchant_456',
+    })
+  })
+
+  it('should handle area details not found', async () => {
+    const mockErrorResponse = {
+      status: 'error',
+      message: 'Area not found',
+    }
+
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
+
+    const { getAreaDetails } = await import('./tauri')
+    const result = await getAreaDetails('entity_1', 'invalid_area')
+
+    expect(result.status).toBe('error')
+    expect(result.message).toBe('Area not found')
+  })
+
+  it('should handle merchant details not found', async () => {
+    const mockErrorResponse = {
+      status: 'error',
+      message: 'Merchant not found',
+    }
+
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
+
+    const { getMerchantDetails } = await import('./tauri')
+    const result = await getMerchantDetails('entity_1', 'invalid_merchant')
+
+    expect(result.status).toBe('error')
+    expect(result.message).toBe('Merchant not found')
+  })
 })
 
 describe('Location APIs', () => {

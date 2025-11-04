@@ -329,7 +329,7 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
         let (tx, ty) = transform(*x, *y);
         svg.push_str(&format!("{},{} ", tx, ty));
     }
-    svg.push_str(r##"" fill="#f0f0f0" stroke="#333" stroke-width="2"/>"##);
+    svg.push_str(r##"" fill="#f0f0f0" stroke="#333" stroke-width="2" style="cursor: pointer;"/>"##);
     svg.push_str("</g>");
 
     // Draw merchants
@@ -341,7 +341,7 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             let (tx, ty) = transform(*x, *y);
             svg.push_str(&format!("{},{} ", tx, ty));
         }
-        svg.push_str(r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5"/>"##);
+        svg.push_str(r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" style="cursor: pointer;"/>"##);
 
         // Add merchant label
         let (tx, ty) = transform(merchant.location.0, merchant.location.1);
