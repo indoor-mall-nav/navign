@@ -25,6 +25,8 @@ export interface Connection {
   /** List of `[start_time, end_time]` in milliseconds on a 24-hour clock */
   available_period: [number, number][]
   tags: string[]
+  created_at: number // Timestamp in milliseconds
+  updated_at: number // Timestamp in milliseconds
 }
 
 /** Represents the type of connection between areas or entities. */

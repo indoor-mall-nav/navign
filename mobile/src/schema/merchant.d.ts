@@ -44,6 +44,8 @@ export interface Merchant {
     handle: string // e.g., "@merchant" or "merchantPage"
     url?: string // Full URL to the social media page
   }[]
+  created_at: number // Timestamp in milliseconds
+  updated_at: number // Timestamp in milliseconds
 }
 
 export type MerchantType =
