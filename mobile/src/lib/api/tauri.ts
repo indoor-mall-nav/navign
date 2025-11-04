@@ -194,3 +194,63 @@ export async function getRoute(
   })
   return JSON.parse(response)
 }
+
+// Area Details API
+export interface AreaDetails {
+  _id: { $oid: string }
+  entity: { $oid: string }
+  name: string
+  description: string | null
+  beacon_code: string
+  floor: {
+    type: string
+    name: number
+  } | null
+  polygon: [number, number][]
+}
+
+export async function getAreaDetails(
+  entity: string,
+  area: string,
+): Promise<ApiResponse<AreaDetails>> {
+  const response = await invoke<string>('get_area_details_handler', {
+    entity,
+    area,
+  })
+  return JSON.parse(response)
+}
+
+// Merchant Details API
+export interface MerchantDetails {
+  _id: { $oid: string }
+  name: string
+  description: string | null
+  chain: string | null
+  entity: { $oid: string }
+  beacon_code: string
+  area: { $oid: string }
+  location: [number, number]
+  polygon: [number, number][] | null
+  tags: string[]
+  type: any
+  style: string | null
+  email: string | null
+  phone: string | null
+  website: string | null
+  social_media: Array<{
+    platform: string
+    handle: string
+    url?: string
+  }> | null
+}
+
+export async function getMerchantDetails(
+  entity: string,
+  merchant: string,
+): Promise<ApiResponse<MerchantDetails>> {
+  const response = await invoke<string>('get_merchant_details_handler', {
+    entity,
+    merchant,
+  })
+  return JSON.parse(response)
+}

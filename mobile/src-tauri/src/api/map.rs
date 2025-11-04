@@ -75,12 +75,19 @@ pub struct MerchantResponse {
     pub id: CustomizedObjectId,
     pub name: String,
     pub description: Option<String>,
+    pub chain: Option<String>,
     pub entity: CustomizedObjectId,
+    pub beacon_code: String,
     pub area: CustomizedObjectId,
     pub location: (f64, f64),
     pub polygon: Option<Vec<(f64, f64)>>,
     pub tags: Vec<String>,
     pub r#type: Value,
+    pub style: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub website: Option<String>,
+    pub social_media: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -250,6 +257,42 @@ pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantRespo
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse merchants: {}", e))?;
     Ok(response.data)
+}
+
+/// Fetch detailed information for a specific area
+pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<AreaResponse> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
+    trace!("Fetching area details from URL: {}", url);
+    
+    let response: AreaResponse = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch area details: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse area details: {}", e))?;
+    
+    Ok(response)
+}
+
+/// Fetch detailed information for a specific merchant
+pub async fn fetch_merchant_details(entity: &str, merchant: &str) -> anyhow::Result<MerchantResponse> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/merchants/{}", BASE_URL, entity, merchant);
+    trace!("Fetching merchant details from URL: {}", url);
+    
+    let response: MerchantResponse = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch merchant details: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse merchant details: {}", e))?;
+    
+    Ok(response)
 }
 
 /// Generate SVG map representation of the area
@@ -515,6 +558,54 @@ pub async fn get_route_handler(
             let result = json!({
                 "status": "success",
                 "data": route
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_area_details_handler(
+    _app: AppHandle,
+    entity: String,
+    area: String,
+) -> Result<String, String> {
+    match fetch_area_details(&entity, &area).await {
+        Ok(area_details) => {
+            let result = json!({
+                "status": "success",
+                "data": area_details
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_merchant_details_handler(
+    _app: AppHandle,
+    entity: String,
+    merchant: String,
+) -> Result<String, String> {
+    match fetch_merchant_details(&entity, &merchant).await {
+        Ok(merchant_details) => {
+            let result = json!({
+                "status": "success",
+                "data": merchant_details
             });
             Ok(result.to_string())
         }

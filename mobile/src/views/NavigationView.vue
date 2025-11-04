@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MapDisplay from '@/components/map/MapDisplay.vue'
 import NavigationPanel from '@/components/map/NavigationPanel.vue'
+import AreaDetailsDialog from '@/components/map/AreaDetailsDialog.vue'
+import MerchantDetailsDialog from '@/components/map/MerchantDetailsDialog.vue'
 import {
   getAllMerchants,
   getMapData,
@@ -37,6 +39,12 @@ const merchantsData = ref<Array<any>>([])
 
 // Layout state
 const showNavigationPanel = ref(true)
+
+// Dialog state
+const showAreaDialog = ref(false)
+const showMerchantDialog = ref(false)
+const selectedAreaId = ref<string | null>(null)
+const selectedMerchantId = ref<string | null>(null)
 
 async function loadMapData() {
   try {
@@ -110,6 +118,16 @@ function formatDistance(meters: number): string {
   }
 }
 
+function handleAreaClick(areaClickedId: string) {
+  selectedAreaId.value = areaClickedId
+  showAreaDialog.value = true
+}
+
+function handleMerchantClick(merchantClickedId: string) {
+  selectedMerchantId.value = merchantClickedId
+  showMerchantDialog.value = true
+}
+
 onMounted(() => {
   loadMapData()
 })
@@ -180,6 +198,8 @@ onMounted(() => {
             :route="currentRoute"
             :current-step="currentStep"
             :target-merchant-id="targetMerchantId"
+            @area-click="handleAreaClick"
+            @merchant-click="handleMerchantClick"
           />
 
           <!-- Quick Stats (below map on mobile) -->
@@ -335,6 +355,20 @@ onMounted(() => {
     >
       <Icon icon="mdi:navigation" class="w-6 h-6" />
     </Button>
+
+    <!-- Area Details Dialog -->
+    <AreaDetailsDialog
+      v-model:open="showAreaDialog"
+      :entity-id="entityId"
+      :area-id="selectedAreaId"
+    />
+
+    <!-- Merchant Details Dialog -->
+    <MerchantDetailsDialog
+      v-model:open="showMerchantDialog"
+      :entity-id="entityId"
+      :merchant-id="selectedMerchantId"
+    />
   </div>
 </template>
 
