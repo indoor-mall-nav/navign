@@ -28,6 +28,11 @@ const router = createRouter({
       name: 'navigation',
       component: () => import('../views/NavigationView.vue'),
     },
+    {
+      path: '/entity-details',
+      name: 'entity-details',
+      component: () => import('../views/EntityDetailsView.vue'),
+    },
   ],
 })
 

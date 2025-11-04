@@ -546,6 +546,14 @@ watch(
               <Icon icon="mdi:navigation" class="w-4 h-4 mr-2" />
               Start Navigation
             </Button>
+            <Button
+              variant="outline"
+              class="w-full justify-start"
+              @click="router.push('/entity-details')"
+            >
+              <Icon icon="mdi:office-building" class="w-4 h-4 mr-2" />
+              View All Areas
+            </Button>
             <Button variant="outline" class="w-full justify-start">
               <Icon icon="mdi:magnify" class="w-4 h-4 mr-2" />
               Search Merchants

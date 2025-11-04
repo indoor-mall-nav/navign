@@ -117,6 +117,24 @@ export async function getAllMerchants(
   return JSON.parse(response)
 }
 
+export async function getAllAreas(
+  entity: string,
+): Promise<ApiResponse<AreaDetails[]>> {
+  const response = await invoke<string>('get_all_areas_handler', {
+    entity,
+  })
+  return JSON.parse(response)
+}
+
+export async function getAllBeacons(
+  entity: string,
+): Promise<ApiResponse<MapBeacon[]>> {
+  const response = await invoke<string>('get_all_beacons_handler', {
+    entity,
+  })
+  return JSON.parse(response)
+}
+
 export async function generateSvgMap(
   entity: string,
   area: string,

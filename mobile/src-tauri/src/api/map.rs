@@ -237,6 +237,36 @@ pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantRespo
     Ok(response.data)
 }
 
+pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<AreaResponse>> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/areas?limit=1000", BASE_URL, entity);
+    trace!("Fetching all areas from URL: {}", url);
+    let response: PaginationResponse<AreaResponse> = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch areas: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse areas: {}", e))?;
+    Ok(response.data)
+}
+
+pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<BeaconResponse>> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/beacons?limit=1000", BASE_URL, entity);
+    trace!("Fetching all beacons from URL: {}", url);
+    let response: PaginationResponse<BeaconResponse> = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch beacons: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse beacons: {}", e))?;
+    Ok(response.data)
+}
+
 /// Fetch detailed information for a specific area
 pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<AreaResponse> {
     let client = reqwest::Client::new();
@@ -415,6 +445,46 @@ pub async fn get_all_merchants_handler(_app: AppHandle, entity: String) -> Resul
             let result = json!({
                 "status": "success",
                 "data": merchants
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_all_areas_handler(_app: AppHandle, entity: String) -> Result<String, String> {
+    match get_all_areas(&entity).await {
+        Ok(areas) => {
+            let result = json!({
+                "status": "success",
+                "data": areas
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_all_beacons_handler(_app: AppHandle, entity: String) -> Result<String, String> {
+    match get_all_beacons(&entity).await {
+        Ok(beacons) => {
+            let result = json!({
+                "status": "success",
+                "data": beacons
             });
             Ok(result.to_string())
         }
