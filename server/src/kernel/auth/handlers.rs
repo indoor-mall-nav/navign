@@ -11,6 +11,9 @@ use mongodb::Collection;
 use navign_shared::{AuthResponse, LoginRequest, RegisterRequest};
 use serde_json::json;
 
+/// Default device identifier for web-based authentication
+const DEFAULT_DEVICE: &str = "web";
+
 /// Register a new user
 pub async fn register_handler(
     State(state): State<AppState>,
@@ -81,11 +84,22 @@ pub async fn register_handler(
     // Insert user into database
     match collection.insert_one(&user).await {
         Ok(result) => {
-            let user_id = result.inserted_id.as_object_id().unwrap().to_hex();
+            let user_id = match result.inserted_id.as_object_id() {
+                Some(oid) => oid.to_hex(),
+                None => {
+                    error!("Inserted ID is not an ObjectId");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({
+                            "error": "Internal server error"
+                        })),
+                    );
+                }
+            };
             info!("User registered successfully: {}", user_id);
 
             // Generate JWT token using existing Token infrastructure
-            let token = Token::from((&user, "web".to_string()));
+            let token = Token::from((&user, DEFAULT_DEVICE.to_string()));
             let token_string = token.to_string();
 
             let response = AuthResponse {
@@ -154,7 +168,7 @@ pub async fn login_handler(
 
     // Generate JWT token using existing Token infrastructure
     let user_id = user.id.to_hex();
-    let token = Token::from((&user, "web".to_string()));
+    let token = Token::from((&user, DEFAULT_DEVICE.to_string()));
     let token_string = token.to_string();
 
     info!("User logged in successfully: {}", user_id);

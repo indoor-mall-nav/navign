@@ -8,11 +8,12 @@ use serde::{Deserialize, Serialize};
 use bson::oid::ObjectId;
 
 /// Account schema representing a user account in the system
-#[cfg(all(feature = "alloc", feature = "serde"))]
+/// Note: This schema is primarily for use with the mongodb feature.
+/// When mongodb feature is disabled, the id field is not available.
+#[cfg(all(feature = "alloc", feature = "serde", feature = "mongodb"))]
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Account {
-    #[cfg(feature = "mongodb")]
     #[serde(rename = "_id")]
     pub id: ObjectId,
     pub username: String,
