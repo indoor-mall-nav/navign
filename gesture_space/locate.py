@@ -104,14 +104,15 @@ def get_point_3d_place(
     R: np.ndarray,
 ):
     t_world, R_world = camera_pos, R
-    # Step 1: undistort & normalize
-    norm = cv2.undistortPoints(point, K, dist)
-    x, y = norm[0][0]
-    ray_cam = np.array([x, y, 1.0])
 
     if R_world is None or t_world is None:
         print("Camera pose not found.")
         return None
+    
+    # Step 1: undistort & normalize
+    norm = cv2.undistortPoints(point, K, dist)
+    x, y = norm[0][0]
+    ray_cam = np.array([x, y, 1.0])
 
     print(R_world, ray_cam)
 

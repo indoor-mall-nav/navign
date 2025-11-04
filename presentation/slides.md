@@ -38,7 +38,7 @@ layout: two-cols
 
 <v-clicks>
 
-## 🇨🇳 China's Challenge
+## China's Challenge
 
 - **17.31 million** visually impaired people
 - Only **~400 guide dogs** nationwide
@@ -51,7 +51,7 @@ layout: two-cols
 
 <v-clicks>
 
-## 🏢 Indoor Navigation Challenges
+## Indoor Navigation Challenges
 
 **Complex indoor environments:**
 - Weak GPS signals
@@ -59,10 +59,10 @@ layout: two-cols
 - Dynamic obstacles
 
 **Current solutions fall short:**
-- ❌ UWB: Too expensive
-- ❌ Delivery robots: $50k+, unstable
-- ❌ Dog robots: Weak pulling power
-- ❌ Can't navigate crowds
+- UWB: Too expensive
+- Delivery robots: $50k+, unstable
+- Dog robots: Weak pulling power
+- Can't navigate crowds
 
 </v-clicks>
 
@@ -75,17 +75,17 @@ class: text-center
 
 <v-clicks>
 
-## 🎯 Camera Pipeline for Environment Understanding
+## Camera Pipeline for Environment Understanding
 
 A comprehensive spatial interaction system combining:
 
 **AprilTag Pose Estimation** • **YOLOv12 Detection** • **3D Transformation** • **Voice Control** • **BLE Positioning**
 
 ### Key Capabilities
-- 📍 Camera position: **~2cm** accuracy
-- 🎯 Object localization: **~5cm** accuracy  
-- 🗺️ BLE indoor positioning: **<2m** accuracy
-- 🤖 Real-time 3D environment mapping
+- Camera position: **~2cm** accuracy
+- Object localization: **~5cm** accuracy  
+- BLE indoor positioning: **<2m** accuracy
+- Real-time 3D environment mapping
 
 </v-clicks>
 
@@ -103,50 +103,71 @@ layout: section
 
 <v-clicks>
 
-### Technology Stack
-- **AprilTag Detection**: `tag36h11` family markers at known positions
-- **PnP Solving**: solvePnP algorithm for camera pose
-- **Camera Calibration**: Intrinsic parameters from chessboard calibration
+### Core Concept: Mapping Between Coordinate Spaces
+**Goal**: Find where the camera (robot) is in the real world by observing known landmarks (AprilTags)
 
-### How It Works
-1. Detect AprilTags in camera frame (8 tags at known world positions)
-2. Extract 2D image corners and match to 3D world coordinates
-3. Solve PnP problem: Find camera rotation (R) and translation (t)
-4. Achieve ~2cm camera position accuracy
-
-### Applications
-- Precise robot localization in indoor space
-- Foundation for 3D point reconstruction
-- Integration with BLE positioning for map alignment
+### Step 1: Camera Calibration - Getting Camera Parameters
+Use chessboard patterns to find intrinsic matrix $K$ and distortion coefficients:
+$$
+K = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}
+$$
+- $f_x, f_y$: focal lengths (how much camera zooms)
+- $c_x, c_y$: principal point (image center offset)
+- Corrects lens distortion for accurate measurements
 
 </v-clicks>
 
 ---
 
-# 2. 3D Point Transformation Pipeline
+<v-clicks>
+
+### Step 2: PnP (Perspective-n-Point) - Finding Camera Pose
+Given: 8 AprilTags at **known world positions** $(X_i, Y_i, Z_i)$ and their **detected image positions** $(u_i, v_i)$
+
+Find: Camera rotation $R$ and translation $t$ that best explains the projection:
+$$
+s \begin{bmatrix} u_i \\ v_i \\ 1 \end{bmatrix} = K [R | t] \begin{bmatrix} X_i \\ Y_i \\ Z_i \\ 1 \end{bmatrix}
+$$
+
+Camera position in world: $\mathbf{C} = -R^T t$ → Robot knows where it is! (~2cm accuracy)
+
+</v-clicks>
+
+---
+
+# 2. Mapping Objects from Image to Real World
 
 <v-clicks>
 
-### Transform 2D Image to 3D World Coordinates
+### Core Concept: How to Find Object's Real World Position
+**Given**: Object at image pixel $(u, v)$ and camera pose $[R | t]$ from PnP
 
-```python
-# 1. Undistort image points using camera intrinsics
-norm = cv2.undistortPoints(point_2d, K, dist)
-x, y = norm[0][0]
-ray_cam = np.array([x, y, 1.0])
+**Problem**: A 2D pixel could correspond to any point along a 3D ray in space!
 
-# 2. Transform ray to world coordinates using camera pose
-ray_world = R_world @ ray_cam.T
-ray_world /= np.linalg.norm(ray_world)
+### The Transformation Pipeline
 
-# 3. Intersect ray with ground plane (Z = Z0)
-s = (Z0 - camera_pos[2]) / ray_world[2]
-point_3d = camera_pos + s * ray_world
-```
+**Step 1: Image → Camera Ray** (Reverse projection using $K$)
+$$
+\begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} \quad \text{(normalized camera coords)}
+$$
 
-### Precision
-- Object localization: **~5cm** accuracy on ground plane
-- Enables spatial understanding of environment
+</v-clicks>
+
+---
+
+<v-clicks>
+
+**Step 2: Camera Ray → World Ray** (Using camera pose $R$)
+$$
+\mathbf{ray}_{world} = R \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}, \quad \text{normalize to unit vector}
+$$
+
+**Step 3: Ray-Plane Intersection** (Assume object on ground $Z = Z_0$)
+$$
+\mathbf{P}_{world} = \mathbf{C} + s \cdot \mathbf{ray}_{world}, \quad s = \frac{Z_0 - C_z}{ray_z}
+$$
+
+**Result**: Object's real world coordinates $(X, Y, Z_0)$ with ~5cm accuracy!
 
 </v-clicks>
 
@@ -236,8 +257,8 @@ graph LR
 5. **Text-to-speech** audio feedback
 
 ### Multimodal Integration
-- 🗣️ "Show me the bottle" + 👉 finger pointing to location
-- 🗣️ "Bring me that object" → identifies via YOLO + locates in 3D
+- "Show me the bottle" + finger pointing to location
+- "Bring me that object" → identifies via YOLO + locates in 3D
 - Voice + Vision + Spatial Understanding = Natural interaction
 
 </v-clicks>
@@ -286,10 +307,10 @@ layout: two-cols
 ### Hardware
 - **ESP32-C3** microcontrollers
 - Four beacon types:
-  - 🏪 Merchant
-  - 🛤️ Pathway
-  - 🔗 Connection
-  - 🚪 Turnstile
+  - Merchant
+  - Pathway
+  - Connection
+  - Turnstile
 
 ### Positioning
 - **RSSI-based triangulation**
@@ -305,11 +326,11 @@ layout: two-cols
 # Security
 
 ### Cryptographic Protection
-- ✅ **P-256 ECDSA** signatures
-- ✅ **TOTP** authentication
-- ✅ **Nonce-based** challenge-response
-- ✅ Replay attack prevention
-- ✅ Hardware key storage (ESP32 efuse)
+- **P-256 ECDSA** signatures
+- **TOTP** authentication
+- **Nonce-based** challenge-response
+- Replay attack prevention
+- Hardware key storage (ESP32 efuse)
 
 ### Access Control
 - Door unlocking via mobile app
@@ -359,12 +380,12 @@ layout: section
 
 ### Upper Layer (Raspberry Pi / Jetson Nano)
 - **ROS2 core** for coordination
-- **GestureSpace runs here** 🎯
+- **GestureSpace runs here**
 - 6 subsystems: Vision, Audio, Bluetooth, Navign, Tasks, Serial
 
 ### Lower Layer (STM32 + Embassy Rust)
 - Real-time motor control
-- **12-DOF** servo management (3 per leg × 4 legs)
+- **Wheel-based robot** drive control
 - Hardware abstraction layer
 - Emergency stop & safety systems
 
@@ -377,9 +398,9 @@ layout: section
 <v-clicks>
 
 ### Camera Pipeline Control
-- 👁️ **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
-- 👉 **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
-- 🗣️ **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
+- **Object Recognition**: "Bring me the bottle" → YOLOv12 detection + 3D localization
+- **Finger Pointing**: Point to destination → 3D direction vector → Robot navigates
+- **Voice + Vision**: "Go there" + pointing → Combined spatial understanding
 
 ### Autonomous Navigation
 - BLE positioning from Navign beacons
@@ -387,9 +408,9 @@ layout: section
 - Obstacle avoidance using object detection
 
 ### Multimodal Feedback
-- 🔊 Audio confirmation of commands
-- 💡 Visual LED indicators on robot
-- 📱 Real-time status updates to mobile app
+- Audio confirmation of commands
+- Visual LED indicators on robot
+- Real-time status updates to mobile app
 
 </v-clicks>
 
@@ -422,13 +443,13 @@ layout: section
 
 <v-clicks>
 
-### Guide Mode for Visually Impaired 🦮
+### Guide Mode for Visually Impaired
 - Robot acts as **robotic guide dog**
 - Voice-guided navigation
 - Obstacle detection and warning
 - Physical guidance via haptic handle (future)
 
-### Delivery Mode 📦
+### Delivery Mode
 - Item transport in cargo bay
 - Autonomous navigation to destination
 - Secure delivery confirmation via app
@@ -450,7 +471,7 @@ class: text-center
 
 ```mermaid
 graph TB
-    A[User] -->|Voice + Gesture| B[GestureSpace]
+    A[User] -->|Voice + Pointing| B[GestureSpace]
     B -->|Vision AI| C[Hand & Object Detection]
     B -->|3D Localization| D[Camera Pose Estimation]
     B -->|Indoor Position| E[Navign BLE System]
@@ -469,12 +490,12 @@ layout: two-cols
 
 <v-clicks>
 
-### 🎯 Three Pillars
+### Three Pillars
 1. **GestureSpace**: Camera pipeline for spatial understanding
 2. **Navign**: BLE indoor positioning & security
 3. **Integrated Robot**: Autonomous assistance & delivery
 
-### 💡 Impact
+### Impact
 - Empowering **17.31M** visually impaired people
 - **~2cm** camera pose, **~5cm** object localization
 - Cost-effective BLE solution
@@ -486,7 +507,7 @@ layout: two-cols
 
 <v-clicks>
 
-### 🛠️ Technology Stack
+### Technology Stack
 
 **Languages:**
 - Rust (backend/embedded)

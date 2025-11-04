@@ -12,6 +12,11 @@ This directory contains a [Slidev](https://sli.dev/) presentation for the Gestur
 3. Navigation System - Navign Integration (1 minute)
 4. GestureSpace-Powered Robot (1.5 minutes)
 
+## 📄 Available Slides
+
+- **`slides.md`**: English version with mathematical formulas for PnP solving and camera calibration
+- **`slides-cn.md`**: Chinese version (中文版) with the same content
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -30,8 +35,14 @@ pnpm install
 
 Start the presentation in development mode with hot reload:
 
+**English version:**
 ```bash
 pnpm dev
+```
+
+**Chinese version:**
+```bash
+pnpm slidev slides-cn.md
 ```
 
 This will open the presentation at `http://localhost:3030`
@@ -40,8 +51,14 @@ This will open the presentation at `http://localhost:3030`
 
 Build the presentation for production:
 
+**English version:**
 ```bash
 pnpm build
+```
+
+**Chinese version:**
+```bash
+pnpm slidev build slides-cn.md
 ```
 
 The static files will be generated in the `dist` directory.
@@ -64,6 +81,7 @@ pnpm export --format png
 
 - **Interactive slides** with smooth transitions
 - **Code highlighting** with Shiki
+- **Mathematical formulas** with KaTeX for PnP solving and camera calibration
 - **Mermaid diagrams** for architecture visualization
 - **Click animations** (v-clicks) for progressive disclosure
 - **Two-column layouts** for comparisons
@@ -77,10 +95,13 @@ pnpm export --format png
 - Current solution limitations
 
 ### 2. GestureSpace Core Techniques
-- Hand Gesture Recognition (MediaPipe + CNN)
-- Finger Pointing Direction Detection
-- Object Detection (YOLOv8)
-- 3D Localization & Camera Pose Estimation
+- **Camera Pose Estimation with AprilTags** (with mathematical formulas)
+  - Camera calibration procedure (intrinsic matrix K, distortion coefficients)
+  - PnP (Perspective-n-Point) solving for camera pose estimation
+- **3D Point Transformation** (with mathematical formulas)
+  - Image-to-world coordinate mapping
+  - Ray-plane intersection for object localization
+- Object Detection (YOLOv12)
 - Voice Wake Word Detection (Porcupine)
 - Speech Recognition & Response
 
