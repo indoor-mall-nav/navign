@@ -58,6 +58,8 @@ pub struct Beacon {
     pub location: (f64, f64),
     pub device: BeaconDevice,
     pub mac: String,
+    pub created_at: i64, // Timestamp in milliseconds
+    pub updated_at: i64, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -110,6 +112,8 @@ pub mod mobile {
         pub location: String,
         pub device: String,
         pub mac: String,
+        pub created_at: i64,
+        pub updated_at: i64,
     }
 
     impl BeaconMobile {
@@ -150,7 +154,9 @@ pub mod mobile {
                     type TEXT NOT NULL,
                     location TEXT NOT NULL,
                     device TEXT NOT NULL,
-                    mac TEXT NOT NULL
+                    mac TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
                 )
                 "#,
             )
@@ -163,8 +169,8 @@ pub mod mobile {
         pub async fn insert(&self, pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
             sqlx::query(
                 r#"
-                INSERT OR REPLACE INTO beacons (id, entity, area, merchant, connection, name, description, type, location, device, mac)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO beacons (id, entity, area, merchant, connection, name, description, type, location, device, mac, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&self.id)
@@ -178,6 +184,8 @@ pub mod mobile {
             .bind(&self.location)
             .bind(&self.device)
             .bind(&self.mac)
+            .bind(self.created_at)
+            .bind(self.updated_at)
             .execute(pool)
             .await?;
             Ok(())

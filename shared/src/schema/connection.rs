@@ -62,6 +62,8 @@ pub struct Connection {
     pub available_period: Vec<(i32, i32)>,
     pub tags: Vec<String>,
     pub gnd: Option<(f64, f64)>, // Ground (x, y) coordinates if it connects to outside
+    pub created_at: i64,         // Timestamp in milliseconds
+    pub updated_at: i64,         // Timestamp in milliseconds
 }
 
 impl Connection {
@@ -124,6 +126,8 @@ pub mod mobile {
         pub tags: String, // JSON array
         pub gnd_x: Option<f64>,
         pub gnd_y: Option<f64>,
+        pub created_at: i64,
+        pub updated_at: i64,
     }
 
     impl ConnectionMobile {
@@ -153,7 +157,9 @@ pub mod mobile {
                     available_period TEXT NOT NULL,
                     tags TEXT NOT NULL,
                     gnd_x REAL,
-                    gnd_y REAL
+                    gnd_y REAL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
                 )
                 "#,
             )
@@ -167,8 +173,8 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 INSERT OR REPLACE INTO connections 
-                (id, entity, name, description, type, connected_areas, available_period, tags, gnd_x, gnd_y)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, entity, name, description, type, connected_areas, available_period, tags, gnd_x, gnd_y, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&self.id)
@@ -181,6 +187,8 @@ pub mod mobile {
             .bind(&self.tags)
             .bind(self.gnd_x)
             .bind(self.gnd_y)
+            .bind(self.created_at)
+            .bind(self.updated_at)
             .execute(pool)
             .await?;
             Ok(())
