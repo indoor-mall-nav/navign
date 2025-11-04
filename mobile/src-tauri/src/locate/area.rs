@@ -38,9 +38,9 @@ fn coords_to_polygon(coords: &[(f64, f64)]) -> String {
 impl From<AreaResponse> for ActiveArea {
     fn from(area: AreaResponse) -> Self {
         Self {
-            id: area.id.oid,
+            id: area.id,
             name: area.name,
-            entity: area.entity.oid,
+            entity: area.entity,
             polygon: coords_to_polygon(area.polygon.as_slice()),
             // TODO
             updated_at: chrono::Utc::now().timestamp() as u64,

@@ -1,7 +1,7 @@
 use crate::unlocker::Unlocker;
 use api::map::{
     generate_svg_map_handler, get_all_merchants_handler, get_area_details_handler,
-    get_merchant_details_handler, get_map_data_handler, get_route_handler,
+    get_map_data_handler, get_merchant_details_handler, get_route_handler,
     search_merchants_handler,
 };
 use locate::locate_handler;

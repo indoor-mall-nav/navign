@@ -217,7 +217,10 @@ function openLink(url: string) {
                   v-if="merchantDetails.email"
                   class="flex items-center gap-2"
                 >
-                  <Icon icon="mdi:email" class="w-4 h-4 text-muted-foreground" />
+                  <Icon
+                    icon="mdi:email"
+                    class="w-4 h-4 text-muted-foreground"
+                  />
                   <a
                     :href="`mailto:${merchantDetails.email}`"
                     class="text-sm text-primary hover:underline"
@@ -230,7 +233,10 @@ function openLink(url: string) {
                   v-if="merchantDetails.phone"
                   class="flex items-center gap-2"
                 >
-                  <Icon icon="mdi:phone" class="w-4 h-4 text-muted-foreground" />
+                  <Icon
+                    icon="mdi:phone"
+                    class="w-4 h-4 text-muted-foreground"
+                  />
                   <a
                     :href="`tel:${merchantDetails.phone}`"
                     class="text-sm text-primary hover:underline"

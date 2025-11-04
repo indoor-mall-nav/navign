@@ -2,7 +2,7 @@ use crate::api::page_results::PaginationResponse;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
-pub use navign_shared::{ConnectionType, Floor, FloorType, MerchantType, MerchantStyle, SocialMedia};
+pub use navign_shared::{ConnectionType, Floor, MerchantStyle, MerchantType, SocialMedia};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -80,7 +80,7 @@ pub struct MerchantResponse {
     pub polygon: Option<Vec<(f64, f64)>>,
     pub tags: Vec<String>,
     pub r#type: MerchantType, // Using shared MerchantType
-    pub style: MerchantStyle,  // Using shared MerchantStyle
+    pub style: MerchantStyle, // Using shared MerchantStyle
     pub email: Option<String>,
     pub phone: Option<String>,
     pub website: Option<String>,
@@ -242,7 +242,7 @@ pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<Area
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
     trace!("Fetching area details from URL: {}", url);
-    
+
     let response: AreaResponse = client
         .get(&url)
         .send()
@@ -251,16 +251,19 @@ pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<Area
         .json()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse area details: {}", e))?;
-    
+
     Ok(response)
 }
 
 /// Fetch detailed information for a specific merchant
-pub async fn fetch_merchant_details(entity: &str, merchant: &str) -> anyhow::Result<MerchantResponse> {
+pub async fn fetch_merchant_details(
+    entity: &str,
+    merchant: &str,
+) -> anyhow::Result<MerchantResponse> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/merchants/{}", BASE_URL, entity, merchant);
     trace!("Fetching merchant details from URL: {}", url);
-    
+
     let response: MerchantResponse = client
         .get(&url)
         .send()
@@ -269,7 +272,7 @@ pub async fn fetch_merchant_details(entity: &str, merchant: &str) -> anyhow::Res
         .json()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse merchant details: {}", e))?;
-    
+
     Ok(response)
 }
 
@@ -319,7 +322,9 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             let (tx, ty) = transform(*x, *y);
             svg.push_str(&format!("{},{} ", tx, ty));
         }
-        svg.push_str(r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" style="cursor: pointer;"/>"##);
+        svg.push_str(
+            r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" style="cursor: pointer;"/>"##,
+        );
 
         // Add merchant label
         let (tx, ty) = transform(merchant.location.0, merchant.location.1);

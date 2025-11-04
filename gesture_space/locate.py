@@ -108,7 +108,7 @@ def get_point_3d_place(
     if R_world is None or t_world is None:
         print("Camera pose not found.")
         return None
-    
+
     # Step 1: undistort & normalize
     norm = cv2.undistortPoints(point, K, dist)
     x, y = norm[0][0]
