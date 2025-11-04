@@ -129,6 +129,7 @@ impl RobotRegistry {
             .ok_or_else(|| "No suitable robot available".to_string())?;
 
         let robot_id = robot.id.clone();
+        let entity_id = robot.entity_id.clone();
 
         log::info!(
             "Assigning task {} to robot {} (Battery: {:.1}%)",
@@ -137,16 +138,16 @@ impl RobotRegistry {
             robot.battery_level
         );
 
-        // Send task to robot via task channel
+        // Send task to entity's tower via task channel
         let channels = self.task_channels.read().await;
-        if let Some(tx) = channels.get(&robot_id) {
+        if let Some(tx) = channels.get(&entity_id) {
             let assignment = TaskAssignment {
                 robot_id: robot_id.clone(),
                 task: Some(task.clone()),
             };
 
             if tx.send(Ok(assignment)).await.is_err() {
-                return Err(format!("Failed to send task to robot {}", robot_id));
+                return Err(format!("Failed to send task for entity {}", entity_id));
             }
 
             // Update robot state to busy
@@ -159,7 +160,7 @@ impl RobotRegistry {
 
             Ok(robot_id)
         } else {
-            Err(format!("Robot {} not connected", robot_id))
+            Err(format!("No tower connected for entity {}", entity_id))
         }
     }
 

@@ -2,6 +2,7 @@ package socket_server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -182,8 +183,7 @@ func (s *Server) SendTaskToRobot(robotID string, task *pb.Task) error {
 	})
 
 	if targetConn == nil {
-		log.Printf("Robot %s not found in active connections", robotID)
-		return nil
+		return fmt.Errorf("robot %s not found in active connections", robotID)
 	}
 
 	// Convert protobuf task to socket packet
