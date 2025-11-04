@@ -19,149 +19,157 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TaskScheduler_SubmitTask_FullMethodName           = "/task.TaskScheduler/SubmitTask"
-	TaskScheduler_GetRobotDistribution_FullMethodName = "/task.TaskScheduler/GetRobotDistribution"
+	OrchestratorService_ReportRobotStatus_FullMethodName = "/task.OrchestratorService/ReportRobotStatus"
+	OrchestratorService_GetTaskAssignment_FullMethodName = "/task.OrchestratorService/GetTaskAssignment"
 )
 
-// TaskSchedulerClient is the client API for TaskScheduler service.
+// OrchestratorServiceClient is the client API for OrchestratorService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// TaskScheduler service handles task assignment from orchestrator
-type TaskSchedulerClient interface {
-	// SubmitTask is called by the Rust orchestrator to submit a new task
-	SubmitTask(ctx context.Context, in *TaskRequest, opts ...grpc.CallOption) (*TaskResponse, error)
-	// GetRobotDistribution returns current robot status
-	GetRobotDistribution(ctx context.Context, in *RobotDistributionRequest, opts ...grpc.CallOption) (*RobotDistributionResponse, error)
+// OrchestratorService is implemented by Rust orchestrator (server)
+// Go tower acts as client to report robot status and receive task assignments
+type OrchestratorServiceClient interface {
+	// ReportRobotStatus is called by Go tower to report robot status
+	ReportRobotStatus(ctx context.Context, in *RobotReportRequest, opts ...grpc.CallOption) (*RobotReportResponse, error)
+	// GetTaskAssignment is called by Go tower to get tasks for robots
+	// This could be streaming or polling based on implementation
+	GetTaskAssignment(ctx context.Context, in *RobotDistributionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TaskAssignment], error)
 }
 
-type taskSchedulerClient struct {
+type orchestratorServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewTaskSchedulerClient(cc grpc.ClientConnInterface) TaskSchedulerClient {
-	return &taskSchedulerClient{cc}
+func NewOrchestratorServiceClient(cc grpc.ClientConnInterface) OrchestratorServiceClient {
+	return &orchestratorServiceClient{cc}
 }
 
-func (c *taskSchedulerClient) SubmitTask(ctx context.Context, in *TaskRequest, opts ...grpc.CallOption) (*TaskResponse, error) {
+func (c *orchestratorServiceClient) ReportRobotStatus(ctx context.Context, in *RobotReportRequest, opts ...grpc.CallOption) (*RobotReportResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TaskResponse)
-	err := c.cc.Invoke(ctx, TaskScheduler_SubmitTask_FullMethodName, in, out, cOpts...)
+	out := new(RobotReportResponse)
+	err := c.cc.Invoke(ctx, OrchestratorService_ReportRobotStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *taskSchedulerClient) GetRobotDistribution(ctx context.Context, in *RobotDistributionRequest, opts ...grpc.CallOption) (*RobotDistributionResponse, error) {
+func (c *orchestratorServiceClient) GetTaskAssignment(ctx context.Context, in *RobotDistributionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TaskAssignment], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RobotDistributionResponse)
-	err := c.cc.Invoke(ctx, TaskScheduler_GetRobotDistribution_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &OrchestratorService_ServiceDesc.Streams[0], OrchestratorService_GetTaskAssignment_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[RobotDistributionRequest, TaskAssignment]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-// TaskSchedulerServer is the server API for TaskScheduler service.
-// All implementations must embed UnimplementedTaskSchedulerServer
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OrchestratorService_GetTaskAssignmentClient = grpc.ServerStreamingClient[TaskAssignment]
+
+// OrchestratorServiceServer is the server API for OrchestratorService service.
+// All implementations must embed UnimplementedOrchestratorServiceServer
 // for forward compatibility.
 //
-// TaskScheduler service handles task assignment from orchestrator
-type TaskSchedulerServer interface {
-	// SubmitTask is called by the Rust orchestrator to submit a new task
-	SubmitTask(context.Context, *TaskRequest) (*TaskResponse, error)
-	// GetRobotDistribution returns current robot status
-	GetRobotDistribution(context.Context, *RobotDistributionRequest) (*RobotDistributionResponse, error)
-	mustEmbedUnimplementedTaskSchedulerServer()
+// OrchestratorService is implemented by Rust orchestrator (server)
+// Go tower acts as client to report robot status and receive task assignments
+type OrchestratorServiceServer interface {
+	// ReportRobotStatus is called by Go tower to report robot status
+	ReportRobotStatus(context.Context, *RobotReportRequest) (*RobotReportResponse, error)
+	// GetTaskAssignment is called by Go tower to get tasks for robots
+	// This could be streaming or polling based on implementation
+	GetTaskAssignment(*RobotDistributionRequest, grpc.ServerStreamingServer[TaskAssignment]) error
+	mustEmbedUnimplementedOrchestratorServiceServer()
 }
 
-// UnimplementedTaskSchedulerServer must be embedded to have
+// UnimplementedOrchestratorServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedTaskSchedulerServer struct{}
+type UnimplementedOrchestratorServiceServer struct{}
 
-func (UnimplementedTaskSchedulerServer) SubmitTask(context.Context, *TaskRequest) (*TaskResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SubmitTask not implemented")
+func (UnimplementedOrchestratorServiceServer) ReportRobotStatus(context.Context, *RobotReportRequest) (*RobotReportResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportRobotStatus not implemented")
 }
-func (UnimplementedTaskSchedulerServer) GetRobotDistribution(context.Context, *RobotDistributionRequest) (*RobotDistributionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRobotDistribution not implemented")
+func (UnimplementedOrchestratorServiceServer) GetTaskAssignment(*RobotDistributionRequest, grpc.ServerStreamingServer[TaskAssignment]) error {
+	return status.Errorf(codes.Unimplemented, "method GetTaskAssignment not implemented")
 }
-func (UnimplementedTaskSchedulerServer) mustEmbedUnimplementedTaskSchedulerServer() {}
-func (UnimplementedTaskSchedulerServer) testEmbeddedByValue()                       {}
+func (UnimplementedOrchestratorServiceServer) mustEmbedUnimplementedOrchestratorServiceServer() {}
+func (UnimplementedOrchestratorServiceServer) testEmbeddedByValue()                             {}
 
-// UnsafeTaskSchedulerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to TaskSchedulerServer will
+// UnsafeOrchestratorServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to OrchestratorServiceServer will
 // result in compilation errors.
-type UnsafeTaskSchedulerServer interface {
-	mustEmbedUnimplementedTaskSchedulerServer()
+type UnsafeOrchestratorServiceServer interface {
+	mustEmbedUnimplementedOrchestratorServiceServer()
 }
 
-func RegisterTaskSchedulerServer(s grpc.ServiceRegistrar, srv TaskSchedulerServer) {
-	// If the following call pancis, it indicates UnimplementedTaskSchedulerServer was
+func RegisterOrchestratorServiceServer(s grpc.ServiceRegistrar, srv OrchestratorServiceServer) {
+	// If the following call pancis, it indicates UnimplementedOrchestratorServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&TaskScheduler_ServiceDesc, srv)
+	s.RegisterService(&OrchestratorService_ServiceDesc, srv)
 }
 
-func _TaskScheduler_SubmitTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TaskRequest)
+func _OrchestratorService_ReportRobotStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RobotReportRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TaskSchedulerServer).SubmitTask(ctx, in)
+		return srv.(OrchestratorServiceServer).ReportRobotStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TaskScheduler_SubmitTask_FullMethodName,
+		FullMethod: OrchestratorService_ReportRobotStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TaskSchedulerServer).SubmitTask(ctx, req.(*TaskRequest))
+		return srv.(OrchestratorServiceServer).ReportRobotStatus(ctx, req.(*RobotReportRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TaskScheduler_GetRobotDistribution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RobotDistributionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _OrchestratorService_GetTaskAssignment_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RobotDistributionRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(TaskSchedulerServer).GetRobotDistribution(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TaskScheduler_GetRobotDistribution_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TaskSchedulerServer).GetRobotDistribution(ctx, req.(*RobotDistributionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(OrchestratorServiceServer).GetTaskAssignment(m, &grpc.GenericServerStream[RobotDistributionRequest, TaskAssignment]{ServerStream: stream})
 }
 
-// TaskScheduler_ServiceDesc is the grpc.ServiceDesc for TaskScheduler service.
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OrchestratorService_GetTaskAssignmentServer = grpc.ServerStreamingServer[TaskAssignment]
+
+// OrchestratorService_ServiceDesc is the grpc.ServiceDesc for OrchestratorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var TaskScheduler_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "task.TaskScheduler",
-	HandlerType: (*TaskSchedulerServer)(nil),
+var OrchestratorService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "task.OrchestratorService",
+	HandlerType: (*OrchestratorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SubmitTask",
-			Handler:    _TaskScheduler_SubmitTask_Handler,
-		},
-		{
-			MethodName: "GetRobotDistribution",
-			Handler:    _TaskScheduler_GetRobotDistribution_Handler,
+			MethodName: "ReportRobotStatus",
+			Handler:    _OrchestratorService_ReportRobotStatus_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetTaskAssignment",
+			Handler:       _OrchestratorService_GetTaskAssignment_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/task.proto",
 }

@@ -1,39 +1,27 @@
 package socket_server
 
 import (
-	"context"
 	"encoding/json"
 	"log"
-	"sync"
 	"time"
 
 	socketio "github.com/googollee/go-socket.io"
 	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 	"github.com/indoor-mall-nav/navign/admin/tower/internal/models"
-	"github.com/indoor-mall-nav/navign/admin/tower/internal/scheduler"
-)
-
-const (
-	keepAliveInterval = 10 * time.Second
-	robotTimeout      = 30 * time.Second
+	"github.com/indoor-mall-nav/navign/admin/tower/internal/robot"
 )
 
 // Server manages Socket.IO connections with robots
 type Server struct {
-	io              *socketio.Server
-	scheduler       *scheduler.TaskScheduler
-	keepAliveMap    map[string]context.CancelFunc
-	mu              sync.RWMutex
-	distributionCb  func() // Callback to report distribution changes
+	io            *socketio.Server
+	robotManager  *robot.Manager
 }
 
 // NewServer creates a new Socket.IO server
-func NewServer(io *socketio.Server, sched *scheduler.TaskScheduler, distributionCb func()) *Server {
+func NewServer(io *socketio.Server, robotMgr *robot.Manager) *Server {
 	s := &Server{
-		io:             io,
-		scheduler:      sched,
-		keepAliveMap:   make(map[string]context.CancelFunc),
-		distributionCb: distributionCb,
+		io:           io,
+		robotManager: robotMgr,
 	}
 	
 	s.setupHandlers()
@@ -99,29 +87,21 @@ func (s *Server) setupHandlers() {
 
 // handleRegister processes robot registration
 func (s *Server) handleRegister(conn socketio.Conn, packet *models.RegisterPacket) {
-	log.Printf("Robot registered: ID=%s, Name=%s, Entity=%s, Battery=%.1f%%",
+	log.Printf("Robot registering: ID=%s, Name=%s, Entity=%s, Battery=%.1f%%",
 		packet.RobotID, packet.Name, packet.EntityID, packet.Battery)
 
-	// Register robot in scheduler
-	robot := &scheduler.Robot{
+	// Register robot with manager (this starts the keep-alive goroutine)
+	r := &robot.Robot{
 		ID:       packet.RobotID,
 		Name:     packet.Name,
 		EntityID: packet.EntityID,
 		State:    pb.RobotState_ROBOT_STATE_IDLE,
 		Battery:  packet.Battery,
 	}
-	s.scheduler.RegisterRobot(robot)
+	s.robotManager.RegisterRobot(r)
 
 	// Store connection mapping
 	conn.SetContext(packet.RobotID)
-
-	// Start keep-alive goroutine for this robot
-	s.startKeepAlive(packet.RobotID, conn)
-
-	// Notify orchestrator about distribution change
-	if s.distributionCb != nil {
-		s.distributionCb()
-	}
 }
 
 // handleDisconnect processes robot disconnection
@@ -133,16 +113,8 @@ func (s *Server) handleDisconnect(conn socketio.Conn) {
 
 	log.Printf("Robot disconnected: %s", robotID)
 
-	// Stop keep-alive goroutine
-	s.stopKeepAlive(robotID)
-
-	// Unregister robot
-	s.scheduler.UnregisterRobot(robotID)
-
-	// Notify orchestrator about distribution change
-	if s.distributionCb != nil {
-		s.distributionCb()
-	}
+	// Unregister robot (this stops the keep-alive goroutine)
+	s.robotManager.UnregisterRobot(robotID)
 }
 
 // handleStatusUpdate processes status updates from robots
@@ -155,17 +127,13 @@ func (s *Server) handleStatusUpdate(packet *models.StatusUpdatePacket) {
 		Floor: packet.CurrentLocation.Floor,
 	}
 
-	err := s.scheduler.UpdateRobotStatus(
+	s.robotManager.UpdateRobotStatus(
 		packet.RobotID,
 		state,
 		location,
 		packet.Battery,
 		packet.CurrentTaskID,
 	)
-
-	if err != nil {
-		log.Printf("Failed to update robot status: %v", err)
-	}
 }
 
 // handleTaskUpdate processes task updates from robots
@@ -176,16 +144,13 @@ func (s *Server) handleTaskUpdate(packet *models.TaskUpdatePacket) {
 	// Update robot state based on task status
 	if packet.Status == "completed" || packet.Status == "failed" {
 		// Task finished, robot becomes idle
-		err := s.scheduler.UpdateRobotStatus(
+		s.robotManager.UpdateRobotStatus(
 			packet.RobotID,
 			pb.RobotState_ROBOT_STATE_IDLE,
 			nil,
 			0, // Don't update battery here
 			"",
 		)
-		if err != nil {
-			log.Printf("Failed to update robot state after task completion: %v", err)
-		}
 	}
 }
 
@@ -193,7 +158,7 @@ func (s *Server) handleTaskUpdate(packet *models.TaskUpdatePacket) {
 func (s *Server) handlePing(conn socketio.Conn, packet *models.PingPacket) {
 	robotID, ok := conn.Context().(string)
 	if ok {
-		s.scheduler.UpdateRobotHeartbeat(robotID)
+		s.robotManager.UpdateHeartbeat(robotID)
 	}
 
 	// Send pong response
@@ -210,14 +175,15 @@ func (s *Server) SendTaskToRobot(robotID string, task *pb.Task) error {
 
 	// Find the connection for this robot
 	var targetConn socketio.Conn
-	s.io.ForEach("/", func(conn socketio.Conn) {
+	s.io.ForEach("/", "", func(conn socketio.Conn) {
 		if id, ok := conn.Context().(string); ok && id == robotID {
 			targetConn = conn
 		}
 	})
 
 	if targetConn == nil {
-		return scheduler.ErrRobotNotFound
+		log.Printf("Robot %s not found in active connections", robotID)
+		return nil
 	}
 
 	// Convert protobuf task to socket packet
@@ -238,65 +204,6 @@ func (s *Server) SendTaskToRobot(robotID string, task *pb.Task) error {
 
 	targetConn.Emit(models.EventTaskAssigned, string(data))
 	return nil
-}
-
-// startKeepAlive starts a keep-alive goroutine for a robot
-func (s *Server) startKeepAlive(robotID string, conn socketio.Conn) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Stop existing keep-alive if any
-	if cancel, exists := s.keepAliveMap[robotID]; exists {
-		cancel()
-	}
-
-	// Create cancellable context
-	ctx, cancel := context.WithCancel(context.Background())
-	s.keepAliveMap[robotID] = cancel
-
-	// Start keep-alive goroutine
-	go func() {
-		ticker := time.NewTicker(keepAliveInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				// Send keep-alive ping
-				packet := models.KeepAlivePacket{
-					RobotID:   robotID,
-					Timestamp: time.Now().Unix(),
-				}
-				data, _ := json.Marshal(packet)
-				conn.Emit(models.EventKeepAlive, string(data))
-
-				// Check for stale robots
-				staleRobots := s.scheduler.CleanupStaleRobots(robotTimeout)
-				if len(staleRobots) > 0 {
-					log.Printf("Cleaned up stale robots: %v", staleRobots)
-					if s.distributionCb != nil {
-						s.distributionCb()
-					}
-				}
-			}
-		}
-	}()
-
-	log.Printf("Started keep-alive goroutine for robot %s", robotID)
-}
-
-// stopKeepAlive stops the keep-alive goroutine for a robot
-func (s *Server) stopKeepAlive(robotID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if cancel, exists := s.keepAliveMap[robotID]; exists {
-		cancel()
-		delete(s.keepAliveMap, robotID)
-		log.Printf("Stopped keep-alive goroutine for robot %s", robotID)
-	}
 }
 
 // Helper functions

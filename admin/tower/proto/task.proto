@@ -90,11 +90,36 @@ message RobotDistributionResponse {
   int32 busy_count = 4;
 }
 
-// TaskScheduler service handles task assignment from orchestrator
-service TaskScheduler {
-  // SubmitTask is called by the Rust orchestrator to submit a new task
-  rpc SubmitTask(TaskRequest) returns (TaskResponse);
+// RobotReportRequest is sent from Go tower to Rust orchestrator
+message RobotReportRequest {
+  RobotInfo robot = 1;
+}
+
+// RobotReportResponse acknowledges the report
+message RobotReportResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// TaskAssignment is sent from Rust orchestrator to Go tower
+message TaskAssignment {
+  string robot_id = 1;
+  Task task = 2;
+}
+
+// TaskAssignmentResponse acknowledges task assignment
+message TaskAssignmentResponse {
+  bool accepted = 1;
+  string message = 2;
+}
+
+// OrchestratorService is implemented by Rust orchestrator (server)
+// Go tower acts as client to report robot status and receive task assignments
+service OrchestratorService {
+  // ReportRobotStatus is called by Go tower to report robot status
+  rpc ReportRobotStatus(RobotReportRequest) returns (RobotReportResponse);
   
-  // GetRobotDistribution returns current robot status
-  rpc GetRobotDistribution(RobotDistributionRequest) returns (RobotDistributionResponse);
+  // GetTaskAssignment is called by Go tower to get tasks for robots
+  // This could be streaming or polling based on implementation
+  rpc GetTaskAssignment(RobotDistributionRequest) returns (stream TaskAssignment);
 }

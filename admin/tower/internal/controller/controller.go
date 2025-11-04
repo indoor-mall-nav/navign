@@ -1,38 +1,42 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	socketio "github.com/googollee/go-socket.io"
 	"github.com/googollee/go-socket.io/engineio"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/indoor-mall-nav/navign/admin/tower/internal/grpc_server"
-	"github.com/indoor-mall-nav/navign/admin/tower/internal/scheduler"
+	"github.com/indoor-mall-nav/navign/admin/tower/internal/robot"
 	"github.com/indoor-mall-nav/navign/admin/tower/internal/socket_server"
 	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 )
 
 type Controller struct {
 	Entity string `json:"entity"`
-	GRPC   string `json:"grpc"`
-	Tower  string `json:"tower"`
+	GRPC   string `json:"grpc"`   // Orchestrator gRPC address (we connect as client)
+	Tower  string `json:"tower"`  // Our Socket.IO server address
 }
 
 var (
-	instance       *controllerInstance
-	instanceMutex  sync.Mutex
+	instance      *controllerInstance
+	instanceMutex sync.Mutex
 )
 
 type controllerInstance struct {
-	grpcServer   *grpc.Server
+	grpcConn     *grpc.ClientConn
+	grpcClient   pb.OrchestratorServiceClient
 	httpServer   *http.Server
 	socketServer *socket_server.Server
-	scheduler    *scheduler.TaskScheduler
+	robotManager *robot.Manager
+	taskStream   pb.OrchestratorService_GetTaskAssignmentClient
+	stopChan     chan struct{}
 }
 
 func Start(c *Controller) error {
@@ -45,45 +49,24 @@ func Start(c *Controller) error {
 
 	log.Printf("Starting controller for entity: %s", c.Entity)
 
-	// Create scheduler
-	sched := scheduler.NewTaskScheduler(c.Entity)
+	// Connect to Rust orchestrator as gRPC client
+	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
+	grpcConn, err := grpc.NewClient(c.GRPC, creds)
+	if err != nil {
+		return fmt.Errorf("failed to connect to orchestrator at %s: %v", c.GRPC, err)
+	}
+
+	grpcClient := pb.NewOrchestratorServiceClient(grpcConn)
+	log.Printf("Connected to orchestrator at %s", c.GRPC)
+
+	// Create robot manager
+	robotMgr := robot.NewManager(c.Entity, grpcClient)
 
 	// Create Socket.IO server
 	socketIO := socketio.NewServer(&engineio.Options{})
 
-	// Distribution change callback (reports to orchestrator)
-	distributionCb := func() {
-		log.Printf("Robot distribution changed, notifying orchestrator...")
-		// In a real implementation, this would make a callback to the orchestrator
-		// For now, we just log it
-	}
-
 	// Create socket server
-	sockServer := socket_server.NewServer(socketIO, sched, distributionCb)
-
-	// Task assignment callback (sends task to robot via Socket.IO)
-	taskAssignedCb := func(robotID string, task *pb.Task) error {
-		return sockServer.SendTaskToRobot(robotID, task)
-	}
-
-	// Create gRPC server
-	grpcSrv := grpc_server.NewServer(sched, taskAssignedCb)
-
-	// Start gRPC server
-	lis, err := net.Listen("tcp", c.GRPC)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %v", c.GRPC, err)
-	}
-
-	grpcServer := grpc.NewServer()
-	pb.RegisterTaskSchedulerServer(grpcServer, grpcSrv)
-
-	go func() {
-		log.Printf("Starting gRPC server on %s", c.GRPC)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("gRPC server failed: %v", err)
-		}
-	}()
+	sockServer := socket_server.NewServer(socketIO, robotMgr)
 
 	// Start Socket.IO HTTP server
 	mux := http.NewServeMux()
@@ -101,12 +84,54 @@ func Start(c *Controller) error {
 		}
 	}()
 
+	// Start task assignment stream from orchestrator
+	stopChan := make(chan struct{})
+	taskStream, err := grpcClient.GetTaskAssignment(context.Background(), &pb.RobotDistributionRequest{
+		EntityId: c.Entity,
+	})
+	if err != nil {
+		grpcConn.Close()
+		httpServer.Close()
+		return fmt.Errorf("failed to get task assignment stream: %v", err)
+	}
+
+	// Start goroutine to receive task assignments from orchestrator
+	go func() {
+		log.Println("Listening for task assignments from orchestrator...")
+		for {
+			select {
+			case <-stopChan:
+				return
+			default:
+				assignment, err := taskStream.Recv()
+				if err != nil {
+					log.Printf("Task stream error: %v", err)
+					time.Sleep(5 * time.Second) // Wait before potential reconnect
+					continue
+				}
+
+				if assignment.Task != nil {
+					log.Printf("Received task assignment: %s for robot %s", 
+						assignment.Task.Id, assignment.RobotId)
+					
+					// Send task to robot via Socket.IO
+					if err := sockServer.SendTaskToRobot(assignment.RobotId, assignment.Task); err != nil {
+						log.Printf("Failed to send task to robot: %v", err)
+					}
+				}
+			}
+		}
+	}()
+
 	// Store instance for cleanup
 	instance = &controllerInstance{
-		grpcServer:   grpcServer,
+		grpcConn:     grpcConn,
+		grpcClient:   grpcClient,
 		httpServer:   httpServer,
 		socketServer: sockServer,
-		scheduler:    sched,
+		robotManager: robotMgr,
+		taskStream:   taskStream,
+		stopChan:     stopChan,
 	}
 
 	log.Println("Controller started successfully")
@@ -123,14 +148,19 @@ func Stop() {
 
 	log.Println("Stopping controller...")
 
-	// Gracefully stop gRPC server
-	if instance.grpcServer != nil {
-		instance.grpcServer.GracefulStop()
-	}
+	// Stop task stream listener
+	close(instance.stopChan)
 
 	// Shutdown HTTP server
 	if instance.httpServer != nil {
-		instance.httpServer.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		instance.httpServer.Shutdown(ctx)
+	}
+
+	// Close gRPC connection
+	if instance.grpcConn != nil {
+		instance.grpcConn.Close()
 	}
 
 	instance = nil

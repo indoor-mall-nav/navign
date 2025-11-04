@@ -691,6 +691,210 @@ func (x *RobotDistributionResponse) GetBusyCount() int32 {
 	return 0
 }
 
+// RobotReportRequest is sent from Go tower to Rust orchestrator
+type RobotReportRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Robot         *RobotInfo             `protobuf:"bytes,1,opt,name=robot,proto3" json:"robot,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RobotReportRequest) Reset() {
+	*x = RobotReportRequest{}
+	mi := &file_proto_task_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RobotReportRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RobotReportRequest) ProtoMessage() {}
+
+func (x *RobotReportRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_task_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RobotReportRequest.ProtoReflect.Descriptor instead.
+func (*RobotReportRequest) Descriptor() ([]byte, []int) {
+	return file_proto_task_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RobotReportRequest) GetRobot() *RobotInfo {
+	if x != nil {
+		return x.Robot
+	}
+	return nil
+}
+
+// RobotReportResponse acknowledges the report
+type RobotReportResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RobotReportResponse) Reset() {
+	*x = RobotReportResponse{}
+	mi := &file_proto_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RobotReportResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RobotReportResponse) ProtoMessage() {}
+
+func (x *RobotReportResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RobotReportResponse.ProtoReflect.Descriptor instead.
+func (*RobotReportResponse) Descriptor() ([]byte, []int) {
+	return file_proto_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RobotReportResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *RobotReportResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// TaskAssignment is sent from Rust orchestrator to Go tower
+type TaskAssignment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RobotId       string                 `protobuf:"bytes,1,opt,name=robot_id,json=robotId,proto3" json:"robot_id,omitempty"`
+	Task          *Task                  `protobuf:"bytes,2,opt,name=task,proto3" json:"task,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskAssignment) Reset() {
+	*x = TaskAssignment{}
+	mi := &file_proto_task_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskAssignment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskAssignment) ProtoMessage() {}
+
+func (x *TaskAssignment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_task_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskAssignment.ProtoReflect.Descriptor instead.
+func (*TaskAssignment) Descriptor() ([]byte, []int) {
+	return file_proto_task_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TaskAssignment) GetRobotId() string {
+	if x != nil {
+		return x.RobotId
+	}
+	return ""
+}
+
+func (x *TaskAssignment) GetTask() *Task {
+	if x != nil {
+		return x.Task
+	}
+	return nil
+}
+
+// TaskAssignmentResponse acknowledges task assignment
+type TaskAssignmentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskAssignmentResponse) Reset() {
+	*x = TaskAssignmentResponse{}
+	mi := &file_proto_task_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskAssignmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskAssignmentResponse) ProtoMessage() {}
+
+func (x *TaskAssignmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_task_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskAssignmentResponse.ProtoReflect.Descriptor instead.
+func (*TaskAssignmentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_task_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *TaskAssignmentResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *TaskAssignmentResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_task_proto protoreflect.FileDescriptor
 
 const file_proto_task_proto_rawDesc = "" +
@@ -740,7 +944,19 @@ const file_proto_task_proto_rawDesc = "" +
 	"\n" +
 	"idle_count\x18\x03 \x01(\x05R\tidleCount\x12\x1d\n" +
 	"\n" +
-	"busy_count\x18\x04 \x01(\x05R\tbusyCount*\x87\x01\n" +
+	"busy_count\x18\x04 \x01(\x05R\tbusyCount\";\n" +
+	"\x12RobotReportRequest\x12%\n" +
+	"\x05robot\x18\x01 \x01(\v2\x0f.task.RobotInfoR\x05robot\"I\n" +
+	"\x13RobotReportResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"K\n" +
+	"\x0eTaskAssignment\x12\x19\n" +
+	"\brobot_id\x18\x01 \x01(\tR\arobotId\x12\x1e\n" +
+	"\x04task\x18\x02 \x01(\v2\n" +
+	".task.TaskR\x04task\"N\n" +
+	"\x16TaskAssignmentResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*\x87\x01\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TASK_TYPE_DELIVERY\x10\x01\x12\x14\n" +
@@ -760,11 +976,10 @@ const file_proto_task_proto_rawDesc = "" +
 	"\x10ROBOT_STATE_BUSY\x10\x02\x12\x18\n" +
 	"\x14ROBOT_STATE_CHARGING\x10\x03\x12\x15\n" +
 	"\x11ROBOT_STATE_ERROR\x10\x04\x12\x17\n" +
-	"\x13ROBOT_STATE_OFFLINE\x10\x052\x9d\x01\n" +
-	"\rTaskScheduler\x123\n" +
-	"\n" +
-	"SubmitTask\x12\x11.task.TaskRequest\x1a\x12.task.TaskResponse\x12W\n" +
-	"\x14GetRobotDistribution\x12\x1e.task.RobotDistributionRequest\x1a\x1f.task.RobotDistributionResponseB:Z8github.com/indoor-mall-nav/navign/admin/tower/proto/taskb\x06proto3"
+	"\x13ROBOT_STATE_OFFLINE\x10\x052\xac\x01\n" +
+	"\x13OrchestratorService\x12H\n" +
+	"\x11ReportRobotStatus\x12\x18.task.RobotReportRequest\x1a\x19.task.RobotReportResponse\x12K\n" +
+	"\x11GetTaskAssignment\x12\x1e.task.RobotDistributionRequest\x1a\x14.task.TaskAssignment0\x01B:Z8github.com/indoor-mall-nav/navign/admin/tower/proto/taskb\x06proto3"
 
 var (
 	file_proto_task_proto_rawDescOnce sync.Once
@@ -779,7 +994,7 @@ func file_proto_task_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_task_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_proto_task_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_task_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_task_proto_goTypes = []any{
 	(TaskType)(0),                     // 0: task.TaskType
 	(Priority)(0),                     // 1: task.Priority
@@ -791,27 +1006,33 @@ var file_proto_task_proto_goTypes = []any{
 	(*RobotInfo)(nil),                 // 7: task.RobotInfo
 	(*RobotDistributionRequest)(nil),  // 8: task.RobotDistributionRequest
 	(*RobotDistributionResponse)(nil), // 9: task.RobotDistributionResponse
-	nil,                               // 10: task.Task.MetadataEntry
+	(*RobotReportRequest)(nil),        // 10: task.RobotReportRequest
+	(*RobotReportResponse)(nil),       // 11: task.RobotReportResponse
+	(*TaskAssignment)(nil),            // 12: task.TaskAssignment
+	(*TaskAssignmentResponse)(nil),    // 13: task.TaskAssignmentResponse
+	nil,                               // 14: task.Task.MetadataEntry
 }
 var file_proto_task_proto_depIdxs = []int32{
 	0,  // 0: task.Task.type:type_name -> task.TaskType
 	3,  // 1: task.Task.sources:type_name -> task.Location
 	3,  // 2: task.Task.terminals:type_name -> task.Location
 	1,  // 3: task.Task.priority:type_name -> task.Priority
-	10, // 4: task.Task.metadata:type_name -> task.Task.MetadataEntry
+	14, // 4: task.Task.metadata:type_name -> task.Task.MetadataEntry
 	4,  // 5: task.TaskRequest.task:type_name -> task.Task
 	2,  // 6: task.RobotInfo.state:type_name -> task.RobotState
 	3,  // 7: task.RobotInfo.current_location:type_name -> task.Location
 	7,  // 8: task.RobotDistributionResponse.robots:type_name -> task.RobotInfo
-	5,  // 9: task.TaskScheduler.SubmitTask:input_type -> task.TaskRequest
-	8,  // 10: task.TaskScheduler.GetRobotDistribution:input_type -> task.RobotDistributionRequest
-	6,  // 11: task.TaskScheduler.SubmitTask:output_type -> task.TaskResponse
-	9,  // 12: task.TaskScheduler.GetRobotDistribution:output_type -> task.RobotDistributionResponse
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	7,  // 9: task.RobotReportRequest.robot:type_name -> task.RobotInfo
+	4,  // 10: task.TaskAssignment.task:type_name -> task.Task
+	10, // 11: task.OrchestratorService.ReportRobotStatus:input_type -> task.RobotReportRequest
+	8,  // 12: task.OrchestratorService.GetTaskAssignment:input_type -> task.RobotDistributionRequest
+	11, // 13: task.OrchestratorService.ReportRobotStatus:output_type -> task.RobotReportResponse
+	12, // 14: task.OrchestratorService.GetTaskAssignment:output_type -> task.TaskAssignment
+	13, // [13:15] is the sub-list for method output_type
+	11, // [11:13] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_proto_task_proto_init() }
@@ -825,7 +1046,7 @@ func file_proto_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_task_proto_rawDesc), len(file_proto_task_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   8,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
