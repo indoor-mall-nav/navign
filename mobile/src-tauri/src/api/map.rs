@@ -1,9 +1,10 @@
 use crate::api::page_results::PaginationResponse;
-use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
+// Re-export shared types for use in this module
+pub use navign_shared::{ConnectionType, Floor, MerchantStyle, MerchantType, SocialMedia};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::SqlitePool;
 use std::fmt::Display;
 use tauri::AppHandle;
@@ -36,32 +37,27 @@ pub struct MapMerchant {
     pub tags: Vec<String>,
 }
 
+// API response types using shared types where possible
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AreaResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
+    pub id: String,
+    pub entity: String,
     pub name: String,
     pub description: Option<String>,
     pub beacon_code: String,
-    pub floor: Option<Floor>,
+    pub floor: Option<Floor>, // Using shared Floor type
     pub polygon: Vec<(f64, f64)>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Floor {
-    pub r#type: String,
-    pub name: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeaconResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
-    pub area: CustomizedObjectId,
-    pub merchant: Option<CustomizedObjectId>,
-    pub connection: Option<CustomizedObjectId>,
+    pub id: String,
+    pub entity: String,
+    pub area: String,
+    pub merchant: Option<String>,
+    pub connection: Option<String>,
     pub name: String,
     pub description: Option<String>,
     pub r#type: String,
@@ -69,18 +65,26 @@ pub struct BeaconResponse {
     pub device: String,
 }
 
+// API response for Merchant using shared types where possible
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MerchantResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
-    pub entity: CustomizedObjectId,
-    pub area: CustomizedObjectId,
+    pub chain: Option<String>,
+    pub entity: String,
+    pub beacon_code: String,
+    pub area: String,
     pub location: (f64, f64),
     pub polygon: Option<Vec<(f64, f64)>>,
     pub tags: Vec<String>,
-    pub r#type: Value,
+    pub r#type: MerchantType, // Using shared MerchantType
+    pub style: MerchantStyle, // Using shared MerchantStyle
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub website: Option<String>,
+    pub social_media: Option<Vec<SocialMedia>>, // Using shared SocialMedia
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,32 +111,13 @@ pub struct RouteResponse {
     pub areas: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Eq, Copy)]
-#[serde(rename_all = "kebab-case")]
-/// Represents the type of connection between areas or entities.
-pub enum ConnectionType {
-    /// A connection that allows people to pass through, such as a door or gate.
-    /// Usually involve authentication or access control.
-    Gate,
-    /// A connection that allows people to move between different areas, such as a hallway or corridor.
-    #[default]
-    Escalator,
-    /// A connection that allows people to move between different levels, such as stairs or elevators.
-    Elevator,
-    /// A connection that allows people to move between different areas, such as a pathway or tunnel.
-    Stairs,
-    /// Like in Hong Kong International Airport, Singapore Changi Airport, or Shanghai Pudong International Airport.
-    /// There is a dedicated transportation system that connects different terminals or areas.
-    Rail,
-    /// Shuttle bus.
-    Shuttle,
-}
+// ConnectionType is now imported from navign_shared
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum InstructionType {
     Move(f64, f64),
-    Transport(String, String, ConnectionType),
+    Transport(String, String, ConnectionType), // Using shared ConnectionType
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -191,7 +176,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id.to_string(),
+            id: b.id, // Already a String
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -218,7 +203,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id.to_string(),
+            id: m.id, // Already a String
             name: m.name,
             location: m.location,
             polygon: m.polygon.unwrap_or_default(),
@@ -229,7 +214,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     Ok(MapArea {
-        id: area_response.id.to_string(),
+        id: area_response.id, // Already a String
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
@@ -250,6 +235,45 @@ pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<MerchantRespo
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse merchants: {}", e))?;
     Ok(response.data)
+}
+
+/// Fetch detailed information for a specific area
+pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<AreaResponse> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
+    trace!("Fetching area details from URL: {}", url);
+
+    let response: AreaResponse = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch area details: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse area details: {}", e))?;
+
+    Ok(response)
+}
+
+/// Fetch detailed information for a specific merchant
+pub async fn fetch_merchant_details(
+    entity: &str,
+    merchant: &str,
+) -> anyhow::Result<MerchantResponse> {
+    let client = reqwest::Client::new();
+    let url = format!("{}api/entities/{}/merchants/{}", BASE_URL, entity, merchant);
+    trace!("Fetching merchant details from URL: {}", url);
+
+    let response: MerchantResponse = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch merchant details: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse merchant details: {}", e))?;
+
+    Ok(response)
 }
 
 /// Generate SVG map representation of the area
@@ -286,7 +310,7 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
         let (tx, ty) = transform(*x, *y);
         svg.push_str(&format!("{},{} ", tx, ty));
     }
-    svg.push_str(r##"" fill="#f0f0f0" stroke="#333" stroke-width="2"/>"##);
+    svg.push_str(r##"" fill="#f0f0f0" stroke="#333" stroke-width="2" style="cursor: pointer;"/>"##);
     svg.push_str("</g>");
 
     // Draw merchants
@@ -298,7 +322,9 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             let (tx, ty) = transform(*x, *y);
             svg.push_str(&format!("{},{} ", tx, ty));
         }
-        svg.push_str(r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5"/>"##);
+        svg.push_str(
+            r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" style="cursor: pointer;"/>"##,
+        );
 
         // Add merchant label
         let (tx, ty) = transform(merchant.location.0, merchant.location.1);
@@ -515,6 +541,54 @@ pub async fn get_route_handler(
             let result = json!({
                 "status": "success",
                 "data": route
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_area_details_handler(
+    _app: AppHandle,
+    entity: String,
+    area: String,
+) -> Result<String, String> {
+    match fetch_area_details(&entity, &area).await {
+        Ok(area_details) => {
+            let result = json!({
+                "status": "success",
+                "data": area_details
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_merchant_details_handler(
+    _app: AppHandle,
+    entity: String,
+    merchant: String,
+) -> Result<String, String> {
+    match fetch_merchant_details(&entity, &merchant).await {
+        Ok(merchant_details) => {
+            let result = json!({
+                "status": "success",
+                "data": merchant_details
             });
             Ok(result.to_string())
         }

@@ -39,6 +39,7 @@ const {
 const emit = defineEmits<{
   beaconClick: [beaconId: string]
   merchantClick: [merchantId: string]
+  areaClick: [areaId: string]
 }>()
 
 const mapData = ref<MapData | null>(null)
@@ -208,6 +209,7 @@ async function generateMap() {
 function handleSvgClick(event: MouseEvent) {
   const target = event.target as SVGElement
   const parentId = target.parentElement?.id
+  const elementId = target.id
 
   if (parentId?.startsWith('beacon-')) {
     const beaconId = parentId.replace('beacon-', '')
@@ -215,6 +217,9 @@ function handleSvgClick(event: MouseEvent) {
   } else if (parentId?.startsWith('merchant-')) {
     const merchantId = parentId.replace('merchant-', '')
     emit('merchantClick', merchantId)
+  } else if (elementId === 'area-boundary' || parentId === 'area-boundary') {
+    // Emit area click with current area ID
+    emit('areaClick', areaId.value)
   }
 }
 
