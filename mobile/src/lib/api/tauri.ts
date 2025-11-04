@@ -197,8 +197,8 @@ export async function getRoute(
 
 // Area Details API
 export interface AreaDetails {
-  _id: { $oid: string }
-  entity: { $oid: string }
+  _id: string
+  entity: string
   name: string
   description: string | null
   beacon_code: string
@@ -222,18 +222,18 @@ export async function getAreaDetails(
 
 // Merchant Details API
 export interface MerchantDetails {
-  _id: { $oid: string }
+  _id: string
   name: string
   description: string | null
   chain: string | null
-  entity: { $oid: string }
+  entity: string
   beacon_code: string
-  area: { $oid: string }
+  area: string
   location: [number, number]
   polygon: [number, number][] | null
   tags: string[]
   type: any
-  style: string | null
+  style: string
   email: string | null
   phone: string | null
   website: string | null

@@ -178,7 +178,7 @@ function formatFloor(floor: { type: string; name: number } | null): string {
               <div class="flex-1 overflow-hidden">
                 <h3 class="font-semibold mb-1">Entity ID</h3>
                 <p class="text-xs text-muted-foreground font-mono truncate">
-                  {{ areaDetails.entity.$oid }}
+                  {{ areaDetails.entity }}
                 </p>
               </div>
             </div>

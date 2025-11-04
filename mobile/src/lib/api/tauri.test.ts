@@ -192,8 +192,8 @@ describe('Map APIs', () => {
     const mockAreaDetails = {
       status: 'success',
       data: {
-        _id: { $oid: 'area_123' },
-        entity: { $oid: 'entity_1' },
+        _id: 'area_123',
+        entity: 'entity_1',
         name: 'Main Hall',
         description: 'The main entrance hall',
         beacon_code: 'AREA001',
@@ -225,13 +225,13 @@ describe('Map APIs', () => {
     const mockMerchantDetails = {
       status: 'success',
       data: {
-        _id: { $oid: 'merchant_456' },
+        _id: 'merchant_456',
         name: 'Coffee Bean',
         description: 'Premium coffee shop',
         chain: 'Coffee Chain Co.',
-        entity: { $oid: 'entity_1' },
+        entity: 'entity_1',
         beacon_code: 'MERCH001',
-        area: { $oid: 'area_123' },
+        area: 'area_123',
         location: [25.5, 35.8],
         polygon: null,
         tags: ['food', 'coffee', 'cafe'],

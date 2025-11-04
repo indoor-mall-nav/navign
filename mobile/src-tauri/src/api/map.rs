@@ -1,9 +1,10 @@
 use crate::api::page_results::PaginationResponse;
-use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
+// Re-export shared types for use in this module
+pub use navign_shared::{ConnectionType, Floor, FloorType, MerchantType, MerchantStyle, SocialMedia};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::SqlitePool;
 use std::fmt::Display;
 use tauri::AppHandle;
@@ -36,32 +37,27 @@ pub struct MapMerchant {
     pub tags: Vec<String>,
 }
 
+// API response types using shared types where possible
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AreaResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
+    pub id: String,
+    pub entity: String,
     pub name: String,
     pub description: Option<String>,
     pub beacon_code: String,
-    pub floor: Option<Floor>,
+    pub floor: Option<Floor>, // Using shared Floor type
     pub polygon: Vec<(f64, f64)>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Floor {
-    pub r#type: String,
-    pub name: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeaconResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
-    pub area: CustomizedObjectId,
-    pub merchant: Option<CustomizedObjectId>,
-    pub connection: Option<CustomizedObjectId>,
+    pub id: String,
+    pub entity: String,
+    pub area: String,
+    pub merchant: Option<String>,
+    pub connection: Option<String>,
     pub name: String,
     pub description: Option<String>,
     pub r#type: String,
@@ -69,25 +65,26 @@ pub struct BeaconResponse {
     pub device: String,
 }
 
+// API response for Merchant using shared types where possible
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MerchantResponse {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub chain: Option<String>,
-    pub entity: CustomizedObjectId,
+    pub entity: String,
     pub beacon_code: String,
-    pub area: CustomizedObjectId,
+    pub area: String,
     pub location: (f64, f64),
     pub polygon: Option<Vec<(f64, f64)>>,
     pub tags: Vec<String>,
-    pub r#type: Value,
-    pub style: Option<String>,
+    pub r#type: MerchantType, // Using shared MerchantType
+    pub style: MerchantStyle,  // Using shared MerchantStyle
     pub email: Option<String>,
     pub phone: Option<String>,
     pub website: Option<String>,
-    pub social_media: Option<Vec<Value>>,
+    pub social_media: Option<Vec<SocialMedia>>, // Using shared SocialMedia
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,32 +111,13 @@ pub struct RouteResponse {
     pub areas: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Eq, Copy)]
-#[serde(rename_all = "kebab-case")]
-/// Represents the type of connection between areas or entities.
-pub enum ConnectionType {
-    /// A connection that allows people to pass through, such as a door or gate.
-    /// Usually involve authentication or access control.
-    Gate,
-    /// A connection that allows people to move between different areas, such as a hallway or corridor.
-    #[default]
-    Escalator,
-    /// A connection that allows people to move between different levels, such as stairs or elevators.
-    Elevator,
-    /// A connection that allows people to move between different areas, such as a pathway or tunnel.
-    Stairs,
-    /// Like in Hong Kong International Airport, Singapore Changi Airport, or Shanghai Pudong International Airport.
-    /// There is a dedicated transportation system that connects different terminals or areas.
-    Rail,
-    /// Shuttle bus.
-    Shuttle,
-}
+// ConnectionType is now imported from navign_shared
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum InstructionType {
     Move(f64, f64),
-    Transport(String, String, ConnectionType),
+    Transport(String, String, ConnectionType), // Using shared ConnectionType
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,7 +176,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id.to_string(),
+            id: b.id, // Already a String
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -225,7 +203,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id.to_string(),
+            id: m.id, // Already a String
             name: m.name,
             location: m.location,
             polygon: m.polygon.unwrap_or_default(),
@@ -236,7 +214,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     Ok(MapArea {
-        id: area_response.id.to_string(),
+        id: area_response.id, // Already a String
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
