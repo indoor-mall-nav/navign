@@ -29,6 +29,8 @@ pub use traits::{depacketize::Depacketize, packetize::Packetize};
 pub use schema::ReadQuery;
 
 // Export core schemas
+#[cfg(all(feature = "serde", feature = "alloc"))]
+pub use schema::{Account, AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 #[cfg(feature = "alloc")]
 pub use schema::{
     Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, ConnectedArea, Connection,
