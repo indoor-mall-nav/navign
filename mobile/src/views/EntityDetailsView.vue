@@ -69,7 +69,8 @@ async function loadEntityDetails() {
       beacons.value = beaconsResponse.data
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load entity details'
+    error.value =
+      err instanceof Error ? err.message : 'Failed to load entity details'
   } finally {
     loading.value = false
   }
@@ -87,6 +88,8 @@ function navigateToArea(areaId: string) {
       beacon_code: area.beacon_code,
       floor: area.floor,
       polygon: area.polygon,
+      created_at: area.created_at,
+      updated_at: area.updated_at,
     }
     router.push('/')
   }
@@ -135,7 +138,10 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
     </div>
 
     <!-- Statistics Cards -->
-    <div v-if="!loading && !error" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div
+      v-if="!loading && !error"
+      class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+    >
       <Card>
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
@@ -190,12 +196,17 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
                 {{ area.floor.type }} {{ area.floor.name }}
               </Badge>
             </CardTitle>
-            <CardDescription>{{ area.description || 'No description' }}</CardDescription>
+            <CardDescription>{{
+              area.description || 'No description'
+            }}</CardDescription>
           </CardHeader>
           <CardContent>
             <div class="space-y-2">
               <div class="flex items-center gap-2 text-sm">
-                <Icon icon="mdi:identifier" class="h-4 w-4 text-muted-foreground" />
+                <Icon
+                  icon="mdi:identifier"
+                  class="h-4 w-4 text-muted-foreground"
+                />
                 <span class="text-muted-foreground">Code:</span>
                 <Badge variant="outline">{{ area.beacon_code }}</Badge>
               </div>
@@ -207,13 +218,19 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
               </div>
 
               <div class="flex items-center gap-2 text-sm">
-                <Icon icon="mdi:bluetooth" class="h-4 w-4 text-muted-foreground" />
+                <Icon
+                  icon="mdi:bluetooth"
+                  class="h-4 w-4 text-muted-foreground"
+                />
                 <span class="text-muted-foreground">Beacons:</span>
                 <Badge>{{ getBeaconsInArea(area._id).length }}</Badge>
               </div>
 
               <div class="flex items-center gap-2 text-sm">
-                <Icon icon="mdi:vector-polygon" class="h-4 w-4 text-muted-foreground" />
+                <Icon
+                  icon="mdi:vector-polygon"
+                  class="h-4 w-4 text-muted-foreground"
+                />
                 <span class="text-muted-foreground">Polygon Points:</span>
                 <Badge>{{ area.polygon.length }}</Badge>
               </div>
@@ -229,7 +246,10 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
 
       <!-- Empty State -->
       <div v-if="areas.length === 0" class="text-center py-12">
-        <Icon icon="mdi:map-marker-off" class="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+        <Icon
+          icon="mdi:map-marker-off"
+          class="h-16 w-16 mx-auto text-muted-foreground mb-4"
+        />
         <h3 class="text-xl font-semibold mb-2">No Areas Found</h3>
         <p class="text-muted-foreground">
           This entity doesn't have any areas configured yet.

@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { info } from '@tauri-apps/plugin-log'
 import { Merchant } from '@/schema'
+import type { FloorType } from '@/schema'
 
 export interface ApiResponse<T = any> {
   status: 'success' | 'error'
@@ -222,7 +223,7 @@ export interface AreaDetails {
   description: string | null
   beacon_code: string
   floor: {
-    type: string
+    type: FloorType
     name: number
   } | null
   polygon: [number, number][]

@@ -50,6 +50,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://facebook.com/BrewAndBeansNYC',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439012' },
@@ -99,6 +101,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://twitter.com/Starbucks',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439013' },
@@ -155,6 +159,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://tiktok.com/@techgearla',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439014' },
@@ -219,6 +225,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://yelp.com/biz/golden-dragon-restaurant-san-francisco',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439015' },
@@ -269,6 +277,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://facebook.com/ZenWellnessSpaChicago',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439016' },
@@ -326,6 +336,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://twitch.tv/gamezonearc',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439017' },
@@ -381,6 +393,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://pinterest.com/fashionforwarddc',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439018' },
@@ -431,6 +445,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://instagram.com/freshmarketseattle',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439019' },
@@ -486,6 +502,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://yelp.com/biz/sakura-sushi-bar-denver',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
   {
     _id: { $oid: '507f1f77bcf86cd799439020' },
@@ -542,6 +560,8 @@ export const mockMerchants: Merchant[] = [
         url: 'https://linkedin.com/company/healthfirst-clinic',
       },
     ],
+    created_at: Date.now() - Math.floor(Math.random() * 86400000 * 30),
+    updated_at: Date.now() - Math.floor(Math.random() * 86400000),
   },
 ]
 
