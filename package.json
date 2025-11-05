@@ -29,7 +29,8 @@
     "lucide-vue-next": "catalog:",
     "maplibre-gl": "catalog:",
     "motion-v": "catalog:",
-    "oxlint": "^1.12.0",
+    "oxfmt": "^0.9.0",
+    "oxlint": "^1.25.0",
     "pinia": "catalog:",
     "pinia-plugin-persistedstate": "catalog:",
     "prettier": "catalog:",
@@ -53,16 +54,16 @@
     "@vue/test-utils": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "prettier": "catalog:",
     "tailwind-merge": "catalog:",
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-vue-devtools": "catalog:",
-    "vue-tsc": "catalog:",
     "vitepress": "^1.6.4",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-	  "prettier": "catalog:"
+    "vue-tsc": "catalog:"
   },
   "scripts": {
     "ls-lint": "echo \"ls-lint is too slow.\""

@@ -1,7 +1,6 @@
 import type { ClassValue } from 'clsx'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { error } from '@tauri-apps/plugin-log'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -55,8 +54,8 @@ export function isValidObjectId(id: string): boolean {
 export function safeJsonParse<T>(json: string, fallback: T): T {
   try {
     return JSON.parse(json) as T
-  } catch (err) {
-    error('Failed to parse JSON:' + JSON.stringify(err)).then()
+  // oxlint-disable-next-line no-unused-vars
+  } catch (e) {
     return fallback
   }
 }

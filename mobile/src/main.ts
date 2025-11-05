@@ -15,9 +15,15 @@ const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
 createApp(App)
+
   .use(pinia)
+
   .use(VueMaplibreGl)
+
   .use(VueKonva)
+
   .use(router)
+
   .use(i18n)
+
   .mount('#app')

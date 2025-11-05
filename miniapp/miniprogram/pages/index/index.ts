@@ -1,7 +1,8 @@
 // index.ts
 // 获取应用实例
 const app = getApp<IAppOption>()
-const defaultAvatarUrl = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+const defaultAvatarUrl =
+  'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 Component({
   data: {
@@ -25,7 +26,7 @@ Component({
       const { avatarUrl } = e.detail
       const { nickName } = this.data.userInfo
       this.setData({
-        "userInfo.avatarUrl": avatarUrl,
+        'userInfo.avatarUrl': avatarUrl,
         hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
       })
     },
@@ -33,7 +34,7 @@ Component({
       const nickName = e.detail.value
       const { avatarUrl } = this.data.userInfo
       this.setData({
-        "userInfo.nickName": nickName,
+        'userInfo.nickName': nickName,
         hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
       })
     },
@@ -42,12 +43,11 @@ Component({
       wx.getUserProfile({
         desc: '展示用户信息', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
         success: (res) => {
-          console.log(res)
           this.setData({
             userInfo: res.userInfo,
-            hasUserInfo: true
+            hasUserInfo: true,
           })
-        }
+        },
       })
     },
   },

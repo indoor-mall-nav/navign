@@ -249,9 +249,13 @@ describe('retryWithBackoff', () => {
 
   it('should retry on failure', async () => {
     const fn = vi
+
       .fn()
+
       .mockRejectedValueOnce(new Error('fail1'))
+
       .mockRejectedValueOnce(new Error('fail2'))
+
       .mockResolvedValue('success')
 
     const result = await retryWithBackoff(fn, 3, 10)
@@ -270,9 +274,13 @@ describe('retryWithBackoff', () => {
 
   it('should use exponential backoff', async () => {
     const fn = vi
+
       .fn()
+
       .mockRejectedValueOnce(new Error('fail1'))
+
       .mockRejectedValueOnce(new Error('fail2'))
+
       .mockResolvedValue('success')
 
     const start = Date.now()
