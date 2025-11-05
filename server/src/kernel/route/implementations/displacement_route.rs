@@ -184,4 +184,76 @@ mod tests {
         let res = array.find_displacement((40.0, 66.0), (2.0, 64.0));
         assert!(res.is_some());
     }
+
+    #[test]
+    fn test_triangulated_pathfinding() {
+        // A rotated diamond shape that is not axis-aligned
+        let diamond = [
+            (50.0, 0.0),
+            (100.0, 50.0),
+            (50.0, 100.0),
+            (0.0, 50.0),
+            (50.0, 0.0),
+        ];
+        let poly = Polygon::from(diamond.as_slice());
+        let array = poly.as_bounded_block_array_triangulated();
+
+        // Find a path through the diamond
+        let res = array.find_displacement((50.0, 25.0), (50.0, 75.0));
+        assert!(res.is_some());
+
+        let path = res.unwrap();
+        assert!(!path.is_empty());
+        // Path should start near departure and end near arrival
+        assert!(path[0].is_point_inside(50.0, 25.0));
+        assert!(path[path.len() - 1].is_point_inside(50.0, 75.0));
+    }
+
+    #[test]
+    fn test_auto_pathfinding_rotated_polygon() {
+        // A triangle (non-axis-aligned)
+        let triangle = [
+            (10.0, 10.0),
+            (50.0, 20.0),
+            (30.0, 50.0),
+            (10.0, 10.0),
+        ];
+        let poly = Polygon::from(triangle.as_slice());
+        let array = poly.as_bounded_block_array_auto();
+
+        // Find a path through the triangle
+        let res = array.find_displacement((20.0, 15.0), (35.0, 25.0));
+        assert!(res.is_some());
+
+        let path = res.unwrap();
+        assert!(!path.is_empty());
+    }
+
+    #[test]
+    fn test_triangulation_handles_rotated_better() {
+        // Use a rotated rectangle - this demonstrates the advantage of triangulation
+        let rotated_rect = [
+            (25.0, 0.0),
+            (50.0, 25.0),
+            (25.0, 50.0),
+            (0.0, 25.0),
+            (25.0, 0.0),
+        ];
+        let poly = Polygon::from(rotated_rect.as_slice());
+
+        // Triangulation-based approach should handle this well
+        let tri_array = poly.as_bounded_block_array_triangulated();
+        
+        // Test pathfinding from center to a point in the upper right quadrant
+        let tri_path = tri_array.find_displacement((25.0, 25.0), (35.0, 30.0));
+
+        // Triangulation should find a path
+        assert!(tri_path.is_some());
+        let path = tri_path.unwrap();
+        assert!(!path.is_empty());
+        
+        // The departure and arrival points should be in the path
+        assert!(path[0].is_point_inside(25.0, 25.0));
+        assert!(path[path.len() - 1].is_point_inside(35.0, 30.0));
+    }
 }

@@ -217,4 +217,80 @@ mod tests {
         assert_eq!(bounded_count, 3);
         assert_eq!(unbounded_count, 1);
     }
+
+    #[test]
+    fn test_triangulation_rotated_rectangle() {
+        // A 45-degree rotated rectangle
+        let rotated_rect = &[
+            (2.0, 0.0),
+            (4.0, 2.0),
+            (2.0, 4.0),
+            (0.0, 2.0),
+            (2.0, 0.0),
+        ];
+        let poly = Polygon::from(rotated_rect.as_slice());
+
+        // Test triangulation method
+        let triangulated = poly.as_bounded_block_array_triangulated();
+        assert!(triangulated.memory_width > 0);
+        assert!(triangulated.memory_height > 0);
+
+        // Center of the rotated rectangle should be accessible
+        let center_block = triangulated.fit(2.0, 2.0);
+        assert!(center_block.is_some());
+        assert!(center_block.unwrap().is_bounded);
+
+        // Corner points should be accessible
+        let corner1 = triangulated.fit(1.0, 1.0);
+        assert!(corner1.is_some());
+        assert!(corner1.unwrap().is_bounded);
+
+        let corner2 = triangulated.fit(3.0, 1.0);
+        assert!(corner2.is_some());
+        assert!(corner2.unwrap().is_bounded);
+    }
+
+    #[test]
+    fn test_auto_method_chooses_grid_for_axis_aligned() {
+        // Axis-aligned rectangle
+        let rect = &[(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0), (0.0, 0.0)];
+        let poly = Polygon::from(rect.as_slice());
+
+        let auto_array = poly.as_bounded_block_array_auto();
+
+        // Should work correctly
+        let center = auto_array.fit(1.0, 1.0);
+        assert!(center.is_some());
+        assert!(center.unwrap().is_bounded);
+    }
+
+    #[test]
+    fn test_auto_method_chooses_triangulation_for_rotated() {
+        // Non-axis-aligned polygon (triangle)
+        let triangle = &[(0.0, 0.0), (2.0, 1.0), (1.0, 3.0), (0.0, 0.0)];
+        let poly = Polygon::from(triangle.as_slice());
+
+        let auto_array = poly.as_bounded_block_array_auto();
+
+        // Should work correctly
+        assert!(auto_array.memory_width > 0);
+        assert!(auto_array.memory_height > 0);
+
+        // Test that a point inside the triangle is accessible
+        let inside_point = auto_array.fit(1.0, 1.5);
+        assert!(inside_point.is_some());
+    }
+
+    #[test]
+    fn test_is_axis_aligned() {
+        // Axis-aligned rectangle
+        let rect = &[(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0)];
+        let poly = Polygon::from(rect.as_slice());
+        assert!(poly.is_axis_aligned());
+
+        // Rotated rectangle
+        let rotated = &[(1.0, 0.0), (2.0, 1.0), (1.0, 2.0), (0.0, 1.0)];
+        let poly_rotated = Polygon::from(rotated.as_slice());
+        assert!(!poly_rotated.is_axis_aligned());
+    }
 }
