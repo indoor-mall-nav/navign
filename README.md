@@ -160,14 +160,17 @@ Common types and utilities shared across Rust components:
 
 **Tech Stack**: Rust (no_std), Serde, P-256, HMAC, SHA-2
 
-#### 🤖 **Robot** (`robot/`)
+#### 🤖 **Admin** (`admin/`)
 
-Robotics delivery system (planned/in development):
+Robot management system with Rust orchestrator and Go tower:
 
-- **Upper/Lower Components**: Modular robot design
-- **Autonomous Delivery**: Integration with navigation system
+- **Orchestrator (Rust)**: gRPC server for task scheduling, robot selection, and business logic
+- **Tower (Go)**: gRPC client + Socket.IO server for robot connection management
+- **One-Goroutine-Per-Robot**: Dedicated goroutines for keep-alive and status reporting
+- **Streaming gRPC**: Real-time task assignments from Rust to Go
+- **Protocol Buffers**: Type-safe communication schema
 
-**Status**: In development
+**Tech Stack**: Rust (Tokio, Tonic), Go (gRPC, Socket.IO), Protocol Buffers
 
 #### ⚡ **Schematics** (`schematics/`)
 
@@ -328,6 +331,7 @@ Merchant types include:
 | Server           | Rust             | Axum, Tokio, MongoDB, JWT, P-256     |
 | Mobile           | TypeScript, Rust | Vue 3, Tauri 2.0, MapLibre GL, Konva |
 | Beacon           | Rust             | ESP32-C3, BLE, embedded-hal          |
+| Admin            | Rust, Go         | Tokio, Tonic, gRPC, Socket.IO, Protobuf |
 | Gesture Space    | Python           | MediaPipe, OpenCV, PyTorch, YOLOv8   |
 | Animations       | Python           | Manim, NumPy, SciPy                  |
 | Presentation     | Markdown, Vue    | Slidev, Mermaid                      |
