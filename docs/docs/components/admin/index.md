@@ -1,4 +1,6 @@
-# Integration Guide
+# Admin
+
+The `admin` component is the administrative interface *within an entity* (mall, hospital, etc.) for managing beacons, robots, and system settings. It consists of several subcomponents that handle different aspects of robot fleet management and communication.
 
 This document explains how the robot management system integrates with other Navign components.
 
@@ -52,13 +54,13 @@ The Navign server (`server/`) provides:
 
 Tasks are typically created based on server events:
 
-```rust
-// Example: User requests delivery via mobile app
-// 1. Mobile app → Server: Create delivery request
-// 2. Server → Orchestrator: Submit task via gRPC
-// 3. Orchestrator: Assign to best robot
-// 4. Orchestrator → Tower: Stream task assignment
-// 5. Tower → Robot: Send task via Socket.IO
+```
+Example: User requests delivery via mobile app
+1. Mobile app → Server: Create delivery request
+2. Server → Orchestrator: Submit task via gRPC
+3. Orchestrator: Assign to best robot
+4. Orchestrator → Tower: Stream task assignment
+5. Tower → Robot: Send task via Socket.IO
 ```
 
 ### Pathfinding Integration
@@ -73,7 +75,8 @@ Robots need navigation paths from the server's pathfinding system:
    - Real-time beacon positioning
 
 **Server API Endpoint:**
-```
+
+```http
 POST /api/v1/pathfinding/route
 {
   "start": { "area": "A001", "x": 100, "y": 200 },
