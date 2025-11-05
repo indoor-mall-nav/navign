@@ -20,8 +20,8 @@ import (
 
 type Controller struct {
 	Entity string `json:"entity"`
-	GRPC   string `json:"grpc"`   // Orchestrator gRPC address (we connect as client)
-	Tower  string `json:"tower"`  // Our Socket.IO server address
+	GRPC   string `json:"grpc"`  // Orchestrator gRPC address (we connect as client)
+	Tower  string `json:"tower"` // Our Socket.IO server address
 }
 
 var (
@@ -111,9 +111,9 @@ func Start(c *Controller) error {
 				}
 
 				if assignment.Task != nil {
-					log.Printf("Received task assignment: %s for robot %s", 
+					log.Printf("Received task assignment: %s for robot %s",
 						assignment.Task.Id, assignment.RobotId)
-					
+
 					// Send task to robot via Socket.IO
 					if err := sockServer.SendTaskToRobot(assignment.RobotId, assignment.Task); err != nil {
 						log.Printf("Failed to send task to robot: %v", err)

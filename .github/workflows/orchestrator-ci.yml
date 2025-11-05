@@ -1,0 +1,51 @@
+name: Rust CI (Orchestrator)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "admin/orchestrator/**"
+      - "admin/tower/proto/**"
+      - ".github/workflows/orchestrator-ci.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "admin/orchestrator/**"
+      - "admin/tower/proto/**"
+      - ".github/workflows/orchestrator-ci.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  orchestrator-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./admin/orchestrator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Protobuf Compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        run: cargo test --verbose

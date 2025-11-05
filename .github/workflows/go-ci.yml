@@ -1,0 +1,56 @@
+name: Go CI (Tower)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "admin/tower/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/go-ci.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "admin/tower/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/go-ci.yml"
+
+jobs:
+  go-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./admin/tower
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.3"
+          cache-dependency-path: admin/tower/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Go code is not formatted:"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...

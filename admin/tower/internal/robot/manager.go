@@ -70,7 +70,7 @@ func (m *Manager) RegisterRobot(robot *Robot) {
 
 	go m.keepAliveLoop(ctx, robot.ID)
 
-	log.Printf("Robot registered: %s (Entity: %s, Battery: %.1f%%)", 
+	log.Printf("Robot registered: %s (Entity: %s, Battery: %.1f%%)",
 		robot.ID, robot.EntityID, robot.Battery)
 
 	// Report to orchestrator
@@ -87,10 +87,10 @@ func (m *Manager) UnregisterRobot(robotID string) {
 			robot.cancelFunc()
 		}
 		robot.State = pb.RobotState_ROBOT_STATE_OFFLINE
-		
+
 		// Report offline status to orchestrator
 		m.reportToOrchestrator(robot)
-		
+
 		delete(m.robots, robotID)
 		log.Printf("Robot unregistered: %s", robotID)
 	}
@@ -144,7 +144,7 @@ func (m *Manager) keepAliveLoop(ctx context.Context, robotID string) {
 	keepAliveTicker := time.NewTicker(keepAliveInterval)
 	reportTicker := time.NewTicker(reportInterval)
 	cleanupTicker := time.NewTicker(robotTimeout / 2)
-	
+
 	defer keepAliveTicker.Stop()
 	defer reportTicker.Stop()
 	defer cleanupTicker.Stop()
@@ -166,7 +166,7 @@ func (m *Manager) keepAliveLoop(ctx context.Context, robotID string) {
 			m.mu.RLock()
 			robot, exists := m.robots[robotID]
 			m.mu.RUnlock()
-			
+
 			if exists {
 				m.reportToOrchestrator(robot)
 			}
@@ -176,7 +176,7 @@ func (m *Manager) keepAliveLoop(ctx context.Context, robotID string) {
 			m.mu.RLock()
 			robot, exists := m.robots[robotID]
 			m.mu.RUnlock()
-			
+
 			if exists && time.Since(robot.LastSeen) > robotTimeout {
 				log.Printf("Robot %s is stale, cleaning up", robotID)
 				m.UnregisterRobot(robotID)

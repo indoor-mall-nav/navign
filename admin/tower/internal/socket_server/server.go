@@ -7,15 +7,15 @@ import (
 	"time"
 
 	socketio "github.com/googollee/go-socket.io"
-	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 	"github.com/indoor-mall-nav/navign/admin/tower/internal/models"
 	"github.com/indoor-mall-nav/navign/admin/tower/internal/robot"
+	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 )
 
 // Server manages Socket.IO connections with robots
 type Server struct {
-	io            *socketio.Server
-	robotManager  *robot.Manager
+	io           *socketio.Server
+	robotManager *robot.Manager
 }
 
 // NewServer creates a new Socket.IO server
@@ -24,7 +24,7 @@ func NewServer(io *socketio.Server, robotMgr *robot.Manager) *Server {
 		io:           io,
 		robotManager: robotMgr,
 	}
-	
+
 	s.setupHandlers()
 	return s
 }
