@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "mongodb")]
 use bson::oid::ObjectId;
 
+#[cfg(all(feature = "alloc", feature = "serde"))]
+use alloc::string::String;
+
 /// Account schema representing a user account in the system
 /// Note: This schema is primarily for use with the mongodb feature.
 /// When mongodb feature is disabled, the id field is not available.
