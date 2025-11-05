@@ -1,8 +1,0 @@
-node_modules
-dist
-*.local
-.slidev
-components.d.ts
-.DS_Store
-*.pdf
-*.png
