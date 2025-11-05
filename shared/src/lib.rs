@@ -29,12 +29,16 @@ pub use traits::{depacketize::Depacketize, packetize::Packetize};
 pub use schema::ReadQuery;
 
 // Export core schemas
+#[cfg(all(feature = "serde", feature = "alloc", feature = "mongodb"))]
+pub use schema::Account;
 #[cfg(feature = "alloc")]
 pub use schema::{
     Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, ConnectedArea, Connection,
     ConnectionType, Entity, EntityType, FacilityType, Floor, FloorType, FoodCuisine, FoodType,
     Merchant, MerchantStyle, MerchantType, SocialMedia, SocialMediaPlatform,
 };
+#[cfg(all(feature = "serde", feature = "alloc"))]
+pub use schema::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 
 // Export mobile-specific schemas
 #[cfg(feature = "sql")]

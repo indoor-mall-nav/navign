@@ -8,6 +8,8 @@ pub mod utils;
 
 // Core schema modules
 #[cfg(feature = "alloc")]
+pub mod account;
+#[cfg(feature = "alloc")]
 pub mod area;
 #[cfg(feature = "alloc")]
 pub mod beacon;
@@ -19,6 +21,10 @@ pub mod entity;
 pub mod merchant;
 
 // Re-export core types
+#[cfg(all(feature = "alloc", feature = "serde", feature = "mongodb"))]
+pub use account::Account;
+#[cfg(all(feature = "alloc", feature = "serde"))]
+pub use account::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 #[cfg(feature = "alloc")]
 pub use area::{Area, Floor, FloorType};
 #[cfg(feature = "alloc")]

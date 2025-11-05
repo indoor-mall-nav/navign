@@ -4,6 +4,7 @@ mod kernel;
 mod schema;
 mod shared;
 
+use crate::kernel::auth::{login_handler, register_handler};
 use crate::kernel::route::find_route;
 use crate::kernel::unlocker::{
     create_unlock_instance, record_unlock_result, update_unlock_instance,
@@ -83,6 +84,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(root))
         .route("/health", get(health_check))
         .route("/cert", get(cert))
+        .route("/api/auth/register", post(register_handler))
+        .route("/api/auth/login", post(login_handler))
         .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
         .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
         .route(
