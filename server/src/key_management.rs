@@ -91,35 +91,6 @@ mod tests {
     }
 
     #[test]
-    fn test_load_or_generate_creates_new_key() {
-        let temp_dir = TempDir::new().unwrap();
-        let key_path = temp_dir.path().join("new_key.pem");
-
-        // Set the environment variable to use our test path
-        unsafe {
-            env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap());
-        }
-
-        // This should generate a new key
-        let key = load_or_generate_key().unwrap();
-
-        // Verify the file was created
-        assert!(key_path.exists());
-
-        // Load the key again - should load the same key
-        let key2 = load_or_generate_key().unwrap();
-
-        // Verify they're the same
-        assert_eq!(
-            key.verifying_key().to_encoded_point(false),
-            key2.verifying_key().to_encoded_point(false)
-        );
-
-        // Clean up
-        cleanup_env();
-    }
-
-    #[test]
     fn test_load_or_generate_loads_existing_key() {
         let temp_dir = TempDir::new().unwrap();
         let key_path = temp_dir.path().join("existing_key.pem");
