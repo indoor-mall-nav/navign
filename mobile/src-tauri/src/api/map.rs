@@ -627,6 +627,195 @@ pub async fn get_merchant_details_handler(
     }
 }
 
+/// Compute route offline using local database and pathfinding algorithms
+pub async fn compute_route_offline(
+    entity: &str,
+    from_area: &str,
+    from_pos: (f64, f64),
+    to_area: &str,
+    to_pos: (f64, f64),
+    limits: Option<ConnectivityLimits>,
+) -> anyhow::Result<RouteResponse> {
+    use navign_shared::pathfinding::{
+        AreaData, ConnectionData, Polygon, find_path_between_areas, find_path_in_area,
+    };
+    use navign_shared::{AreaMobile, ConnectionMobile};
+
+    let pool = SqlitePool::connect("sqlite:navign.db").await?;
+
+    // Load areas from database
+    let areas_db: Vec<AreaMobile> = sqlx::query_as("SELECT * FROM areas WHERE entity = ?")
+        .bind(entity)
+        .fetch_all(&pool)
+        .await?;
+
+    // Load connections from database
+    let connections_db: Vec<ConnectionMobile> =
+        sqlx::query_as("SELECT * FROM connections WHERE entity = ?")
+            .bind(entity)
+            .fetch_all(&pool)
+            .await?;
+
+    // Convert to pathfinding structures
+    let mut area_data_vec = Vec::new();
+
+    for area_row in areas_db {
+        let polygon = Polygon::from_wkt(&area_row.polygon)
+            .map_err(|e| anyhow::anyhow!("Invalid polygon WKT: {}", e))?;
+
+        // Find connections for this area
+        let mut area_connections = Vec::new();
+        for conn in &connections_db {
+            // Parse connected_areas JSON
+            let connected_areas: Vec<serde_json::Value> =
+                serde_json::from_str(&conn.connected_areas)?;
+
+            let mut conn_areas = Vec::new();
+            for ca in connected_areas {
+                let area_id = ca["area"]
+                    .as_str()
+                    .ok_or_else(|| anyhow::anyhow!("Missing area in connection"))?
+                    .to_string();
+                let x = ca["x"]
+                    .as_f64()
+                    .ok_or_else(|| anyhow::anyhow!("Missing x in connection"))?;
+                let y = ca["y"]
+                    .as_f64()
+                    .ok_or_else(|| anyhow::anyhow!("Missing y in connection"))?;
+                let enabled = ca["enabled"].as_bool().unwrap_or(true);
+                conn_areas.push((area_id, x, y, enabled));
+            }
+
+            // Check if this connection involves the current area
+            if conn_areas.iter().any(|(aid, _, _, _)| aid == &area_row.id) {
+                area_connections.push(ConnectionData {
+                    id: conn.id.clone(),
+                    conn_type: conn.connection_type(),
+                    connected_areas: conn_areas,
+                });
+            }
+        }
+
+        area_data_vec.push(AreaData {
+            id: area_row.id.clone(),
+            polygon,
+            connections: area_connections,
+        });
+    }
+
+    // Perform pathfinding
+    let connectivity_limits = limits.unwrap_or_default();
+    let path_limits = navign_shared::pathfinding::ConnectivityLimits {
+        elevator: connectivity_limits.elevator,
+        stairs: connectivity_limits.stairs,
+        escalator: connectivity_limits.escalator,
+    };
+
+    let instructions = if from_area == to_area {
+        // Inner-area pathfinding
+        let area = area_data_vec
+            .iter()
+            .find(|a| a.id == from_area)
+            .ok_or_else(|| anyhow::anyhow!("Area not found"))?;
+
+        let waypoints = find_path_in_area(&area.polygon, from_pos, to_pos, 1.0)
+            .map_err(|e| anyhow::anyhow!("Pathfinding error: {:?}", e))?;
+
+        waypoints
+            .into_iter()
+            .map(|(x, y)| InstructionType::Move(x, y))
+            .collect()
+    } else {
+        // Inter-area pathfinding
+        let route_instructions = find_path_between_areas(
+            &area_data_vec,
+            from_area,
+            from_pos,
+            to_area,
+            to_pos,
+            path_limits,
+            1.0,
+        )
+        .map_err(|e| anyhow::anyhow!("Pathfinding error: {:?}", e))?;
+
+        // Convert to InstructionType
+        route_instructions
+            .into_iter()
+            .map(|inst| match inst {
+                navign_shared::pathfinding::RouteInstruction::Move(x, y) => {
+                    InstructionType::Move(x, y)
+                }
+                navign_shared::pathfinding::RouteInstruction::Transport(conn, area, typ) => {
+                    InstructionType::Transport(conn, area, typ)
+                }
+            })
+            .collect()
+    };
+
+    // Calculate total distance (optional)
+    let mut total_distance = 0.0;
+    for i in 0..instructions.len().saturating_sub(1) {
+        if let (InstructionType::Move(x1, y1), InstructionType::Move(x2, y2)) =
+            (&instructions[i], &instructions[i + 1])
+        {
+            total_distance += ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
+        }
+    }
+
+    Ok(RouteResponse {
+        instructions,
+        total_distance: Some(total_distance),
+        areas: None,
+    })
+}
+
+#[tauri::command]
+pub async fn get_route_offline_handler(
+    _app: AppHandle,
+    entity: String,
+    from_area: String,
+    from_x: f64,
+    from_y: f64,
+    to_area: String,
+    to_x: f64,
+    to_y: f64,
+    allow_elevator: bool,
+    allow_stairs: bool,
+    allow_escalator: bool,
+) -> Result<String, String> {
+    let limits = ConnectivityLimits {
+        elevator: allow_elevator,
+        stairs: allow_stairs,
+        escalator: allow_escalator,
+    };
+
+    match compute_route_offline(
+        &entity,
+        &from_area,
+        (from_x, from_y),
+        &to_area,
+        (to_x, to_y),
+        Some(limits),
+    )
+    .await
+    {
+        Ok(route) => {
+            let result = json!({
+                "status": "success",
+                "data": route
+            });
+            Ok(result.to_string())
+        }
+        Err(e) => {
+            let result = json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Ok(result.to_string())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

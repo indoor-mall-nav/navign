@@ -2,7 +2,8 @@ use crate::unlocker::Unlocker;
 use api::map::{
     generate_svg_map_handler, get_all_areas_handler, get_all_beacons_handler,
     get_all_merchants_handler, get_area_details_handler, get_map_data_handler,
-    get_merchant_details_handler, get_route_handler, search_merchants_handler,
+    get_merchant_details_handler, get_route_handler, get_route_offline_handler,
+    search_merchants_handler,
 };
 use locate::locate_handler;
 use login::handlers::{
@@ -27,12 +28,20 @@ pub(crate) mod utils;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let migrations = vec![Migration {
-                version: 1,
-                description: "initialize",
-                sql: include_str!("navign.sql"),
-                kind: MigrationKind::Up,
-            }];
+            let migrations = vec![
+                Migration {
+                    version: 1,
+                    description: "initialize",
+                    sql: include_str!("navign.sql"),
+                    kind: MigrationKind::Up,
+                },
+                Migration {
+                    version: 2,
+                    description: "comprehensive schema with WKT support",
+                    sql: include_str!("navign_v2.sql"),
+                    kind: MigrationKind::Up,
+                },
+            ];
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_fs::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;
@@ -104,6 +113,7 @@ pub fn run() {
             generate_svg_map_handler,
             search_merchants_handler,
             get_route_handler,
+            get_route_offline_handler,
             get_all_merchants_handler,
             get_all_areas_handler,
             get_all_beacons_handler,
