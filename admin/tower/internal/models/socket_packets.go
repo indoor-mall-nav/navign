@@ -24,13 +24,13 @@ type RegisterPacket struct {
 
 // TaskAssignedPacket is sent to robot when a task is assigned
 type TaskAssignedPacket struct {
-	TaskID      string                 `json:"task_id"`
-	Type        string                 `json:"type"`
-	Sources     []LocationPacket       `json:"sources"`
-	Terminals   []LocationPacket       `json:"terminals"`
-	Priority    string                 `json:"priority"`
-	Metadata    map[string]string      `json:"metadata,omitempty"`
-	AssignedAt  int64                  `json:"assigned_at"`
+	TaskID     string            `json:"task_id"`
+	Type       string            `json:"type"`
+	Sources    []LocationPacket  `json:"sources"`
+	Terminals  []LocationPacket  `json:"terminals"`
+	Priority   string            `json:"priority"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+	AssignedAt int64             `json:"assigned_at"`
 }
 
 // LocationPacket represents a location coordinate
@@ -43,19 +43,19 @@ type LocationPacket struct {
 
 // StatusUpdatePacket is sent by robot to report status
 type StatusUpdatePacket struct {
-	RobotID         string           `json:"robot_id"`
-	State           string           `json:"state"` // idle, busy, charging, error
-	CurrentLocation LocationPacket   `json:"current_location"`
-	Battery         float64          `json:"battery"`
-	CurrentTaskID   string           `json:"current_task_id,omitempty"`
-	Timestamp       int64            `json:"timestamp"`
+	RobotID         string         `json:"robot_id"`
+	State           string         `json:"state"` // idle, busy, charging, error
+	CurrentLocation LocationPacket `json:"current_location"`
+	Battery         float64        `json:"battery"`
+	CurrentTaskID   string         `json:"current_task_id,omitempty"`
+	Timestamp       int64          `json:"timestamp"`
 }
 
 // TaskUpdatePacket is sent by robot to report task progress
 type TaskUpdatePacket struct {
 	TaskID    string `json:"task_id"`
 	RobotID   string `json:"robot_id"`
-	Status    string `json:"status"` // accepted, in_progress, completed, failed
+	Status    string `json:"status"`   // accepted, in_progress, completed, failed
 	Progress  int    `json:"progress"` // 0-100
 	Message   string `json:"message,omitempty"`
 	Timestamp int64  `json:"timestamp"`

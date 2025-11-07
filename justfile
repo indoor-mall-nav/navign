@@ -114,6 +114,20 @@ ci-repo:
   taplo format --diff
   typos
 
+ci-tower:
+  cd admin/tower && go mod download
+  cd admin/tower && go mod verify
+  cd admin/tower && go build -v ./...
+  cd admin/tower && go test -v ./...
+  cd admin/tower && test -z "$(gofmt -l .)" || (echo "Go code is not formatted:" && gofmt -d . && exit 1)
+  cd admin/tower && go vet ./...
+
+ci-orchestrator:
+  cd admin/orchestrator && cargo check
+  cd admin/orchestrator && cargo fmt -- --check
+  cd admin/orchestrator && cargo clippy -- -D warnings
+  cd admin/orchestrator && cargo test
+
 roll:
   just fmt-check
   just lint

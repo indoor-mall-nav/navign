@@ -1,8 +1,10 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 
 pub mod task {
     tonic::include_proto!("task");
@@ -13,6 +15,8 @@ use task::{
     Priority, RobotDistributionRequest, RobotInfo, RobotReportRequest, RobotReportResponse,
     RobotState, Task, TaskAssignment, TaskType,
 };
+
+type TaskChannelMap = HashMap<String, mpsc::Sender<Result<TaskAssignment, Status>>>;
 
 #[derive(Debug)]
 struct TaskQueue {
@@ -45,7 +49,7 @@ impl TaskQueue {
 struct RobotRegistry {
     robots: Arc<RwLock<HashMap<String, RobotInfo>>>,
     task_queue: Arc<RwLock<TaskQueue>>,
-    task_channels: Arc<RwLock<HashMap<String, mpsc::Sender<Result<TaskAssignment, Status>>>>>,
+    task_channels: Arc<RwLock<TaskChannelMap>>,
 }
 
 impl RobotRegistry {
@@ -164,7 +168,11 @@ impl RobotRegistry {
         }
     }
 
-    async fn register_task_channel(&self, entity_id: String, tx: mpsc::Sender<Result<TaskAssignment, Status>>) {
+    async fn register_task_channel(
+        &self,
+        entity_id: String,
+        tx: mpsc::Sender<Result<TaskAssignment, Status>>,
+    ) {
         let mut channels = self.task_channels.write().await;
         channels.insert(entity_id, tx);
     }
