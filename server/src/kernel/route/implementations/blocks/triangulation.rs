@@ -76,11 +76,16 @@ pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
     // Create a Constrained Delaunay Triangulation
     let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f64>>::new();
     
-    // Insert all vertices
+    // Insert all vertices and track which ones were successfully added
     let mut vertex_handles = Vec::new();
-    for &(x, y) in &vertices {
+    let mut inserted_indices = Vec::new();
+    
+    for (idx, &(x, y)) in vertices.iter().enumerate() {
         match cdt.insert(Point2::new(x, y)) {
-            Ok(handle) => vertex_handles.push(handle),
+            Ok(handle) => {
+                vertex_handles.push(handle);
+                inserted_indices.push(idx);
+            },
             Err(_) => {
                 // If insertion fails (duplicate point), skip it
                 continue;
@@ -89,12 +94,19 @@ pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
     }
 
     // Add constraints (edges of the polygon)
+    // We need to connect consecutive vertices that were successfully inserted
     for i in 0..vertex_handles.len() {
         let v1 = vertex_handles[i];
         let v2 = vertex_handles[(i + 1) % vertex_handles.len()];
         
         // Add edge as constraint
-        let _ = cdt.add_constraint(v1, v2);
+        // add_constraint returns true if the constraint was added successfully
+        let added = cdt.add_constraint(v1, v2);
+        
+        #[cfg(test)]
+        if !added {
+            eprintln!("Warning: Constraint between vertices {} and {} already exists or is invalid", i, (i + 1) % vertex_handles.len());
+        }
     }
 
     // Extract triangles from the triangulation
