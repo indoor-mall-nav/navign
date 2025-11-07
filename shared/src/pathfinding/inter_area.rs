@@ -143,7 +143,7 @@ pub fn find_path_between_areas(
         .find(|a| a.id == start_area_id)
         .ok_or(InterPathError::InvalidStartArea)?;
 
-    let end_area = areas
+    let _end_area = areas
         .iter()
         .find(|a| a.id == end_area_id)
         .ok_or(InterPathError::InvalidEndArea)?;
@@ -259,7 +259,7 @@ pub fn find_path_between_areas(
 fn reconstruct_full_path(
     came_from: &BTreeMap<String, (String, String)>,
     area_map: &BTreeMap<&str, &AreaData>,
-    start_area_id: &str,
+    _start_area_id: &str,
     start_pos: (f64, f64),
     end_area_id: &str,
     end_pos: (f64, f64),

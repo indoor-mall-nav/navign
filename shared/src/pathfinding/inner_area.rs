@@ -34,7 +34,6 @@ impl core::fmt::Display for InnerPathError {
 struct PathNode {
     index: usize,
     f_score: u64,
-    g_score: u64,
 }
 
 impl PartialEq for PathNode {
@@ -171,7 +170,6 @@ pub fn find_path_in_area(
     open_set.push(PathNode {
         index: start_index,
         f_score: (h_score * 100.0) as u64,
-        g_score: 0,
     });
 
     while let Some(current_node) = open_set.pop() {
@@ -204,7 +202,6 @@ pub fn find_path_in_area(
                 open_set.push(PathNode {
                     index: neighbor,
                     f_score,
-                    g_score: tentative_g_score,
                 });
             }
         }

@@ -62,7 +62,7 @@ impl Polygon {
 
         let mut vertices = Vec::new();
         for coord in coords_str.split(',') {
-            let parts: Vec<&str> = coord.trim().split_whitespace().collect();
+            let parts: Vec<&str> = coord.split_whitespace().collect();
             if parts.len() != 2 {
                 return Err("Each coordinate must have exactly 2 values");
             }
