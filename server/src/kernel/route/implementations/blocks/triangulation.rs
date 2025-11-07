@@ -188,7 +188,7 @@ pub fn triangulated_to_bounded_blocks(triangles: &[Triangle]) -> BoundedBlockArr
     // Create a grid resolution based on the number of triangles
     // More triangles = finer grid for better representation
     let grid_size = (triangles.len() as f64).sqrt().ceil() as usize * 2;
-    let grid_size = grid_size.max(3).min(50); // Min 3x3, max 50x50 to prevent excessive memory
+    let grid_size = grid_size.clamp(3, 50); // Min 3x3, max 50x50 to prevent excessive memory
 
     let cell_width = (max_x - min_x) / grid_size as f64;
     let cell_height = (max_y - min_y) / grid_size as f64;
