@@ -54,7 +54,7 @@ export function isValidObjectId(id: string): boolean {
 export function safeJsonParse<T>(json: string, fallback: T): T {
   try {
     return JSON.parse(json) as T
-  // oxlint-disable-next-line no-unused-vars
+    // oxlint-disable-next-line no-unused-vars
   } catch (e) {
     return fallback
   }

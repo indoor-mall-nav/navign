@@ -40,6 +40,7 @@ export interface Merchant {
       | 'discord'
       | 'whatsapp'
       | 'telegram'
+      | 'youtube'
     handle: string // e.g., "@merchant" or "merchantPage"
     url?: string // Full URL to the social media page
   }[]
