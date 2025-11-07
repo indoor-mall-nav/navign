@@ -39,6 +39,10 @@ impl TaskQueue {
             Some(self.pending.remove(0))
         }
     }
+
+    fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -173,6 +177,16 @@ impl RobotRegistry {
         let mut channels = self.task_channels.write().await;
         channels.remove(entity_id);
     }
+
+    async fn get_robot(&self, robot_id: &str) -> Option<RobotInfo> {
+        let robots = self.robots.read().await;
+        robots.get(robot_id).cloned()
+    }
+
+    async fn robot_count(&self) -> usize {
+        let robots = self.robots.read().await;
+        robots.len()
+    }
 }
 
 pub struct OrchestratorServiceImpl {
@@ -280,4 +294,304 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn test_task_queue_new() {
+        let queue = TaskQueue::new();
+        assert_eq!(queue.pending_count(), 0);
+    }
+
+    #[test]
+    fn test_task_queue_add_and_get() {
+        let mut queue = TaskQueue::new();
+
+        let task = create_test_task("task-1", Priority::Normal);
+        queue.add_task(task);
+
+        assert_eq!(queue.pending_count(), 1);
+
+        let retrieved = queue.get_next_task();
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().id, "task-1");
+        assert_eq!(queue.pending_count(), 0);
+    }
+
+    #[test]
+    fn test_task_queue_priority_sorting() {
+        let mut queue = TaskQueue::new();
+
+        // Add tasks in mixed priority order
+        queue.add_task(create_test_task("normal", Priority::Normal));
+        queue.add_task(create_test_task("urgent", Priority::Urgent));
+        queue.add_task(create_test_task("low", Priority::Low));
+        queue.add_task(create_test_task("high", Priority::High));
+
+        // Should be retrieved in priority order: Urgent > High > Normal > Low
+        assert_eq!(queue.get_next_task().unwrap().id, "urgent");
+        assert_eq!(queue.get_next_task().unwrap().id, "high");
+        assert_eq!(queue.get_next_task().unwrap().id, "normal");
+        assert_eq!(queue.get_next_task().unwrap().id, "low");
+        assert!(queue.get_next_task().is_none());
+    }
+
+    #[test]
+    fn test_task_queue_empty() {
+        let mut queue = TaskQueue::new();
+        assert!(queue.get_next_task().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_robot_registry_new() {
+        let registry = RobotRegistry::new();
+        assert_eq!(registry.robot_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_robot_registry_register_robot() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+
+        registry.register_robot(robot).await;
+
+        assert_eq!(registry.robot_count().await, 1);
+        let retrieved = registry.get_robot("robot-1").await;
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().id, "robot-1");
+    }
+
+    #[tokio::test]
+    async fn test_robot_registry_update_existing_robot() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        registry.register_robot(robot).await;
+
+        // Update robot status
+        let updated_robot = create_test_robot("robot-1", "entity-1", RobotState::Busy, 75.0);
+        registry.update_robot_status(updated_robot).await;
+
+        let retrieved = registry.get_robot("robot-1").await.unwrap();
+        assert_eq!(retrieved.state, RobotState::Busy as i32);
+        assert_eq!(retrieved.battery_level, 75.0);
+        assert_eq!(registry.robot_count().await, 1); // Should still be 1
+    }
+
+    #[tokio::test]
+    async fn test_robot_registry_update_nonexistent_robot_creates_it() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+
+        registry.update_robot_status(robot).await;
+
+        assert_eq!(registry.robot_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_find_best_robot_no_robots() {
+        let registry = RobotRegistry::new();
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.find_best_robot(&task).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_find_best_robot_wrong_entity() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        registry.register_robot(robot).await;
+
+        let mut task = create_test_task("task-1", Priority::Normal);
+        task.entity_id = "entity-2".to_string(); // Different entity
+
+        let result = registry.find_best_robot(&task).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_find_best_robot_busy_robot_excluded() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Busy, 80.0);
+        registry.register_robot(robot).await;
+
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.find_best_robot(&task).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_find_best_robot_selects_by_battery() {
+        let registry = RobotRegistry::new();
+
+        let robot1 = create_test_robot("robot-1", "entity-1", RobotState::Idle, 50.0);
+        let robot2 = create_test_robot("robot-2", "entity-1", RobotState::Idle, 90.0);
+        let robot3 = create_test_robot("robot-3", "entity-1", RobotState::Idle, 70.0);
+
+        registry.register_robot(robot1).await;
+        registry.register_robot(robot2).await;
+        registry.register_robot(robot3).await;
+
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.find_best_robot(&task).await;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, "robot-2"); // Highest battery
+    }
+
+    #[tokio::test]
+    async fn test_find_best_robot_proximity_bonus() {
+        let registry = RobotRegistry::new();
+
+        let mut robot1 = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        robot1.current_location = Some(task::Location {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            floor: "1F".to_string(),
+        });
+
+        let mut robot2 = create_test_robot("robot-2", "entity-1", RobotState::Idle, 80.0);
+        robot2.current_location = Some(task::Location {
+            x: 500.0,
+            y: 500.0,
+            z: 0.0,
+            floor: "1F".to_string(),
+        });
+
+        registry.register_robot(robot1).await;
+        registry.register_robot(robot2).await;
+
+        let mut task = create_test_task("task-1", Priority::Normal);
+        task.sources = vec![task::Location {
+            x: 10.0,
+            y: 10.0,
+            z: 0.0,
+            floor: "1F".to_string(),
+        }];
+
+        let result = registry.find_best_robot(&task).await;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, "robot-1"); // Closer to task source
+    }
+
+    #[tokio::test]
+    async fn test_assign_task_no_suitable_robot() {
+        let registry = RobotRegistry::new();
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.assign_task(task).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "No suitable robot available");
+    }
+
+    #[tokio::test]
+    async fn test_assign_task_no_tower_connected() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        registry.register_robot(robot).await;
+
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.assign_task(task).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No tower connected"));
+    }
+
+    #[tokio::test]
+    async fn test_assign_task_success() {
+        let registry = RobotRegistry::new();
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        registry.register_robot(robot).await;
+
+        // Register task channel
+        let (tx, mut rx) = mpsc::channel(10);
+        registry
+            .register_task_channel("entity-1".to_string(), tx)
+            .await;
+
+        let task = create_test_task("task-1", Priority::Normal);
+
+        let result = registry.assign_task(task.clone()).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "robot-1");
+
+        // Verify robot state updated to busy
+        let updated_robot = registry.get_robot("robot-1").await.unwrap();
+        assert_eq!(updated_robot.state, RobotState::Busy as i32);
+        assert_eq!(updated_robot.current_task_id, "task-1");
+
+        // Verify task was sent to channel
+        let assignment = rx.recv().await.unwrap().unwrap();
+        assert_eq!(assignment.robot_id, "robot-1");
+        assert!(assignment.task.is_some());
+        assert_eq!(assignment.task.unwrap().id, "task-1");
+    }
+
+    #[tokio::test]
+    async fn test_orchestrator_service_report_robot_status() {
+        let service = OrchestratorServiceImpl::new();
+
+        let robot = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
+        let request = Request::new(RobotReportRequest { robot: Some(robot) });
+
+        let response = service.report_robot_status(request).await;
+        assert!(response.is_ok());
+
+        let report = response.unwrap().into_inner();
+        assert!(report.success);
+
+        // Verify robot was registered
+        assert_eq!(service.registry.robot_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_orchestrator_service_report_robot_status_missing_robot() {
+        let service = OrchestratorServiceImpl::new();
+
+        let request = Request::new(RobotReportRequest { robot: None });
+
+        let response = service.report_robot_status(request).await;
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().code(), tonic::Code::InvalidArgument);
+    }
+
+    // Helper functions
+
+    fn create_test_task(id: &str, priority: Priority) -> Task {
+        Task {
+            id: id.to_string(),
+            r#type: TaskType::Delivery as i32,
+            sources: vec![],
+            terminals: vec![],
+            priority: priority as i32,
+            created_at: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+            entity_id: "entity-1".to_string(),
+            metadata: HashMap::new(),
+        }
+    }
+
+    fn create_test_robot(id: &str, entity_id: &str, state: RobotState, battery: f64) -> RobotInfo {
+        RobotInfo {
+            id: id.to_string(),
+            name: format!("Test Robot {}", id),
+            state: state as i32,
+            current_location: None,
+            battery_level: battery,
+            current_task_id: String::new(),
+            last_seen: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+            entity_id: entity_id.to_string(),
+        }
+    }
 }
