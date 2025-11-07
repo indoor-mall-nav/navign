@@ -1,6 +1,6 @@
-use super::{BoundedBlock, BoundedBlockArray};
 #[cfg(test)]
 use super::ContiguousBlockArray;
+use super::{BoundedBlock, BoundedBlockArray};
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as _};
 
 /// Represents a triangle in 2D space
@@ -75,17 +75,17 @@ pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
 
     // Create a Constrained Delaunay Triangulation
     let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f64>>::new();
-    
+
     // Insert all vertices and track which ones were successfully added
     let mut vertex_handles = Vec::new();
     let mut inserted_indices = Vec::new();
-    
+
     for (idx, &(x, y)) in vertices.iter().enumerate() {
         match cdt.insert(Point2::new(x, y)) {
             Ok(handle) => {
                 vertex_handles.push(handle);
                 inserted_indices.push(idx);
-            },
+            }
             Err(_) => {
                 // If insertion fails (duplicate point), skip it
                 continue;
@@ -98,26 +98,30 @@ pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
     for i in 0..vertex_handles.len() {
         let v1 = vertex_handles[i];
         let v2 = vertex_handles[(i + 1) % vertex_handles.len()];
-        
+
         // Add edge as constraint
         // add_constraint returns true if the constraint was added successfully
         let added = cdt.add_constraint(v1, v2);
-        
+
         #[cfg(test)]
         if !added {
-            eprintln!("Warning: Constraint between vertices {} and {} already exists or is invalid", i, (i + 1) % vertex_handles.len());
+            eprintln!(
+                "Warning: Constraint between vertices {} and {} already exists or is invalid",
+                i,
+                (i + 1) % vertex_handles.len()
+            );
         }
     }
 
     // Extract triangles from the triangulation
     let mut triangles = Vec::new();
-    
+
     for face in cdt.inner_faces() {
         let [v0, v1, v2] = face.vertices();
         let p0_pos = v0.position();
         let p1_pos = v1.position();
         let p2_pos = v2.position();
-        
+
         let tri = Triangle {
             p0: (p0_pos.x, p0_pos.y),
             p1: (p1_pos.x, p1_pos.y),
@@ -140,17 +144,17 @@ fn is_point_in_polygon(polygon: &[(f64, f64)], x: f64, y: f64) -> bool {
     let mut inside = false;
     let n = polygon.len();
     let mut j = n - 1;
-    
+
     for i in 0..n {
         let (xi, yi) = polygon[i];
         let (xj, yj) = polygon[j];
-        
+
         if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
             inside = !inside;
         }
         j = i;
     }
-    
+
     inside
 }
 

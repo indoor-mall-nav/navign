@@ -221,13 +221,7 @@ mod tests {
     #[test]
     fn test_triangulation_rotated_rectangle() {
         // A 45-degree rotated rectangle
-        let rotated_rect = &[
-            (2.0, 0.0),
-            (4.0, 2.0),
-            (2.0, 4.0),
-            (0.0, 2.0),
-            (2.0, 0.0),
-        ];
+        let rotated_rect = &[(2.0, 0.0), (4.0, 2.0), (2.0, 4.0), (0.0, 2.0), (2.0, 0.0)];
         let poly = Polygon::from(rotated_rect.as_slice());
 
         // Test triangulation method

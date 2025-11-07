@@ -1,7 +1,7 @@
+use super::triangulation::{triangulate_polygon, triangulated_to_bounded_blocks};
 use crate::kernel::route::implementations::{BoundedBlock, BoundedBlockArray};
 use crate::kernel::route::types::CloneIn;
 use std::collections::BTreeSet;
-use super::triangulation::{triangulate_polygon, triangulated_to_bounded_blocks};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<'a> {

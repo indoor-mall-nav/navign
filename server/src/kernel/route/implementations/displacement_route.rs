@@ -212,12 +212,7 @@ mod tests {
     #[test]
     fn test_auto_pathfinding_rotated_polygon() {
         // A triangle (non-axis-aligned)
-        let triangle = [
-            (10.0, 10.0),
-            (50.0, 20.0),
-            (30.0, 50.0),
-            (10.0, 10.0),
-        ];
+        let triangle = [(10.0, 10.0), (50.0, 20.0), (30.0, 50.0), (10.0, 10.0)];
         let poly = Polygon::from(triangle.as_slice());
         let array = poly.as_bounded_block_array_auto();
 
@@ -243,7 +238,7 @@ mod tests {
 
         // Triangulation-based approach should handle this well
         let tri_array = poly.as_bounded_block_array_triangulated();
-        
+
         // Test pathfinding from center to a point in the upper right quadrant
         let tri_path = tri_array.find_displacement((25.0, 25.0), (35.0, 30.0));
 
@@ -251,7 +246,7 @@ mod tests {
         assert!(tri_path.is_some());
         let path = tri_path.unwrap();
         assert!(!path.is_empty());
-        
+
         // The departure and arrival points should be in the path
         assert!(path[0].is_point_inside(25.0, 25.0));
         assert!(path[path.len() - 1].is_point_inside(35.0, 30.0));
