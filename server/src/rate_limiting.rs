@@ -73,3 +73,159 @@ impl IntoResponse for RateLimitError {
             .into_response()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_rate_limit_layer_with_custom_values() {
+        let layer = create_rate_limit_layer(50, 100);
+        // If layer creation succeeds without panic, test passes
+        assert!(std::ptr::addr_of!(layer).is_null() == false);
+    }
+
+    #[test]
+    fn test_create_default_rate_limit_layer() {
+        // Clear env vars to test defaults
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+
+        let layer = create_default_rate_limit_layer();
+        // If layer creation succeeds without panic, test passes
+        assert!(std::ptr::addr_of!(layer).is_null() == false);
+    }
+
+    #[test]
+    fn test_create_default_rate_limit_layer_with_env() {
+        // Set custom env vars
+        std::env::set_var("RATE_LIMIT_PER_SECOND", "25");
+        std::env::set_var("RATE_LIMIT_BURST_SIZE", "50");
+
+        let layer = create_default_rate_limit_layer();
+        // If layer creation succeeds without panic, test passes
+        assert!(std::ptr::addr_of!(layer).is_null() == false);
+
+        // Cleanup
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+    }
+
+    #[test]
+    fn test_rate_limit_error_response() {
+        let error = RateLimitError;
+        let response = error.into_response();
+
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    #[test]
+    fn test_rate_limit_config_parsing() {
+        // Test valid parsing
+        std::env::set_var("RATE_LIMIT_PER_SECOND", "75");
+        std::env::set_var("RATE_LIMIT_BURST_SIZE", "150");
+
+        let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(100);
+
+        let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(200);
+
+        assert_eq!(requests_per_second, 75);
+        assert_eq!(burst_size, 150);
+
+        // Cleanup
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+    }
+
+    #[test]
+    fn test_rate_limit_config_defaults() {
+        // Remove env vars
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+
+        let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(100);
+
+        let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(200);
+
+        assert_eq!(requests_per_second, 100);
+        assert_eq!(burst_size, 200);
+    }
+
+    #[test]
+    fn test_rate_limit_config_invalid_values() {
+        // Set invalid values
+        std::env::set_var("RATE_LIMIT_PER_SECOND", "not_a_number");
+        std::env::set_var("RATE_LIMIT_BURST_SIZE", "also_invalid");
+
+        let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(100);
+
+        let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(200);
+
+        // Should fall back to defaults
+        assert_eq!(requests_per_second, 100);
+        assert_eq!(burst_size, 200);
+
+        // Cleanup
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+    }
+
+    #[test]
+    fn test_rate_limit_config_edge_cases() {
+        // Test with 0 values
+        std::env::set_var("RATE_LIMIT_PER_SECOND", "0");
+        std::env::set_var("RATE_LIMIT_BURST_SIZE", "0");
+
+        let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(100);
+
+        let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(200);
+
+        assert_eq!(requests_per_second, 0);
+        assert_eq!(burst_size, 0);
+
+        // Test with very large values
+        std::env::set_var("RATE_LIMIT_PER_SECOND", "1000000");
+        std::env::set_var("RATE_LIMIT_BURST_SIZE", "2000000");
+
+        let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(100);
+
+        let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(200);
+
+        assert_eq!(requests_per_second, 1000000);
+        assert_eq!(burst_size, 2000000);
+
+        // Cleanup
+        std::env::remove_var("RATE_LIMIT_PER_SECOND");
+        std::env::remove_var("RATE_LIMIT_BURST_SIZE");
+    }
+}

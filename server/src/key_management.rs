@@ -79,8 +79,15 @@ fn save_key_to_file(key: &SigningKey, path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::ecdsa::signature::Signer;
     use std::env;
+    use std::io::Write;
     use tempfile::TempDir;
+
+    /// Helper function to cleanup environment variables after each test
+    fn cleanup_env() {
+        env::remove_var("PRIVATE_KEY_FILE");
+    }
 
     #[test]
     fn test_save_and_load_key() {
@@ -98,6 +105,16 @@ mod tests {
         assert_eq!(
             original_key.verifying_key().to_encoded_point(false),
             loaded_key.verifying_key().to_encoded_point(false)
+        );
+
+        // Verify the keys can sign and verify the same message
+        let message = b"test message";
+        let signature = original_key.sign(message);
+        assert!(
+            loaded_key
+                .verifying_key()
+                .verify(message, &signature)
+                .is_ok()
         );
     }
 
@@ -125,6 +142,199 @@ mod tests {
         );
 
         // Clean up
-        env::remove_var("PRIVATE_KEY_FILE");
+        cleanup_env();
+    }
+
+    #[test]
+    fn test_load_or_generate_loads_existing_key() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("existing_key.pem");
+
+        // Create a key and save it first
+        let original_key = SigningKey::random(&mut OsRng);
+        save_key_to_file(&original_key, &key_path).unwrap();
+
+        // Set environment to use this key
+        env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap());
+
+        // load_or_generate should load the existing key
+        let loaded_key = load_or_generate_key().unwrap();
+
+        // Verify it's the same key
+        assert_eq!(
+            original_key.verifying_key().to_encoded_point(false),
+            loaded_key.verifying_key().to_encoded_point(false)
+        );
+
+        cleanup_env();
+    }
+
+    #[test]
+    fn test_save_key_creates_parent_directories() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("subdir1/subdir2/test_key.pem");
+
+        // Parent directories don't exist yet
+        assert!(!key_path.parent().unwrap().exists());
+
+        // Save should create parent directories
+        let key = SigningKey::random(&mut OsRng);
+        save_key_to_file(&key, &key_path).unwrap();
+
+        // Verify parent directories were created
+        assert!(key_path.parent().unwrap().exists());
+        assert!(key_path.exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_saved_key_has_correct_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("secure_key.pem");
+
+        // Save a key
+        let key = SigningKey::random(&mut OsRng);
+        save_key_to_file(&key, &key_path).unwrap();
+
+        // Check permissions are 0o600 (read/write for owner only)
+        let metadata = fs::metadata(&key_path).unwrap();
+        let permissions = metadata.permissions();
+        assert_eq!(permissions.mode() & 0o777, 0o600);
+    }
+
+    #[test]
+    fn test_load_key_with_invalid_pem() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("invalid.pem");
+
+        // Write invalid PEM content
+        let mut file = fs::File::create(&key_path).unwrap();
+        file.write_all(b"This is not a valid PEM file").unwrap();
+
+        // Loading should fail
+        let result = load_key_from_file(&key_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Failed to parse private key")
+        );
+    }
+
+    #[test]
+    fn test_load_key_with_nonexistent_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("nonexistent.pem");
+
+        // Loading non-existent file should fail
+        let result = load_key_from_file(&key_path);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Failed to read private key file")
+        );
+    }
+
+    #[test]
+    fn test_get_key_file_path_default() {
+        // Without environment variable, should use default
+        cleanup_env();
+        let path = get_key_file_path();
+        assert_eq!(path, PathBuf::from(DEFAULT_KEY_FILE));
+    }
+
+    #[test]
+    fn test_get_key_file_path_from_env() {
+        let custom_path = "/custom/path/to/key.pem";
+        env::set_var("PRIVATE_KEY_FILE", custom_path);
+
+        let path = get_key_file_path();
+        assert_eq!(path, PathBuf::from(custom_path));
+
+        cleanup_env();
+    }
+
+    #[test]
+    fn test_key_pem_format_is_valid() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("format_test.pem");
+
+        // Save a key
+        let key = SigningKey::random(&mut OsRng);
+        save_key_to_file(&key, &key_path).unwrap();
+
+        // Read the PEM file
+        let pem_contents = fs::read_to_string(&key_path).unwrap();
+
+        // Verify it starts with PEM header and ends with footer
+        assert!(pem_contents.starts_with("-----BEGIN PRIVATE KEY-----"));
+        assert!(
+            pem_contents
+                .trim_end()
+                .ends_with("-----END PRIVATE KEY-----")
+        );
+
+        // Verify it contains base64 encoded data
+        let lines: Vec<&str> = pem_contents.lines().collect();
+        assert!(lines.len() > 2); // At least header + data + footer
+    }
+
+    #[test]
+    fn test_multiple_save_and_load_cycles() {
+        let temp_dir = TempDir::new().unwrap();
+        let key_path = temp_dir.path().join("cycle_test.pem");
+
+        // Generate original key
+        let original_key = SigningKey::random(&mut OsRng);
+        let original_pub = original_key.verifying_key().to_encoded_point(false);
+
+        // Save and load 5 times
+        for i in 0..5 {
+            if i == 0 {
+                save_key_to_file(&original_key, &key_path).unwrap();
+            }
+
+            let loaded_key = load_key_from_file(&key_path).unwrap();
+            assert_eq!(
+                loaded_key.verifying_key().to_encoded_point(false),
+                original_pub,
+                "Key mismatch on cycle {}",
+                i
+            );
+
+            // Overwrite with the same key
+            save_key_to_file(&loaded_key, &key_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_concurrent_key_operations() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let temp_dir = Arc::new(TempDir::new().unwrap());
+        let mut handles = vec![];
+
+        // Create multiple threads that try to save keys
+        for i in 0..5 {
+            let temp_dir = Arc::clone(&temp_dir);
+            let handle = thread::spawn(move || {
+                let key_path = temp_dir.path().join(format!("concurrent_key_{}.pem", i));
+                let key = SigningKey::random(&mut OsRng);
+                save_key_to_file(&key, &key_path).unwrap();
+                load_key_from_file(&key_path).unwrap()
+            });
+            handles.push(handle);
+        }
+
+        // All operations should succeed
+        for handle in handles {
+            assert!(handle.join().is_ok());
+        }
     }
 }
