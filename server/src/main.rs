@@ -1,6 +1,8 @@
 mod certification;
 mod database;
 mod kernel;
+mod key_management;
+mod rate_limiting;
 mod schema;
 mod shared;
 
@@ -9,6 +11,8 @@ use crate::kernel::route::find_route;
 use crate::kernel::unlocker::{
     create_unlock_instance, record_unlock_result, update_unlock_instance,
 };
+use crate::key_management::load_or_generate_key;
+use crate::rate_limiting::create_default_rate_limit_layer;
 use crate::schema::service::OneInArea;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
@@ -22,12 +26,10 @@ use bson::doc;
 use log::{LevelFilter, info};
 use mongodb::Database;
 use p256::ecdsa::SigningKey;
-use p256::elliptic_curve::rand_core::OsRng;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
 use tower_http::cors::CorsLayer;
-// use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -70,15 +72,20 @@ async fn main() -> anyhow::Result<()> {
         .allow_origin(tower_http::cors::Any)
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(tower_http::cors::Any);
-    info!("Cors layer configured.");
-    // ensure_key();
-    let db = database::connect_with_db().await?;
-    let private_key = SigningKey::random(&mut OsRng);
+    info!("CORS layer configured.");
+
+    // Load or generate persistent private key
+    let private_key = load_or_generate_key()?;
     let public_key = private_key.verifying_key();
     info!(
-        "Public key: {:?}",
+        "Server public key: {:?}",
         public_key.to_encoded_point(false).as_bytes()
     );
+
+    // Configure rate limiting
+    let rate_limit_layer = create_default_rate_limit_layer();
+
+    let db = database::connect_with_db().await?;
     let state = AppState { db, private_key };
     let app = Router::new()
         .route("/", get(root))
@@ -201,6 +208,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/entities/{eid}/connections/{id}",
             delete(Connection::delete_handler),
         )
+        .layer(rate_limit_layer)
         .layer(cors)
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
