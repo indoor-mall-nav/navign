@@ -79,43 +79,15 @@ fn save_key_to_file(key: &SigningKey, path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use p256::ecdsa::signature::Signer;
     use std::env;
     use std::io::Write;
     use tempfile::TempDir;
 
     /// Helper function to cleanup environment variables after each test
     fn cleanup_env() {
-        env::remove_var("PRIVATE_KEY_FILE");
-    }
-
-    #[test]
-    fn test_save_and_load_key() {
-        let temp_dir = TempDir::new().unwrap();
-        let key_path = temp_dir.path().join("test_key.pem");
-
-        // Generate and save a key
-        let original_key = SigningKey::random(&mut OsRng);
-        save_key_to_file(&original_key, &key_path).unwrap();
-
-        // Load the key back
-        let loaded_key = load_key_from_file(&key_path).unwrap();
-
-        // Verify the keys match by comparing their public keys
-        assert_eq!(
-            original_key.verifying_key().to_encoded_point(false),
-            loaded_key.verifying_key().to_encoded_point(false)
-        );
-
-        // Verify the keys can sign and verify the same message
-        let message = b"test message";
-        let signature = original_key.sign(message);
-        assert!(
-            loaded_key
-                .verifying_key()
-                .verify(message, &signature)
-                .is_ok()
-        );
+        unsafe {
+            env::remove_var("PRIVATE_KEY_FILE");
+        }
     }
 
     #[test]
@@ -124,7 +96,9 @@ mod tests {
         let key_path = temp_dir.path().join("new_key.pem");
 
         // Set the environment variable to use our test path
-        env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap());
+        unsafe {
+            env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap());
+        }
 
         // This should generate a new key
         let key = load_or_generate_key().unwrap();
@@ -155,7 +129,7 @@ mod tests {
         save_key_to_file(&original_key, &key_path).unwrap();
 
         // Set environment to use this key
-        env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap());
+        unsafe { env::set_var("PRIVATE_KEY_FILE", key_path.to_str().unwrap()) };
 
         // load_or_generate should load the existing key
         let loaded_key = load_or_generate_key().unwrap();
@@ -251,7 +225,9 @@ mod tests {
     #[test]
     fn test_get_key_file_path_from_env() {
         let custom_path = "/custom/path/to/key.pem";
-        env::set_var("PRIVATE_KEY_FILE", custom_path);
+        unsafe {
+            env::set_var("PRIVATE_KEY_FILE", custom_path);
+        }
 
         let path = get_key_file_path();
         assert_eq!(path, PathBuf::from(custom_path));

@@ -18,4 +18,4 @@ b.add('JavaScript a + 100', () => {
 
 await b.run()
 
-b.table();
+b.table()
