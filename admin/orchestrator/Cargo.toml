@@ -5,7 +5,12 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.43", features = [
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
 tokio-stream = "0.1"
 tonic = "0.12"
 prost = "0.13"

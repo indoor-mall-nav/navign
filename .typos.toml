@@ -10,4 +10,4 @@ extend-exclude = [
 ]
 
 [default]
-extend-words = { "ND" = "ND", "solvePnP" = "solvePnP", "Pn" = "Pn" }
+extend-words = { "ND" = "ND", "solvePnP" = "solvePnP", "Pn" = "Pn", "wrk" = "wrk" }

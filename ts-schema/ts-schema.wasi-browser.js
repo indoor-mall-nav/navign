@@ -29,12 +29,9 @@ const {
   asyncWorkPoolSize: 4,
   wasi: __wasi,
   onCreateWorker() {
-    const worker = new Worker(
-      new URL('./wasi-worker-browser.mjs', import.meta.url),
-      {
-        type: 'module',
-      },
-    )
+    const worker = new Worker(new URL('./wasi-worker-browser.mjs', import.meta.url), {
+      type: 'module',
+    })
 
     return worker
   },

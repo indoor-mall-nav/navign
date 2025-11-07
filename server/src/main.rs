@@ -1,6 +1,7 @@
 mod certification;
 mod database;
 mod kernel;
+mod key_management;
 mod schema;
 mod shared;
 
@@ -9,6 +10,7 @@ use crate::kernel::route::find_route;
 use crate::kernel::unlocker::{
     create_unlock_instance, record_unlock_result, update_unlock_instance,
 };
+use crate::key_management::load_or_generate_key;
 use crate::schema::service::OneInArea;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
@@ -22,12 +24,15 @@ use bson::doc;
 use log::{LevelFilter, info};
 use mongodb::Database;
 use p256::ecdsa::SigningKey;
-use p256::elliptic_curve::rand_core::OsRng;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
+use std::sync::Arc;
+use std::time::Duration;
+use tower_governor::GovernorLayer;
+use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
-// use crate::certification::ensure_key;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -70,15 +75,54 @@ async fn main() -> anyhow::Result<()> {
         .allow_origin(tower_http::cors::Any)
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(tower_http::cors::Any);
-    info!("Cors layer configured.");
-    // ensure_key();
-    let db = database::connect_with_db().await?;
-    let private_key = SigningKey::random(&mut OsRng);
+    info!("CORS layer configured.");
+
+    // Load or generate persistent private key
+    let private_key = load_or_generate_key()?;
     let public_key = private_key.verifying_key();
     info!(
-        "Public key: {:?}",
+        "Server public key: {:?}",
         public_key.to_encoded_point(false).as_bytes()
     );
+
+    // Configure rate limiting
+
+    let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+
+    let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(200);
+
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(requests_per_second)
+            .burst_size(burst_size)
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .expect("Failed to build rate limiter configuration"),
+    );
+
+    info!(
+        "Rate limiting configured: {} requests/second with burst size {}",
+        requests_per_second, burst_size
+    );
+
+    let governor_limiter = governor_conf.limiter().clone();
+    let interval = Duration::from_secs(60);
+    // a separate background task to clean up
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(interval);
+            info!("rate limiting storage size: {}", governor_limiter.len());
+            governor_limiter.retain_recent();
+        }
+    });
+
+    let db = database::connect_with_db().await?;
     let state = AppState { db, private_key };
     let app = Router::new()
         .route("/", get(root))
@@ -201,6 +245,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/entities/{eid}/connections/{id}",
             delete(Connection::delete_handler),
         )
+        .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
