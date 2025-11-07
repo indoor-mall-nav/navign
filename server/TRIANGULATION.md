@@ -14,7 +14,7 @@ The original grid-based pathfinding approach works well for axis-aligned polygon
 
 ## Solution
 
-The triangulation-based approach decomposes any polygon into triangles using the **ear clipping algorithm**, then creates a grid overlay that better represents the polygon's actual shape.
+The triangulation-based approach uses the **spade** crate's Constrained Delaunay Triangulation (CDT) to decompose any polygon into triangles, then creates a grid overlay that better represents the polygon's actual shape.
 
 ### Key Components
 
@@ -38,10 +38,11 @@ Represents a triangle with three vertices and provides methods for:
 pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle>
 ```
 
-Uses the ear clipping algorithm to decompose a simple polygon into triangles:
+Uses the **spade** crate's Constrained Delaunay Triangulation to decompose a simple polygon into triangles:
 - Handles polygons with or without closing points
 - Robust to degenerate cases
 - Returns an empty vector for invalid input
+- Filters triangles to only include those inside the polygon boundary
 
 #### 3. Conversion to Bounded Blocks
 ```rust
@@ -109,16 +110,22 @@ Checks if all polygon edges are horizontal or vertical.
 
 ## Algorithm Details
 
-### Ear Clipping Triangulation
+### Constrained Delaunay Triangulation (CDT)
 
-The ear clipping algorithm works as follows:
+The implementation uses the **spade** crate's Constrained Delaunay Triangulation algorithm:
 
-1. **Identify ears**: An "ear" is a vertex where a triangle can be removed without intersecting the polygon
-2. **Remove ear**: Create a triangle from the ear and remove the middle vertex
-3. **Repeat**: Continue until only 3 vertices remain
-4. **Final triangle**: Add the last triangle to complete the decomposition
+1. **Insert vertices**: All polygon vertices are inserted into the triangulation
+2. **Add constraints**: Polygon edges are added as constraints to maintain polygon boundaries
+3. **Extract triangles**: Inner faces of the triangulation are extracted
+4. **Filter triangles**: Only triangles whose centroids lie inside the polygon are kept
 
-**Time Complexity**: O(n²) for a polygon with n vertices
+**Advantages of CDT**:
+- More robust than ear clipping for complex polygons
+- Better quality triangles (closer to equilateral)
+- Industry-standard algorithm used in many applications
+- Handles edge cases and degenerate geometries gracefully
+
+**Time Complexity**: O(n log n) for a polygon with n vertices
 **Space Complexity**: O(n) for storing the triangles
 
 ### Grid Overlay
@@ -198,7 +205,8 @@ Potential improvements for future versions:
 
 ## References
 
-- Ear Clipping Method: O'Rourke, J. (1998). Computational Geometry in C
+- Constrained Delaunay Triangulation: Chew, L. Paul (1987). "Constrained Delaunay triangulations"
+- Spade Crate: https://github.com/Stoeoef/spade
 - Barycentric Coordinates: Christer Ericson (2004). Real-Time Collision Detection
 - A* Pathfinding: Hart, P. E.; Nilsson, N. J.; Raphael, B. (1968)
 

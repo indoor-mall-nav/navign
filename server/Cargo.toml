@@ -50,6 +50,7 @@ navign-shared = { path = "../shared", default-features = false, features = [
   "serde",
   "mongodb",
 ] }
+spade = { version = "2.15.0", features = ["serde"] }
 
 [dev-dependencies]
 tempfile = "3.17.0"

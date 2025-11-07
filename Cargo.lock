@@ -5512,6 +5512,7 @@ dependencies = [
  "sha1",
  "sha2 0.10.9",
  "simple_logger",
+ "spade",
  "sqlx",
  "state",
  "tempfile",
@@ -7460,6 +7461,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "robust"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
+
+[[package]]
 name = "rsa"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8290,6 +8297,19 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
+]
+
+[[package]]
+name = "spade"
+version = "2.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb313e1c8afee5b5647e00ee0fe6855e3d529eb863a0fdae1d60006c4d1e9990"
+dependencies = [
+ "hashbrown 0.15.5",
+ "num-traits",
+ "robust",
+ "serde",
+ "smallvec",
 ]
 
 [[package]]

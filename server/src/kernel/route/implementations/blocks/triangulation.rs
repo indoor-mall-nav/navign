@@ -1,6 +1,7 @@
 use super::{BoundedBlock, BoundedBlockArray};
 #[cfg(test)]
 use super::ContiguousBlockArray;
+use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as _};
 
 /// Represents a triangle in 2D space
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,7 +56,7 @@ impl Triangle {
     }
 }
 
-/// Ear clipping triangulation of a simple polygon
+/// Triangulate a polygon using Constrained Delaunay Triangulation from the spade crate
 /// Returns a list of triangles that decompose the polygon
 pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
     if points.len() < 3 {
@@ -72,87 +73,73 @@ pub fn triangulate_polygon(points: &[(f64, f64)]) -> Vec<Triangle> {
         return vec![];
     }
 
-    let mut triangles = Vec::new();
-    let mut indices: Vec<usize> = (0..vertices.len()).collect();
-
-    while indices.len() > 3 {
-        let mut ear_found = false;
-
-        for i in 0..indices.len() {
-            let prev_idx = indices[if i == 0 { indices.len() - 1 } else { i - 1 }];
-            let curr_idx = indices[i];
-            let next_idx = indices[(i + 1) % indices.len()];
-
-            let p0 = vertices[prev_idx];
-            let p1 = vertices[curr_idx];
-            let p2 = vertices[next_idx];
-
-            // Check if this forms a valid ear (convex vertex and no other points inside)
-            if is_ear(&vertices, &indices, prev_idx, curr_idx, next_idx) {
-                triangles.push(Triangle { p0, p1, p2 });
-                indices.remove(i);
-                ear_found = true;
-                break;
-            }
-        }
-
-        if !ear_found {
-            // Fallback: if no ear found, just create a triangle and continue
-            // This handles some edge cases in non-simple polygons
-            if indices.len() >= 3 {
-                let p0 = vertices[indices[0]];
-                let p1 = vertices[indices[1]];
-                let p2 = vertices[indices[2]];
-                triangles.push(Triangle { p0, p1, p2 });
-                indices.remove(1);
-            } else {
-                break;
+    // Create a Constrained Delaunay Triangulation
+    let mut cdt = ConstrainedDelaunayTriangulation::<Point2<f64>>::new();
+    
+    // Insert all vertices
+    let mut vertex_handles = Vec::new();
+    for &(x, y) in &vertices {
+        match cdt.insert(Point2::new(x, y)) {
+            Ok(handle) => vertex_handles.push(handle),
+            Err(_) => {
+                // If insertion fails (duplicate point), skip it
+                continue;
             }
         }
     }
 
-    // Add the final triangle
-    if indices.len() == 3 {
-        triangles.push(Triangle {
-            p0: vertices[indices[0]],
-            p1: vertices[indices[1]],
-            p2: vertices[indices[2]],
-        });
+    // Add constraints (edges of the polygon)
+    for i in 0..vertex_handles.len() {
+        let v1 = vertex_handles[i];
+        let v2 = vertex_handles[(i + 1) % vertex_handles.len()];
+        
+        // Add edge as constraint
+        let _ = cdt.add_constraint(v1, v2);
+    }
+
+    // Extract triangles from the triangulation
+    let mut triangles = Vec::new();
+    
+    for face in cdt.inner_faces() {
+        let [v0, v1, v2] = face.vertices();
+        let p0_pos = v0.position();
+        let p1_pos = v1.position();
+        let p2_pos = v2.position();
+        
+        let tri = Triangle {
+            p0: (p0_pos.x, p0_pos.y),
+            p1: (p1_pos.x, p1_pos.y),
+            p2: (p2_pos.x, p2_pos.y),
+        };
+
+        // Check if this triangle's centroid is inside the polygon
+        // This filters out triangles that are outside the constrained region
+        let centroid = tri.centroid();
+        if is_point_in_polygon(&vertices, centroid.0, centroid.1) {
+            triangles.push(tri);
+        }
     }
 
     triangles
 }
 
-/// Check if a vertex is an ear (forms a valid triangle to clip)
-fn is_ear(
-    vertices: &[(f64, f64)],
-    indices: &[usize],
-    prev_idx: usize,
-    curr_idx: usize,
-    next_idx: usize,
-) -> bool {
-    let p0 = vertices[prev_idx];
-    let p1 = vertices[curr_idx];
-    let p2 = vertices[next_idx];
-
-    // Check if the triangle is oriented correctly (counter-clockwise)
-    let cross = (p1.0 - p0.0) * (p2.1 - p0.1) - (p1.1 - p0.1) * (p2.0 - p0.0);
-    if cross <= 0.0 {
-        return false; // Not convex
-    }
-
-    // Check if any other vertex is inside this triangle
-    let triangle = Triangle { p0, p1, p2 };
-    for &idx in indices {
-        if idx != prev_idx && idx != curr_idx && idx != next_idx {
-            let point = vertices[idx];
-            if triangle.contains_point(point.0, point.1) {
-                return false;
-            }
+/// Check if a point is inside a polygon using ray casting algorithm
+fn is_point_in_polygon(polygon: &[(f64, f64)], x: f64, y: f64) -> bool {
+    let mut inside = false;
+    let n = polygon.len();
+    let mut j = n - 1;
+    
+    for i in 0..n {
+        let (xi, yi) = polygon[i];
+        let (xj, yj) = polygon[j];
+        
+        if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+            inside = !inside;
         }
+        j = i;
     }
-
-    true
+    
+    inside
 }
 
 /// Convert triangulated polygon to BoundedBlockArray for pathfinding
