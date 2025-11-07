@@ -8,11 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "format": "prettier --write . --filter='{**,!src-tauri}/*.{js,ts,vue,json,md}'",
+    "format": "oxfmt",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --fix --type-aware",
     "test": "vitest run",
-    "format:check": "prettier --check . --filter='{**,!src-tauri}/*.{js,ts,vue,json,md}'",
+    "format:check": "oxfmt --check",
     "clean": "rm -rf dist .turbo",
     "check": "vue-tsc --noEmit"
   },
@@ -45,7 +45,6 @@
     "motion-v": "catalog:",
     "pinia": "catalog:",
     "pinia-plugin-persistedstate": "catalog:",
-    "prettier": "catalog:",
     "reka-ui": "catalog:",
     "tailwindcss": "catalog:",
     "vconsole": "catalog:",
@@ -73,6 +72,7 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-vue-devtools": "catalog:",
-    "vue-tsc": "catalog:"
+    "vue-tsc": "catalog:",
+    "oxfmt": "catalog:"
   }
 }
