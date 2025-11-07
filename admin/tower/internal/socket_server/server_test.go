@@ -3,8 +3,8 @@ package socket_server
 import (
 	"testing"
 
-	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 	"github.com/indoor-mall-nav/navign/admin/tower/internal/models"
+	pb "github.com/indoor-mall-nav/navign/admin/tower/proto"
 )
 
 func TestParseRobotState(t *testing.T) {
@@ -147,8 +147,8 @@ func TestTaskConversionIntegration(t *testing.T) {
 		Terminals: []*pb.Location{
 			{X: 500.0, Y: 600.0, Z: 0.0, Floor: "3F"},
 		},
-		Priority:  pb.Priority_PRIORITY_HIGH,
-		EntityId:  "entity-1",
+		Priority: pb.Priority_PRIORITY_HIGH,
+		EntityId: "entity-1",
 		Metadata: map[string]string{
 			"customer": "Bob",
 			"package":  "Electronics",
