@@ -1,29 +1,54 @@
 use crate::types::Task;
+use std::collections::BinaryHeap;
+
+/// Wrapper type for Task to implement Ord for priority queue
+/// Higher priority values should be processed first (max-heap behavior)
+#[derive(Debug, Clone)]
+struct PriorityTask(Task);
+
+impl PartialEq for PriorityTask {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.priority == other.0.priority
+    }
+}
+
+impl Eq for PriorityTask {}
+
+impl PartialOrd for PriorityTask {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PriorityTask {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Compare by priority (higher priority = higher value)
+        // For equal priorities, we could add secondary sorting by created_at
+        // but for now we just compare by priority
+        self.0.priority.cmp(&other.0.priority)
+    }
+}
 
 #[derive(Debug)]
 pub struct TaskQueue {
-    pending: Vec<Task>,
+    pending: BinaryHeap<PriorityTask>,
 }
 
 impl TaskQueue {
     pub fn new() -> Self {
         Self {
-            pending: Vec::new(),
+            pending: BinaryHeap::new(),
         }
     }
 
+    /// Add a task to the queue with O(log n) complexity
     pub fn add_task(&mut self, task: Task) {
-        self.pending.push(task);
-        // Sort by priority (higher priority first)
-        self.pending.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.pending.push(PriorityTask(task));
     }
 
+    /// Get the next highest priority task with O(log n) complexity
     pub fn get_next_task(&mut self) -> Option<Task> {
-        if self.pending.is_empty() {
-            None
-        } else {
-            Some(self.pending.remove(0))
-        }
+        self.pending.pop().map(|pt| pt.0)
     }
 
     pub fn pending_count(&self) -> usize {
