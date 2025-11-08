@@ -34,6 +34,9 @@ jobs:
           node-version: '22.14.0'
           cache: "pnpm"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       # Tower-specific setup
       - name: Setup Go
         uses: actions/setup-go@v5
