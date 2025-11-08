@@ -409,11 +409,9 @@ pub async fn upload_firmware_handler(
     let firmware_id = insert_result.inserted_id.as_object_id().unwrap();
 
     // Mark as latest if requested
-    if mark_latest {
-        if let Err(e) = mark_as_latest(&state.db, firmware_id, device.clone()).await {
-            log::error!("Failed to mark firmware as latest: {}", e);
-            // Don't fail the upload, just log the error
-        }
+    if mark_latest && let Err(e) = mark_as_latest(&state.db, firmware_id, device.clone()).await {
+        log::error!("Failed to mark firmware as latest: {}", e);
+        // Don't fail the upload, just log the error
     }
 
     let response = FirmwareUploadResponse {

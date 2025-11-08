@@ -1,7 +1,7 @@
 [package]
 edition.workspace = true
 license.workspace = true
-name              = "orchestrator"
+name              = "navign-orchestrator"
 version.workspace = true
 
 [dependencies]

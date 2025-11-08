@@ -5497,6 +5497,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "navign-orchestrator"
+version = "0.1.0"
+dependencies = [
+ "axum 0.8.6",
+ "env_logger",
+ "log",
+ "navign-shared",
+ "prost",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tonic 0.12.3",
+ "tonic-build",
+ "tower-http",
+ "uuid",
+]
+
+[[package]]
 name = "navign-server"
 version = "0.1.0"
 dependencies = [
@@ -6175,26 +6195,6 @@ name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
-
-[[package]]
-name = "orchestrator"
-version = "0.1.0"
-dependencies = [
- "axum 0.8.6",
- "env_logger",
- "log",
- "navign-shared",
- "prost",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tonic 0.12.3",
- "tonic-build",
- "tower-http",
- "uuid",
-]
 
 [[package]]
 name = "ordered-stream"

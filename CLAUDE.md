@@ -1511,21 +1511,7 @@ cargo build --release
 
 This is **not** automated in the build process.
 
-### 12. Floor Representation is String
-
-Floors are represented as strings, not integers:
-
-```rust
-pub enum Floor {
-    Level(u8),      // UK: "L0", "L1", "L2" (Ground, First, Second)
-    Floor(u8),      // US: "1F", "2F", "3F" (First, Second, Third)
-    Basement(u8),   // "B1", "B2", "B3"
-}
-```
-
-Always use `Floor::to_string()` for consistency.
-
-### 13. pnpm Catalog Versioning
+### 12. pnpm Catalog Versioning
 
 The monorepo uses pnpm's catalog feature for version management:
 
@@ -1545,7 +1531,7 @@ When adding dependencies to mobile or other pnpm packages, use `catalog:`:
 }
 ```
 
-### 14. Tauri Plugin Versions
+### 13. Tauri Plugin Versions
 
 Tauri plugins use `~2` version range:
 
@@ -1555,39 +1541,20 @@ Tauri plugins use `~2` version range:
 
 This means ">=2.0.0 <2.1.0". Always check compatibility with Tauri version.
 
-### 15. Mobile Offline Mode Not Fully Implemented
-
-While the mobile app has SQLite storage, **offline pathfinding is not yet implemented**.
-The app still queries the server for routes. Local pathfinding is a TODO.
-
-### 16. Robot Components Not Implemented
+### 14. Robot Components Not Implemented
 
 The robot hardware/software (upper/lower components) are documented but **not implemented**.
 Only the admin orchestration layer exists.
 
-### 17. Gesturespace is Standalone
+### 15. Gesturespace is Standalone
 
 The `gesture_space` Python component is **not integrated** with the main system yet.
 It's a proof-of-concept for future AR/gesture features.
 
-### 18. No Rate Limiting on Server
-
-The server API has **no rate limiting**. This should be added before production deployment.
-
-### 19. MongoDB → PostgreSQL Migration Planned
+### 16. MongoDB → PostgreSQL Migration Planned
 
 The codebase has `sqlx` as a dependency, indicating a planned migration to PostgreSQL,
 but MongoDB is currently the only supported database.
-
-### 20. Private Key Generation is Random
-
-The server generates a **new** P-256 private key on every startup:
-
-```rust
-let private_key = SigningKey::random(&mut OsRng);
-```
-
-This means the server public key changes every restart. For production, load a persistent key.
 
 ---
 
