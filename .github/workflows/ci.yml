@@ -10,85 +10,153 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Detect which files changed and determine what CI to run
+  # Detect which components changed and create dynamic matrix
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      should-run: ${{ steps.check.outputs.should-run }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      should-run: ${{ steps.set-matrix.outputs.should-run }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Check for changes
-        id: check
+
+      - name: Detect changed components
+        id: set-matrix
         run: |
           # Fetch base branch
           git fetch origin ${{ github.base_ref || 'main' }}
 
-          # Check if there are any changes
+          # Get list of modified files
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD || echo "")
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "No files modified. Skipping CI."
             echo "should-run=false" >> $GITHUB_OUTPUT
+            echo 'matrix={"component":[]}' >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Modified files:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # Initialize component array
+          components=()
+
+          # Flags to track what needs to run
+          run_shared=false
+          run_server=false
+          run_beacon=false
+          run_mobile=false
+          run_tower=false
+          run_orchestrator=false
+          run_repo=false
+
+          # Check which components are affected
+          while IFS= read -r file; do
+            case "$file" in
+              shared/*)
+                run_shared=true
+                # If shared is modified, run all Rust CI
+                run_server=true
+                run_beacon=true
+                run_orchestrator=true
+                ;;
+              server/*)
+                run_server=true
+                ;;
+              beacon/*)
+                run_beacon=true
+                ;;
+              mobile/*)
+                run_mobile=true
+                ;;
+              admin/tower/*)
+                run_tower=true
+                ;;
+              admin/orchestrator/*)
+                run_orchestrator=true
+                ;;
+              justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
+                run_repo=true
+                ;;
+              ts-schema/*)
+                run_mobile=true
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          # Build component array
+          [ "$run_repo" = true ] && components+=("repo")
+          [ "$run_shared" = true ] && components+=("shared")
+          [ "$run_server" = true ] && components+=("server")
+          [ "$run_beacon" = true ] && components+=("beacon")
+          [ "$run_mobile" = true ] && components+=("mobile")
+          [ "$run_tower" = true ] && components+=("tower")
+          [ "$run_orchestrator" = true ] && components+=("orchestrator")
+
+          if [ ${#components[@]} -eq 0 ]; then
+            echo "No CI tasks needed for these changes."
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo 'matrix={"component":[]}' >> $GITHUB_OUTPUT
           else
-            echo "Files modified. Running selective CI."
+            echo "Components to test: ${components[@]}"
+            # Convert bash array to JSON array
+            json_array=$(printf '%s\n' "${components[@]}" | jq -R . | jq -s -c '{component: .}')
+            echo "matrix=$json_array" >> $GITHUB_OUTPUT
             echo "should-run=true" >> $GITHUB_OUTPUT
           fi
 
-  # Run selective CI based on changed files
-  selective-ci:
+  # Run CI for each affected component in parallel
+  ci:
     needs: detect-changes
     if: needs.detect-changes.outputs.should-run == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # Setup all tools that might be needed
       - name: Setup just
         uses: extractions/setup-just@v3
 
+      # Repo-specific setup
       - name: Setup Taplo
+        if: matrix.component == 'repo'
         uses: uncenter/setup-taplo@v1.0.8
 
       - name: Setup Typos
+        if: matrix.component == 'repo'
         uses: crate-ci/typos@v1.39.0
 
-      - name: Setup Cargo Deny
-        uses: EmbarkStudios/cargo-deny-action@v2.0.13
-        with:
-          command: check bans licenses sources
+      # Shared-specific setup (none needed, uses Rust)
 
+      # Server-specific setup
+      - name: Start MongoDB
+        if: matrix.component == 'server'
+        uses: supercharge/mongodb-github-action@1.12.0
+        with:
+          mongodb-version: '8.0'
+
+      # Mobile-specific setup
       - name: Install pnpm
+        if: matrix.component == 'mobile'
         uses: pnpm/action-setup@v4
         with:
           version: '10.20.0'
 
       - name: Use Node.js
+        if: matrix.component == 'mobile'
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
           cache: "pnpm"
 
-      - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.12.0
-        with:
-          mongodb-version: '8.0'
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25.3'
-          cache-dependency-path: admin/tower/go.sum
-
-      - name: Install Protobuf Compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-
       - name: Install Tauri dependencies
+        if: matrix.component == 'mobile'
         run: |
           sudo apt-get update &&
           sudo apt-get install -y \
@@ -97,10 +165,21 @@ jobs:
           webkit2gtk-driver \
           xvfb
 
-      # Fetch base branch for comparison
-      - name: Fetch base branch
-        run: git fetch origin ${{ github.base_ref || 'main' }}
+      # Tower-specific setup
+      - name: Setup Go
+        if: matrix.component == 'tower'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache-dependency-path: admin/tower/go.sum
 
-      # Run selective CI
-      - name: Run selective CI
-        run: just ci-selective origin/${{ github.base_ref || 'main' }}
+      # Orchestrator-specific setup
+      - name: Install Protobuf Compiler
+        if: matrix.component == 'orchestrator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      # Run the specific CI task
+      - name: Run CI for ${{ matrix.component }}
+        run: just ci-${{ matrix.component }}
