@@ -7,7 +7,7 @@ This document describes the beacon firmware Over-The-Air (OTA) update distributi
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
 │   Server    │◄────────┤ Orchestrator │◄────────┤   Tower     │
-│  (Axum)     │  HTTP   │ (Axum+gRPC)  │  gRPC   │  (Go)       │
+│  (Axum)     │  HTTP   │ (Axum+gRPC)  │  HTTP   │  (Go)       │
 │             │         │              │         │             │
 │ - Firmware  │         │ - Firmware   │         │ - Robot     │
 │   Storage   │         │   Proxy API  │         │   Mgmt      │
