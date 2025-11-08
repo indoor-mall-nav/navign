@@ -62,7 +62,6 @@
     "@emnapi/runtime": "catalog:",
     "@napi-rs/cli": "catalog:",
     "@oxc-node/core": "catalog:",
-    "@taplo/cli": "catalog:",
     "@tybys/wasm-util": "catalog:",
     "ava": "catalog:",
     "chalk": "catalog:",

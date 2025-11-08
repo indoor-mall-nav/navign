@@ -132,3 +132,115 @@ roll:
   just fmt-check
   just lint
   just check
+
+# Selective CI based on modified files
+# If shared/ is modified, run all Rust CI tasks
+ci-selective base="main":
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  echo "Checking for modified files compared to {{base}}..."
+
+  # Get list of modified files
+  modified_files=$(git diff --name-only {{base}}...HEAD || echo "")
+
+  if [ -z "$modified_files" ]; then
+    echo "No files modified. Skipping CI."
+    exit 0
+  fi
+
+  echo "Modified files:"
+  echo "$modified_files"
+  echo ""
+
+  # Initialize flags for each CI task
+  run_shared=false
+  run_server=false
+  run_beacon=false
+  run_mobile=false
+  run_tower=false
+  run_orchestrator=false
+  run_repo=false
+
+  # Check which components are affected
+  while IFS= read -r file; do
+    case "$file" in
+      shared/*)
+        run_shared=true
+        # If shared is modified, run all Rust CI
+        run_server=true
+        run_beacon=true
+        run_orchestrator=true
+        ;;
+      server/*)
+        run_server=true
+        ;;
+      beacon/*)
+        run_beacon=true
+        ;;
+      mobile/*)
+        run_mobile=true
+        ;;
+      admin/tower/*)
+        run_tower=true
+        ;;
+      admin/orchestrator/*)
+        run_orchestrator=true
+        ;;
+      justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
+        run_repo=true
+        ;;
+      maintenance-tool/*)
+        # Maintenance tool changes don't require CI
+        ;;
+      ts-schema/*)
+        # TypeScript schema generator - might affect mobile
+        run_mobile=true
+        ;;
+      gesture_space/*|animations/*|vision/*|miniapp/*|docs/*|presentation/*|schematics/*)
+        # These components don't have CI tasks yet
+        ;;
+    esac
+  done <<< "$modified_files"
+
+  # Run the appropriate CI tasks
+  echo "Running selective CI tasks..."
+  echo ""
+
+  if [ "$run_repo" = true ]; then
+    echo "=== Running ci-repo ==="
+    just ci-repo
+  fi
+
+  if [ "$run_shared" = true ]; then
+    echo "=== Running ci-shared ==="
+    just ci-shared
+  fi
+
+  if [ "$run_server" = true ]; then
+    echo "=== Running ci-server ==="
+    just ci-server
+  fi
+
+  if [ "$run_beacon" = true ]; then
+    echo "=== Running ci-beacon ==="
+    just ci-beacon
+  fi
+
+  if [ "$run_mobile" = true ]; then
+    echo "=== Running ci-mobile ==="
+    just ci-mobile
+  fi
+
+  if [ "$run_tower" = true ]; then
+    echo "=== Running ci-tower ==="
+    just ci-tower
+  fi
+
+  if [ "$run_orchestrator" = true ]; then
+    echo "=== Running ci-orchestrator ==="
+    just ci-orchestrator
+  fi
+
+  echo ""
+  echo "✓ Selective CI completed successfully!"

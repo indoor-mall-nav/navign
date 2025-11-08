@@ -15,12 +15,12 @@ members = [
 # This is useful since beacon needs special cross-compilation
 default-members = ["server", "maintenance-tool", "shared", "ts-schema"]
 
-[workspace.package]
-version = "0.1.0"
-edition = "2024"
-license = "MIT"
+  [workspace.package]
+  edition = "2024"
+  license = "MIT"
+  version = "0.1.0"
 
-[workspace.dependencies]
+  [workspace.dependencies]
 
 
 [profile.dev.package.navign-beacon]
@@ -29,12 +29,12 @@ license = "MIT"
 opt-level = "s"
 
 [profile.release.package.navign-beacon]
-codegen-units = 1        # LLVM can perform better optimizations using a single thread
-debug = 2
+codegen-units    = 1     # LLVM can perform better optimizations using a single thread
+debug            = 2
 debug-assertions = false
-incremental = false
-opt-level = 's'
-overflow-checks = false
+incremental      = false
+opt-level        = 's'
+overflow-checks  = false
 
 [profile.release.package.ts-schema]
 strip = "symbols"

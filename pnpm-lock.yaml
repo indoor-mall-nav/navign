@@ -39,9 +39,6 @@ catalogs:
     '@tailwindcss/vite':
       specifier: ^4.1.12
       version: 4.1.16
-    '@taplo/cli':
-      specifier: ^0.7.0
-      version: 0.7.0
     '@tauri-apps/api':
       specifier: ^2.8.0
       version: 2.9.0
@@ -233,9 +230,6 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.1.16(rolldown-vite@7.1.20(@types/node@24.9.1)(esbuild@0.25.11)(jiti@2.6.1)(yaml@2.8.1))
-      '@taplo/cli':
-        specifier: ^0.7.0
-        version: 0.7.0
       '@tauri-apps/api':
         specifier: 'catalog:'
         version: 2.9.0
@@ -574,9 +568,6 @@ importers:
       '@oxc-node/core':
         specifier: 'catalog:'
         version: 0.0.32
-      '@taplo/cli':
-        specifier: 'catalog:'
-        version: 0.7.0
       '@tybys/wasm-util':
         specifier: 'catalog:'
         version: 0.10.1
@@ -2407,10 +2398,6 @@ packages:
     resolution: {integrity: sha512-vhF7kEU9EXWXh+HdAwKJ2m3xaOnTTmgcdXcF2pim8g4GvI7eRrk2YRuV5nUlZnd/NbCIX4/Ja2OZu5EjJL06Ww==}
     peerDependencies:
       vue: ^2.7.0 || ^3.0.0
-
-  '@taplo/cli@0.7.0':
-    resolution: {integrity: sha512-Ck3zFhQhIhi02Hl6T4ZmJsXdnJE+wXcJz5f8klxd4keRYgenMnip3JDPMGDRLbnC/2iGd8P0sBIQqI3KxfVjBg==}
-    hasBin: true
 
   '@tauri-apps/api@2.9.0':
     resolution: {integrity: sha512-qD5tMjh7utwBk9/5PrTA/aGr3i5QaJ/Mlt7p8NilQ45WgbifUNPyKWsA63iQ8YfQq6R8ajMapU+/Q8nMcPRLNw==}
@@ -6312,8 +6299,6 @@ snapshots:
     dependencies:
       '@tanstack/virtual-core': 3.13.12
       vue: 3.5.22(typescript@5.9.3)
-
-  '@taplo/cli@0.7.0': {}
 
   '@tauri-apps/api@2.9.0': {}
 

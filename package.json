@@ -8,7 +8,6 @@
     "@ls-lint/ls-lint": "catalog:",
     "@mnlphlp/plugin-blec": "catalog:",
     "@tailwindcss/vite": "catalog:",
-    "@taplo/cli": "^0.7.0",
     "@tauri-apps/api": "catalog:",
     "@tauri-apps/plugin-biometric": "catalog:",
     "@tauri-apps/plugin-fs": "catalog:",
