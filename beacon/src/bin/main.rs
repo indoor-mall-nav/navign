@@ -16,6 +16,7 @@ pub(crate) mod ble;
 pub(crate) mod crypto;
 pub(crate) mod execute;
 pub(crate) mod internet;
+pub(crate) mod ota;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
