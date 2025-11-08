@@ -39,16 +39,18 @@ jobs:
             tower
             plot
             robot
-          # Require scope
-          requireScope: true
+          # Scope is optional (especially for chore/ci), but validated if provided
+          requireScope: false
           # Validate subject
           subjectPattern: ^[A-Z].+$
           subjectPatternError: |
             The subject must start with a capital letter and be descriptive.
 
-            Example:
+            Examples:
             feat(server): Add OAuth2 authentication
             fix(beacon): Correct nonce expiration bug
             docs(plot): Update API documentation
+            chore: Update dependencies
+            ci: Fix workflow configuration
           # Validate the entire PR title format
           validateSingleCommit: false
