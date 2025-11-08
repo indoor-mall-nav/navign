@@ -6,16 +6,13 @@
 //!
 //! All algorithms work without arena allocation for better portability.
 
-#[cfg(feature = "alloc")]
 mod inner_area;
-#[cfg(feature = "alloc")]
 mod inter_area;
-#[cfg(feature = "alloc")]
 mod polygon;
 
-#[cfg(feature = "alloc")]
 pub use inner_area::{InnerPathError, find_path_in_area};
-#[cfg(feature = "alloc")]
-pub use inter_area::{InterPathError, RouteInstruction, find_path_between_areas};
-#[cfg(feature = "alloc")]
+pub use inter_area::{
+    AreaData, ConnectionData, ConnectivityLimits, InterPathError, RouteInstruction,
+    find_path_between_areas,
+};
 pub use polygon::{BoundedBlock, Polygon};
