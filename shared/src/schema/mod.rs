@@ -14,6 +14,8 @@ pub mod area;
 #[cfg(feature = "alloc")]
 pub mod beacon;
 #[cfg(feature = "alloc")]
+pub mod blufi;
+#[cfg(feature = "alloc")]
 pub mod connection;
 #[cfg(feature = "alloc")]
 pub mod entity;
@@ -31,6 +33,11 @@ pub use account::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 pub use area::{Area, Floor, FloorType};
 #[cfg(feature = "alloc")]
 pub use beacon::{Beacon, BeaconDevice, BeaconType};
+#[cfg(feature = "alloc")]
+pub use blufi::{
+    BeaconLocation, BeaconProvisioningStatus, BluFiConfig, BluFiError, BluFiErrorType,
+    BluFiProvisioningResult, BluFiState, WiFiNetwork, WiFiSecurityMode,
+};
 #[cfg(feature = "alloc")]
 pub use connection::{ConnectedArea, Connection, ConnectionType};
 #[cfg(feature = "alloc")]

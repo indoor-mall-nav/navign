@@ -44,6 +44,13 @@ pub use schema::{
 #[cfg(all(feature = "serde", feature = "alloc"))]
 pub use schema::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 
+// Export BluFi provisioning schemas
+#[cfg(feature = "alloc")]
+pub use schema::{
+    BeaconLocation, BeaconProvisioningStatus, BluFiConfig, BluFiError, BluFiErrorType,
+    BluFiProvisioningResult, BluFiState, WiFiNetwork, WiFiSecurityMode,
+};
+
 // Export mobile-specific schemas
 #[cfg(feature = "sql")]
 pub use schema::{AreaMobile, BeaconMobile, ConnectionMobile, EntityMobile, MerchantMobile};
