@@ -184,7 +184,7 @@ impl<'a> BeaconState<'a> {
 
     pub fn validate_proof(
         &mut self,
-        proof: &crate::crypto::proof::Proof,
+        proof: &navign_shared::Proof,
         current_timestamp: u64,
     ) -> Result<(), CryptoError> {
         if self.unlock_attempts >= MAX_ATTEMPTS && current_timestamp - proof.timestamp < 300_000 {
@@ -199,7 +199,15 @@ impl<'a> BeaconState<'a> {
             return Err(CryptoError::ReplayDetected);
         }
 
-        match self.proof_manager.validate_proof(proof) {
+        // Convert shared Proof to local Proof for validation
+        let local_proof = crate::crypto::proof::Proof {
+            nonce: proof.nonce,
+            device_bytes: proof.device_bytes,
+            verify_bytes: proof.verify_bytes,
+            timestamp: proof.timestamp,
+            server_signature: proof.server_signature,
+        };
+        match self.proof_manager.validate_proof(&local_proof) {
             Ok(_) => {
                 self.unlock_attempts = 0;
                 Ok(())
@@ -217,7 +225,7 @@ impl<'a> BeaconState<'a> {
 
     pub fn serialize_message(
         &mut self,
-        message: &crate::ble::protocol::BleMessage,
+        message: &navign_shared::BleMessage,
     ) -> Result<[u8; MAX_PACKET_SIZE], BleError> {
         self.buffer.serialize_message(message)
     }
@@ -225,7 +233,7 @@ impl<'a> BeaconState<'a> {
     pub fn deserialize_message(
         &mut self,
         data: Option<&[u8]>,
-    ) -> Result<crate::ble::protocol::BleMessage, BleError> {
+    ) -> Result<navign_shared::BleMessage, BleError> {
         self.buffer.deserialize_message(data)
     }
 }
