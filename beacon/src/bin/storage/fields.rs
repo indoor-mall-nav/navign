@@ -34,7 +34,7 @@ impl Packetize<32> for BeaconFields {
         let mut packet: Vec<u8, 32> = Vec::new();
         packet.push(self.r#type.bits()).ok();
         packet.push(self.capabilities.bits()).ok();
-        packet.extend_from_slice(&self.id.as_slice()).ok();
+        packet.extend_from_slice(self.id.as_slice()).ok();
         packet.push(0).ok(); // Null terminator for the string
         packet.extend_from_slice(&self.major.to_be_bytes()).ok();
         packet.extend_from_slice(&self.minor.to_be_bytes()).ok();

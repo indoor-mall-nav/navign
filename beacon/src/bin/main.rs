@@ -52,6 +52,7 @@ use esp_println::println;
 use esp_radio::ble::Config;
 use esp_radio::{ble::controller::BleConnector, init};
 use esp_rtos as _;
+use esp_storage::FlashStorage;
 use heapless::Vec;
 use navign_shared::BleMessage;
 
@@ -82,6 +83,9 @@ fn main() -> ! {
     esp_rtos::start(timg0.timer0, software_interrupt.software_interrupt0);
 
     heap_allocator!(size: 192 * 1024);
+
+    #[allow(unused)]
+    let storage = FlashStorage::new(peripherals.FLASH);
 
     let server_public_key = [
         4, 247, 145, 243, 155, 54, 15, 43, 52, 88, 198, 230, 245, 57, 127, 80, 180, 157, 227, 135,
