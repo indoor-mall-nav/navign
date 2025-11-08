@@ -42,15 +42,15 @@ jobs:
           # Scope is optional (especially for chore/ci), but validated if provided
           requireScope: false
           # Validate subject
-          subjectPattern: ^[A-Z].+$
+          subjectPattern: ^.+$
           subjectPatternError: |
-            The subject must start with a capital letter and be descriptive.
+            The subject must be descriptive.
 
             Examples:
-            feat(server): Add OAuth2 authentication
-            fix(beacon): Correct nonce expiration bug
-            docs(plot): Update API documentation
-            chore: Update dependencies
-            ci: Fix workflow configuration
+            feat(server): add OAuth2 authentication
+            fix(beacon): correct nonce expiration bug
+            docs(plot): update API documentation
+            chore: update dependencies
+            ci: fix workflow configuration
           # Validate the entire PR title format
           validateSingleCommit: false
