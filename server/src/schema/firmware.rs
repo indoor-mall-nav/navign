@@ -199,9 +199,9 @@ pub async fn get_latest_firmware_handler(
 ) -> impl IntoResponse {
     info!("GET /api/firmwares/latest/{}", device_str);
 
-    let device = match FirmwareDevice::from_str(&device_str) {
-        Some(d) => d,
-        None => {
+    let device = match device_str.parse::<FirmwareDevice>() {
+        Ok(d) => d,
+        Err(_) => {
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(json!({
@@ -258,7 +258,7 @@ pub async fn upload_firmware_handler(
             "version" => version = Some(field.text().await.unwrap_or_default()),
             "device" => {
                 let device_str = field.text().await.unwrap_or_default();
-                device = FirmwareDevice::from_str(&device_str);
+                device = device_str.parse::<FirmwareDevice>().ok();
             }
             "description" => {
                 let text = field.text().await.unwrap_or_default();

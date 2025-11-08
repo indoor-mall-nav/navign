@@ -126,9 +126,9 @@ pub async fn get_latest_firmware_handler(
 ) -> impl IntoResponse {
     log::info!("GET /firmwares/latest/{}", device_str);
 
-    let device = match FirmwareDevice::from_str(&device_str) {
-        Some(d) => d,
-        None => {
+    let device = match device_str.parse::<FirmwareDevice>() {
+        Ok(d) => d,
+        Err(_) => {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({

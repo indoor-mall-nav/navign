@@ -1,5 +1,6 @@
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+use core::str::FromStr;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -69,15 +70,22 @@ impl FirmwareDevice {
             FirmwareDevice::Esp32S3 => "esp32s3",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParseFirmwareDeviceError;
+
+impl FromStr for FirmwareDevice {
+    type Err = ParseFirmwareDeviceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "esp32" => Some(FirmwareDevice::Esp32),
-            "esp32c3" => Some(FirmwareDevice::Esp32C3),
-            "esp32c5" => Some(FirmwareDevice::Esp32C5),
-            "esp32c6" => Some(FirmwareDevice::Esp32C6),
-            "esp32s3" => Some(FirmwareDevice::Esp32S3),
-            _ => None,
+            "esp32" => Ok(FirmwareDevice::Esp32),
+            "esp32c3" => Ok(FirmwareDevice::Esp32C3),
+            "esp32c5" => Ok(FirmwareDevice::Esp32C5),
+            "esp32c6" => Ok(FirmwareDevice::Esp32C6),
+            "esp32s3" => Ok(FirmwareDevice::Esp32S3),
+            _ => Err(ParseFirmwareDeviceError),
         }
     }
 }
