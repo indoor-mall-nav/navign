@@ -1,2 +1,3 @@
+pub(crate) mod fields;
 pub(crate) mod nonce_manager;
-mod private_key;
+pub(crate) mod public_key;
