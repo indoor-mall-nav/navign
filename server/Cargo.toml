@@ -4,6 +4,14 @@ license.workspace = true
 name              = "navign-server"
 version.workspace = true
 
+[lib]
+name = "navign_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "navign-server"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.100"
 async-trait = "0.1.89"
@@ -52,4 +60,8 @@ uuid = { version = "1.18.1", features = ["v4"] }
 wkt = { version = "0.14.0", features = ["serde"] }
 
 [dev-dependencies]
+http-body-util = "0.1"
+serde_json = "1.0"
 tempfile = "3.17.0"
+tower = { version = "0.5", features = ["util"] }
+uuid = { version = "1.18", features = ["v4"] }

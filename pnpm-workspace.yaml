@@ -59,6 +59,8 @@ catalog:
   vite: npm:rolldown-vite@latest
   vite-plugin-vue-devtools: ^8.0.2
   vitest: ^3.2.4
+  "@vitest/coverage-v8": ^3.2.4
+  "@vitest/ui": ^3.2.4
   vue: ^3.5.18
   vue-i18n: ^11.1.11
   vue-konva: ^3.2.2

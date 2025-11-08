@@ -12,6 +12,9 @@
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --fix --type-aware",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "format:check": "oxfmt --check",
     "clean": "rm -rf dist .turbo",
     "check": "vue-tsc --noEmit"
@@ -62,6 +65,8 @@
     "@tauri-apps/cli": "catalog:",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "catalog:",
     "@vue/test-utils": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",

@@ -1,35 +1,7 @@
-mod certification;
-mod database;
-mod kernel;
-mod key_management;
-mod schema;
-mod shared;
+// Use library functions for creating the app
+use navign_server::{create_app, load_or_generate_key, connect_with_db, AppState};
 
-use crate::kernel::auth::{login_handler, register_handler};
-use crate::kernel::route::find_route;
-use crate::kernel::unlocker::{
-    create_unlock_instance, record_unlock_result, update_unlock_instance,
-};
-use crate::key_management::load_or_generate_key;
-use crate::schema::firmware::{
-    delete_firmware_handler, download_firmware_handler, get_firmware_by_id_handler,
-    get_firmwares_handler, get_latest_firmware_handler, upload_firmware_handler,
-};
-use crate::schema::service::OneInArea;
-use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
-use axum::extract::State;
-use axum::response::IntoResponse;
-use axum::{
-    Router,
-    http::{Method, StatusCode},
-    routing::{delete, get, post, put},
-};
-use bson::doc;
 use log::{LevelFilter, info};
-use mongodb::Database;
-use p256::ecdsa::SigningKey;
-use p256::pkcs8::EncodePublicKey;
-use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
 use std::sync::Arc;
 use std::time::Duration;
@@ -37,38 +9,7 @@ use tower_governor::GovernorLayer;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
-
-async fn root() -> impl IntoResponse {
-    (StatusCode::OK, "Hello, World!")
-}
-
-async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
-    // Here you can add logic to check the health of your application, e.g., database connection
-    match state.db.run_command(doc! { "ping": 1 }).await {
-        Ok(_) => (StatusCode::OK, "Healthy"),
-        Err(e) => {
-            info!("Health check failed: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unhealthy")
-        }
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct AppState {
-    db: Database,
-    private_key: SigningKey,
-}
-
-async fn cert(State(state): State<AppState>) -> impl IntoResponse {
-    match state
-        .private_key
-        .verifying_key()
-        .to_public_key_pem(LineEnding::LF)
-    {
-        Ok(res) => (StatusCode::OK, res),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-    }
-}
+use axum::http::Method;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -134,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Connect to database
     info!("Connecting to database...");
-    let db = database::connect_with_db().await.map_err(|e| {
+    let db = connect_with_db().await.map_err(|e| {
         anyhow::anyhow!(
             "Database connection failed: {}. Please check your MongoDB configuration.",
             e
@@ -148,143 +89,11 @@ async fn main() -> anyhow::Result<()> {
     info!("Server will bind to: {}", bind_addr);
 
     let state = AppState { db, private_key };
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/health", get(health_check))
-        .route("/cert", get(cert))
-        .route("/api/auth/register", post(register_handler))
-        .route("/api/auth/login", post(login_handler))
-        .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
-        .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}",
-            get(Beacon::get_one_handler),
-        )
-        .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker",
-            post(create_unlock_instance),
-        )
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/status",
-            put(update_unlock_instance),
-        )
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome",
-            put(record_unlock_result),
-        )
-        .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
-        .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
-        .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}",
-            delete(Beacon::delete_handler),
-        )
-        .route("/api/entities/{eid}/areas", get(Area::get_handler))
-        .route("/api/entities/{eid}/areas/", get(Area::get_handler))
-        .route("/api/entities/{eid}/areas/{id}", get(Area::get_one_handler))
-        .route("/api/entities/{eid}/areas", post(Area::create_handler))
-        .route("/api/entities/{eid}/areas", put(Area::update_handler))
-        .route("/api/entities/{eid}/areas/", post(Area::create_handler))
-        .route("/api/entities/{eid}/areas/", put(Area::update_handler))
-        .route(
-            "/api/entities/{eid}/areas/{id}",
-            delete(Area::delete_handler),
-        )
-        .route(
-            "/api/entities/{eid}/areas/{aid}/beacons",
-            get(Beacon::get_all_in_area_handler),
-        )
-        .route(
-            "/api/entities/{eid}/areas/{aid}/merchants",
-            get(Merchant::get_all_in_area_handler),
-        )
-        .route("/api/entities", get(Entity::search_entity_handler))
-        .route("/api/entities/", get(Entity::search_entity_handler))
-        .route("/api/entities/{id}", get(Entity::get_one_handler))
-        .route("/api/entities/{id}/route", get(find_route))
-        .route("/api/entities/{id}/route/", get(find_route))
-        .route("/api/entities/{id}/route/point", get(find_route))
-        .route("/api/entities/{id}/route/point/", get(find_route))
-        .route("/api/entities", post(Entity::create_handler))
-        .route("/api/entities", put(Entity::update_handler))
-        .route("/api/entities/", post(Entity::create_handler))
-        .route("/api/entities/", put(Entity::update_handler))
-        .route("/api/entities/{id}", delete(Entity::delete_handler))
-        .route("/api/entities/{eid}/merchants", get(Merchant::get_handler))
-        .route("/api/entities/{eid}/merchants/", get(Merchant::get_handler))
-        .route(
-            "/api/entities/{eid}/merchants/{id}",
-            get(Merchant::get_one_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants",
-            post(Merchant::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants",
-            put(Merchant::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/",
-            post(Merchant::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/",
-            put(Merchant::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/{id}",
-            delete(Merchant::delete_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            get(Connection::get_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            get(Connection::get_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/{id}",
-            get(Connection::get_one_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            post(Connection::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            put(Connection::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            post(Connection::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            put(Connection::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/{id}",
-            delete(Connection::delete_handler),
-        )
-        // Firmware management routes
-        .route("/api/firmwares", get(get_firmwares_handler))
-        .route("/api/firmwares/upload", post(upload_firmware_handler))
-        .route(
-            "/api/firmwares/latest/:device",
-            get(get_latest_firmware_handler),
-        )
-        .route("/api/firmwares/:id", get(get_firmware_by_id_handler))
-        .route(
-            "/api/firmwares/:id/download",
-            get(download_firmware_handler),
-        )
-        .route("/api/firmwares/:id", delete(delete_firmware_handler))
+
+    // Create the app using the library function
+    let app = create_app(state)
         .layer(GovernorLayer::new(governor_conf))
-        .layer(cors)
-        .with_state(state);
+        .layer(cors);
 
     info!("Starting HTTP server...");
     let listener = tokio::net::TcpListener::bind(&bind_addr)

@@ -1,0 +1,67 @@
+# Tarpaulin code coverage configuration for Navign project
+
+[navign]
+# Root configuration for all workspace members
+
+# Output formats
+out = ["Html", "Lcov", "Json"]
+
+# Exclude patterns
+exclude = [
+  "*/tests/*",
+  "*/benches/*",
+  "*/examples/*",
+  "beacon/*",  # Embedded target, skip coverage
+  "mobile/src-tauri/*",  # Covered separately
+]
+
+# Coverage output directory
+output-dir = "target/coverage"
+
+# Follow symbolic links
+follow-exec = true
+
+# Run tests in workspace mode
+workspace = true
+
+# Timeout for test execution (in seconds)
+timeout = 300
+
+# Only report coverage for crates in the workspace
+avoid-cfg-tarpaulin = false
+
+# Exclude functions/lines
+ignore-panics = false
+count = true
+all-features = false
+no-fail-fast = false
+
+[server]
+# Server-specific configuration
+packages = ["navign-server"]
+exclude-files = [
+  "*/tests/*",
+  "*/benches/*",
+]
+
+# Server features
+features = ["serde", "std", "mongodb"]
+
+[shared]
+# Shared library configuration
+packages = ["navign-shared"]
+
+# Test with multiple feature combinations
+[[shared.features]]
+features = ["alloc", "serde", "crypto"]
+
+[[shared.features]]
+features = ["std", "serde", "mongodb", "crypto"]
+
+[orchestrator]
+# Admin orchestrator configuration
+packages = ["navign-admin-orchestrator"]
+
+[maintenance-tool]
+# Maintenance tool configuration
+packages = ["navign-maintenance-tool"]

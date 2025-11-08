@@ -1,6 +1,6 @@
 init:
   cargo install cargo-binstall
-  cargo binstall cargo-deny cargo-shear typos-cli -y
+  cargo binstall cargo-deny cargo-shear typos-cli cargo-tarpaulin -y
   cargo clean
   corepack enable
   pnpm install
@@ -47,6 +47,38 @@ test:
   cd mobile && just test
   cd server && cargo test
   cd maintenance-tool && cargo test
+
+# Run all tests with coverage reporting
+coverage:
+  just coverage-rust
+  just coverage-mobile
+  @echo "Coverage reports generated:"
+  @echo "  - Rust: target/coverage/index.html"
+  @echo "  - Mobile: mobile/coverage/index.html"
+
+# Generate coverage for Rust components (server, shared, orchestrator)
+coverage-rust:
+  cargo tarpaulin --config tarpaulin.toml --out Html --out Lcov --out Json --output-dir target/coverage --workspace --exclude-files="beacon/*" --exclude-files="mobile/*"
+
+# Generate coverage for mobile app
+coverage-mobile:
+  cd mobile && pnpm run test:coverage
+
+# Generate coverage for server only
+coverage-server:
+  cd server && cargo tarpaulin --out Html --out Lcov --output-dir ../target/coverage/server
+
+# Generate coverage for shared library
+coverage-shared:
+  cd shared && cargo tarpaulin --out Html --out Lcov --output-dir ../target/coverage/shared --features mongodb --features serde --features crypto
+
+# Open HTML coverage report
+coverage-open:
+  @if [ -f "target/coverage/index.html" ]; then \
+    open target/coverage/index.html || xdg-open target/coverage/index.html || echo "Please open target/coverage/index.html manually"; \
+  else \
+    echo "No coverage report found. Run 'just coverage' first."; \
+  fi
 
 fmt-check:
   taplo format --diff
