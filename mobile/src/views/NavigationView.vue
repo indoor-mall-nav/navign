@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MapDisplay from '@/components/map/MapDisplay.vue'
-import NavigationPanel from '@/components/map/NavigationPanel.vue'
+import { NavigationPanel } from '@/components/map/navigation'
 import AreaDetailsDialog from '@/components/map/AreaDetailsDialog.vue'
 import MerchantDetailsDialog from '@/components/map/MerchantDetailsDialog.vue'
 import {
