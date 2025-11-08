@@ -204,7 +204,9 @@ navign/
 │   │   ├── crypto/              # P-256 ECDSA, nonce, proof
 │   │   ├── ble/                 # BLE protocol, manager
 │   │   ├── storage/             # Efuse key storage, nonce manager
-│   │   └── execute/             # Relay/servo control
+│   │   ├── execute/             # Relay/servo control
+│   │   └── ota.rs               # OTA update manager
+│   ├── OTA_INTEGRATION.md       # OTA integration guide
 │   └── Cargo.toml               # ESP-specific dependencies
 │
 ├── mobile/                      # Cross-platform mobile app
@@ -431,6 +433,117 @@ espflash flash target/riscv32imc-esp-espidf/release/navign-beacon
 cd maintenance-tool
 cargo run -- --key <32-byte-hex-key>
 ```
+
+**OTA (Over-The-Air) Updates:**
+
+The beacon firmware includes OTA update capability for remote firmware upgrades without physical access.
+
+**Location:** `beacon/src/bin/ota.rs`
+
+**Architecture:**
+- Uses ESP-IDF bootloader OTA partition system
+- Supports dual-bank updates (OTA0/OTA1 partitions)
+- Automatic rollback on boot failure (if bootloader configured)
+- WiFi and HTTP download code NOT included (to be implemented separately)
+
+**Partition Layout:**
+```
+0x000000  Bootloader
+0x010000  Factory (initial firmware)
+0x110000  OTA0 (first update slot)
+0x210000  OTA1 (second update slot)
+0x310000  OTA Data (active partition tracker)
+```
+
+**Usage Example:**
+```rust
+use crate::ota::{OtaManager, OtaError, OtaState};
+use esp_storage::FlashStorage;
+
+// Initialize on boot
+let flash = FlashStorage::new(peripherals.FLASH);
+let mut ota_manager = OtaManager::new(flash)?;
+
+// Mark current firmware as valid (prevents rollback)
+ota_manager.mark_valid()?;
+
+// Start OTA update (after downloading firmware via WiFi/HTTP)
+ota_manager.begin_update(Some(firmware_size))?;
+
+// Write firmware in chunks
+for chunk in firmware_chunks {
+    ota_manager.write_chunk(&chunk)?;
+}
+
+// Finalize and activate
+ota_manager.finalize_update()?;
+esp_hal::reset::software_reset();
+```
+
+**OTA State Machine:**
+1. `Idle` - No update in progress
+2. `Writing { bytes_written, total_size }` - Receiving firmware
+3. `ReadyToActivate` - Write complete, ready to reboot
+
+**Integration with Server:**
+1. Server stores firmware binaries at `/api/firmwares/upload`
+2. Orchestrator proxies firmware download at `/firmwares/:id/download`
+3. Beacon WiFi implementation (future) downloads from orchestrator
+4. Beacon OTA manager writes to flash partition
+5. Reboot activates new firmware from OTA partition
+
+**Security Considerations:**
+- ⚠️ Firmware signature verification NOT yet implemented
+- ⚠️ Checksum verification recommended before activation
+- ⚠️ Encrypted firmware download recommended
+- Rate limiting: Prevent excessive OTA attempts
+- Rollback: Bootloader reverts if new firmware fails to boot
+
+**WiFi/HTTP Integration (To Be Implemented):**
+```rust
+// Future WiFi-based OTA (not yet implemented)
+async fn download_and_update(
+    ota_manager: &mut OtaManager,
+    server_url: &str,
+) -> Result<(), OtaError> {
+    // 1. Connect to WiFi
+    let wifi = connect_wifi().await?;
+
+    // 2. Query orchestrator for latest firmware
+    let firmware = http_get(
+        &format!("{}/firmwares/latest/esp32c3", server_url)
+    ).await?;
+
+    // 3. Download and write firmware
+    ota_manager.begin_update(Some(firmware.size))?;
+    let mut stream = http_download(&firmware.download_url).await?;
+    while let Some(chunk) = stream.next().await {
+        ota_manager.write_chunk(&chunk)?;
+    }
+
+    // 4. Verify checksum (important!)
+    verify_checksum(&firmware)?;
+
+    // 5. Activate and reboot
+    ota_manager.finalize_update()?;
+    esp_hal::reset::software_reset();
+    Ok(())
+}
+```
+
+**BLE-Based OTA (Alternative):**
+- Firmware can be pushed via BLE chunks
+- Slower than WiFi but works without network infrastructure
+- Requires BLE message protocol extension (not yet implemented)
+
+**Dependencies:**
+```toml
+esp-bootloader-esp-idf = "0.1"
+esp-storage = "0.8"
+embedded-storage = "0.3"
+```
+
+**Documentation:** See `beacon/OTA_INTEGRATION.md` for complete integration guide.
 
 ---
 
@@ -1398,21 +1511,7 @@ cargo build --release
 
 This is **not** automated in the build process.
 
-### 12. Floor Representation is String
-
-Floors are represented as strings, not integers:
-
-```rust
-pub enum Floor {
-    Level(u8),      // UK: "L0", "L1", "L2" (Ground, First, Second)
-    Floor(u8),      // US: "1F", "2F", "3F" (First, Second, Third)
-    Basement(u8),   // "B1", "B2", "B3"
-}
-```
-
-Always use `Floor::to_string()` for consistency.
-
-### 13. pnpm Catalog Versioning
+### 12. pnpm Catalog Versioning
 
 The monorepo uses pnpm's catalog feature for version management:
 
@@ -1432,7 +1531,7 @@ When adding dependencies to mobile or other pnpm packages, use `catalog:`:
 }
 ```
 
-### 14. Tauri Plugin Versions
+### 13. Tauri Plugin Versions
 
 Tauri plugins use `~2` version range:
 
@@ -1442,39 +1541,20 @@ Tauri plugins use `~2` version range:
 
 This means ">=2.0.0 <2.1.0". Always check compatibility with Tauri version.
 
-### 15. Mobile Offline Mode Not Fully Implemented
-
-While the mobile app has SQLite storage, **offline pathfinding is not yet implemented**.
-The app still queries the server for routes. Local pathfinding is a TODO.
-
-### 16. Robot Components Not Implemented
+### 14. Robot Components Not Implemented
 
 The robot hardware/software (upper/lower components) are documented but **not implemented**.
 Only the admin orchestration layer exists.
 
-### 17. Gesturespace is Standalone
+### 15. Gesturespace is Standalone
 
 The `gesture_space` Python component is **not integrated** with the main system yet.
 It's a proof-of-concept for future AR/gesture features.
 
-### 18. No Rate Limiting on Server
-
-The server API has **no rate limiting**. This should be added before production deployment.
-
-### 19. MongoDB → PostgreSQL Migration Planned
+### 16. MongoDB → PostgreSQL Migration Planned
 
 The codebase has `sqlx` as a dependency, indicating a planned migration to PostgreSQL,
 but MongoDB is currently the only supported database.
-
-### 20. Private Key Generation is Random
-
-The server generates a **new** P-256 private key on every startup:
-
-```rust
-let private_key = SigningKey::random(&mut OsRng);
-```
-
-This means the server public key changes every restart. For production, load a persistent key.
 
 ---
 

@@ -36,6 +36,7 @@ use bleps::{
 use core::cell::RefCell;
 use embedded_dht_rs::dht11::Dht11;
 use esp_alloc::heap_allocator;
+use esp_bootloader_esp_idf::ota::OtaImageState;
 use esp_hal::delay::Delay;
 use esp_hal::efuse::{BLOCK_KEY0, Efuse};
 use esp_hal::gpio::{Flex, Level};
@@ -85,7 +86,35 @@ fn main() -> ! {
     heap_allocator!(size: 192 * 1024);
 
     #[allow(unused)]
-    let storage = FlashStorage::new(peripherals.FLASH);
+    let mut flash = FlashStorage::new(peripherals.FLASH);
+
+    let mut buffer = [0u8; esp_bootloader_esp_idf::partitions::PARTITION_TABLE_MAX_LEN];
+    let pt =
+        esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut buffer).unwrap();
+
+    // List all partitions - this is just FYI
+    for part in pt.iter() {
+        println!("{:?}", part);
+    }
+
+    println!("Currently booted partition {:?}", pt.booted_partition());
+
+    let mut ota =
+        esp_bootloader_esp_idf::ota_updater::OtaUpdater::new(&mut flash, &mut buffer).unwrap();
+
+    let current = ota.selected_partition().unwrap();
+    println!(
+        "current image state {:?} (only relevant if the bootloader was built with auto-rollback support)",
+        ota.current_ota_state()
+    );
+    println!("currently selected partition {:?}", current);
+
+    if let Ok(state) = ota.current_ota_state() {
+        if matches!(state, OtaImageState::New | OtaImageState::PendingVerify) {
+            ota.set_current_ota_state(esp_bootloader_esp_idf::ota::OtaImageState::Valid)
+                .ok();
+        }
+    }
 
     let server_public_key = [
         4, 247, 145, 243, 155, 54, 15, 43, 52, 88, 198, 230, 245, 57, 127, 80, 180, 157, 227, 135,
@@ -149,6 +178,8 @@ fn main() -> ! {
 
     #[allow(clippy::never_loop)]
     loop {
+        // TODO: Handle the OTA update process here, possibly restarting the device if an update was applied.
+        // TODO: Implement BluFi functionality for connecting to Wi-Fi networks over BLE.
         Rc::clone(&executor).borrow_mut().check_executors(now());
         let connector = BleConnector::new(&esp_wifi_ctrl, bluetooth.reborrow(), Config::default())
             .expect("Failed to create BLE connector");

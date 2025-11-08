@@ -22,3 +22,6 @@ target
 
 node_modules
 *.rlib
+
+# Firmware storage
+firmware_storage

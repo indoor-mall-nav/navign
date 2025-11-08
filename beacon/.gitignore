@@ -20,3 +20,4 @@ target/
 
 src/bin/id.txt
 .gitignore
+dist

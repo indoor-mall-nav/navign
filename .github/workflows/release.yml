@@ -1,0 +1,125 @@
+name: Release Workflow
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  release-beacon:
+    name: Release Beacon
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc build-essential curl pkg-config
+
+      - name: Install espup
+        run: |
+          cargo install espup --locked
+          espup install
+          . $HOME/export-esp.sh
+
+      - name: Build Release Code
+        run: |
+          cd beacon && cargo build --release --target riscv32imc-unknown-none-elf
+
+      - name: Build Image
+        run: |
+          mkdir -p image
+          espflash save-image --chip=esp32c3 ./target/riscv32imc-unknown-none-elf/release/navign-beacon image/navign-beacon-{{ github.ref_name }}.bin
+
+      - name: Check Checksum
+        run: |
+          sha256sum image/navign-beacon-{{ github.ref_name }}.bin > image/navign-beacon-{{ github.ref_name }}.sha256
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: beacon-release
+          path: |
+            image/navign-beacon-{{ github.ref_name }}.bin
+            image/navign-beacon-{{ github.ref_name }}.sha256
+
+  release-server:
+    name: Release Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Build Release Code
+        run: |
+          cd server && cargo build --release
+
+      - name: Create Release Archive
+        run: |
+          mkdir -p release
+          tar -czvf release/navign-server-{{ github.ref_name }}.tar.gz -C server/target/release navign-server
+
+      - name: Create Orchestrator Archive
+        run: |
+          mkdir -p release
+          tar -czvf release/navign-orchestrator-{{ github.ref_name }}.tar.gz -C admin/orchestrator/target/release navign-orchestrator
+
+      - name: Compute Checksum
+        run: |
+          sha256sum release/navign-server-{{ github.ref_name }}.tar.gz > release/navign-server-{{ github.ref_name }}.sha256
+          sha256sum release/navign-orchestrator-{{ github.ref_name }}.tar.gz > release/navign-orchestrator-{{ github.ref_name }}.sha256
+
+      - name: Upload Server Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: server-release
+          path: |
+            release/server-{{ github.ref_name }}.tar.gz
+            release/server-{{ github.ref_name }}.sha256
+
+      - name: Upload Orchestrator Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: orchestrator-release
+          path: |
+            release/navign-orchestrator-{{ github.ref_name }}.tar.gz
+            release/navign-orchestrator-{{ github.ref_name }}.sha256
+
+  release-tower:
+    name: Release Tower
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25.3'
+
+      - name: Build Release Code
+        run: |
+          cd admin/tower && go build -o navign-tower ./cmd/tower/main.go
+
+      - name: Create Release Archive
+        run: |
+          mkdir -p release
+          tar -czvf release/navign-tower-{{ github.ref_name }}.tar.gz -C admin/tower navign-tower
+
+      - name: Compute Checksum
+        run: |
+          sha256sum release/navign-tower-{{ github.ref_name }}.tar.gz > release/navign-tower-{{ github.ref_name }}.sha256
+
+      - name: Upload Tower Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tower-release
+          path: |
+            release/navign-tower-{{ github.ref_name }}.tar.gz
+            release/navign-tower-{{ github.ref_name }}.sha256

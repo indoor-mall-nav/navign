@@ -11,6 +11,10 @@ use crate::kernel::unlocker::{
     create_unlock_instance, record_unlock_result, update_unlock_instance,
 };
 use crate::key_management::load_or_generate_key;
+use crate::schema::firmware::{
+    delete_firmware_handler, download_firmware_handler, get_firmware_by_id_handler,
+    get_firmwares_handler, get_latest_firmware_handler, upload_firmware_handler,
+};
 use crate::schema::service::OneInArea;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
@@ -265,6 +269,19 @@ async fn main() -> anyhow::Result<()> {
             "/api/entities/{eid}/connections/{id}",
             delete(Connection::delete_handler),
         )
+        // Firmware management routes
+        .route("/api/firmwares", get(get_firmwares_handler))
+        .route("/api/firmwares/upload", post(upload_firmware_handler))
+        .route(
+            "/api/firmwares/latest/:device",
+            get(get_latest_firmware_handler),
+        )
+        .route("/api/firmwares/:id", get(get_firmware_by_id_handler))
+        .route(
+            "/api/firmwares/:id/download",
+            get(download_firmware_handler),
+        )
+        .route("/api/firmwares/:id", delete(delete_firmware_handler))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
         .with_state(state);
