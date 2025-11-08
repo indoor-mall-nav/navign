@@ -774,19 +774,31 @@ pub async fn get_route_offline_handler(
     _app: AppHandle,
     entity: String,
     from_area: String,
-    from_x: f64,
-    from_y: f64,
+    from_pos: String,    // "x,y" format
     to_area: String,
-    to_x: f64,
-    to_y: f64,
-    allow_elevator: bool,
-    allow_stairs: bool,
-    allow_escalator: bool,
+    to_pos: String,      // "x,y" format
+    connectivity: String, // "esc" format: e=elevator, s=stairs, c=escalator
 ) -> Result<String, String> {
+    // Parse from_pos
+    let from_coords: Vec<&str> = from_pos.split(',').collect();
+    if from_coords.len() != 2 {
+        return Ok(json!({"status": "error", "message": "Invalid from_pos format"}).to_string());
+    }
+    let from_x: f64 = from_coords[0].parse().map_err(|_| "Invalid from_x".to_string())?;
+    let from_y: f64 = from_coords[1].parse().map_err(|_| "Invalid from_y".to_string())?;
+
+    // Parse to_pos
+    let to_coords: Vec<&str> = to_pos.split(',').collect();
+    if to_coords.len() != 2 {
+        return Ok(json!({"status": "error", "message": "Invalid to_pos format"}).to_string());
+    }
+    let to_x: f64 = to_coords[0].parse().map_err(|_| "Invalid to_x".to_string())?;
+    let to_y: f64 = to_coords[1].parse().map_err(|_| "Invalid to_y".to_string())?;
+
     let limits = ConnectivityLimits {
-        elevator: allow_elevator,
-        stairs: allow_stairs,
-        escalator: allow_escalator,
+        elevator: connectivity.contains('e'),
+        stairs: connectivity.contains('s'),
+        escalator: connectivity.contains('c'),
     };
 
     match compute_route_offline(

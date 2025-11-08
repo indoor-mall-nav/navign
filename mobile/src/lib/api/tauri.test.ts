@@ -10,6 +10,7 @@ import {
   searchMerchants,
   locateDevice,
   getRoute,
+  getRouteOffline,
   type ApiResponse,
   type ConnectivityLimits,
 } from './tauri'
