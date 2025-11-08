@@ -28,7 +28,9 @@ export function formatTime(seconds: number): string {
   } else if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = Math.round(seconds % 60)
-    return remainingSeconds > 0 ? `${minutes} min ${remainingSeconds} sec` : `${minutes} min`
+    return remainingSeconds > 0
+      ? `${minutes} min ${remainingSeconds} sec`
+      : `${minutes} min`
   } else {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
@@ -42,6 +44,9 @@ export function formatTime(seconds: number): string {
  * @param walkingSpeedMps - Walking speed in meters per second (default: 1.4 m/s = 5 km/h)
  * @returns Estimated time in seconds
  */
-export function estimateWalkingTime(meters: number, walkingSpeedMps: number = 1.4): number {
+export function estimateWalkingTime(
+  meters: number,
+  walkingSpeedMps: number = 1.4,
+): number {
   return meters / walkingSpeedMps
 }

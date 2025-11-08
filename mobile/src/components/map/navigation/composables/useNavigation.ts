@@ -6,7 +6,11 @@ import { computed, ref, watch } from 'vue'
 import { getRoute, type RouteResponse } from '@/lib/api/tauri'
 import { extractInstructions } from '../utils/extractInstructions'
 import { estimateWalkingTime } from '../utils/formatters'
-import type { NavigationStep, RoutePreferences, NavigationProgress } from '../types'
+import type {
+  NavigationStep,
+  RoutePreferences,
+  NavigationProgress,
+} from '../types'
 
 export function useNavigation(
   entityId: string,
@@ -39,7 +43,10 @@ export function useNavigation(
   })
 
   const nextNavigationStep = computed<NavigationStep | null>(() => {
-    if (!isNavigating.value || currentStep.value >= navigationSteps.value.length - 1)
+    if (
+      !isNavigating.value ||
+      currentStep.value >= navigationSteps.value.length - 1
+    )
       return null
     return navigationSteps.value[currentStep.value + 1] || null
   })
@@ -89,7 +96,7 @@ export function useNavigation(
         return false
       }
     } catch (err) {
-      error.value = `Error: ${err}`
+      error.value = `Error: ${(err as Error).toString()}`
       return false
     } finally {
       loading.value = false

@@ -27,7 +27,7 @@ export interface RoutePreferences {
 export interface NavigationState {
   isNavigating: boolean
   currentStep: number
-  route: any | null // RouteResponse from API
+  route: object | null // RouteResponse from API
   targetId: string | null
   error: string | null
 }

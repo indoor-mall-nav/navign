@@ -1,5 +1,6 @@
 // Copyright (c) 2025 Ethan Wu
 // SPDX-License-Identifier: MIT
+#![allow(unused)]
 
 //! BluFi (Bluetooth + WiFi) configuration schemas for ESP32 beacon provisioning
 //!
@@ -15,8 +16,6 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
 
 /// WiFi security mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

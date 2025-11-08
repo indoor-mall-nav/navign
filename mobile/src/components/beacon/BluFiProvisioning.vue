@@ -21,21 +21,12 @@ import { Button } from '@/components/ui/button'
 import { Icon } from '@iconify/vue'
 import {
   scanProvisioningBeacons,
-  connectBeacon,
-  scanWifiNetworks,
-  provisionBeacon,
-  disconnectBeacon,
   type ProvisioningBeacon,
-  type WiFiNetwork,
-  type BluFiConfig,
 } from '@/lib/api/blufi'
 
 // State
 const scanning = ref(false)
-const connecting = ref(false)
-const provisioning = ref(false)
 const beacons = ref<ProvisioningBeacon[]>([])
-const networks = ref<WiFiNetwork[]>([])
 const error = ref('')
 
 // Handlers (placeholders)
@@ -48,49 +39,6 @@ async function handleScanBeacons() {
     error.value = `Failed to scan beacons: ${err}`
   } finally {
     scanning.value = false
-  }
-}
-
-async function handleConnect(macAddress: string) {
-  connecting.value = true
-  error.value = ''
-  try {
-    await connectBeacon(macAddress)
-    // TODO: Navigate to WiFi setup step
-  } catch (err) {
-    error.value = `Failed to connect: ${err}`
-  } finally {
-    connecting.value = false
-  }
-}
-
-async function handleScanWifi() {
-  try {
-    networks.value = await scanWifiNetworks()
-  } catch (err) {
-    error.value = `Failed to scan WiFi: ${err}`
-  }
-}
-
-async function handleProvision(config: BluFiConfig) {
-  provisioning.value = true
-  error.value = ''
-  try {
-    const result = await provisionBeacon(config)
-    // TODO: Show success/failure result
-    console.log('Provisioning result:', result)
-  } catch (err) {
-    error.value = `Failed to provision: ${err}`
-  } finally {
-    provisioning.value = false
-  }
-}
-
-async function handleDisconnect() {
-  try {
-    await disconnectBeacon()
-  } catch (err) {
-    error.value = `Failed to disconnect: ${err}`
   }
 }
 </script>

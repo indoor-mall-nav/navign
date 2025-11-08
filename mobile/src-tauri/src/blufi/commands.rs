@@ -1,5 +1,6 @@
 // Copyright (c) 2025 Ethan Wu
 // SPDX-License-Identifier: MIT
+#![allow(unused)]
 
 //! Tauri commands for BluFi provisioning
 //!
@@ -7,8 +8,8 @@
 //! All business logic is implemented in Rust; TypeScript only handles UI.
 
 use super::{
-    connect_beacon, disconnect_beacon, provision_beacon, scan_provisioning_beacons,
-    scan_wifi_networks, ProvisioningBeacon,
+    ProvisioningBeacon, connect_beacon, disconnect_beacon, provision_beacon,
+    scan_provisioning_beacons, scan_wifi_networks,
 };
 use navign_shared::{BluFiConfig, BluFiProvisioningResult, WiFiNetwork};
 use serde_json::json;

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 Ethan Wu
 // SPDX-License-Identifier: MIT
+#![allow(unused)]
 
 //! BluFi (Bluetooth + WiFi) provisioning module for ESP32 beacons
 //!

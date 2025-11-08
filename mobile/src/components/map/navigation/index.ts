@@ -10,7 +10,11 @@ export { default as NavigationStepCard } from './components/NavigationStepCard.v
 
 export { useNavigation } from './composables/useNavigation'
 export { extractInstructions } from './utils/extractInstructions'
-export { formatDistance, formatTime, estimateWalkingTime } from './utils/formatters'
+export {
+  formatDistance,
+  formatTime,
+  estimateWalkingTime,
+} from './utils/formatters'
 export {
   getNavigationStepIcon,
   getNavigationStepColor,
