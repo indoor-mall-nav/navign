@@ -5,6 +5,9 @@ use api::map::{
     get_merchant_details_handler, get_route_handler, get_route_offline_handler,
     search_merchants_handler,
 };
+use blufi::{
+    blufi_connect, blufi_disconnect, blufi_provision, blufi_scan_beacons, blufi_scan_wifi,
+};
 use locate::locate_handler;
 use login::handlers::{
     guest_login_handler, login_handler, logout_handler, register_handler, validate_token_handler,
@@ -18,6 +21,7 @@ use tokio::sync::Mutex;
 use unlocker::unlock_handler;
 
 pub(crate) mod api;
+pub(crate) mod blufi;
 pub(crate) mod locate;
 pub(crate) mod login;
 pub(crate) mod shared;
@@ -118,7 +122,12 @@ pub fn run() {
             get_all_areas_handler,
             get_all_beacons_handler,
             get_area_details_handler,
-            get_merchant_details_handler
+            get_merchant_details_handler,
+            blufi_scan_beacons,
+            blufi_connect,
+            blufi_scan_wifi,
+            blufi_provision,
+            blufi_disconnect
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
