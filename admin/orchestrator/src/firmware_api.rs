@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use navign_shared::{Firmware, FirmwareDevice, FirmwareQuery};
 use serde::{Deserialize, Serialize};
@@ -135,7 +135,7 @@ pub async fn get_latest_firmware_handler(
                     "error": "Invalid device type",
                     "valid_devices": ["esp32", "esp32c3", "esp32c5", "esp32c6", "esp32s3"]
                 })),
-            )
+            );
         }
     };
 

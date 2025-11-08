@@ -272,9 +272,15 @@ async fn main() -> anyhow::Result<()> {
         // Firmware management routes
         .route("/api/firmwares", get(get_firmwares_handler))
         .route("/api/firmwares/upload", post(upload_firmware_handler))
-        .route("/api/firmwares/latest/:device", get(get_latest_firmware_handler))
+        .route(
+            "/api/firmwares/latest/:device",
+            get(get_latest_firmware_handler),
+        )
         .route("/api/firmwares/:id", get(get_firmware_by_id_handler))
-        .route("/api/firmwares/:id/download", get(download_firmware_handler))
+        .route(
+            "/api/firmwares/:id/download",
+            get(download_firmware_handler),
+        )
         .route("/api/firmwares/:id", delete(delete_firmware_handler))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)

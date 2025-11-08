@@ -2,16 +2,16 @@
 
 mod firmware_api;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use firmware_api::{
-    download_firmware_handler, get_firmware_by_id_handler, get_latest_firmware_handler,
-    health_handler, list_firmwares_handler, AppState, FirmwareClient,
+    AppState, FirmwareClient, download_firmware_handler, get_firmware_by_id_handler,
+    get_latest_firmware_handler, health_handler, list_firmwares_handler,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 use tower_http::cors::CorsLayer;
 
 pub mod task {
@@ -304,11 +304,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "[::1]:50051".to_string())
         .parse()?;
 
-    let http_addr = std::env::var("ORCHESTRATOR_HTTP_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:8081".to_string());
+    let http_addr =
+        std::env::var("ORCHESTRATOR_HTTP_ADDR").unwrap_or_else(|_| "0.0.0.0:8081".to_string());
 
-    let server_url = std::env::var("SERVER_URL")
-        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let server_url =
+        std::env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
     log::info!("Orchestrator starting...");
     log::info!("  gRPC server: {}", grpc_addr);
@@ -337,7 +337,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_handler))
         .route("/firmwares", get(list_firmwares_handler))
-        .route("/firmwares/latest/:device", get(get_latest_firmware_handler))
+        .route(
+            "/firmwares/latest/:device",
+            get(get_latest_firmware_handler),
+        )
         .route("/firmwares/:id", get(get_firmware_by_id_handler))
         .route("/firmwares/:id/download", get(download_firmware_handler))
         .layer(cors)

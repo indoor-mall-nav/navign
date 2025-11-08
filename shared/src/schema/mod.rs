@@ -36,7 +36,9 @@ pub use connection::{ConnectedArea, Connection, ConnectionType};
 #[cfg(feature = "alloc")]
 pub use entity::{Entity, EntityType};
 #[cfg(feature = "alloc")]
-pub use firmware::{Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadRequest, FirmwareUploadResponse};
+pub use firmware::{
+    Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadRequest, FirmwareUploadResponse,
+};
 #[cfg(feature = "alloc")]
 pub use merchant::{
     ChineseFoodCuisine, FacilityType, FoodCuisine, FoodType, Merchant, MerchantStyle, MerchantType,

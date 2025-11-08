@@ -208,7 +208,7 @@ pub async fn get_latest_firmware_handler(
                     "error": "Invalid device type",
                     "valid_devices": ["esp32", "esp32c3", "esp32c5", "esp32c6", "esp32s3"]
                 })),
-            )
+            );
         }
     };
 
@@ -296,7 +296,7 @@ pub async fn upload_firmware_handler(
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(json!({ "error": "Missing required field: version" })),
-            )
+            );
         }
     };
 
@@ -306,7 +306,7 @@ pub async fn upload_firmware_handler(
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(json!({ "error": "Missing or invalid required field: device" })),
-            )
+            );
         }
     };
 
@@ -316,7 +316,7 @@ pub async fn upload_firmware_handler(
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(json!({ "error": "Missing or empty firmware file" })),
-            )
+            );
         }
     };
 
@@ -333,7 +333,12 @@ pub async fn upload_firmware_handler(
     };
 
     // Generate unique filename
-    let filename = format!("{}-{}-{}.bin", device.as_str(), version, chrono::Utc::now().timestamp());
+    let filename = format!(
+        "{}-{}-{}.bin",
+        device.as_str(),
+        version,
+        chrono::Utc::now().timestamp()
+    );
     let file_path = storage_dir.join(&filename);
 
     // Write file to disk
@@ -436,7 +441,7 @@ pub async fn download_firmware_handler(
             return Err((
                 StatusCode::NOT_FOUND,
                 axum::Json(json!({ "error": "Firmware not found" })),
-            ))
+            ));
         }
         Err(e) => {
             log::error!("Failed to get firmware: {}", e);
@@ -498,7 +503,7 @@ pub async fn delete_firmware_handler(
             return (
                 StatusCode::NOT_FOUND,
                 axum::Json(json!({ "error": "Firmware not found" })),
-            )
+            );
         }
         Err(e) => {
             log::error!("Failed to get firmware: {}", e);
@@ -525,15 +530,12 @@ pub async fn delete_firmware_handler(
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(json!({ "error": format!("Invalid ObjectId: {}", e) })),
-            )
+            );
         }
     };
 
     match collection.delete_one(doc! { "_id": oid }).await {
-        Ok(_) => (
-            StatusCode::OK,
-            axum::Json(json!({ "status": "deleted" })),
-        ),
+        Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "deleted" }))),
         Err(e) => {
             log::error!("Failed to delete firmware from database: {}", e);
             (
