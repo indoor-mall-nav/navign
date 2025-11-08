@@ -14,7 +14,6 @@ catalog:
   "@napi-rs/cli": ^3.2.0
   "@oxc-node/core": ^0.0.32
   "@tailwindcss/vite": ^4.1.12
-  "@taplo/cli": ^0.7.0
   "@tauri-apps/api": ^2.8.0
   "@tauri-apps/cli": ^2.8.1
   "@tauri-apps/plugin-biometric": ~2

@@ -15,25 +15,6 @@ test  = false
 harness = false
 name    = "unit-tests"
 
-
-  [package.metadata.cargo-shear]
-  ignored = [
-    "esp-backtrace",
-    "esp-storage",
-    "futures",
-    "esp-mbedtls",
-    "cfg-if",
-    "embedded-io",
-    "cfg-if",
-    "embedded-io",
-    "reqwless",
-    "chrono",
-    "critical-section",
-    "smoltcp",
-    "esp-radio-rtos-driver",
-    "blocking-network-stack",
-  ]
-
 [dependencies]
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5148d8ae679e021b78f53fd33afb8bb35d0b62e", features = [
   "async",
