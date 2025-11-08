@@ -74,6 +74,7 @@ heapless = { version = "0.9.1" }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 navign-shared = { path = "../shared", default-features = false, features = [
   "heapless",
+  "crypto",
 ] }
 nb = "1.1.0"
 p256 = { version = "0.13.2", default-features = false, features = [

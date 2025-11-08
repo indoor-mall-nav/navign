@@ -1,4 +1,4 @@
-use crate::Packetize;
+use crate::{Depacketize, Packetize};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde")]
@@ -57,5 +57,38 @@ impl Packetize for Proof {
         vec.extend_from_slice(&self.timestamp.to_be_bytes());
         vec.extend_from_slice(&self.server_signature);
         vec
+    }
+}
+
+impl Depacketize for Proof {
+    fn depacketize(data: &[u8]) -> Option<Self> {
+        if data.len() < 104 {
+            return None;
+        }
+        
+        let mut nonce = [0u8; 16];
+        nonce.copy_from_slice(&data[0..16]);
+        
+        let mut device_bytes = [0u8; 8];
+        device_bytes.copy_from_slice(&data[16..24]);
+        
+        let mut verify_bytes = [0u8; 8];
+        verify_bytes.copy_from_slice(&data[24..32]);
+        
+        let timestamp = u64::from_be_bytes([
+            data[32], data[33], data[34], data[35],
+            data[36], data[37], data[38], data[39]
+        ]);
+        
+        let mut server_signature = [0u8; 64];
+        server_signature.copy_from_slice(&data[40..104]);
+        
+        Some(Self::new(
+            nonce,
+            device_bytes,
+            verify_bytes,
+            timestamp,
+            server_signature,
+        ))
     }
 }

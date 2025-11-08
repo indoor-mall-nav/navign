@@ -19,10 +19,10 @@ pub(crate) mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
-use crate::ble::BleMessage;
+use navign_shared::BleMessage;
 use crate::execute::{BeaconState, UnlockMethod};
 use crate::shared::constants::*;
-use crate::shared::{DeviceCapability, DeviceType};
+use crate::shared::{CryptoError, DeviceCapabilities, DeviceTypes};
 use alloc::rc::Rc;
 use bleps::att::Uuid;
 use bleps::attribute_server::WorkResult;
@@ -123,20 +123,19 @@ fn main() -> ! {
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
     println!("Device ID: {:?}", device_id);
-    let device_type = DeviceType::Merchant;
-    let mut capabilities = Vec::<DeviceCapability, 3>::new();
-    capabilities.push(DeviceCapability::UnlockGate).unwrap();
+    let device_type = DeviceTypes::MERCHANT;
+    let capabilities = DeviceCapabilities::UNLOCK_GATE;
 
     let mut uuids = Vec::<Uuid, 4>::new();
 
     uuids.push(Uuid::Uuid16(0x1819)).unwrap(); // Location and Navigation Service
     uuids.push(Uuid::Uuid16(0x1821)).unwrap(); // Indoor Positioning Service
 
-    if capabilities.contains(&DeviceCapability::UnlockGate) {
+    if capabilities.contains(DeviceCapabilities::UNLOCK_GATE) {
         uuids.insert(0, Uuid::Uuid16(0x183D)).unwrap(); // Authorization Control Service
     }
 
-    if capabilities.contains(&DeviceCapability::EnvironmentalData) {
+    if capabilities.contains(DeviceCapabilities::ENVIRONMENTAL_DATA) {
         uuids.push(Uuid::Uuid16(0x181A)).unwrap(); // Environmental Sensing Service
     }
 
@@ -266,7 +265,7 @@ fn main() -> ! {
                 let response: Option<BleMessage> = match message {
                     Some(BleMessage::DeviceRequest) => Some(BleMessage::DeviceResponse(
                         device_type,
-                        capabilities.clone(),
+                        capabilities,
                         {
                             let mut id = [0u8; 24];
                             id.copy_from_slice(device_id.as_ref());
@@ -280,27 +279,28 @@ fn main() -> ! {
                         {
                             identifier.copy_from_slice(&sig[sig.len() - 8..]);
                         }
-                        Some((nonce, identifier).into())
+                        Some(((*nonce.as_bytes()), identifier).into())
                     }
                     Some(BleMessage::UnlockRequest(ref proof)) => {
                         let mut cell = instance.borrow_mut();
-                        let unlock_result = match cell.validate_proof(proof, now()) {
+                        let unlock_response = match cell.validate_proof(proof, now()) {
                             Ok(_) => {
                                 cell.set_open(true, now());
-                                (true, None)
+                                BleMessage::UnlockResponse(true, CryptoError::InvalidSignature)
                             }
-                            Err(e) => (false, Some(e)),
+                            Err(e) => BleMessage::UnlockResponse(false, e),
                         };
-                        Some(unlock_result.into())
+                        Some(unlock_response)
                     }
-                    Some(BleMessage::DebugRequest(_)) => {
-                        let length = rng.random().wrapping_rem(16) + 1;
-                        let mut data = [0u8; 16];
-                        for i in 0..length {
-                            data[i as usize] = rng.random() as u8;
-                        }
-                        Some(BleMessage::DebugResponse(data.into()))
-                    }
+                    // Debug functionality not supported in shared BleMessage enum
+                    // Some(BleMessage::DebugRequest(_)) => {
+                    //     let length = rng.random().wrapping_rem(16) + 1;
+                    //     let mut data = [0u8; 16];
+                    //     for i in 0..length {
+                    //         data[i as usize] = rng.random() as u8;
+                    //     }
+                    //     Some(BleMessage::DebugResponse(data.into()))
+                    // }
                     _ => None,
                 };
                 println!("Response: {:?}", response);

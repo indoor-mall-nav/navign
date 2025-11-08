@@ -1,7 +1,6 @@
-use super::super::crypto::Proof;
-pub(crate) use super::BleMessage;
+use navign_shared::{Proof, BleMessage, Depacketize};
 use crate::shared::constants::*;
-use crate::shared::{BleError, DeviceCapability};
+use crate::shared::BleError;
 use esp_println::println;
 use heapless::Vec;
 
@@ -103,10 +102,10 @@ impl BleProtocolHandler {
                     .push(DEVICE_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
-                    .push(device_type.serialize())
+                    .push(device_type.bits())
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
-                    .push(DeviceCapability::serialize(capabilities))
+                    .push(capabilities.bits())
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
                     .extend_from_slice(object_id)
@@ -120,7 +119,7 @@ impl BleProtocolHandler {
                     .push(NONCE_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
-                    .extend_from_slice(nonce.as_bytes())
+                    .extend_from_slice(nonce)
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
                     .extend_from_slice(signature)
@@ -128,7 +127,7 @@ impl BleProtocolHandler {
                 self.send_buffer_length = NONCE_RESPONSE_LENGTH;
             }
 
-            BleMessage::UnlockResponse(success, reason) => {
+            BleMessage::UnlockResponse(success, error) => {
                 buffer
                     .push(UNLOCK_RESPONSE)
                     .map_err(|_| BleError::BufferFull)?;
@@ -140,20 +139,21 @@ impl BleProtocolHandler {
                     })
                     .map_err(|_| BleError::BufferFull)?;
                 buffer
-                    .push(reason.map(|x| x.serialize()).unwrap_or(0x00))
+                    .push(if *success { 0x00 } else { (*error).into() })
                     .map_err(|_| BleError::BufferFull)?;
                 self.send_buffer_length = UNLOCK_RESPONSE_LENGTH;
             }
 
-            BleMessage::DebugResponse(debug_data) => {
-                buffer
-                    .push(DEBUG_RESPONSE)
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .extend_from_slice(&debug_data[..16])
-                    .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer_length = IDENTIFIER_LENGTH + debug_data.len();
-            }
+            // Debug functionality not supported in shared BleMessage enum
+            // BleMessage::DebugResponse(debug_data) => {
+            //     buffer
+            //         .push(DEBUG_RESPONSE)
+            //         .map_err(|_| BleError::BufferFull)?;
+            //     buffer
+            //         .extend_from_slice(&debug_data[..16])
+            //         .map_err(|_| BleError::BufferFull)?;
+            //     self.send_buffer_length = IDENTIFIER_LENGTH + debug_data.len();
+            // }
 
             _ => unreachable!("Cannot serialize this message type"),
         }
@@ -194,7 +194,8 @@ impl BleProtocolHandler {
                 Ok(BleMessage::UnlockRequest(proof))
             }
 
-            DEBUG_REQUEST => Ok(BleMessage::DebugRequest(())),
+            // Debug functionality not supported in shared BleMessage enum
+            // DEBUG_REQUEST => Ok(BleMessage::DebugRequest(())),
 
             _ => Err(BleError::ParseError),
         };
@@ -202,3 +203,4 @@ impl BleProtocolHandler {
         result
     }
 }
+
