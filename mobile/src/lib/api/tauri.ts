@@ -215,6 +215,36 @@ export async function getRoute(
   return JSON.parse(response)
 }
 
+export async function getRouteOffline(
+  entity: string,
+  fromArea: string,
+  fromPos: [number, number],
+  toArea: string,
+  toPos: [number, number],
+  limits?: ConnectivityLimits,
+): Promise<ApiResponse<RouteResponse>> {
+  // Format connectivity limits as compact string: e=elevator, s=stairs, c=escalator
+  const connectivity = [
+    (limits?.elevator ?? true) ? 'e' : '',
+    (limits?.stairs ?? true) ? 's' : '',
+    (limits?.escalator ?? true) ? 'c' : '',
+  ].join('')
+
+  await info(
+    `Requesting offline route from ${fromArea} to ${toArea} with limits: ${connectivity}`,
+  )
+
+  const response = await invoke<string>('get_route_offline_handler', {
+    entity,
+    fromArea,
+    fromPos: `${fromPos[0]},${fromPos[1]}`,
+    toArea,
+    toPos: `${toPos[0]},${toPos[1]}`,
+    connectivity,
+  })
+  return JSON.parse(response)
+}
+
 // Area Details API
 export interface AreaDetails {
   _id: string

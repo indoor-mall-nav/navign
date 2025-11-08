@@ -12,6 +12,9 @@ extern crate alloc;
 pub mod constants;
 pub mod errors;
 
+#[cfg(feature = "std")]
+pub mod pathfinding;
+
 mod ble;
 mod crypto;
 mod schema;

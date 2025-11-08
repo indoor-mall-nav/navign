@@ -124,8 +124,8 @@ pub mod mobile {
         /// JSON array: [[start, end], ...]
         pub available_period: String,
         pub tags: String, // JSON array
-        pub gnd_x: Option<f64>,
-        pub gnd_y: Option<f64>,
+        /// Stored as WKT POINT string
+        pub gnd: Option<String>,
         pub created_at: i64,
         pub updated_at: i64,
     }
@@ -156,8 +156,7 @@ pub mod mobile {
                     connected_areas TEXT NOT NULL,
                     available_period TEXT NOT NULL,
                     tags TEXT NOT NULL,
-                    gnd_x REAL,
-                    gnd_y REAL,
+                    gnd TEXT,
                     created_at INTEGER NOT NULL,
                     updated_at INTEGER NOT NULL
                 )
@@ -172,9 +171,9 @@ pub mod mobile {
         pub async fn insert(&self, pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
             sqlx::query(
                 r#"
-                INSERT OR REPLACE INTO connections 
-                (id, entity, name, description, type, connected_areas, available_period, tags, gnd_x, gnd_y, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO connections
+                (id, entity, name, description, type, connected_areas, available_period, tags, gnd, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&self.id)
@@ -185,8 +184,7 @@ pub mod mobile {
             .bind(&self.connected_areas)
             .bind(&self.available_period)
             .bind(&self.tags)
-            .bind(self.gnd_x)
-            .bind(self.gnd_y)
+            .bind(&self.gnd)
             .bind(self.created_at)
             .bind(self.updated_at)
             .execute(pool)

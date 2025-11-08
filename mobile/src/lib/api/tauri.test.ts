@@ -10,6 +10,7 @@ import {
   searchMerchants,
   locateDevice,
   getRoute,
+  getRouteOffline,
   type ApiResponse,
   type ConnectivityLimits,
 } from './tauri'
@@ -352,6 +353,26 @@ describe('Route/Navigation APIs', () => {
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
 
     const result = await getRoute('entity_1', 'merchant_a', 'merchant_z')
+
+    expect(result.status).toBe('error')
+    expect(result.message).toContain('No route found')
+  })
+
+  it('should handle route not found', async () => {
+    const mockErrorResponse: ApiResponse = {
+      status: 'error',
+      message: 'No route found between merchants',
+    }
+
+    ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
+
+    const result = await getRouteOffline(
+      'entity_1',
+      'area_a',
+      [0.0, 0.0],
+      'area_z',
+      [0.0, 0.0],
+    )
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('No route found')
