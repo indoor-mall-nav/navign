@@ -5,6 +5,7 @@ mod beacon;
 mod beacon_secrets;
 mod connection;
 mod entity;
+pub mod firmware;
 mod merchant;
 mod metadata;
 pub mod polygon;

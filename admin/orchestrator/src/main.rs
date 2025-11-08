@@ -1,10 +1,18 @@
 #![allow(dead_code)]
 
+mod firmware_api;
+
+use axum::{routing::get, Router};
+use firmware_api::{
+    download_firmware_handler, get_firmware_by_id_handler, get_latest_firmware_handler,
+    health_handler, list_firmwares_handler, AppState, FirmwareClient,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response, Status, transport::Server};
+use tonic::{transport::Server, Request, Response, Status};
+use tower_http::cors::CorsLayer;
 
 pub mod task {
     tonic::include_proto!("task");
@@ -291,15 +299,83 @@ async fn create_example_task(registry: &RobotRegistry, entity_id: &str) {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let addr = "[::1]:50051".parse()?;
+    // Get configuration from environment variables
+    let grpc_addr = std::env::var("ORCHESTRATOR_GRPC_ADDR")
+        .unwrap_or_else(|_| "[::1]:50051".to_string())
+        .parse()?;
+
+    let http_addr = std::env::var("ORCHESTRATOR_HTTP_ADDR")
+        .unwrap_or_else(|_| "0.0.0.0:8081".to_string());
+
+    let server_url = std::env::var("SERVER_URL")
+        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+
+    log::info!("Orchestrator starting...");
+    log::info!("  gRPC server: {}", grpc_addr);
+    log::info!("  HTTP server: {}", http_addr);
+    log::info!("  Backend server: {}", server_url);
+
+    // Create orchestrator service for gRPC
     let orchestrator = OrchestratorServiceImpl::new();
 
-    log::info!("Orchestrator gRPC server listening on {}", addr);
+    // Create firmware client for HTTP API
+    let firmware_client = Arc::new(FirmwareClient::new(server_url));
+    let app_state = AppState { firmware_client };
 
-    Server::builder()
-        .add_service(OrchestratorServiceServer::new(orchestrator))
-        .serve(addr)
-        .await?;
+    // Configure CORS for HTTP server
+    let cors = CorsLayer::new()
+        .allow_origin(tower_http::cors::Any)
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers(tower_http::cors::Any);
+
+    // Create HTTP router
+    let app = Router::new()
+        .route("/health", get(health_handler))
+        .route("/firmwares", get(list_firmwares_handler))
+        .route("/firmwares/latest/:device", get(get_latest_firmware_handler))
+        .route("/firmwares/:id", get(get_firmware_by_id_handler))
+        .route("/firmwares/:id/download", get(download_firmware_handler))
+        .layer(cors)
+        .with_state(app_state);
+
+    // Create gRPC server future
+    let grpc_server = async move {
+        log::info!("gRPC server listening on {}", grpc_addr);
+        Server::builder()
+            .add_service(OrchestratorServiceServer::new(orchestrator))
+            .serve(grpc_addr)
+            .await
+    };
+
+    // Create HTTP server future
+    let http_server = async move {
+        let listener = tokio::net::TcpListener::bind(&http_addr).await.unwrap();
+        log::info!("HTTP server listening on {}", http_addr);
+        axum::serve(listener, app).await
+    };
+
+    // Run both servers concurrently
+    log::info!("Both servers started successfully");
+
+    tokio::select! {
+        result = grpc_server => {
+            if let Err(e) = result {
+                log::error!("gRPC server error: {}", e);
+                return Err(e.into());
+            }
+        }
+        result = http_server => {
+            if let Err(e) = result {
+                log::error!("HTTP server error: {}", e);
+                return Err(e.into());
+            }
+        }
+    }
 
     Ok(())
 }

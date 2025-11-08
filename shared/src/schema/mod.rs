@@ -18,6 +18,8 @@ pub mod connection;
 #[cfg(feature = "alloc")]
 pub mod entity;
 #[cfg(feature = "alloc")]
+pub mod firmware;
+#[cfg(feature = "alloc")]
 pub mod merchant;
 
 // Re-export core types
@@ -33,6 +35,8 @@ pub use beacon::{Beacon, BeaconDevice, BeaconType};
 pub use connection::{ConnectedArea, Connection, ConnectionType};
 #[cfg(feature = "alloc")]
 pub use entity::{Entity, EntityType};
+#[cfg(feature = "alloc")]
+pub use firmware::{Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadRequest, FirmwareUploadResponse};
 #[cfg(feature = "alloc")]
 pub use merchant::{
     ChineseFoodCuisine, FacilityType, FoodCuisine, FoodType, Merchant, MerchantStyle, MerchantType,

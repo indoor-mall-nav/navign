@@ -37,7 +37,8 @@ pub use schema::Account;
 #[cfg(feature = "alloc")]
 pub use schema::{
     Area, Beacon, BeaconDevice, BeaconType, ChineseFoodCuisine, ConnectedArea, Connection,
-    ConnectionType, Entity, EntityType, FacilityType, Floor, FloorType, FoodCuisine, FoodType,
+    ConnectionType, Entity, EntityType, FacilityType, Firmware, FirmwareDevice, FirmwareQuery,
+    FirmwareUploadRequest, FirmwareUploadResponse, Floor, FloorType, FoodCuisine, FoodType,
     Merchant, MerchantStyle, MerchantType, SocialMedia, SocialMediaPlatform,
 };
 #[cfg(all(feature = "serde", feature = "alloc"))]
