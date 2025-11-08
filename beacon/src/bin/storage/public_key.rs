@@ -20,5 +20,7 @@ pub fn write_public_key(
     storage: &mut FlashStorage,
     public_key: [u8; 65],
 ) -> Result<(), PublicKeyError> {
-    storage.write(32, &public_key).map_err(|_| PublicKeyError::StorageError)
+    storage
+        .write(32, &public_key)
+        .map_err(|_| PublicKeyError::StorageError)
 }

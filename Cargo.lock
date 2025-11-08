@@ -5409,6 +5409,7 @@ dependencies = [
  "embedded-dht-rs",
  "embedded-io 0.7.1",
  "embedded-nal",
+ "embedded-storage",
  "embedded-test",
  "esp-alloc",
  "esp-backtrace",
