@@ -126,7 +126,7 @@ function updatePreference(key: keyof RoutePreferences, value: boolean) {
             <Checkbox
               :id="`elevator-${entityId}`"
               :checked="preferences.elevator"
-              @update:checked="(val) => updatePreference('elevator', !!val)"
+              @update:checked="(val: boolean) => updatePreference('elevator', !!val)"
             />
             <label
               :for="`elevator-${entityId}`"
@@ -140,7 +140,7 @@ function updatePreference(key: keyof RoutePreferences, value: boolean) {
             <Checkbox
               :id="`stairs-${entityId}`"
               :checked="preferences.stairs"
-              @update:checked="(val) => updatePreference('stairs', !!val)"
+              @update:checked="(val: boolean) => updatePreference('stairs', !!val)"
             />
             <label
               :for="`stairs-${entityId}`"
@@ -154,7 +154,7 @@ function updatePreference(key: keyof RoutePreferences, value: boolean) {
             <Checkbox
               :id="`escalator-${entityId}`"
               :checked="preferences.escalator"
-              @update:checked="(val) => updatePreference('escalator', !!val)"
+              @update:checked="(val: boolean) => updatePreference('escalator', !!val)"
             />
             <label
               :for="`escalator-${entityId}`"
