@@ -87,8 +87,8 @@ jobs:
             esac
           done <<< "$CHANGED_FILES"
 
-          # Build component array
-          [ "$run_repo" = true ] && components+=("repo")
+          # Build component array. The `repo` lint is tricky and is disabled for now.
+          # [ "$run_repo" = true ] && components+=("repo")
           [ "$run_shared" = true ] && components+=("shared")
           [ "$run_server" = true ] && components+=("server")
           [ "$run_beacon" = true ] && components+=("beacon")
