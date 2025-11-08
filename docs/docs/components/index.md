@@ -11,8 +11,8 @@ The Navign project is composed with different components, with a variety of tech
 - **Vision**: Apple Vision Pro application for gesture recognition and spatial understanding.
 - **Miniapp**: WeChat Mini Program for user interaction and navigation assistance.
 - **Admin**: Administrative interface for managing beacons, robots, and system settings.
-   - **Orchestra**: Fleet management and coordination system for robots; also interface server for Admin.
+   - **Orchestrator**: Fleet management and coordination system for robots; also interface server for Admin.
    - **Tower**: One-to-one communication with robot via Socket.IO.
-   - **Vision**: Vision processing backend for map generation and spatial analysis.
+   - **Plot**: Map generation and spatial analysis library.
 - **Shared**: Shared libraries and utilities used across different components.
 - **Docs**: Documentation and guides for the project.
