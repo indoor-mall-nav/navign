@@ -226,16 +226,30 @@ pub async fn download_firmware_handler(
     // Then download the binary
     match state.firmware_client.download_firmware(&id).await {
         Ok(data) => {
-            let headers = [
-                ("Content-Type", "application/octet-stream"),
-                (
-                    "Content-Disposition",
-                    &format!("attachment; filename=\"{}\"", firmware.file_path),
-                ),
-                ("X-Firmware-Version", &firmware.version),
-                ("X-Firmware-Checksum", &firmware.checksum),
-                ("X-Firmware-Device", firmware.device.as_str()),
-            ];
+            use axum::http::header::{self, HeaderName};
+            let mut headers = axum::http::HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                "application/octet-stream".parse().unwrap(),
+            );
+            headers.insert(
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{}\"", firmware.file_path)
+                    .parse()
+                    .unwrap(),
+            );
+            headers.insert(
+                HeaderName::from_static("x-firmware-version"),
+                firmware.version.parse().unwrap(),
+            );
+            headers.insert(
+                HeaderName::from_static("x-firmware-checksum"),
+                firmware.checksum.parse().unwrap(),
+            );
+            headers.insert(
+                HeaderName::from_static("x-firmware-device"),
+                firmware.device.as_str().parse().unwrap(),
+            );
 
             Ok((headers, data))
         }
