@@ -39,6 +39,7 @@ jobs:
             tower
             plot
             robot
+            shared
           # Scope is optional (especially for chore/ci), but validated if provided
           requireScope: false
           # Validate subject
