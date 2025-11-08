@@ -711,7 +711,7 @@ pub async fn compute_route_offline(
         escalator: connectivity_limits.escalator,
     };
 
-    let instructions = if from_area == to_area {
+    let instructions: Vec<InstructionType> = if from_area == to_area {
         // Inner-area pathfinding
         let area = area_data_vec
             .iter()
