@@ -1,10 +1,13 @@
 [package]
-name = "orchestrator"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "orchestrator"
+version.workspace = true
 
 [dependencies]
+env_logger = "0.11"
+log = "0.4"
+prost = "0.13"
 tokio = { version = "1.43", features = [
   "macros",
   "rt-multi-thread",
@@ -13,9 +16,6 @@ tokio = { version = "1.43", features = [
 ] }
 tokio-stream = "0.1"
 tonic = "0.12"
-prost = "0.13"
-log = "0.4"
-env_logger = "0.11"
 uuid = { version = "1.11", features = ["v4"] }
 
 [build-dependencies]

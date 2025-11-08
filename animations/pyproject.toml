@@ -1,10 +1,10 @@
 [project]
-name = "animations"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+dependencies    = ["manim>=0.19.0", "numpy>=2.3.3", "scipy>=1.16.2"]
+description     = "Add your description here"
+name            = "animations"
+readme          = "README.md"
 requires-python = ">=3.12"
-dependencies = ["manim>=0.19.0", "numpy>=2.3.3", "scipy>=1.16.2"]
+version         = "0.1.0"
 
 [tool.ruff]
 ignore = ["F403"]
