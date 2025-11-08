@@ -1,8 +1,8 @@
-use navign_shared::{Proof, BleMessage, Depacketize};
-use crate::shared::constants::*;
 use crate::shared::BleError;
+use crate::shared::constants::*;
 use esp_println::println;
 use heapless::Vec;
+use navign_shared::{BleMessage, Depacketize, Proof};
 
 #[derive(Debug)]
 pub struct BleProtocolHandler {
@@ -154,7 +154,6 @@ impl BleProtocolHandler {
             //         .map_err(|_| BleError::BufferFull)?;
             //     self.send_buffer_length = IDENTIFIER_LENGTH + debug_data.len();
             // }
-
             _ => unreachable!("Cannot serialize this message type"),
         }
 
@@ -196,11 +195,9 @@ impl BleProtocolHandler {
 
             // Debug functionality not supported in shared BleMessage enum
             // DEBUG_REQUEST => Ok(BleMessage::DebugRequest(())),
-
             _ => Err(BleError::ParseError),
         };
         self.clear_receive_buffer();
         result
     }
 }
-

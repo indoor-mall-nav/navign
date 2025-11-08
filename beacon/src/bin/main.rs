@@ -19,7 +19,6 @@ pub(crate) mod internet;
 pub(crate) mod shared;
 pub(crate) mod storage;
 
-use navign_shared::BleMessage;
 use crate::execute::{BeaconState, UnlockMethod};
 use crate::shared::constants::*;
 use crate::shared::{CryptoError, DeviceCapabilities, DeviceTypes};
@@ -54,6 +53,7 @@ use esp_radio::ble::Config;
 use esp_radio::{ble::controller::BleConnector, init};
 use esp_rtos as _;
 use heapless::Vec;
+use navign_shared::BleMessage;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -263,15 +263,13 @@ fn main() -> ! {
                 println!("Handling message");
                 instance.borrow_mut().buffer.processing = true;
                 let response: Option<BleMessage> = match message {
-                    Some(BleMessage::DeviceRequest) => Some(BleMessage::DeviceResponse(
-                        device_type,
-                        capabilities,
-                        {
+                    Some(BleMessage::DeviceRequest) => {
+                        Some(BleMessage::DeviceResponse(device_type, capabilities, {
                             let mut id = [0u8; 24];
                             id.copy_from_slice(device_id.as_ref());
                             id
-                        },
-                    )),
+                        }))
+                    }
                     Some(BleMessage::NonceRequest) => {
                         let nonce = instance.borrow_mut().generate_nonce(&mut rng);
                         let mut identifier = [0u8; 8];
