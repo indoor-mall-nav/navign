@@ -1,5 +1,5 @@
 use crate::task_queue::TaskQueue;
-use crate::types::{RobotInfo, RobotState, Task, TaskAssignment, TaskChannelMap, task};
+use crate::types::{RobotInfo, RobotState, Task, TaskAssignment, TaskChannelMap};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
@@ -162,6 +162,7 @@ impl Default for RobotRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::task::Location;
     use crate::types::{Priority, TaskType};
     use std::collections::HashMap;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -301,7 +302,7 @@ mod tests {
         let registry = RobotRegistry::new();
 
         let mut robot1 = create_test_robot("robot-1", "entity-1", RobotState::Idle, 80.0);
-        robot1.current_location = Some(task::Location {
+        robot1.current_location = Some(Location {
             x: 0.0,
             y: 0.0,
             z: 0.0,
@@ -309,7 +310,7 @@ mod tests {
         });
 
         let mut robot2 = create_test_robot("robot-2", "entity-1", RobotState::Idle, 80.0);
-        robot2.current_location = Some(task::Location {
+        robot2.current_location = Some(Location {
             x: 500.0,
             y: 500.0,
             z: 0.0,
@@ -320,7 +321,7 @@ mod tests {
         registry.register_robot(robot2).await;
 
         let mut task = create_test_task("task-1", Priority::Normal);
-        task.sources = vec![task::Location {
+        task.sources = vec![Location {
             x: 10.0,
             y: 10.0,
             z: 0.0,
