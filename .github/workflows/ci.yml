@@ -1,4 +1,4 @@
-name: Rust Unit Test
+name: Selective CI
 
 on:
   push:
@@ -10,50 +10,85 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  ci:
-    runs-on: ${{ matrix.platform }}
-    strategy:
-      matrix:
-        node-version: ['22.14.0']
-        platform: [ubuntu-latest]
-        python-version: ['3.12']
-        pnpm-version: ['10.20.0']
-        mongodb-version: ['8.0']
-        go-version: ['1.25.3']
-        runs-for: [shared, server, mobile, desktop, beacon, tower, orchestrator]
-
+  # Detect which files changed and determine what CI to run
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
         with:
-          version: ${{ matrix.pnpm-version }}
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+          fetch-depth: 0
+      - name: Check for changes
+        id: check
+        run: |
+          # Fetch base branch
+          git fetch origin ${{ github.base_ref || 'main' }}
+
+          # Check if there are any changes
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD || echo "")
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No files modified. Skipping CI."
+            echo "should-run=false" >> $GITHUB_OUTPUT
+          else
+            echo "Files modified. Running selective CI."
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          fi
+
+  # Run selective CI based on changed files
+  selective-ci:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          python-version: ${{ matrix.python-version }}
-        if: matrix.runs-for == 'repo'
+          fetch-depth: 0
+
+      # Setup all tools that might be needed
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
       - name: Setup Taplo
         uses: uncenter/setup-taplo@v1.0.8
+
       - name: Setup Typos
         uses: crate-ci/typos@v1.39.0
+
       - name: Setup Cargo Deny
         uses: EmbarkStudios/cargo-deny-action@v2.0.13
         with:
           command: check bans licenses sources
-      - name: Use Node.js ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22.14.0'
           cache: "pnpm"
-        if: matrix.runs-for == 'mobile'
+
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.0
         with:
-          mongodb-version: ${{ matrix.mongodb-version }}
-        if: matrix.runs-for == 'server'
-      - name: Tauri dependencies
-        if: matrix.platform == 'ubuntu-latest' && (matrix.runs-for == 'desktop' || matrix.runs-for == 'mobile')
+          mongodb-version: '8.0'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache-dependency-path: admin/tower/go.sum
+
+      - name: Install Protobuf Compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Tauri dependencies
         run: |
           sudo apt-get update &&
           sudo apt-get install -y \
@@ -61,24 +96,11 @@ jobs:
           libayatana-appindicator3-dev \
           webkit2gtk-driver \
           xvfb
-      - name: Repo dependencies
-        if: matrix.runs-for == 'repo'
-        run: |
-          sudo apt-get update &&
-          sudo apt-get install -y \
-          portaudio19-dev
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache-dependency-path: admin/tower/go.sum
-        if: matrix.runs-for == 'tower'
-      - name: Install Protobuf Compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-        if: matrix.runs-for == 'orchestrator'
-      - name: Setup just
-        uses: extractions/setup-just@v3
-      - name: Run CI tasks
-        run: just ci-${{ matrix.runs-for }}
+
+      # Fetch base branch for comparison
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref || 'main' }}
+
+      # Run selective CI
+      - name: Run selective CI
+        run: just ci-selective origin/${{ github.base_ref || 'main' }}
