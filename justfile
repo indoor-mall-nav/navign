@@ -187,7 +187,7 @@ ci-selective base="main":
       admin/orchestrator/*)
         run_orchestrator=true
         ;;
-      *.toml|*.md|.github/*|deny.toml|.typos.toml)
+      justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
         run_repo=true
         ;;
       maintenance-tool/*)
