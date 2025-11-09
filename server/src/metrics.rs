@@ -103,6 +103,7 @@ pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse
 }
 
 /// Record a database operation metric
+#[allow(dead_code)]
 pub fn record_database_operation(operation: &str, collection: &str) {
     counter!(
         "database_operations_total",
@@ -113,6 +114,7 @@ pub fn record_database_operation(operation: &str, collection: &str) {
 }
 
 /// Record an authentication attempt metric
+#[allow(dead_code)]
 pub fn record_auth_attempt(method: &str, success: bool) {
     counter!(
         "auth_attempts_total",
@@ -123,6 +125,7 @@ pub fn record_auth_attempt(method: &str, success: bool) {
 }
 
 /// Record an unlock attempt metric
+#[allow(dead_code)]
 pub fn record_unlock_attempt(success: bool, error: Option<&str>) {
     counter!(
         "unlock_attempts_total",
