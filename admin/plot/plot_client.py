@@ -18,8 +18,7 @@ from proto import task_pb2, task_pb2_grpc
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class PlotExtractionClient:
     polygon extraction functionality for floor plans using OpenCV.
     """
 
-    def __init__(self, orchestrator_address: str = 'localhost:50051'):
+    def __init__(self, orchestrator_address: str = "localhost:50051"):
         """
         Initialize the plot extraction client.
 
@@ -61,7 +60,7 @@ class PlotExtractionClient:
         image_path: str,
         entity_id: str,
         floor_id: str,
-        config: Optional[task_pb2.PlotExtractionConfig] = None
+        config: Optional[task_pb2.PlotExtractionConfig] = None,
     ) -> task_pb2.ExtractPolygonsResponse:
         """
         Extract polygons from a floor plan image file.
@@ -84,33 +83,26 @@ class PlotExtractionClient:
             raise ValueError(f"Failed to read image from {image_path}")
 
         # Encode image
-        success, encoded = cv2.imencode('.png', image)
+        success, encoded = cv2.imencode(".png", image)
         if not success:
             raise ValueError("Failed to encode image")
 
         height, width = image.shape[:2]
-
-        # Create FloorPlanImage message
-        floor_plan_image = task_pb2.FloorPlanImage(
-            data=encoded.tobytes(),
-            format='png',
-            width=width,
-            height=height
-        )
-
-        # Create request
-        request = task_pb2.ExtractPolygonsRequest(
-            entity_id=entity_id,
-            floor_id=floor_id,
-            floor_plan=floor_plan_image,
-            config=config if config else task_pb2.PlotExtractionConfig()
-        )
 
         # Perform local extraction (Python implementation)
         logger.info(f"Extracting polygons from {image_path} locally")
         response = self._perform_local_extraction(image, entity_id, floor_id, config)
 
         # TODO: Optionally send to orchestrator for storage/coordination
+        # floor_plan_image = task_pb2.FloorPlanImage(
+        #     data=encoded.tobytes(), format="png", width=width, height=height
+        # )
+        # request = task_pb2.ExtractPolygonsRequest(
+        #     entity_id=entity_id,
+        #     floor_id=floor_id,
+        #     floor_plan=floor_plan_image,
+        #     config=config if config else task_pb2.PlotExtractionConfig(),
+        # )
         # orchestrator_response = self.stub.ExtractPolygons(request)
 
         return response
@@ -120,8 +112,8 @@ class PlotExtractionClient:
         image_data: bytes,
         entity_id: str,
         floor_id: str,
-        image_format: str = 'png',
-        config: Optional[task_pb2.PlotExtractionConfig] = None
+        image_format: str = "png",
+        config: Optional[task_pb2.PlotExtractionConfig] = None,
     ) -> task_pb2.ExtractPolygonsResponse:
         """
         Extract polygons from floor plan image data.
@@ -153,7 +145,7 @@ class PlotExtractionClient:
         self,
         floor_plans: list[tuple[str, str]],  # [(floor_id, image_path)]
         entity_id: str,
-        config: Optional[task_pb2.PlotExtractionConfig] = None
+        config: Optional[task_pb2.PlotExtractionConfig] = None,
     ) -> task_pb2.BatchExtractResponse:
         """
         Extract polygons from multiple floor plans in batch.
@@ -183,7 +175,7 @@ class PlotExtractionClient:
                     floor_id=floor_id,
                     polygons=response.polygons,
                     error=response.error,
-                    stats=response.stats
+                    stats=response.stats,
                 )
                 extractions.append(extraction)
 
@@ -198,15 +190,13 @@ class PlotExtractionClient:
                     floor_id=floor_id,
                     polygons=[],
                     error=str(e),
-                    stats=task_pb2.PlotProcessingStats()
+                    stats=task_pb2.PlotProcessingStats(),
                 )
                 extractions.append(extraction)
                 failed += 1
 
         return task_pb2.BatchExtractResponse(
-            extractions=extractions,
-            successful=successful,
-            failed=failed
+            extractions=extractions, successful=successful, failed=failed
         )
 
     def _perform_local_extraction(
@@ -214,7 +204,7 @@ class PlotExtractionClient:
         image: np.ndarray,
         entity_id: str,
         floor_id: str,
-        config: Optional[task_pb2.PlotExtractionConfig] = None
+        config: Optional[task_pb2.PlotExtractionConfig] = None,
     ) -> task_pb2.ExtractPolygonsResponse:
         """
         Perform polygon extraction using local OpenCV implementation.
@@ -250,10 +240,7 @@ class PlotExtractionClient:
             )
 
             return task_pb2.ExtractPolygonsResponse(
-                polygons=polygons,
-                total_count=len(polygons),
-                error="",
-                stats=stats
+                polygons=polygons, total_count=len(polygons), error="", stats=stats
             )
 
         except Exception as e:
@@ -262,12 +249,11 @@ class PlotExtractionClient:
                 polygons=[],
                 total_count=0,
                 error=str(e),
-                stats=task_pb2.PlotProcessingStats()
+                stats=task_pb2.PlotProcessingStats(),
             )
 
     def _get_config_with_defaults(
-        self,
-        config: Optional[task_pb2.PlotExtractionConfig]
+        self, config: Optional[task_pb2.PlotExtractionConfig]
     ) -> task_pb2.PlotExtractionConfig:
         """
         Get configuration with defaults applied.
@@ -283,25 +269,31 @@ class PlotExtractionClient:
 
         # Apply defaults for zero values
         default_config = task_pb2.PlotExtractionConfig(
-            blur_kernel_size=config.blur_kernel_size if config.blur_kernel_size > 0 else 5.0,
-            threshold_value=config.threshold_value if config.threshold_value > 0 else 127,
+            blur_kernel_size=config.blur_kernel_size
+            if config.blur_kernel_size > 0
+            else 5.0,
+            threshold_value=config.threshold_value
+            if config.threshold_value > 0
+            else 127,
             threshold_type=config.threshold_type,
             min_area=config.min_area if config.min_area > 0 else 100.0,
             max_area=config.max_area,
             epsilon_factor=config.epsilon_factor if config.epsilon_factor > 0 else 0.01,
-            apply_morphology=config.apply_morphology if config.HasField('apply_morphology') else True,
-            morph_kernel_size=config.morph_kernel_size if config.morph_kernel_size > 0 else 5,
+            apply_morphology=config.apply_morphology
+            if config.HasField("apply_morphology")
+            else True,
+            morph_kernel_size=config.morph_kernel_size
+            if config.morph_kernel_size > 0
+            else 5,
             use_canny=config.use_canny,
             canny_low=config.canny_low if config.canny_low > 0 else 50,
-            canny_high=config.canny_high if config.canny_high > 0 else 150
+            canny_high=config.canny_high if config.canny_high > 0 else 150,
         )
 
         return default_config
 
     def _extract_polygons_opencv(
-        self,
-        image: np.ndarray,
-        config: task_pb2.PlotExtractionConfig
+        self, image: np.ndarray, config: task_pb2.PlotExtractionConfig
     ) -> tuple[list[task_pb2.Polygon], task_pb2.PlotProcessingStats]:
         """
         Extract polygons from image using OpenCV.
@@ -332,7 +324,7 @@ class PlotExtractionClient:
             contours_found=0,
             contours_filtered=0,
             image_width=width,
-            image_height=height
+            image_height=height,
         )
 
         # TODO: Implement actual polygon extraction algorithm
@@ -373,22 +365,19 @@ def main():
     floor_id = sys.argv[3] if len(sys.argv) > 3 else "1"
 
     # Create client and connect
-    with PlotExtractionClient('localhost:50051') as client:
+    with PlotExtractionClient("localhost:50051") as client:
         # Create custom configuration
         config = task_pb2.PlotExtractionConfig(
             blur_kernel_size=5.0,
             threshold_value=127,
             min_area=100.0,
             apply_morphology=True,
-            morph_kernel_size=5
+            morph_kernel_size=5,
         )
 
         # Extract polygons
         response = client.extract_polygons_from_file(
-            image_path,
-            entity_id,
-            floor_id,
-            config
+            image_path, entity_id, floor_id, config
         )
 
         # Print results
@@ -401,13 +390,15 @@ def main():
             print(f"Contours filtered: {response.stats.contours_filtered}")
 
             for i, polygon in enumerate(response.polygons):
-                print(f"\nPolygon {i+1}:")
+                print(f"\nPolygon {i + 1}:")
                 print(f"  Vertices: {len(polygon.vertices)}")
                 print(f"  Area: {polygon.area:.2f} sq px")
-                print(f"  Centroid: ({polygon.centroid.x:.2f}, {polygon.centroid.y:.2f})")
+                print(
+                    f"  Centroid: ({polygon.centroid.x:.2f}, {polygon.centroid.y:.2f})"
+                )
                 if polygon.label:
                     print(f"  Label: {polygon.label}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

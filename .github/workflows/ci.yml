@@ -51,6 +51,7 @@ jobs:
           run_mobile=false
           run_tower=false
           run_orchestrator=false
+          run_plot=false
           run_repo=false
 
           # Check which components are affected
@@ -75,9 +76,16 @@ jobs:
                 ;;
               admin/tower/*)
                 run_tower=true
+                # If task.proto changes, run plot CI too (plot depends on it)
+                if [[ "$file" == admin/tower/proto/task.proto ]]; then
+                  run_plot=true
+                fi
                 ;;
               admin/orchestrator/*)
                 run_orchestrator=true
+                ;;
+              admin/plot/*)
+                run_plot=true
                 ;;
               justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
                 run_repo=true
@@ -96,6 +104,7 @@ jobs:
           [ "$run_mobile" = true ] && components+=("mobile")
           [ "$run_tower" = true ] && components+=("tower")
           [ "$run_orchestrator" = true ] && components+=("orchestrator")
+          [ "$run_plot" = true ] && components+=("plot")
 
           if [ ${#components[@]} -eq 0 ]; then
             echo "No CI tasks needed for these changes."
@@ -180,6 +189,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+
+      # Plot-specific setup
+      - name: Setup Python
+        if: matrix.component == 'plot'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        if: matrix.component == 'plot'
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "admin/plot/uv.lock"
 
       # Run the specific CI task
       - name: Run CI for ${{ matrix.component }}

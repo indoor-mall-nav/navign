@@ -128,6 +128,12 @@ ci-orchestrator:
   cd admin/orchestrator && cargo clippy -- -D warnings
   cd admin/orchestrator && cargo test
 
+ci-plot:
+  cd admin/plot && uv sync --extra dev
+  cd admin/plot && uv run ruff format --check
+  cd admin/plot && uv run ruff check
+  cd admin/plot && uv run pytest
+
 roll:
   just fmt-check
   just lint
