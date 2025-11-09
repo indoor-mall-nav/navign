@@ -1,0 +1,204 @@
+{
+  "common": {
+    "email": "メールアドレス",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "confirmPassword": "パスワードを確認",
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "register": "登録",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "search": "検索",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功"
+  },
+  "auth": {
+    "loginTitle": "ログインして続行",
+    "registerTitle": "アカウントを登録",
+    "loginDescription": "任意のメールアドレスとパスワードでログインするか、ゲストとして続行できます。GoogleまたはGitHubでのログインも可能です。スムーズな体験のため、ログインしてカスタマイズされた体験を作成することをお勧めします。",
+    "continueAsGuest": "ゲストとして続行",
+    "loginButton": "ログイン",
+    "registerButton": "登録",
+    "loggingIn": "ログイン中...",
+    "registering": "登録中...",
+    "alreadyHaveAccount": "すでにアカウントをお持ちですか？ログイン",
+    "dontHaveAccount": "アカウントをお持ちでないですか？登録",
+    "acceptTerms": "利用規約とプライバシーポリシーに同意します。",
+    "errors": {
+      "emailPasswordRequired": "メールアドレスとパスワードを入力してください",
+      "fillAllFields": "すべてのフィールドを入力してください",
+      "passwordsNotMatch": "パスワードが一致しません",
+      "acceptTermsRequired": "利用規約に同意してください",
+      "loginFailed": "ログインに失敗しました",
+      "registrationFailed": "登録に失敗しました",
+      "guestLoginFailed": "ゲストログインに失敗しました"
+    },
+    "registrationSuccess": "登録が完了しました！ログインしてください。"
+  },
+  "home": {
+    "title": "屋内ナビゲーション",
+    "findLocation": {
+      "title": "現在地を検索",
+      "description": "デバイスの位置情報を使用するか、モール/建物名を検索してください",
+      "getCurrentLocation": "現在地を取得",
+      "locationObtained": "位置：{lat}, {lng}",
+      "enterName": "モールまたは建物名を入力（例：ニンボーモール）",
+      "findEntity": "施設を検索",
+      "searching": "検索中...",
+      "noResults": "条件に一致する施設が見つかりませんでした。",
+      "multipleResults": "{count} 件の施設が見つかりました。以下から1つ選択してください。",
+      "selected": "選択済み：{name}",
+      "found": "見つかりました：{name}",
+      "errors": {
+        "permissionRequired": "続行するには位置情報の権限が必要です。",
+        "geolocationFailed": "位置情報を取得できませんでした。位置情報サービスが有効になっていることを確認してください。"
+      }
+    },
+    "areaDetection": {
+      "title": "エリアを検出",
+      "description": "Bluetoothビーコンを使用して現在のエリアを自動検出します",
+      "howItWorks": "仕組み：",
+      "step1": "近くのBluetoothビーコンをスキャン",
+      "step2": "現在のエリアを自動的に識別",
+      "step3": "モバイルとデスクトップの両方で動作（モックデータを使用）",
+      "detectButton": "現在のエリアを検出",
+      "detecting": "エリアを検出中...",
+      "foundArea": "エリアが見つかりました：{name}",
+      "successfullyDetected": "正常に検出されました：{name}",
+      "noBeacons": "エリアを検出できませんでした。近くにビーコンが見つかりません。",
+      "selectEntityFirst": "最初に施設を選択してください"
+    },
+    "location": {
+      "title": "現在地",
+      "located": "位置確認済み",
+      "position": "位置：({x}, {y})",
+      "locateMe": "現在地を表示",
+      "locating": "位置確認中...",
+      "locatedAt": "位置：({x}, {y})",
+      "areaChanged": "エリアが {name} に変更されました",
+      "selectEntityAndArea": "最初に施設とエリアを選択してください",
+      "updateLocation": "位置を更新"
+    },
+    "merchants": {
+      "title": "近くの店舗",
+      "searchMerchants": "店舗を検索"
+    },
+    "quickActions": {
+      "title": "クイックアクション",
+      "startNavigation": "ナビゲーション開始",
+      "viewAllAreas": "すべてのエリアを表示",
+      "searchMerchants": "店舗を検索",
+      "updateLocation": "位置を更新"
+    },
+    "map": {
+      "noData": "マップデータがありません",
+      "detectArea": "エリアを検出"
+    },
+    "selectLocation": {
+      "title": "場所を選択",
+      "description": "複数の場所が見つかりました。1つ選択してください："
+    }
+  },
+  "navigation": {
+    "title": "屋内ナビゲーション",
+    "subtitle": "目的地への道を見つける",
+    "locateMe": "現在地を表示",
+    "locating": "位置確認中...",
+    "stats": {
+      "distance": "距離",
+      "totalDistance": "合計距離",
+      "steps": "ステップ",
+      "areas": "エリア",
+      "progress": "進行状況"
+    },
+    "destination": {
+      "selectTitle": "目的地を選択",
+      "selectDescription": "行きたい場所を検索して選択してください",
+      "searchPlaceholder": "店舗、ショップ、タグを検索...",
+      "noResults": "店舗が見つかりません"
+    },
+    "preferences": {
+      "title": "ルート設定",
+      "allowElevators": "エレベーターを許可",
+      "allowStairs": "階段を許可",
+      "allowEscalators": "エスカレーターを許可"
+    },
+    "calculateRoute": "ルートを計算",
+    "calculating": "計算中...",
+    "startNavigation": "ナビゲーション開始",
+    "stopNavigation": "ナビゲーション停止",
+    "clearRoute": "ルートをクリア",
+    "help": {
+      "title": "ナビゲーションの使い方",
+      "step1": "目的地を検索",
+      "step2": "ルート設定を選択",
+      "step3": "ルートを計算",
+      "step4": "ナビゲーションを開始してターンバイターンの案内を受ける"
+    },
+    "instructions": {
+      "enterArea": "{name} に入る",
+      "exitArea": "{name} を出る",
+      "useElevator": "エレベーターで {floor} へ",
+      "useStairs": "階段で {floor} へ",
+      "useEscalator": "エスカレーターで {floor} へ",
+      "turnLeft": "左折",
+      "turnRight": "右折",
+      "goStraight": "直進",
+      "arrived": "目的地に到着しました"
+    }
+  },
+  "entityDetails": {
+    "title": "施設詳細",
+    "description": "この施設内のすべてのエリア、店舗、ビーコンを表示",
+    "stats": {
+      "areas": "エリア",
+      "merchants": "店舗",
+      "beacons": "ビーコン"
+    },
+    "sections": {
+      "areasTitle": "エリア",
+      "code": "コード：",
+      "merchants": "店舗：",
+      "beacons": "ビーコン：",
+      "polygonPoints": "ポリゴンポイント数：",
+      "viewArea": "エリアを表示"
+    },
+    "empty": {
+      "noAreas": "エリアが見つかりません",
+      "noAreasDescription": "この施設にはまだエリアが設定されていません。"
+    },
+    "noDescription": "説明なし"
+  },
+  "area": {
+    "floor": "階",
+    "details": "エリア詳細"
+  },
+  "merchant": {
+    "store": "店舗",
+    "details": "店舗詳細"
+  },
+  "beacon": {
+    "details": "ビーコン詳細"
+  },
+  "units": {
+    "meters": "メートル",
+    "kilometers": "キロメートル",
+    "centimeters": "センチメートル"
+  },
+  "errors": {
+    "generic": "エラーが発生しました",
+    "network": "ネットワークエラー。接続を確認してください。",
+    "notFound": "見つかりません",
+    "unauthorized": "未認証。ログインしてください。",
+    "forbidden": "アクセスが拒否されました"
+  }
+}

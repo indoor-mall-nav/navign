@@ -1,12 +1,22 @@
 import { createI18n } from 'vue-i18n'
-import zhCn from './locales/zh-CN.json'
 import enUs from './locales/en-US.json'
+import zhCn from './locales/zh-CN.json'
+import zhTw from './locales/zh-TW.json'
+import jaJp from './locales/ja-JP.json'
+import frFr from './locales/fr-FR.json'
 
-export default createI18n({
+const i18n = createI18n({
+  legacy: false,
   locale: navigator.language || 'en-US',
   fallbackLocale: 'en-US',
   messages: {
-    'zh-CN': zhCn,
     'en-US': enUs,
-  } as Record<string, any>,
+    'zh-CN': zhCn,
+    'zh-TW': zhTw,
+    'ja-JP': jaJp,
+    'fr-FR': frFr,
+  },
+  globalInjection: true,
 })
+
+export default i18n

@@ -1,0 +1,204 @@
+{
+  "common": {
+    "email": "E-mail",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "register": "S'inscrire",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "auth": {
+    "loginTitle": "Connectez-vous pour continuer",
+    "registerTitle": "Créer un compte",
+    "loginDescription": "Vous pouvez utiliser n'importe quelle adresse e-mail et mot de passe pour vous connecter, ou continuer en tant qu'invité. Vous pouvez également vous connecter avec Google ou GitHub. Pour garantir une expérience fluide, nous vous recommandons de vous connecter pour créer une expérience personnalisée.",
+    "continueAsGuest": "Continuer en tant qu'invité",
+    "loginButton": "Se connecter",
+    "registerButton": "S'inscrire",
+    "loggingIn": "Connexion...",
+    "registering": "Inscription...",
+    "alreadyHaveAccount": "Vous avez déjà un compte ? Connectez-vous",
+    "dontHaveAccount": "Vous n'avez pas de compte ? Inscrivez-vous",
+    "acceptTerms": "J'accepte les Conditions d'utilisation et la Politique de confidentialité.",
+    "errors": {
+      "emailPasswordRequired": "Veuillez entrer votre e-mail et mot de passe",
+      "fillAllFields": "Veuillez remplir tous les champs",
+      "passwordsNotMatch": "Les mots de passe ne correspondent pas",
+      "acceptTermsRequired": "Veuillez accepter les conditions d'utilisation",
+      "loginFailed": "Échec de la connexion",
+      "registrationFailed": "Échec de l'inscription",
+      "guestLoginFailed": "Échec de la connexion en tant qu'invité"
+    },
+    "registrationSuccess": "Inscription réussie ! Veuillez vous connecter."
+  },
+  "home": {
+    "title": "Navigation intérieure",
+    "findLocation": {
+      "title": "Trouver votre emplacement",
+      "description": "Utilisez la position de votre appareil ou recherchez le nom d'un centre commercial/bâtiment",
+      "getCurrentLocation": "Obtenir la position actuelle",
+      "locationObtained": "Position : {lat}, {lng}",
+      "enterName": "Entrez le nom d'un centre commercial ou d'un bâtiment (ex : Centre commercial de Ningbo)",
+      "findEntity": "Rechercher une entité",
+      "searching": "Recherche...",
+      "noResults": "Aucune entité trouvée correspondant à vos critères.",
+      "multipleResults": "{count} entités trouvées. Veuillez en sélectionner une ci-dessous.",
+      "selected": "Sélectionné : {name}",
+      "found": "Trouvé : {name}",
+      "errors": {
+        "permissionRequired": "L'autorisation de localisation est requise pour continuer.",
+        "geolocationFailed": "Impossible d'obtenir la géolocalisation. Veuillez vous assurer que les services de localisation sont activés."
+      }
+    },
+    "areaDetection": {
+      "title": "Détecter votre zone",
+      "description": "Utilisez les balises Bluetooth pour détecter automatiquement votre zone actuelle",
+      "howItWorks": "Comment ça marche :",
+      "step1": "Scanner les balises Bluetooth à proximité",
+      "step2": "Identifier automatiquement votre zone actuelle",
+      "step3": "Fonctionne sur mobile et ordinateur (avec données simulées)",
+      "detectButton": "Détecter la zone actuelle",
+      "detecting": "Détection de la zone...",
+      "foundArea": "Zone trouvée : {name}",
+      "successfullyDetected": "Détection réussie : {name}",
+      "noBeacons": "Impossible de détecter la zone. Aucune balise trouvée à proximité.",
+      "selectEntityFirst": "Veuillez d'abord sélectionner une entité"
+    },
+    "location": {
+      "title": "Emplacement actuel",
+      "located": "Localisé",
+      "position": "Position : ({x}, {y})",
+      "locateMe": "Me localiser",
+      "locating": "Localisation...",
+      "locatedAt": "Localisé à ({x}, {y})",
+      "areaChanged": "Zone changée en {name}",
+      "selectEntityAndArea": "Veuillez d'abord sélectionner une entité et une zone",
+      "updateLocation": "Mettre à jour la position"
+    },
+    "merchants": {
+      "title": "Commerces à proximité",
+      "searchMerchants": "Rechercher des commerces"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "startNavigation": "Démarrer la navigation",
+      "viewAllAreas": "Voir toutes les zones",
+      "searchMerchants": "Rechercher des commerces",
+      "updateLocation": "Mettre à jour la position"
+    },
+    "map": {
+      "noData": "Aucune donnée de carte disponible",
+      "detectArea": "Détecter la zone"
+    },
+    "selectLocation": {
+      "title": "Sélectionner un emplacement",
+      "description": "Plusieurs emplacements trouvés. Veuillez en sélectionner un :"
+    }
+  },
+  "navigation": {
+    "title": "Navigation intérieure",
+    "subtitle": "Trouvez votre chemin",
+    "locateMe": "Me localiser",
+    "locating": "Localisation...",
+    "stats": {
+      "distance": "Distance",
+      "totalDistance": "Distance totale",
+      "steps": "Étapes",
+      "areas": "Zones",
+      "progress": "Progression"
+    },
+    "destination": {
+      "selectTitle": "Sélectionner une destination",
+      "selectDescription": "Recherchez et sélectionnez où vous voulez aller",
+      "searchPlaceholder": "Rechercher des commerces, magasins ou tags...",
+      "noResults": "Aucun commerce trouvé"
+    },
+    "preferences": {
+      "title": "Préférences d'itinéraire",
+      "allowElevators": "Autoriser les ascenseurs",
+      "allowStairs": "Autoriser les escaliers",
+      "allowEscalators": "Autoriser les escalators"
+    },
+    "calculateRoute": "Calculer l'itinéraire",
+    "calculating": "Calcul...",
+    "startNavigation": "Démarrer la navigation",
+    "stopNavigation": "Arrêter la navigation",
+    "clearRoute": "Effacer l'itinéraire",
+    "help": {
+      "title": "Comment naviguer",
+      "step1": "Recherchez votre destination",
+      "step2": "Sélectionnez vos préférences d'itinéraire",
+      "step3": "Calculez l'itinéraire",
+      "step4": "Démarrez la navigation pour des indications détaillées"
+    },
+    "instructions": {
+      "enterArea": "Entrer dans {name}",
+      "exitArea": "Sortir de {name}",
+      "useElevator": "Prendre l'ascenseur vers {floor}",
+      "useStairs": "Prendre les escaliers vers {floor}",
+      "useEscalator": "Prendre l'escalator vers {floor}",
+      "turnLeft": "Tourner à gauche",
+      "turnRight": "Tourner à droite",
+      "goStraight": "Continuer tout droit",
+      "arrived": "Vous êtes arrivé à destination"
+    }
+  },
+  "entityDetails": {
+    "title": "Détails de l'entité",
+    "description": "Voir toutes les zones, commerces et balises de cette entité",
+    "stats": {
+      "areas": "Zones",
+      "merchants": "Commerces",
+      "beacons": "Balises"
+    },
+    "sections": {
+      "areasTitle": "Zones",
+      "code": "Code :",
+      "merchants": "Commerces :",
+      "beacons": "Balises :",
+      "polygonPoints": "Points de polygone :",
+      "viewArea": "Voir la zone"
+    },
+    "empty": {
+      "noAreas": "Aucune zone trouvée",
+      "noAreasDescription": "Cette entité n'a pas encore de zones configurées."
+    },
+    "noDescription": "Aucune description"
+  },
+  "area": {
+    "floor": "Étage",
+    "details": "Détails de la zone"
+  },
+  "merchant": {
+    "store": "Magasin",
+    "details": "Détails du commerce"
+  },
+  "beacon": {
+    "details": "Détails de la balise"
+  },
+  "units": {
+    "meters": "m",
+    "kilometers": "km",
+    "centimeters": "cm"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé. Veuillez vous connecter.",
+    "forbidden": "Accès refusé"
+  }
+}
