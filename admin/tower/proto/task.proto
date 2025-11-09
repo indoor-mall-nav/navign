@@ -113,13 +113,127 @@ message TaskAssignmentResponse {
   string message = 2;
 }
 
+// ============================================================================
+// Plot Extraction Messages (for floor plan polygon extraction)
+// ============================================================================
+
+// 2D Point for polygon vertices
+message Point {
+  double x = 1;
+  double y = 2;
+}
+
+// Polygon representing an extracted area from floor plan
+message Polygon {
+  repeated Point vertices = 1;
+  string label = 2;  // Optional label/identifier
+  double area = 3;  // Area in square pixels
+  Point centroid = 4;  // Center point
+}
+
+// Image data for floor plans
+message FloorPlanImage {
+  bytes data = 1;
+  string format = 2;  // e.g., "png", "jpeg"
+  int32 width = 3;
+  int32 height = 4;
+}
+
+// Configuration for polygon extraction algorithm
+message PlotExtractionConfig {
+  // Preprocessing
+  double blur_kernel_size = 1;  // Gaussian blur kernel (default: 5.0)
+  int32 threshold_value = 2;  // Binary threshold (0-255, default: 127)
+  int32 threshold_type = 3;  // 0=BINARY, 1=OTSU (default: 0)
+
+  // Contour filtering
+  double min_area = 4;  // Minimum polygon area (default: 100.0)
+  double max_area = 5;  // Maximum polygon area (0 = no limit)
+  double epsilon_factor = 6;  // Contour approximation (default: 0.01)
+
+  // Morphological operations
+  bool apply_morphology = 7;  // Apply morphology (default: true)
+  int32 morph_kernel_size = 8;  // Kernel size (default: 5)
+
+  // Edge detection (optional)
+  bool use_canny = 9;  // Use Canny edge detection (default: false)
+  int32 canny_low = 10;  // Canny low threshold (default: 50)
+  int32 canny_high = 11;  // Canny high threshold (default: 150)
+}
+
+// Request to extract polygons from floor plan
+message ExtractPolygonsRequest {
+  string entity_id = 1;
+  string floor_id = 2;
+  FloorPlanImage floor_plan = 3;
+  PlotExtractionConfig config = 4;  // Optional, uses defaults if not provided
+}
+
+// Response with extracted polygons
+message ExtractPolygonsResponse {
+  repeated Polygon polygons = 1;
+  int32 total_count = 2;
+  string error = 3;  // Error message if extraction failed
+  PlotProcessingStats stats = 4;
+}
+
+// Processing statistics
+message PlotProcessingStats {
+  int32 contours_found = 1;
+  int32 contours_filtered = 2;
+  double processing_time_ms = 3;
+  int32 image_width = 4;
+  int32 image_height = 5;
+}
+
+// Request for batch processing
+message BatchExtractRequest {
+  string entity_id = 1;
+  repeated FloorPlanBatch floor_plans = 2;
+  PlotExtractionConfig config = 3;
+}
+
+// Single floor plan in batch
+message FloorPlanBatch {
+  string floor_id = 1;
+  FloorPlanImage floor_plan = 2;
+}
+
+// Response for batch processing
+message BatchExtractResponse {
+  repeated FloorExtraction extractions = 1;
+  int32 successful = 2;
+  int32 failed = 3;
+}
+
+// Single floor extraction result
+message FloorExtraction {
+  string floor_id = 1;
+  repeated Polygon polygons = 2;
+  string error = 3;
+  PlotProcessingStats stats = 4;
+}
+
+// ============================================================================
+// Services
+// ============================================================================
+
 // OrchestratorService is implemented by Rust orchestrator (server)
 // Go tower acts as client to report robot status and receive task assignments
 service OrchestratorService {
   // ReportRobotStatus is called by Go tower to report robot status
   rpc ReportRobotStatus(RobotReportRequest) returns (RobotReportResponse);
-  
+
   // GetTaskAssignment is called by Go tower to get tasks for robots
   // This could be streaming or polling based on implementation
   rpc GetTaskAssignment(RobotDistributionRequest) returns (stream TaskAssignment);
+
+  // Plot extraction methods (called by Python plot client)
+
+  // ExtractPolygons extracts polygons from a single floor plan
+  // Python plot client calls this with the floor plan image
+  rpc ExtractPolygons(ExtractPolygonsRequest) returns (ExtractPolygonsResponse);
+
+  // BatchExtractPolygons extracts polygons from multiple floor plans
+  rpc BatchExtractPolygons(BatchExtractRequest) returns (BatchExtractResponse);
 }

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package plot;
 
+// Image message for transferring floor plan images
 message Image {
     bytes data = 1;
     string format = 2; // e.g., "png", "jpeg"
@@ -10,8 +11,120 @@ message Image {
     string label = 5;
 }
 
+// Basic plot request (legacy)
 message PlotRequest {
     string plot_id = 1;
     repeated Image images = 2;
     string description = 3;
+}
+
+// 2D Point for polygon vertices
+message Point {
+    double x = 1;
+    double y = 2;
+}
+
+// Polygon representing an extracted area
+message Polygon {
+    repeated Point vertices = 1;
+    string label = 2; // Optional label/identifier
+    double area = 3; // Area in square pixels
+    Point centroid = 4; // Center point
+}
+
+// Configuration for polygon extraction algorithm
+message ExtractionConfig {
+    // Preprocessing options
+    double blur_kernel_size = 1; // Gaussian blur kernel (default: 5.0)
+    int32 threshold_value = 2; // Binary threshold (0-255, default: 127)
+    int32 threshold_type = 3; // 0=BINARY, 1=OTSU, etc. (default: 0)
+
+    // Contour filtering
+    double min_area = 4; // Minimum polygon area in pixels (default: 100.0)
+    double max_area = 5; // Maximum polygon area (0 = no limit)
+    double epsilon_factor = 6; // Contour approximation factor (default: 0.01)
+
+    // Morphological operations
+    bool apply_morphology = 7; // Apply morphological operations (default: true)
+    int32 morph_kernel_size = 8; // Morphology kernel size (default: 5)
+
+    // Edge detection (optional)
+    bool use_canny = 9; // Use Canny edge detection (default: false)
+    int32 canny_low = 10; // Canny low threshold (default: 50)
+    int32 canny_high = 11; // Canny high threshold (default: 150)
+}
+
+// Request for extracting polygons from a floor plan
+message ExtractPolygonsRequest {
+    string entity_id = 1; // Entity ID this floor plan belongs to
+    string floor_id = 2; // Floor identifier (e.g., "1", "2", "B1")
+    Image floor_plan = 3; // Floor plan image
+    ExtractionConfig config = 4; // Optional configuration (uses defaults if not provided)
+}
+
+// Response containing extracted polygons
+message ExtractPolygonsResponse {
+    repeated Polygon polygons = 1;
+    int32 total_count = 2; // Total number of polygons extracted
+    string error = 3; // Error message if extraction failed
+    ProcessingStats stats = 4; // Processing statistics
+}
+
+// Statistics about the extraction process
+message ProcessingStats {
+    int32 contours_found = 1; // Total contours detected
+    int32 contours_filtered = 2; // Contours filtered out
+    double processing_time_ms = 3; // Processing time in milliseconds
+    int32 image_width = 4; // Processed image width
+    int32 image_height = 5; // Processed image height
+}
+
+// Request for batch processing multiple floor plans
+message BatchExtractRequest {
+    string entity_id = 1;
+    repeated FloorPlanInput floor_plans = 2;
+    ExtractionConfig config = 3;
+}
+
+// Single floor plan input for batch processing
+message FloorPlanInput {
+    string floor_id = 1;
+    Image floor_plan = 2;
+}
+
+// Response for batch processing
+message BatchExtractResponse {
+    repeated FloorExtraction extractions = 1;
+    int32 successful = 2;
+    int32 failed = 3;
+}
+
+// Single floor extraction result
+message FloorExtraction {
+    string floor_id = 1;
+    repeated Polygon polygons = 2;
+    string error = 3;
+    ProcessingStats stats = 4;
+}
+
+// Health check request
+message HealthCheckRequest {}
+
+// Health check response
+message HealthCheckResponse {
+    bool healthy = 1;
+    string version = 2;
+    string message = 3;
+}
+
+// PlotService for floor plan polygon extraction
+service PlotService {
+    // Extract polygons from a single floor plan
+    rpc ExtractPolygons(ExtractPolygonsRequest) returns (ExtractPolygonsResponse);
+
+    // Batch extract polygons from multiple floor plans
+    rpc BatchExtract(BatchExtractRequest) returns (BatchExtractResponse);
+
+    // Health check endpoint
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
