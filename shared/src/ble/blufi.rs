@@ -4,8 +4,8 @@
 //! This module implements the frame format and message types according to the ESP-IDF BluFi specification.
 //!
 //! **Current Implementation Status:**
-//! - Only **SoftAP (Access Point) mode** is currently supported
-//! - STA mode and mixed STA+AP mode are defined for protocol compliance but not yet implemented
+//! - Only **STA (Station) mode** is currently supported for connecting to WiFi networks
+//! - SoftAP mode and mixed STA+AP mode are defined for protocol compliance but not yet implemented
 //!
 //! # Frame Format
 //!
@@ -100,7 +100,7 @@ impl Default for FrameControl {
 
 /// WiFi operation mode
 ///
-/// **Note:** Currently only `SoftAp` mode is supported.
+/// **Note:** Currently only `Sta` (Station) mode is supported for connecting to WiFi.
 /// Other modes are defined for protocol compliance but not yet implemented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -108,8 +108,8 @@ impl Default for FrameControl {
 #[allow(dead_code)]
 pub enum WifiOpmode {
     Null = 0x00,
-    #[allow(dead_code)]
     Sta = 0x01,
+    #[allow(dead_code)]
     SoftAp = 0x02,
     #[allow(dead_code)]
     StaSoftAp = 0x03,
@@ -132,9 +132,9 @@ impl TryFrom<u8> for WifiOpmode {
 impl WifiOpmode {
     /// Check if this opmode is currently supported
     ///
-    /// Currently only `SoftAp` mode is implemented.
+    /// Currently only `Sta` (Station) mode is implemented for connecting to WiFi.
     pub fn is_supported(&self) -> bool {
-        matches!(self, WifiOpmode::SoftAp)
+        matches!(self, WifiOpmode::Sta)
     }
 }
 
@@ -255,23 +255,21 @@ pub enum ControlFrame {
 
     /// Set WiFi operation mode
     ///
-    /// **Note:** Currently only `WifiOpmode::SoftAp` is supported.
+    /// **Note:** Currently only `WifiOpmode::Sta` is supported.
     SetOpmode { opmode: WifiOpmode },
 
     /// Connect to WiFi AP (after SSID/password are set)
-    ///
-    /// **Note:** STA mode is not currently supported (AP mode only)
     ConnectWifi,
 
     /// Disconnect from WiFi AP
-    ///
-    /// **Note:** STA mode is not currently supported (AP mode only)
     DisconnectWifi,
 
     /// Request WiFi status
     GetWifiStatus,
 
     /// Disconnect STA from SoftAP
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     #[cfg(feature = "alloc")]
     DisconnectSta { mac_addresses: Vec<[u8; 6]> },
 
@@ -303,13 +301,9 @@ pub enum DataFrame {
     NegotiationData { data: heapless::Vec<u8, 256> },
 
     /// BSSID for STA mode (when SSID is hidden)
-    ///
-    /// **Note:** STA mode is not currently supported (AP mode only)
     StaBssid { bssid: [u8; 6] },
 
     /// SSID for STA mode
-    ///
-    /// **Note:** STA mode is not currently supported (AP mode only)
     #[cfg(feature = "alloc")]
     StaSsid { ssid: String },
 
@@ -317,8 +311,6 @@ pub enum DataFrame {
     StaSsid { ssid: heapless::String<32> },
 
     /// Password for STA mode
-    ///
-    /// **Note:** STA mode is not currently supported (AP mode only)
     #[cfg(feature = "alloc")]
     StaPassword { password: String },
 
@@ -326,6 +318,8 @@ pub enum DataFrame {
     StaPassword { password: heapless::String<64> },
 
     /// SSID for SoftAP mode
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     #[cfg(feature = "alloc")]
     SoftApSsid { ssid: String },
 
@@ -333,6 +327,8 @@ pub enum DataFrame {
     SoftApSsid { ssid: heapless::String<32> },
 
     /// Password for SoftAP mode
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     #[cfg(feature = "alloc")]
     SoftApPassword { password: String },
 
@@ -340,12 +336,18 @@ pub enum DataFrame {
     SoftApPassword { password: heapless::String<64> },
 
     /// Maximum connection number for SoftAP (1-4)
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     SoftApMaxConnNum { max_conn: u8 },
 
     /// Authentication mode for SoftAP
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     SoftApAuthMode { auth_mode: WifiAuthMode },
 
     /// Channel number for SoftAP (1-14)
+    ///
+    /// **Note:** SoftAP mode is not currently supported (STA mode only)
     SoftApChannel { channel: u8 },
 
     /// Username for enterprise WiFi
@@ -559,8 +561,8 @@ mod tests {
     #[test]
     fn test_opmode_is_supported() {
         assert!(!WifiOpmode::Null.is_supported());
-        assert!(!WifiOpmode::Sta.is_supported());
-        assert!(WifiOpmode::SoftAp.is_supported());
+        assert!(WifiOpmode::Sta.is_supported());
+        assert!(!WifiOpmode::SoftAp.is_supported());
         assert!(!WifiOpmode::StaSoftAp.is_supported());
     }
 
