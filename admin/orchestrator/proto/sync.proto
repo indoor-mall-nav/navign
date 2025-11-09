@@ -1,0 +1,493 @@
+syntax = "proto3";
+
+package navign.orchestrator.sync;
+
+import "google/protobuf/timestamp.proto";
+
+// OrchestratorSync service for event-driven communication between
+// local orchestrators and the central Navign server
+service OrchestratorSync {
+  // Register a new orchestrator with the central server
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Stream events from central server to orchestrator (Server-Sent Events)
+  rpc StreamEvents(EventsRequest) returns (stream Event);
+
+  // Perform full data synchronization
+  rpc SyncFull(SyncFullRequest) returns (SyncFullResponse);
+
+  // Perform delta synchronization (incremental updates)
+  rpc SyncDelta(SyncDeltaRequest) returns (SyncDeltaResponse);
+
+  // Verify data integrity with checksum
+  rpc VerifyChecksum(ChecksumRequest) returns (ChecksumResponse);
+
+  // Send heartbeat to maintain connection
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // Report task assignment
+  rpc ReportTaskAssignment(TaskAssignmentReport) returns (TaskAckResponse);
+
+  // Update task status
+  rpc UpdateTaskStatus(TaskStatusUpdate) returns (TaskAckResponse);
+
+  // Report task completion
+  rpc ReportTaskCompletion(TaskCompletionReport) returns (TaskAckResponse);
+
+  // Register a beacon via orchestrator
+  rpc RegisterBeacon(BeaconRegistrationRequest) returns (BeaconRegistrationResponse);
+
+  // Report beacon heartbeat
+  rpc ReportBeaconHeartbeat(BeaconHeartbeatRequest) returns (BeaconHeartbeatResponse);
+
+  // Upload access logs from beacons
+  rpc UploadAccessLogs(AccessLogsRequest) returns (AccessLogsResponse);
+
+  // Report firmware update status
+  rpc ReportFirmwareStatus(FirmwareStatusReport) returns (FirmwareAckResponse);
+
+  // Query latest firmware metadata
+  rpc QueryLatestFirmware(FirmwareQuery) returns (FirmwareMetadata);
+
+  // Download firmware (streaming)
+  rpc DownloadFirmware(FirmwareDownloadRequest) returns (stream FirmwareChunk);
+}
+
+// ============================================================================
+// Registration Messages
+// ============================================================================
+
+message RegisterRequest {
+  string entity_id = 1;
+  string orchestrator_id = 2;
+  string version = 3;
+  repeated string capabilities = 4;
+  string public_key = 5;  // PEM-encoded P-256 public key
+  uint32 heartbeat_interval = 6;  // seconds
+  string local_address = 7;
+}
+
+message RegisterResponse {
+  string token = 1;  // JWT token
+  int64 expires_at = 2;  // Unix timestamp
+  string assigned_id = 3;
+  SyncEndpoints sync_endpoints = 4;
+  bool initial_sync_required = 5;
+}
+
+message SyncEndpoints {
+  string events = 1;
+  string data_sync = 2;
+  string firmware = 3;
+}
+
+// ============================================================================
+// Event Streaming Messages
+// ============================================================================
+
+message EventsRequest {
+  string orchestrator_id = 1;
+  string entity_id = 2;
+  string last_event_id = 3;  // For resuming after disconnection
+}
+
+message Event {
+  string id = 1;
+  EventType type = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  bytes payload = 4;  // JSON-encoded event data
+}
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_DATA_UPDATE = 1;
+  EVENT_TYPE_FIRMWARE_UPDATE = 2;
+  EVENT_TYPE_TASK_CREATE = 3;
+  EVENT_TYPE_ACCESS_LOG_REQUEST = 4;
+  EVENT_TYPE_CONFIG_UPDATE = 5;
+  EVENT_TYPE_PING = 6;
+  EVENT_TYPE_RESYNC_REQUIRED = 7;
+}
+
+// ============================================================================
+// Data Synchronization Messages
+// ============================================================================
+
+message SyncFullRequest {
+  string entity_id = 1;
+  repeated string include = 2;  // areas, beacons, merchants, connections
+  string format = 3;  // compact, full
+}
+
+message SyncFullResponse {
+  string entity_id = 1;
+  string sync_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string checksum = 4;
+  SyncData data = 5;
+  SyncMetadata metadata = 6;
+}
+
+message SyncDeltaRequest {
+  string entity_id = 1;
+  google.protobuf.Timestamp since = 2;
+  string cursor = 3;
+}
+
+message SyncDeltaResponse {
+  string entity_id = 1;
+  string sync_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string base_checksum = 4;
+  string new_checksum = 5;
+  repeated Change changes = 6;
+  bool has_more = 7;
+  string next_cursor = 8;
+}
+
+message SyncData {
+  repeated bytes areas = 1;  // JSON-encoded Area objects
+  repeated bytes beacons = 2;  // JSON-encoded Beacon objects
+  repeated bytes merchants = 3;  // JSON-encoded Merchant objects
+  repeated bytes connections = 4;  // JSON-encoded Connection objects
+}
+
+message SyncMetadata {
+  uint32 total_areas = 1;
+  uint32 total_beacons = 2;
+  uint32 total_merchants = 3;
+  uint32 total_connections = 4;
+}
+
+message Change {
+  string type = 1;  // area, beacon, merchant, connection
+  ChangeOperation operation = 2;
+  string id = 3;
+  bytes data = 4;  // JSON-encoded object
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+enum ChangeOperation {
+  CHANGE_OPERATION_UNSPECIFIED = 0;
+  CHANGE_OPERATION_CREATE = 1;
+  CHANGE_OPERATION_UPDATE = 2;
+  CHANGE_OPERATION_DELETE = 3;
+}
+
+message ChecksumRequest {
+  string entity_id = 1;
+}
+
+message ChecksumResponse {
+  string entity_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  Checksums checksums = 3;
+}
+
+message Checksums {
+  string areas = 1;
+  string beacons = 2;
+  string merchants = 3;
+  string connections = 4;
+  string global = 5;
+}
+
+// ============================================================================
+// Heartbeat Messages
+// ============================================================================
+
+message HeartbeatRequest {
+  string orchestrator_id = 1;
+  string entity_id = 2;
+  OrchestratorStatus status = 3;
+  string version = 4;
+  uint64 uptime_seconds = 5;
+  uint32 connected_robots = 6;
+  uint32 active_tasks = 7;
+  uint32 pending_tasks = 8;
+  OrchestratorMetrics metrics = 9;
+  google.protobuf.Timestamp timestamp = 10;
+}
+
+enum OrchestratorStatus {
+  ORCHESTRATOR_STATUS_UNSPECIFIED = 0;
+  ORCHESTRATOR_STATUS_HEALTHY = 1;
+  ORCHESTRATOR_STATUS_DEGRADED = 2;
+  ORCHESTRATOR_STATUS_UNHEALTHY = 3;
+}
+
+message OrchestratorMetrics {
+  float cpu_percent = 1;
+  uint64 memory_used_mb = 2;
+  float disk_used_gb = 3;
+  uint64 cache_size_mb = 4;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  google.protobuf.Timestamp server_time = 2;
+  uint32 next_heartbeat_seconds = 3;
+  repeated Command commands = 4;
+}
+
+message Command {
+  CommandType type = 1;
+  bytes payload = 2;  // JSON-encoded command data
+}
+
+enum CommandType {
+  COMMAND_TYPE_UNSPECIFIED = 0;
+  COMMAND_TYPE_FIRMWARE_UPDATE = 1;
+  COMMAND_TYPE_CONFIG_UPDATE = 2;
+  COMMAND_TYPE_RESYNC = 3;
+  COMMAND_TYPE_RESTART = 4;
+}
+
+// ============================================================================
+// Task Management Messages
+// ============================================================================
+
+message TaskAssignmentReport {
+  string task_id = 1;
+  string entity_id = 2;
+  string robot_id = 3;
+  google.protobuf.Timestamp assigned_at = 4;
+  uint32 estimated_duration_seconds = 5;
+  TaskPath path = 6;
+}
+
+message TaskPath {
+  float distance_meters = 1;
+  repeated string floors = 2;
+  uint32 waypoints = 3;
+}
+
+message TaskStatusUpdate {
+  string task_id = 1;
+  string entity_id = 2;
+  string robot_id = 3;
+  TaskStatus status = 4;
+  uint32 progress_percent = 5;
+  Location current_location = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  google.protobuf.Timestamp estimated_completion = 8;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_QUEUED = 1;
+  TASK_STATUS_ASSIGNED = 2;
+  TASK_STATUS_IN_PROGRESS = 3;
+  TASK_STATUS_COMPLETED = 4;
+  TASK_STATUS_FAILED = 5;
+  TASK_STATUS_CANCELLED = 6;
+}
+
+message TaskCompletionReport {
+  string task_id = 1;
+  string entity_id = 2;
+  string robot_id = 3;
+  TaskStatus status = 4;
+  google.protobuf.Timestamp completed_at = 5;
+  uint32 duration_seconds = 6;
+  ActualPath actual_path = 7;
+  DeliveryProof delivery_proof = 8;
+}
+
+message ActualPath {
+  float distance_meters = 1;
+  float deviation_meters = 2;
+}
+
+message DeliveryProof {
+  string photo_url = 1;
+  string signature = 2;  // base64-encoded
+}
+
+message TaskAckResponse {
+  bool acknowledged = 1;
+  string task_id = 2;
+  string tracking_url = 3;
+}
+
+message Location {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  string floor = 4;
+}
+
+// ============================================================================
+// Beacon Management Messages
+// ============================================================================
+
+message BeaconRegistrationRequest {
+  string entity_id = 1;
+  string device_id = 2;
+  string device_type = 3;
+  repeated string capabilities = 4;
+  string public_key = 5;  // PEM-encoded P-256 public key
+  string firmware_version = 6;
+  string hardware_revision = 7;
+  BeaconLocation location = 8;
+  google.protobuf.Timestamp registered_at = 9;
+}
+
+message BeaconLocation {
+  string area_id = 1;
+  Location coordinates = 2;
+}
+
+message BeaconRegistrationResponse {
+  string beacon_id = 1;
+  string entity_id = 2;
+  bool approved = 3;
+  uint32 sync_interval_seconds = 4;
+  bool firmware_update_available = 5;
+  FirmwareMetadata latest_firmware = 6;
+}
+
+message BeaconHeartbeatRequest {
+  string beacon_id = 1;
+  string entity_id = 2;
+  BeaconStatus status = 3;
+  uint64 uptime_seconds = 4;
+  uint32 battery_percent = 5;  // 0 if not applicable
+  string firmware_version = 6;
+  BeaconMetrics metrics = 7;
+  google.protobuf.Timestamp timestamp = 8;
+}
+
+enum BeaconStatus {
+  BEACON_STATUS_UNSPECIFIED = 0;
+  BEACON_STATUS_ONLINE = 1;
+  BEACON_STATUS_OFFLINE = 2;
+  BEACON_STATUS_LOW_BATTERY = 3;
+  BEACON_STATUS_ERROR = 4;
+}
+
+message BeaconMetrics {
+  uint32 unlock_attempts_24h = 1;
+  uint32 successful_unlocks_24h = 2;
+  uint32 failed_unlocks_24h = 3;
+  float temperature_celsius = 4;
+  float humidity_percent = 5;
+  uint32 free_heap_bytes = 6;
+}
+
+message BeaconHeartbeatResponse {
+  bool acknowledged = 1;
+  uint32 next_heartbeat_seconds = 2;
+  repeated Command commands = 3;
+}
+
+message AccessLogsRequest {
+  string beacon_id = 1;
+  string entity_id = 2;
+  repeated AccessLog logs = 3;
+  string batch_id = 4;
+  uint32 total_logs = 5;
+}
+
+message AccessLog {
+  google.protobuf.Timestamp timestamp = 1;
+  string user_id = 2;
+  string device_id = 3;
+  AccessResult result = 4;
+  string method = 5;
+  uint32 duration_ms = 6;
+  string error = 7;  // Only populated if result is FAILED
+}
+
+enum AccessResult {
+  ACCESS_RESULT_UNSPECIFIED = 0;
+  ACCESS_RESULT_SUCCESS = 1;
+  ACCESS_RESULT_FAILED = 2;
+}
+
+message AccessLogsResponse {
+  bool acknowledged = 1;
+  string batch_id = 2;
+  uint32 stored = 3;
+  uint32 duplicates = 4;
+}
+
+// ============================================================================
+// Firmware Distribution Messages
+// ============================================================================
+
+message FirmwareQuery {
+  string target = 1;  // esp32c3, esp32s3, etc.
+  string device_type = 2;  // beacon, robot_upper, robot_lower
+  string channel = 3;  // stable, beta, canary
+}
+
+message FirmwareMetadata {
+  string firmware_id = 1;
+  string version = 2;
+  string target = 3;
+  string device_type = 4;
+  string channel = 5;
+  google.protobuf.Timestamp release_date = 6;
+  uint64 size_bytes = 7;
+  string checksum = 8;  // sha256:...
+  string download_url = 9;
+  string fallback_url = 10;
+  string release_notes = 11;
+  repeated string changelog = 12;
+  repeated string compatible_hardware = 13;
+  string min_previous_version = 14;
+}
+
+message FirmwareDownloadRequest {
+  string firmware_id = 1;
+  uint64 offset = 2;  // For resumable downloads
+  uint64 limit = 3;  // Chunk size
+}
+
+message FirmwareChunk {
+  uint64 offset = 1;
+  bytes data = 2;
+  uint64 total_size = 3;
+  bool is_last = 4;
+}
+
+message FirmwareStatusReport {
+  string entity_id = 1;
+  string firmware_id = 2;
+  string rollout_id = 3;
+  string beacon_id = 4;
+  FirmwareUpdateStatus status = 5;
+  string previous_version = 6;
+  string new_version = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  uint32 duration_seconds = 9;
+  string error = 10;  // Only populated if status is FAILED
+}
+
+enum FirmwareUpdateStatus {
+  FIRMWARE_UPDATE_STATUS_UNSPECIFIED = 0;
+  FIRMWARE_UPDATE_STATUS_DOWNLOADING = 1;
+  FIRMWARE_UPDATE_STATUS_VERIFYING = 2;
+  FIRMWARE_UPDATE_STATUS_INSTALLING = 3;
+  FIRMWARE_UPDATE_STATUS_SUCCESS = 4;
+  FIRMWARE_UPDATE_STATUS_FAILED = 5;
+  FIRMWARE_UPDATE_STATUS_ROLLED_BACK = 6;
+}
+
+message FirmwareAckResponse {
+  bool acknowledged = 1;
+  string firmware_id = 2;
+}
+
+// ============================================================================
+// Error Messages
+// ============================================================================
+
+message ErrorResponse {
+  string code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string request_id = 5;
+}
