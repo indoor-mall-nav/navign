@@ -154,9 +154,12 @@ pub trait ConnectWithInstance<'a>: Sized {
                 let edge_distance = manhattan_distance(x, y, neighbor_loc.0, neighbor_loc.1);
                 let tentative_distance = current_distance + edge_distance as u64;
 
-                if !distance_map.contains_key(&neighbor_id)
-                    || tentative_distance < *distance_map.get(&neighbor_id).unwrap()
-                {
+                let should_update = match distance_map.get(&neighbor_id) {
+                    Some(&current_dist) => tentative_distance < current_dist,
+                    None => true,
+                };
+
+                if should_update {
                     parent_map.insert(neighbor_id, (current_area.database_id, *connectivity));
                     distance_map.insert(neighbor_id, tentative_distance);
                     heap.push(PathNode {

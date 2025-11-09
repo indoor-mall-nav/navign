@@ -494,7 +494,16 @@ pub trait OneInArea: Service {
         )
         .await
         {
-            Ok(items) => (StatusCode::OK, serde_json::to_string(&items).unwrap()),
+            Ok(items) => match serde_json::to_string(&items) {
+                Ok(json) => (StatusCode::OK, json),
+                Err(e) => {
+                    log::error!("Failed to serialize response: {}", e);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!(r#"{{"error": "Failed to serialize response"}}"#),
+                    )
+                }
+            },
             Err(e) => (StatusCode::BAD_REQUEST, e.to_string()),
         }
     }

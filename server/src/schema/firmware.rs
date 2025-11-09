@@ -406,7 +406,17 @@ pub async fn upload_firmware_handler(
         }
     };
 
-    let firmware_id = insert_result.inserted_id.as_object_id().unwrap();
+    let firmware_id = match insert_result.inserted_id.as_object_id() {
+        Some(id) => id,
+        None => {
+            log::error!("Failed to get inserted firmware ID");
+            let _ = fs::remove_file(&file_path).await;
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(json!({ "error": "Failed to get inserted firmware ID" })),
+            );
+        }
+    };
 
     // Mark as latest if requested
     if mark_latest && let Err(e) = mark_as_latest(&state.db, firmware_id, device.clone()).await {
@@ -455,26 +465,29 @@ pub async fn download_firmware_handler(
 
     match fs::read(&file_path).await {
         Ok(contents) => {
-            use axum::http::header::{self, HeaderName};
+            use axum::http::header::{self, HeaderName, HeaderValue};
             let mut headers = axum::http::HeaderMap::new();
+
+            // Safe: These are constant strings
             headers.insert(
                 header::CONTENT_TYPE,
-                "application/octet-stream".parse().unwrap(),
+                HeaderValue::from_static("application/octet-stream"),
             );
-            headers.insert(
-                header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{}\"", firmware.file_path)
-                    .parse()
-                    .unwrap(),
-            );
-            headers.insert(
-                HeaderName::from_static("x-firmware-version"),
-                firmware.version.parse().unwrap(),
-            );
-            headers.insert(
-                HeaderName::from_static("x-firmware-checksum"),
-                firmware.checksum.parse().unwrap(),
-            );
+
+            // Parse header values with error handling
+            if let Ok(disposition) =
+                format!("attachment; filename=\"{}\"", firmware.file_path).parse()
+            {
+                headers.insert(header::CONTENT_DISPOSITION, disposition);
+            }
+
+            if let Ok(version) = firmware.version.parse() {
+                headers.insert(HeaderName::from_static("x-firmware-version"), version);
+            }
+
+            if let Ok(checksum) = firmware.checksum.parse() {
+                headers.insert(HeaderName::from_static("x-firmware-checksum"), checksum);
+            }
 
             Ok((headers, contents))
         }

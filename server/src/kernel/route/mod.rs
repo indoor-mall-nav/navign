@@ -156,44 +156,79 @@ pub async fn find_route(
             );
         }
     };
-    let areas = state
+    let areas = match state
         .db
         .collection(crate::schema::Area::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
-        .unwrap()
-        .try_collect::<Vec<crate::schema::Area>>()
-        .await
-        .unwrap_or_default();
-    let connections = state
+    {
+        Ok(cursor) => cursor
+            .try_collect::<Vec<crate::schema::Area>>()
+            .await
+            .unwrap_or_default(),
+        Err(e) => {
+            log::error!("Failed to find areas: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(json!({"error": "Failed to query areas"})),
+            );
+        }
+    };
+
+    let connections = match state
         .db
         .collection(crate::schema::Connection::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
-        .unwrap()
-        .try_collect::<Vec<crate::schema::Connection>>()
-        .await
-        .unwrap_or_default();
-    let merchants = state
+    {
+        Ok(cursor) => cursor
+            .try_collect::<Vec<crate::schema::Connection>>()
+            .await
+            .unwrap_or_default(),
+        Err(e) => {
+            log::error!("Failed to find connections: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(json!({"error": "Failed to query connections"})),
+            );
+        }
+    };
+
+    let merchants = match state
         .db
         .collection(crate::schema::Merchant::get_collection_name())
         .find(doc! { "entity": entity.id })
         .await
-        .unwrap()
-        .try_collect::<Vec<crate::schema::Merchant>>()
-        .await
-        .unwrap_or_default();
+    {
+        Ok(cursor) => cursor
+            .try_collect::<Vec<crate::schema::Merchant>>()
+            .await
+            .unwrap_or_default(),
+        Err(e) => {
+            log::error!("Failed to find merchants: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(json!({"error": "Failed to query merchants"})),
+            );
+        }
+    };
     if areas.is_empty() || connections.is_empty() || merchants.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
             axum::Json(json!({"error": "Insufficient data in entity"})),
         );
     }
+    let from_str = from.expect("from was already validated");
+    let to_str = to.expect("to was already validated");
+
     spawn_blocking(move || {
-        trace!("Starting route computation from {} to {}, entity name: {}, {} areas, {} connections, {} merchants", from.as_ref().unwrap(), to.as_ref().unwrap(), entity.name, areas.len(), connections.len(), merchants.len());
+        trace!(
+            "Starting route computation from {} to {}, entity name: {}, {} areas, {} connections, {} merchants",
+            from_str, to_str, entity.name, areas.len(), connections.len(), merchants.len()
+        );
         match route(
-            from.unwrap().as_str(),
-            to.unwrap().as_str(),
+            from_str.as_str(),
+            to_str.as_str(),
             entity,
             areas,
             connections,

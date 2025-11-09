@@ -72,9 +72,15 @@ impl<'a> Polygon<'a> {
 
     pub fn as_bounded_block_array(&self) -> BoundedBlockArray<'a> {
         let (xs, ys) = self.get_sorted_coords();
-        let memory_width = xs.len() - 1;
-        let memory_height = ys.len() - 1;
+
+        // Handle edge case: polygons must have at least 2 unique coordinates
+        let width = xs.last().copied().unwrap_or(0.0) - xs.first().copied().unwrap_or(0.0);
+        let height = ys.last().copied().unwrap_or(0.0) - ys.first().copied().unwrap_or(0.0);
+
+        let memory_width = xs.len().saturating_sub(1);
+        let memory_height = ys.len().saturating_sub(1);
         let mut blocks = Vec::with_capacity(memory_width * memory_height);
+
         for y in 0..memory_height {
             for x in 0..memory_width {
                 let block = BoundedBlock {
@@ -92,8 +98,8 @@ impl<'a> Polygon<'a> {
             blocks: Box::leak(blocks.into_boxed_slice()),
             memory_width,
             memory_height,
-            width: *xs.last().unwrap() - xs[0],
-            height: *ys.last().unwrap() - ys[0],
+            width,
+            height,
         }
     }
 }
