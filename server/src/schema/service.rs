@@ -500,7 +500,7 @@ pub trait OneInArea: Service {
                     log::error!("Failed to serialize response: {}", e);
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        format!(r#"{{"error": "Failed to serialize response"}}"#),
+                        r#"{"error": "Failed to serialize response"}"#.to_string(),
                     )
                 }
             },
