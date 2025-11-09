@@ -129,7 +129,7 @@ pub struct AppState {
 pub async fn get_latest_firmware_handler(
     State(state): State<AppState>,
     Path(device_str): Path<String>,
-) -> Result<impl IntoResponse, OrchestratorError> {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/latest/{}", device_str);
 
     let device = device_str.parse::<FirmwareDevice>().map_err(|_| {
@@ -145,7 +145,7 @@ pub async fn get_latest_firmware_handler(
 pub async fn list_firmwares_handler(
     State(state): State<AppState>,
     Query(query): Query<FirmwareQuery>,
-) -> Result<impl IntoResponse, OrchestratorError> {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares - query: {:?}", query);
 
     let firmwares = state.firmware_client.list_firmwares(query).await?;
@@ -157,7 +157,7 @@ pub async fn list_firmwares_handler(
 pub async fn get_firmware_by_id_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, OrchestratorError> {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/{}", id);
 
     let firmware = state.firmware_client.get_firmware_by_id(&id).await?;
@@ -169,7 +169,7 @@ pub async fn get_firmware_by_id_handler(
 pub async fn download_firmware_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, OrchestratorError> {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/{}/download", id);
 
     // First get firmware metadata

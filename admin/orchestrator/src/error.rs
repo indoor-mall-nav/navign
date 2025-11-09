@@ -190,10 +190,13 @@ impl OrchestratorError {
                 Status::not_found(msg)
             }
 
-            Self::InvalidTask(msg)
-            | Self::InvalidInput { .. }
-            | Self::ValidationError(msg)
-            | Self::InvalidGrpcRequest(msg) => Status::invalid_argument(msg),
+            Self::InvalidTask(msg) | Self::ValidationError(msg) | Self::InvalidGrpcRequest(msg) => {
+                Status::invalid_argument(msg)
+            }
+
+            Self::InvalidInput { field, reason } => {
+                Status::invalid_argument(format!("{}: {}", field, reason))
+            }
 
             Self::NoSuitableRobot(msg) | Self::TaskQueueFull(msg) => {
                 Status::resource_exhausted(msg)

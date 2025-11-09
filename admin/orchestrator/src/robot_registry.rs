@@ -132,7 +132,7 @@ impl RobotRegistry {
     pub async fn register_task_channel(
         &self,
         entity_id: String,
-        tx: mpsc::Sender<Result<TaskAssignment, Status>>,
+        tx: mpsc::Sender<std::result::Result<TaskAssignment, Status>>,
     ) {
         let mut channels = self.task_channels.write().await;
         channels.insert(entity_id, tx);
