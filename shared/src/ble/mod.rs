@@ -1,3 +1,4 @@
+pub mod blufi;
 pub mod challenge;
 pub mod device_caps;
 pub mod device_type;
