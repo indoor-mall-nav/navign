@@ -7,15 +7,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "Generating Python protobuf code from orchestrator task.proto..."
+echo "Generating Python protobuf code from admin task.proto..."
 
-# Generate Python protobuf and gRPC code from orchestrator's task.proto
+# Generate Python protobuf and gRPC code from admin's task.proto
 python -m grpc_tools.protoc \
-    --proto_path=../tower/proto \
+    --proto_path=../proto \
     --python_out=proto \
     --grpc_python_out=proto \
     --pyi_out=proto \
-    ../tower/proto/task.proto
+    ../proto/task.proto
 
 echo "✓ Generated proto/task_pb2.py (from orchestrator)"
 echo "✓ Generated proto/task_pb2_grpc.py (from orchestrator)"

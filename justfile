@@ -144,3 +144,15 @@ build-beacon:
   espup install
 
   cd beacon && cargo build --release
+
+proto-tower:
+  cd admin/tower && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ../proto/task.proto
+
+proto-plot:
+  cd admin/plot && python -m grpc_tools.protoc --proto_path=../proto --python_out=proto --grpc_python_out=proto --pyi_out=proto ../proto/task.proto
+
+proto: proto-tower proto-plot
+
+clean-proto:
+  rm -f admin/tower/proto/*.pb.go
+  rm -f admin/plot/proto/*.py admin/plot/proto/*.pyi
