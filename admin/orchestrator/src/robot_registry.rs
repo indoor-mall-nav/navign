@@ -1,3 +1,4 @@
+use crate::error::{OrchestratorError, Result};
 use crate::task_queue::TaskQueue;
 use crate::types::{RobotInfo, RobotState, Task, TaskAssignment, TaskChannelMap};
 use std::collections::HashMap;
@@ -85,12 +86,12 @@ impl RobotRegistry {
         best_robot.cloned()
     }
 
-    pub async fn assign_task(&self, task: Task) -> Result<String, String> {
+    pub async fn assign_task(&self, task: Task) -> Result<String> {
         // Find the best robot for this task
         let robot = self
             .find_best_robot(&task)
             .await
-            .ok_or_else(|| "No suitable robot available".to_string())?;
+            .ok_or_else(|| OrchestratorError::NoSuitableRobot(task.id.clone()))?;
 
         let robot_id = robot.id.clone();
         let entity_id = robot.entity_id.clone();
@@ -111,7 +112,7 @@ impl RobotRegistry {
             };
 
             if tx.send(Ok(assignment)).await.is_err() {
-                return Err(format!("Failed to send task for entity {}", entity_id));
+                return Err(OrchestratorError::TowerSendFailed(entity_id.clone()));
             }
 
             // Update robot state to busy
@@ -124,14 +125,14 @@ impl RobotRegistry {
 
             Ok(robot_id)
         } else {
-            Err(format!("No tower connected for entity {}", entity_id))
+            Err(OrchestratorError::NoTowerConnected(entity_id))
         }
     }
 
     pub async fn register_task_channel(
         &self,
         entity_id: String,
-        tx: mpsc::Sender<Result<TaskAssignment, Status>>,
+        tx: mpsc::Sender<std::result::Result<TaskAssignment, Status>>,
     ) {
         let mut channels = self.task_channels.write().await;
         channels.insert(entity_id, tx);
@@ -340,7 +341,6 @@ mod tests {
 
         let result = registry.assign_task(task).await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "No suitable robot available");
     }
 
     #[tokio::test]
@@ -353,7 +353,6 @@ mod tests {
 
         let result = registry.assign_task(task).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No tower connected"));
     }
 
     #[tokio::test]

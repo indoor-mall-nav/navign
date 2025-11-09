@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::error::{Result, ServerError};
 use log::info;
 use mongodb::options::{ClientOptions, ServerAddress};
 use mongodb::{Client, Database};
@@ -37,21 +37,25 @@ pub(crate) async fn connect_with_db() -> Result<Database> {
     options.server_selection_timeout = Some(Duration::from_secs(10));
     options.app_name = Some("indoor-mall-nav".to_string());
 
-    let host = ServerAddress::from_str(&mongodb_host)
-        .map_err(|e| anyhow::anyhow!("Invalid MongoDB host '{}': {}", mongodb_host, e))?;
+    let host = ServerAddress::from_str(&mongodb_host).map_err(|e| {
+        ServerError::DatabaseConnection(format!("Invalid MongoDB host '{}': {}", mongodb_host, e))
+    })?;
     options.hosts = vec![host];
 
-    let client = Client::with_options(options)
-        .map_err(|e| anyhow::anyhow!("Failed to create MongoDB client: {}", e))?;
+    let client = Client::with_options(options).map_err(|e| {
+        ServerError::DatabaseConnection(format!("Failed to create MongoDB client: {}", e))
+    })?;
 
     // Test the connection
     let db = client.database(&db_name);
     db.run_command(bson::doc! { "ping": 1 })
         .await
-        .map_err(|e| anyhow::anyhow!(
-            "Failed to connect to MongoDB at '{}': {}. Please ensure MongoDB is running and accessible.",
-            mongodb_host, e
-        ))?;
+        .map_err(|e| {
+            ServerError::DatabaseConnection(format!(
+                "Failed to connect to MongoDB at '{}': {}. Please ensure MongoDB is running and accessible.",
+                mongodb_host, e
+            ))
+        })?;
 
     info!("Successfully connected to MongoDB server");
     Ok(db)

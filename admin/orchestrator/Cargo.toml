@@ -25,6 +25,7 @@ tokio = { version = "1.43", features = [
   "fs",
 ] }
 tokio-stream = "0.1"
+thiserror = "2.0"
 tonic = "0.12"
 tower-http = { version = "0.6.6", features = ["cors"] }
 uuid = { version = "1.11", features = ["v4"] }

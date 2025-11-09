@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use crate::error::{Result, ServerError};
 use log::info;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
@@ -37,30 +37,49 @@ pub fn load_or_generate_key() -> Result<SigningKey> {
 
 /// Load a private key from a PEM file.
 fn load_key_from_file(path: &Path) -> Result<SigningKey> {
-    let pem_contents = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read private key file: {:?}", path))?;
+    let pem_contents = fs::read_to_string(path).map_err(|e| {
+        ServerError::KeyGenerationFailed(format!(
+            "Failed to read private key file {:?}: {}",
+            path, e
+        ))
+    })?;
 
-    let key = SigningKey::from_pkcs8_pem(&pem_contents)
-        .with_context(|| "Failed to parse private key from PEM format")?;
+    let key = SigningKey::from_pkcs8_pem(&pem_contents).map_err(|e| {
+        ServerError::KeyGenerationFailed(format!(
+            "Failed to parse private key from PEM format: {}",
+            e
+        ))
+    })?;
 
     Ok(key)
 }
 
 /// Save a private key to a PEM file with restricted permissions.
 fn save_key_to_file(key: &SigningKey, path: &Path) -> Result<()> {
-    let pem = key
-        .to_pkcs8_pem(LineEnding::LF)
-        .context("Failed to encode private key to PEM format")?;
+    let pem = key.to_pkcs8_pem(LineEnding::LF).map_err(|e| {
+        ServerError::KeyGenerationFailed(format!(
+            "Failed to encode private key to PEM format: {}",
+            e
+        ))
+    })?;
 
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("Failed to create directory: {:?}", parent))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            ServerError::KeyGenerationFailed(format!(
+                "Failed to create directory {:?}: {}",
+                parent, e
+            ))
+        })?;
     }
 
     // Write the PEM file
-    fs::write(path, pem.as_bytes())
-        .with_context(|| format!("Failed to write private key to file: {:?}", path))?;
+    fs::write(path, pem.as_bytes()).map_err(|e| {
+        ServerError::KeyGenerationFailed(format!(
+            "Failed to write private key to file {:?}: {}",
+            path, e
+        ))
+    })?;
 
     // Set file permissions to 600 (read/write for owner only) on Unix systems
     #[cfg(unix)]
@@ -68,8 +87,12 @@ fn save_key_to_file(key: &SigningKey, path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
         let mut perms = fs::metadata(path)?.permissions();
         perms.set_mode(0o600);
-        fs::set_permissions(path, perms)
-            .with_context(|| format!("Failed to set permissions on key file: {:?}", path))?;
+        fs::set_permissions(path, perms).map_err(|e| {
+            ServerError::KeyGenerationFailed(format!(
+                "Failed to set permissions on key file {:?}: {}",
+                path, e
+            ))
+        })?;
     }
 
     info!("Private key saved successfully to: {:?}", path);

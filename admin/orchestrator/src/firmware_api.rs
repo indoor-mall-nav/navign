@@ -1,3 +1,4 @@
+use crate::error::{OrchestratorError, Result};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -23,10 +24,7 @@ impl FirmwareClient {
     }
 
     /// Fetch latest firmware metadata for a specific device
-    pub async fn get_latest_firmware(
-        &self,
-        device: FirmwareDevice,
-    ) -> Result<Firmware, reqwest::Error> {
+    pub async fn get_latest_firmware(&self, device: FirmwareDevice) -> Result<Firmware> {
         let url = format!(
             "{}/api/firmwares/latest/{}",
             self.server_url,
@@ -39,14 +37,14 @@ impl FirmwareClient {
 
         if !response.status().is_success() {
             log::error!("Failed to fetch firmware: {}", response.status());
-            return Err(response.error_for_status().unwrap_err());
+            return Err(OrchestratorError::FirmwareServerUnavailable);
         }
 
-        response.json::<Firmware>().await
+        response.json::<Firmware>().await.map_err(Into::into)
     }
 
     /// Download firmware binary
-    pub async fn download_firmware(&self, firmware_id: &str) -> Result<Vec<u8>, reqwest::Error> {
+    pub async fn download_firmware(&self, firmware_id: &str) -> Result<Vec<u8>> {
         let url = format!("{}/api/firmwares/{}/download", self.server_url, firmware_id);
 
         log::info!("Downloading firmware from: {}", url);
@@ -55,17 +53,21 @@ impl FirmwareClient {
 
         if !response.status().is_success() {
             log::error!("Failed to download firmware: {}", response.status());
-            return Err(response.error_for_status().unwrap_err());
+            return Err(OrchestratorError::FirmwareDownloadFailed(format!(
+                "HTTP {}",
+                response.status()
+            )));
         }
 
-        response.bytes().await.map(|b| b.to_vec())
+        response
+            .bytes()
+            .await
+            .map(|b| b.to_vec())
+            .map_err(Into::into)
     }
 
     /// List all firmwares with optional filtering
-    pub async fn list_firmwares(
-        &self,
-        query: FirmwareQuery,
-    ) -> Result<Vec<Firmware>, reqwest::Error> {
+    pub async fn list_firmwares(&self, query: FirmwareQuery) -> Result<Vec<Firmware>> {
         let mut url = format!("{}/api/firmwares", self.server_url);
 
         let mut params = vec![];
@@ -90,14 +92,14 @@ impl FirmwareClient {
 
         if !response.status().is_success() {
             log::error!("Failed to list firmwares: {}", response.status());
-            return Err(response.error_for_status().unwrap_err());
+            return Err(OrchestratorError::FirmwareServerUnavailable);
         }
 
-        response.json::<Vec<Firmware>>().await
+        response.json::<Vec<Firmware>>().await.map_err(Into::into)
     }
 
     /// Get firmware metadata by ID
-    pub async fn get_firmware_by_id(&self, id: &str) -> Result<Firmware, reqwest::Error> {
+    pub async fn get_firmware_by_id(&self, id: &str) -> Result<Firmware> {
         let url = format!("{}/api/firmwares/{}", self.server_url, id);
 
         log::info!("Fetching firmware metadata from: {}", url);
@@ -106,10 +108,14 @@ impl FirmwareClient {
 
         if !response.status().is_success() {
             log::error!("Failed to fetch firmware metadata: {}", response.status());
-            return Err(response.error_for_status().unwrap_err());
+            return Err(if response.status() == reqwest::StatusCode::NOT_FOUND {
+                OrchestratorError::FirmwareNotFound(id.to_string())
+            } else {
+                OrchestratorError::FirmwareServerUnavailable
+            });
         }
 
-        response.json::<Firmware>().await
+        response.json::<Firmware>().await.map_err(Into::into)
     }
 }
 
@@ -123,35 +129,15 @@ pub struct AppState {
 pub async fn get_latest_firmware_handler(
     State(state): State<AppState>,
     Path(device_str): Path<String>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/latest/{}", device_str);
 
-    let device = match device_str.parse::<FirmwareDevice>() {
-        Ok(d) => d,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "Invalid device type",
-                    "valid_devices": ["esp32", "esp32c3", "esp32c5", "esp32c6", "esp32s3"]
-                })),
-            );
-        }
-    };
+    let device = device_str.parse::<FirmwareDevice>().map_err(|_| {
+        OrchestratorError::ValidationError(format!("Invalid device type: {}", device_str))
+    })?;
 
-    match state.firmware_client.get_latest_firmware(device).await {
-        Ok(firmware) => (StatusCode::OK, Json(serde_json::json!(firmware))),
-        Err(e) => {
-            log::error!("Failed to fetch latest firmware: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to fetch latest firmware",
-                    "details": e.to_string()
-                })),
-            )
-        }
-    }
+    let firmware = state.firmware_client.get_latest_firmware(device).await?;
+    Ok((StatusCode::OK, Json(serde_json::json!(firmware))))
 }
 
 /// Handler: GET /firmwares?device=esp32c3&latest_only=true
@@ -159,22 +145,11 @@ pub async fn get_latest_firmware_handler(
 pub async fn list_firmwares_handler(
     State(state): State<AppState>,
     Query(query): Query<FirmwareQuery>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares - query: {:?}", query);
 
-    match state.firmware_client.list_firmwares(query).await {
-        Ok(firmwares) => (StatusCode::OK, Json(serde_json::json!(firmwares))),
-        Err(e) => {
-            log::error!("Failed to list firmwares: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to list firmwares",
-                    "details": e.to_string()
-                })),
-            )
-        }
-    }
+    let firmwares = state.firmware_client.list_firmwares(query).await?;
+    Ok((StatusCode::OK, Json(serde_json::json!(firmwares))))
 }
 
 /// Handler: GET /firmwares/:id
@@ -182,22 +157,11 @@ pub async fn list_firmwares_handler(
 pub async fn get_firmware_by_id_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/{}", id);
 
-    match state.firmware_client.get_firmware_by_id(&id).await {
-        Ok(firmware) => (StatusCode::OK, Json(serde_json::json!(firmware))),
-        Err(e) => {
-            log::error!("Failed to get firmware: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to get firmware",
-                    "details": e.to_string()
-                })),
-            )
-        }
-    }
+    let firmware = state.firmware_client.get_firmware_by_id(&id).await?;
+    Ok((StatusCode::OK, Json(serde_json::json!(firmware))))
 }
 
 /// Handler: GET /firmwares/:id/download
@@ -205,65 +169,41 @@ pub async fn get_firmware_by_id_handler(
 pub async fn download_firmware_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse> {
     log::info!("GET /firmwares/{}/download", id);
 
     // First get firmware metadata
-    let firmware = match state.firmware_client.get_firmware_by_id(&id).await {
-        Ok(fw) => fw,
-        Err(e) => {
-            log::error!("Failed to get firmware metadata: {}", e);
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to get firmware metadata",
-                    "details": e.to_string()
-                })),
-            ));
-        }
-    };
+    let firmware = state.firmware_client.get_firmware_by_id(&id).await?;
 
     // Then download the binary
-    match state.firmware_client.download_firmware(&id).await {
-        Ok(data) => {
-            use axum::http::header::{self, HeaderName};
-            let mut headers = axum::http::HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                "application/octet-stream".parse().unwrap(),
-            );
-            headers.insert(
-                header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{}\"", firmware.file_path)
-                    .parse()
-                    .unwrap(),
-            );
-            headers.insert(
-                HeaderName::from_static("x-firmware-version"),
-                firmware.version.parse().unwrap(),
-            );
-            headers.insert(
-                HeaderName::from_static("x-firmware-checksum"),
-                firmware.checksum.parse().unwrap(),
-            );
-            headers.insert(
-                HeaderName::from_static("x-firmware-device"),
-                firmware.device.as_str().parse().unwrap(),
-            );
+    let data = state.firmware_client.download_firmware(&id).await?;
 
-            Ok((headers, data))
-        }
-        Err(e) => {
-            log::error!("Failed to download firmware: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to download firmware",
-                    "details": e.to_string()
-                })),
-            ))
-        }
-    }
+    use axum::http::header::{self, HeaderName};
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        "application/octet-stream".parse().unwrap(),
+    );
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!("attachment; filename=\"{}\"", firmware.file_path)
+            .parse()
+            .unwrap(),
+    );
+    headers.insert(
+        HeaderName::from_static("x-firmware-version"),
+        firmware.version.parse().unwrap(),
+    );
+    headers.insert(
+        HeaderName::from_static("x-firmware-checksum"),
+        firmware.checksum.parse().unwrap(),
+    );
+    headers.insert(
+        HeaderName::from_static("x-firmware-device"),
+        firmware.device.as_str().parse().unwrap(),
+    );
+
+    Ok((headers, data))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
