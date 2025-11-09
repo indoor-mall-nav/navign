@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Server error types with detailed context
 #[derive(Error, Debug)]
+#[allow(dead_code)] // Allow unused variants during gradual migration
 pub enum ServerError {
     // Database errors
     #[error("Database error: {0}")]
@@ -255,6 +256,7 @@ impl IntoResponse for ServerError {
 pub type Result<T> = std::result::Result<T, ServerError>;
 
 /// Helper trait to convert Results into ServerError
+#[allow(dead_code)] // Reserved for future use
 pub trait ResultExt<T> {
     fn map_err_to_server(self, msg: &str) -> Result<T>;
 }

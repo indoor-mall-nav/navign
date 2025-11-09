@@ -7,6 +7,7 @@ use tonic::Status;
 
 /// Orchestrator error types with detailed context
 #[derive(Error, Debug)]
+#[allow(dead_code)] // Allow unused variants during gradual migration
 pub enum OrchestratorError {
     // Robot management errors
     #[error("Robot not found: {0}")]
