@@ -113,7 +113,15 @@ pub async fn update_unlock_instance(
     }
     let mut signature = [0u8; 64];
     signature.copy_from_slice(&payload[0..64]);
-    let timestamp = u64::from_be_bytes(payload[64..72].try_into().unwrap());
+    let timestamp = match payload[64..72].try_into() {
+        Ok(bytes) => u64::from_be_bytes(bytes),
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                "Invalid timestamp format".to_string(),
+            );
+        }
+    };
     match instance
         .update_instance(
             &state.db,

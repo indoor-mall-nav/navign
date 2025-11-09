@@ -177,13 +177,10 @@ impl UnlockInstance {
             .map_err(|_| anyhow!("Invalid signature"))?;
         info!("Device signature verified");
         self.update_stage(db, UnlockStage::Verified, None).await?;
-        let proof = self
-            .generate_proof(
-                db,
-                signing_key,
-                signature.to_bytes()[56..64].try_into().unwrap(),
-            )
-            .await?;
+        let signature_tail: [u8; 8] = signature.to_bytes()[56..64]
+            .try_into()
+            .map_err(|_| anyhow!("Invalid signature tail length"))?;
+        let proof = self.generate_proof(db, signing_key, signature_tail).await?;
         let device_signing_key = BeaconSecrets::get_one_by_id(db, self.device.as_str())
             .await
             .ok_or_else(|| anyhow!("Device not found"))?
