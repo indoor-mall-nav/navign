@@ -28,9 +28,8 @@ use axum::{
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
 };
-use bson::doc;
 use log::{LevelFilter, info};
-use mongodb::Database;
+use sqlx::PgPool;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
@@ -47,8 +46,8 @@ async fn root() -> impl IntoResponse {
 }
 
 async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
-    // Here you can add logic to check the health of your application, e.g., database connection
-    match state.db.run_command(doc! { "ping": 1 }).await {
+    // Check database connection health
+    match sqlx::query("SELECT 1").fetch_one(&state.db).await {
         Ok(_) => (StatusCode::OK, "Healthy"),
         Err(e) => {
             info!("Health check failed: {}", e);
@@ -59,9 +58,9 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 
 #[derive(Clone)]
 pub(crate) struct AppState {
-    db: Database,
-    private_key: SigningKey,
-    prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
+    pub db: PgPool,
+    pub private_key: SigningKey,
+    pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
 async fn cert(State(state): State<AppState>) -> Result<String, ServerError> {

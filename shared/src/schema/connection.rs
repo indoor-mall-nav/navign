@@ -6,57 +6,37 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::object_id::AsHexString;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use serde_with::serde_as;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use super::utils::{deserialize_connected_areas, serialize_connected_areas};
+#[cfg(feature = "sql")]
+use uuid::Uuid;
 
 use core::fmt::Display;
 
-/// ConnectedArea type for MongoDB
-#[cfg(feature = "mongodb")]
-pub type ConnectedArea = (ObjectId, f64, f64, bool);
+/// ConnectedArea type - (area_id, x, y, enabled)
+#[cfg(feature = "sql")]
+pub type ConnectedArea = (i64, f64, f64, bool);
 
-/// ConnectedArea type for non-MongoDB (String-based IDs)
-#[cfg(not(feature = "mongodb"))]
+/// ConnectedArea type for non-SQL (String-based IDs)
+#[cfg(not(feature = "sql"))]
 pub type ConnectedArea = (String, f64, f64, bool);
 
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Connection {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
-    #[serde_as(as = "AsHexString")]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg(feature = "sql")]
+    pub id: Option<Uuid>,
+    #[cfg(not(feature = "sql"))]
     pub id: String,
-    /// Reference to the Entity
-    #[cfg(feature = "mongodb")]
-    #[serde_as(as = "AsHexString")]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Reference to the Entity (UUID)
+    #[cfg(feature = "sql")]
+    pub entity: Uuid,
+    #[cfg(not(feature = "sql"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,
     pub r#type: ConnectionType,
     /// List of Area IDs that this connection links
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(
-            serialize_with = "serialize_connected_areas",
-            deserialize_with = "deserialize_connected_areas"
-        )
-    )]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,
@@ -72,13 +52,12 @@ impl Connection {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub enum ConnectionType {
     Gate,
-    #[cfg_attr(feature = "mongodb", default)]
+    #[default]
     Escalator,
     Elevator,
     Stairs,
@@ -110,12 +89,13 @@ pub mod mobile {
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
     use sqlx::FromRow;
+    use uuid::Uuid;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     pub struct ConnectionMobile {
-        pub id: String,
-        pub entity: String,
+        pub id: Uuid,
+        pub entity: Uuid,
         pub name: String,
         pub description: Option<String>,
         pub r#type: String,
@@ -148,8 +128,8 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS connections (
-                    id VARCHAR(24) PRIMARY KEY,
-                    entity VARCHAR(24) NOT NULL,
+                    id TEXT PRIMARY KEY,
+                    entity TEXT NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT,
                     type TEXT NOT NULL,
@@ -195,10 +175,10 @@ pub mod mobile {
         #[cfg(feature = "sql")]
         pub async fn get_by_id(
             pool: &sqlx::SqlitePool,
-            id: &str,
+            id: &Uuid,
         ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM connections WHERE id = ?")
-                .bind(id)
+                .bind(id.to_string())
                 .fetch_optional(pool)
                 .await
         }
@@ -211,9 +191,9 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn delete(pool: &sqlx::SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+        pub async fn delete(pool: &sqlx::SqlitePool, id: &Uuid) -> Result<(), sqlx::Error> {
             sqlx::query("DELETE FROM connections WHERE id = ?")
-                .bind(id)
+                .bind(id.to_string())
                 .execute(pool)
                 .await?;
             Ok(())

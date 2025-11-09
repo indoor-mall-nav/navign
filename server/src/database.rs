@@ -1,11 +1,9 @@
 use crate::error::{Result, ServerError};
 use log::info;
-use mongodb::options::{ClientOptions, ServerAddress};
-use mongodb::{Client, Database};
-use std::str::FromStr;
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::time::Duration;
 
-pub(crate) async fn connect_with_db() -> Result<Database> {
+pub(crate) async fn connect_with_db() -> Result<PgPool> {
     // Load .env file if it exists, but don't fail if it's missing
     match dotenv::dotenv() {
         Ok(path) => info!("Loaded environment variables from: {:?}", path),
@@ -20,43 +18,52 @@ pub(crate) async fn connect_with_db() -> Result<Database> {
         }
     }
 
-    let mongodb_host =
-        std::env::var("MONGODB_HOST").unwrap_or_else(|_| "localhost:27017".to_string());
-    let db_name =
-        std::env::var("MONGODB_DB_NAME").unwrap_or_else(|_| "indoor-mall-nav".to_string());
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://localhost:5432/navign".to_string());
 
-    info!("Connecting to MongoDB at: {}", mongodb_host);
-    info!("Using database: {}", db_name);
+    info!("Connecting to PostgreSQL at: {}", database_url);
 
-    let mut options = ClientOptions::default();
-    options.max_pool_size = Some(8);
-    options.min_pool_size = Some(2);
-    options.max_idle_time = Some(Duration::from_secs(30));
-    options.max_connecting = Some(10);
-    options.connect_timeout = Some(Duration::from_secs(10));
-    options.server_selection_timeout = Some(Duration::from_secs(10));
-    options.app_name = Some("indoor-mall-nav".to_string());
-
-    let host = ServerAddress::from_str(&mongodb_host).map_err(|e| {
-        ServerError::DatabaseConnection(format!("Invalid MongoDB host '{}': {}", mongodb_host, e))
-    })?;
-    options.hosts = vec![host];
-
-    let client = Client::with_options(options).map_err(|e| {
-        ServerError::DatabaseConnection(format!("Failed to create MongoDB client: {}", e))
-    })?;
-
-    // Test the connection
-    let db = client.database(&db_name);
-    db.run_command(bson::doc! { "ping": 1 })
+    let pool = PgPoolOptions::new()
+        .max_connections(8)
+        .min_connections(2)
+        .max_lifetime(Some(Duration::from_secs(30 * 60))) // 30 minutes
+        .idle_timeout(Some(Duration::from_secs(10 * 60))) // 10 minutes
+        .acquire_timeout(Duration::from_secs(10))
+        .connect(&database_url)
         .await
         .map_err(|e| {
             ServerError::DatabaseConnection(format!(
-                "Failed to connect to MongoDB at '{}': {}. Please ensure MongoDB is running and accessible.",
-                mongodb_host, e
+                "Failed to connect to PostgreSQL at '{}': {}. Please ensure PostgreSQL is running and accessible.",
+                database_url, e
             ))
         })?;
 
-    info!("Successfully connected to MongoDB server");
-    Ok(db)
+    // Test the connection
+    sqlx::query("SELECT 1")
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| {
+            ServerError::DatabaseConnection(format!(
+                "Failed to ping PostgreSQL at '{}': {}. Please ensure PostgreSQL is running and accessible.",
+                database_url, e
+            ))
+        })?;
+
+    info!("Successfully connected to PostgreSQL server");
+
+    // Run migrations
+    info!("Running database migrations...");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .map_err(|e| {
+            ServerError::DatabaseConnection(format!(
+                "Failed to run database migrations: {}",
+                e
+            ))
+        })?;
+
+    info!("Database migrations completed successfully");
+
+    Ok(pool)
 }

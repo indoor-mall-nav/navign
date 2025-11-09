@@ -10,7 +10,7 @@ use thiserror::Error;
 pub enum ServerError {
     // Database errors
     #[error("Database error: {0}")]
-    Database(#[from] mongodb::error::Error),
+    Database(#[from] sqlx::Error),
 
     #[error("Database connection failed: {0}")]
     DatabaseConnection(String),
@@ -18,8 +18,8 @@ pub enum ServerError {
     #[error("Entity not found: {0}")]
     EntityNotFound(String),
 
-    #[error("Invalid ObjectId format: {0}")]
-    InvalidObjectId(String),
+    #[error("Invalid UUID format: {0}")]
+    InvalidUuid(String),
 
     #[error("Duplicate entry: {0}")]
     DuplicateEntry(String),
@@ -112,12 +112,6 @@ pub enum ServerError {
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
 
-    #[error("BSON serialization error: {0}")]
-    BsonSerError(String),
-
-    #[error("BSON deserialization error: {0}")]
-    BsonDeError(String),
-
     // Rate limiting
     #[error("Rate limit exceeded: {0}")]
     RateLimitExceeded(String),
@@ -163,7 +157,7 @@ impl ServerError {
             | Self::InvalidInput { .. }
             | Self::MissingField(_)
             | Self::InvalidFormat(_)
-            | Self::InvalidObjectId(_)
+            | Self::InvalidUuid(_)
             | Self::InvalidLocation(_)
             | Self::InvalidFirmware(_)
             | Self::MultipartError(_) => StatusCode::BAD_REQUEST,
@@ -297,9 +291,6 @@ mod tests {
 
     #[test]
     fn test_user_message() {
-        let db_error = ServerError::Database(mongodb::error::Error::custom("test"));
-        assert_eq!(db_error.user_message(), "A database error occurred");
-
         let validation_error = ServerError::ValidationError("Invalid email".to_string());
         assert_eq!(
             validation_error.user_message(),

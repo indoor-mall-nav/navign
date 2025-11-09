@@ -4,49 +4,38 @@ use alloc::string::String;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::object_id::AsHexString;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use serde_with::serde_as;
+#[cfg(feature = "sql")]
+use uuid::Uuid;
 
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Beacon {
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
-    #[serde_as(as = "AsHexString")]
-    #[cfg(feature = "mongodb")]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Beacon ID - auto-incrementing integer for fixed-length IDs
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg(feature = "sql")]
+    pub id: Option<i64>,
+    #[cfg(not(feature = "sql"))]
     pub id: String,
-    /// Reference to the Entity
-    #[serde_as(as = "AsHexString")]
-    #[cfg(feature = "mongodb")]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Reference to the Entity (UUID)
+    #[cfg(feature = "sql")]
+    pub entity: Uuid,
+    #[cfg(not(feature = "sql"))]
     pub entity: String,
-    /// Reference to the Area where the beacon is located
-    #[serde_as(as = "AsHexString")]
-    #[cfg(feature = "mongodb")]
-    pub area: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Reference to the Area where the beacon is located (incremental ID)
+    #[cfg(feature = "sql")]
+    pub area: i64,
+    #[cfg(not(feature = "sql"))]
     pub area: String,
-    /// Optional reference to the Merchant associated with the beacon.
-    #[serde_as(as = "Option<AsHexString>")]
-    #[cfg(feature = "mongodb")]
-    pub merchant: Option<ObjectId>,
-    #[cfg(not(feature = "mongodb"))]
+    /// Optional reference to the Merchant associated with the beacon (UUID)
+    #[cfg(feature = "sql")]
+    pub merchant: Option<Uuid>,
+    #[cfg(not(feature = "sql"))]
     pub merchant: Option<String>,
-    /// Optional reference to the Connection associated with the beacon.
-    #[serde_as(as = "Option<AsHexString>")]
-    #[cfg(feature = "mongodb")]
-    pub connection: Option<ObjectId>,
-    #[cfg(not(feature = "mongodb"))]
+    /// Optional reference to the Connection associated with the beacon (UUID)
+    #[cfg(feature = "sql")]
+    pub connection: Option<Uuid>,
+    #[cfg(not(feature = "sql"))]
     pub connection: Option<String>,
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     pub name: String,
@@ -96,15 +85,16 @@ pub mod mobile {
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
     use sqlx::FromRow;
+    use uuid::Uuid;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     pub struct BeaconMobile {
-        pub id: String,
-        pub entity: String,
-        pub area: String,
-        pub merchant: Option<String>,
-        pub connection: Option<String>,
+        pub id: i64,
+        pub entity: Uuid,
+        pub area: i64,
+        pub merchant: Option<Uuid>,
+        pub connection: Option<Uuid>,
         pub name: String,
         pub description: Option<String>,
         pub r#type: String,
@@ -144,11 +134,11 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS beacons (
-                    id VARCHAR(24) PRIMARY KEY,
-                    entity VARCHAR(24) NOT NULL,
-                    area VARCHAR(24) NOT NULL,
-                    merchant VARCHAR(24),
-                    connection VARCHAR(24),
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity TEXT NOT NULL,
+                    area INTEGER NOT NULL,
+                    merchant TEXT,
+                    connection TEXT,
                     name TEXT NOT NULL,
                     description TEXT,
                     type TEXT NOT NULL,
@@ -194,7 +184,7 @@ pub mod mobile {
         #[cfg(feature = "sql")]
         pub async fn get_by_id(
             pool: &sqlx::SqlitePool,
-            id: &str,
+            id: i64,
         ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM beacons WHERE id = ?")
                 .bind(id)
@@ -223,7 +213,7 @@ pub mod mobile {
         #[cfg(feature = "sql")]
         pub async fn get_by_area(
             pool: &sqlx::SqlitePool,
-            area: &str,
+            area: i64,
         ) -> Result<Vec<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM beacons WHERE area = ?")
                 .bind(area)
@@ -232,7 +222,7 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn delete(pool: &sqlx::SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+        pub async fn delete(pool: &sqlx::SqlitePool, id: i64) -> Result<(), sqlx::Error> {
             sqlx::query("DELETE FROM beacons WHERE id = ?")
                 .bind(id)
                 .execute(pool)

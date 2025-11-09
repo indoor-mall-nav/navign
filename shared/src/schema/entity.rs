@@ -6,28 +6,19 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::object_id::AsHexString;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use serde_with::serde_as;
+#[cfg(feature = "sql")]
+use uuid::Uuid;
 
 use core::fmt::Display;
 
 /// Entity schema - represents a physical building or complex (mall, hospital, etc.)
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Entity {
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
-    #[serde_as(as = "AsHexString")]
-    #[cfg(feature = "mongodb")]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg(feature = "sql")]
+    pub id: Option<Uuid>,
+    #[cfg(not(feature = "sql"))]
     pub id: String,
     pub r#type: EntityType,
     pub name: String,
@@ -43,12 +34,11 @@ pub struct Entity {
     pub updated_at: i64, // Timestamp in milliseconds
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub enum EntityType {
-    #[cfg_attr(feature = "mongodb", default)]
+    #[default]
     Mall,
     Transportation,
     School,
@@ -77,11 +67,12 @@ pub mod mobile {
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
     use sqlx::FromRow;
+    use uuid::Uuid;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     pub struct EntityMobile {
-        pub id: String,
+        pub id: Uuid,
         pub r#type: String,
         pub name: String,
         pub description: Option<String>,
@@ -115,7 +106,7 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS entities (
-                    id VARCHAR(24) PRIMARY KEY,
+                    id TEXT PRIMARY KEY,
                     type TEXT NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT,
@@ -173,10 +164,10 @@ pub mod mobile {
         #[cfg(feature = "sql")]
         pub async fn get_by_id(
             pool: &sqlx::SqlitePool,
-            id: &str,
+            id: &Uuid,
         ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM entities WHERE id = ?")
-                .bind(id)
+                .bind(id.to_string())
                 .fetch_optional(pool)
                 .await
         }
@@ -189,9 +180,9 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn delete(pool: &sqlx::SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+        pub async fn delete(pool: &sqlx::SqlitePool, id: &Uuid) -> Result<(), sqlx::Error> {
             sqlx::query("DELETE FROM entities WHERE id = ?")
-                .bind(id)
+                .bind(id.to_string())
                 .execute(pool)
                 .await?;
             Ok(())

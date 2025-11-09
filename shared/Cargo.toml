@@ -33,7 +33,7 @@ serde = [
   "dep:serde_with",
   "serde_with?/macros",
 ]
-sql = ["std", "serde", "dep:sqlx", "dep:async-trait"]
+sql = ["std", "serde", "dep:sqlx", "dep:async-trait", "dep:uuid"]
 std = [
   "serde?/std",
   "chrono?/std",
@@ -65,9 +65,13 @@ serde_with = { version = "3.15.1", optional = true, default-features = false }
 sha2 = { version = "0.11.0-rc.2", optional = true, default-features = false }
 sqlx = { version = "0.8.6", optional = true, default-features = false, features = [
   "sqlite",
+  "postgres",
   "runtime-tokio-native-tls",
   "macros",
+  "uuid",
+  "chrono",
 ] }
+uuid = { version = "1.18.1", optional = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
 serde_json = "1.0"

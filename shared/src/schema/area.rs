@@ -6,33 +6,25 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::object_id::AsHexString;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use serde_with::serde_as;
+#[cfg(feature = "sql")]
+use uuid::Uuid;
 
 use core::fmt::{Display, Formatter};
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Area {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
-    #[serde_as(as = "AsHexString")]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Area ID - auto-incrementing integer for fixed-length IDs
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg(feature = "sql")]
+    pub id: Option<i64>,
+    #[cfg(not(feature = "sql"))]
     pub id: String,
-    #[cfg(feature = "mongodb")]
-    #[serde_as(as = "AsHexString")]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
+    /// Reference to the Entity (UUID)
+    #[cfg(feature = "sql")]
+    pub entity: Uuid,
+    #[cfg(not(feature = "sql"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,
@@ -46,7 +38,6 @@ pub struct Area {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Floor {
     pub r#type: FloorType,
     pub name: u32,
@@ -62,15 +53,14 @@ impl From<Floor> for i32 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 pub enum FloorType {
     /// European/UK style, e.g., "Ground," "First," "Second"
     Level,
     /// US style, e.g., "1st," "2nd," "3rd"
-    #[cfg_attr(feature = "mongodb", default)]
+    #[default]
     Floor,
     /// Universal basement
     Basement,
@@ -107,12 +97,13 @@ pub mod mobile {
     #[cfg(feature = "serde")]
     use serde::{Deserialize, Serialize};
     use sqlx::FromRow;
+    use uuid::Uuid;
 
     #[derive(Debug, Clone, FromRow)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     pub struct AreaMobile {
-        pub id: String,
-        pub entity: String,
+        pub id: i64,
+        pub entity: Uuid,
         pub name: String,
         pub description: Option<String>,
         pub beacon_code: String,
@@ -148,8 +139,8 @@ pub mod mobile {
             sqlx::query(
                 r#"
                 CREATE TABLE IF NOT EXISTS areas (
-                    id VARCHAR(24) PRIMARY KEY,
-                    entity VARCHAR(24) NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity TEXT NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT,
                     beacon_code TEXT NOT NULL,
@@ -192,7 +183,7 @@ pub mod mobile {
         #[cfg(feature = "sql")]
         pub async fn get_by_id(
             pool: &sqlx::SqlitePool,
-            id: &str,
+            id: i64,
         ) -> Result<Option<Self>, sqlx::Error> {
             sqlx::query_as::<_, Self>("SELECT * FROM areas WHERE id = ?")
                 .bind(id)
@@ -208,7 +199,7 @@ pub mod mobile {
         }
 
         #[cfg(feature = "sql")]
-        pub async fn delete(pool: &sqlx::SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+        pub async fn delete(pool: &sqlx::SqlitePool, id: i64) -> Result<(), sqlx::Error> {
             sqlx::query("DELETE FROM areas WHERE id = ?")
                 .bind(id)
                 .execute(pool)
