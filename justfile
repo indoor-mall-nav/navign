@@ -130,8 +130,8 @@ ci-orchestrator:
 
 ci-plot:
   cd admin/plot && uv sync --extra dev
-  cd admin/plot && uv run ruff format --check
-  cd admin/plot && uv run ruff check
+  cd admin/plot && uvx ruff format --check
+  cd admin/plot && uvx ruff check
   cd admin/plot && uv run pytest
 
 roll:

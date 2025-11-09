@@ -47,7 +47,9 @@ class TestPlotExtractionConfig:
         deserialized = task_pb2.PlotExtractionConfig()
         deserialized.ParseFromString(serialized)
 
-        assert deserialized.blur_kernel_size == sample_extraction_config.blur_kernel_size
+        assert (
+            deserialized.blur_kernel_size == sample_extraction_config.blur_kernel_size
+        )
         assert deserialized.threshold_value == sample_extraction_config.threshold_value
 
 
