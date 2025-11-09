@@ -20,6 +20,10 @@ mod crypto;
 mod schema;
 mod traits;
 
+pub use ble::blufi::{
+    BlufiError as BlufiProtocolError, BlufiMessage, BlufiPayload, ControlFrame, DataFrame,
+    FrameControl, WifiAuthMode, WifiConnectionState, WifiOpmode,
+};
 pub use ble::challenge::ServerChallenge;
 pub use ble::device_caps::DeviceCapabilities;
 pub use ble::device_type::DeviceTypes;
