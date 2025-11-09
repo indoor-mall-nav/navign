@@ -227,16 +227,24 @@ navign/
 │   └── justfile                 # Mobile-specific tasks
 │
 ├── admin/                       # Robot fleet management
+│   ├── proto/                   # Protocol Buffer definitions
+│   │   ├── task.proto           # Robot task management (OrchestratorService)
+│   │   ├── plot.proto           # Polygon extraction (PlotService)
+│   │   └── sync.proto           # Orchestrator-server sync (OrchestratorSync)
 │   ├── orchestrator/            # Rust gRPC server
 │   │   ├── src/main.rs          # Task assignment logic
-│   │   ├── build.rs             # Protobuf compilation
-│   │   └── proto/task.proto     # Task definitions
+│   │   └── build.rs             # Protobuf compilation
+│   ├── plot/                    # Python plot extraction client
+│   │   ├── plot_client.py       # gRPC client for polygon extraction
+│   │   ├── generate_proto.sh    # Proto code generation script
+│   │   └── proto/               # Generated Python protobuf code
 │   └── tower/                   # Go Socket.IO server
 │       ├── cmd/tower/main.go    # Server entry point
 │       ├── internal/
 │       │   ├── controller/      # gRPC client
 │       │   ├── robot/           # Robot state management
 │       │   └── socket_server/   # Socket.IO server
+│       ├── Makefile             # Proto generation (use justfile instead)
 │       └── go.mod
 │
 ├── gesture_space/               # Python CV system
@@ -633,11 +641,29 @@ pnpm run tauri build      # Create app bundle
 
 ### Admin (`admin/`)
 
-**Purpose:** Robot fleet management system with task orchestration.
+**Purpose:** Robot fleet management system with task orchestration and floor plan processing.
 
-**Architecture:** Dual-component design
+**Architecture:** Multi-component design with centralized protocol buffers
+
+#### Protocol Buffers (`admin/proto/`)
+
+All admin components share protocol buffer definitions:
+
+- **task.proto** - Robot task management
+  - `OrchestratorService`: Task assignment and robot status reporting
+  - Used by: Orchestrator (server), Tower (client)
+
+- **plot.proto** - Floor plan polygon extraction
+  - `PlotService`: Polygon extraction from floor plans
+  - Used by: Plot (implements service logic, though currently runs locally)
+
+- **sync.proto** - Orchestrator-central server synchronization
+  - `OrchestratorSync`: Event streaming, data sync, firmware distribution
+  - Used by: Future central server integration
 
 #### Orchestrator (Rust)
+
+**Location:** `admin/orchestrator/`
 
 **Responsibilities:**
 - Task queue management
@@ -646,13 +672,11 @@ pnpm run tauri build      # Create app bundle
 - Task assignment decisions
 - gRPC server for Tower communication
 
-**gRPC Service:**
+**gRPC Service (from task.proto):**
 ```protobuf
-service TaskService {
-  rpc RegisterRobot(RobotInfo) returns (RegisterResponse);
-  rpc SubmitTask(Task) returns (TaskResponse);
-  rpc StreamTasks(stream RobotStatus) returns (stream TaskAssignment);
-  rpc UpdateTaskStatus(TaskUpdate) returns (StatusResponse);
+service OrchestratorService {
+  rpc ReportRobotStatus(RobotReportRequest) returns (RobotReportResponse);
+  rpc GetTaskAssignment(RobotDistributionRequest) returns (stream TaskAssignment);
 }
 
 message Task {
@@ -684,6 +708,8 @@ message Location {
 
 #### Tower (Go)
 
+**Location:** `admin/tower/`
+
 **Responsibilities:**
 - Socket.IO WebSocket server for robots
 - gRPC client to Orchestrator
@@ -700,6 +726,45 @@ socket.On("task_update", TaskUpdatePacket)
 // Server → Client
 socket.Emit("task_assigned", TaskAssignedPacket)
 socket.Emit("task_cancelled", TaskCancelledPacket)
+```
+
+**Proto Generation:**
+```bash
+# From root justfile
+just proto-tower
+# Or from tower directory using Makefile
+cd admin/tower && make proto
+```
+
+#### Plot (Python)
+
+**Location:** `admin/plot/`
+
+**Purpose:** Floor plan polygon extraction using computer vision.
+
+**Responsibilities:**
+- Extract polygons from floor plan images using OpenCV
+- Local processing (does not require a gRPC server)
+- Defines PlotService interface in plot.proto for future service integration
+
+**Current Implementation:**
+- Client performs local polygon extraction using OpenCV
+- Implements `_extract_polygons_opencv()` method (placeholder - to be implemented)
+- Can be extended to call a remote PlotService in the future
+
+**Proto Generation:**
+```bash
+# From root justfile
+just proto-plot
+# Or from plot directory
+cd admin/plot && ./generate_proto.sh
+```
+
+**Usage:**
+```bash
+cd admin/plot
+uv sync
+uv run python plot_client.py <floor_plan_image.png> [entity_id] [floor_id]
 ```
 
 **Environment Variables:**
@@ -1616,7 +1681,7 @@ just ci-mobile     # Mobile CI tasks
 - **Tauri Commands:** `mobile/src-tauri/src/lib.rs`
 - **Pathfinding:** `server/src/kernel/route/implementations/navigate.rs`
 - **BLE Protocol:** `shared/src/ble/message.rs`
-- **Admin Proto:** `admin/orchestrator/proto/task.proto`
+- **Admin Proto:** `admin/proto/task.proto`, `admin/proto/plot.proto`, `admin/proto/sync.proto`
 
 ---
 
