@@ -27,7 +27,7 @@ impl User {
         wechat: Option<String>,
         password: String,
     ) -> Self {
-        let hashed_password = hash(password, 4).expect("Failed to hash password");
+        let hashed_password = hash(password, 12).expect("Failed to hash password");
         Self {
             id: ObjectId::new(),
             username,
