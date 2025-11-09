@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod error;
 mod firmware_api;
 mod grpc_service;
 mod robot_registry;

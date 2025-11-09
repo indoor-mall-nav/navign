@@ -1,11 +1,13 @@
 mod certification;
 mod database;
+mod error;
 mod kernel;
 mod key_management;
 mod metrics;
 mod schema;
 mod shared;
 
+use crate::error::{Result as ServerResult, ServerError};
 use crate::kernel::auth::{login_handler, register_handler};
 use crate::kernel::route::find_route;
 use crate::kernel::unlocker::{
@@ -62,23 +64,22 @@ pub(crate) struct AppState {
     prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
-async fn cert(State(state): State<AppState>) -> impl IntoResponse {
-    match state
+async fn cert(State(state): State<AppState>) -> Result<String, ServerError> {
+    state
         .private_key
         .verifying_key()
         .to_public_key_pem(LineEnding::LF)
-    {
-        Ok(res) => (StatusCode::OK, res),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-    }
+        .map_err(|e| ServerError::CryptographyError(format!("Failed to encode public key: {}", e)))
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> ServerResult<()> {
     // Initialize logger
     log::set_boxed_logger(Box::new(SimpleLogger::new()))
         .map(|()| log::set_max_level(LevelFilter::Info))
-        .map_err(|e| anyhow::anyhow!("Failed to initialize logger: {}", e))?;
+        .map_err(|e| {
+            ServerError::ConfigurationError(format!("Failed to initialize logger: {}", e))
+        })?;
 
     info!("Starting Navign Server v{}", env!("CARGO_PKG_VERSION"));
 
@@ -91,14 +92,14 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize metrics
     info!("Initializing metrics exporter...");
-    let prometheus_handle = metrics::init_metrics()
-        .map_err(|e| anyhow::anyhow!("Failed to initialize metrics: {}", e))?;
+    let prometheus_handle = metrics::init_metrics().map_err(|e| {
+        ServerError::ConfigurationError(format!("Failed to initialize metrics: {}", e))
+    })?;
     info!("Metrics exporter initialized");
 
     // Load or generate persistent private key
     info!("Loading server private key...");
-    let private_key = load_or_generate_key()
-        .map_err(|e| anyhow::anyhow!("Failed to load or generate private key: {}", e))?;
+    let private_key = load_or_generate_key()?;
     let public_key = private_key.verifying_key();
     info!(
         "Server public key loaded: {:?}",
@@ -122,7 +123,11 @@ async fn main() -> anyhow::Result<()> {
             .burst_size(burst_size)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
-            .ok_or_else(|| anyhow::anyhow!("Failed to build rate limiter configuration"))?,
+            .ok_or_else(|| {
+                ServerError::ConfigurationError(
+                    "Failed to build rate limiter configuration".to_string(),
+                )
+            })?,
     );
 
     info!(
@@ -143,12 +148,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Connect to database
     info!("Connecting to database...");
-    let db = database::connect_with_db().await.map_err(|e| {
-        anyhow::anyhow!(
-            "Database connection failed: {}. Please check your MongoDB configuration.",
-            e
-        )
-    })?;
+    let db = database::connect_with_db().await?;
 
     // Get server bind address from environment
     let bind_addr =
@@ -305,11 +305,10 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&bind_addr)
         .await
         .map_err(|e| {
-            anyhow::anyhow!(
+            ServerError::ConfigurationError(format!(
                 "Failed to bind to address '{}': {}. Please check if the port is already in use.",
-                bind_addr,
-                e
-            )
+                bind_addr, e
+            ))
         })?;
 
     info!("Server listening on {}", bind_addr);
@@ -319,7 +318,7 @@ async fn main() -> anyhow::Result<()> {
 
     axum::serve(listener, app)
         .await
-        .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
+        .map_err(|e| ServerError::InternalError(format!("Server error: {}", e)))?;
 
     Ok(())
 }
