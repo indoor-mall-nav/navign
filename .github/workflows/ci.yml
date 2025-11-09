@@ -74,12 +74,14 @@ jobs:
               mobile/*)
                 run_mobile=true
                 ;;
+              admin/proto/*)
+                # Proto files affect all admin components
+                run_orchestrator=true
+                run_tower=true
+                run_plot=true
+                ;;
               admin/tower/*)
                 run_tower=true
-                # If task.proto changes, run plot CI too (plot depends on it)
-                if [[ "$file" == admin/tower/proto/task.proto ]]; then
-                  run_plot=true
-                fi
                 ;;
               admin/orchestrator/*)
                 run_orchestrator=true
