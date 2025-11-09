@@ -3,6 +3,10 @@
 //! BluFi is ESP-IDF's WiFi configuration protocol over Bluetooth.
 //! This module implements the frame format and message types according to the ESP-IDF BluFi specification.
 //!
+//! **Current Implementation Status:**
+//! - Only **SoftAP (Access Point) mode** is currently supported
+//! - STA mode and mixed STA+AP mode are defined for protocol compliance but not yet implemented
+//!
 //! # Frame Format
 //!
 //! ```text
@@ -95,14 +99,19 @@ impl Default for FrameControl {
 }
 
 /// WiFi operation mode
+///
+/// **Note:** Currently only `SoftAp` mode is supported.
+/// Other modes are defined for protocol compliance but not yet implemented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(u8)]
 #[allow(dead_code)]
 pub enum WifiOpmode {
     Null = 0x00,
+    #[allow(dead_code)]
     Sta = 0x01,
     SoftAp = 0x02,
+    #[allow(dead_code)]
     StaSoftAp = 0x03,
 }
 
@@ -117,6 +126,15 @@ impl TryFrom<u8> for WifiOpmode {
             0x03 => Ok(WifiOpmode::StaSoftAp),
             _ => Err(()),
         }
+    }
+}
+
+impl WifiOpmode {
+    /// Check if this opmode is currently supported
+    ///
+    /// Currently only `SoftAp` mode is implemented.
+    pub fn is_supported(&self) -> bool {
+        matches!(self, WifiOpmode::SoftAp)
     }
 }
 
@@ -236,12 +254,18 @@ pub enum ControlFrame {
     SetSecurityMode { mode: u8 },
 
     /// Set WiFi operation mode
+    ///
+    /// **Note:** Currently only `WifiOpmode::SoftAp` is supported.
     SetOpmode { opmode: WifiOpmode },
 
     /// Connect to WiFi AP (after SSID/password are set)
+    ///
+    /// **Note:** STA mode is not currently supported (AP mode only)
     ConnectWifi,
 
     /// Disconnect from WiFi AP
+    ///
+    /// **Note:** STA mode is not currently supported (AP mode only)
     DisconnectWifi,
 
     /// Request WiFi status
@@ -279,9 +303,13 @@ pub enum DataFrame {
     NegotiationData { data: heapless::Vec<u8, 256> },
 
     /// BSSID for STA mode (when SSID is hidden)
+    ///
+    /// **Note:** STA mode is not currently supported (AP mode only)
     StaBssid { bssid: [u8; 6] },
 
     /// SSID for STA mode
+    ///
+    /// **Note:** STA mode is not currently supported (AP mode only)
     #[cfg(feature = "alloc")]
     StaSsid { ssid: String },
 
@@ -289,6 +317,8 @@ pub enum DataFrame {
     StaSsid { ssid: heapless::String<32> },
 
     /// Password for STA mode
+    ///
+    /// **Note:** STA mode is not currently supported (AP mode only)
     #[cfg(feature = "alloc")]
     StaPassword { password: String },
 
@@ -524,6 +554,14 @@ mod tests {
         assert_eq!(WifiOpmode::try_from(0x02), Ok(WifiOpmode::SoftAp));
         assert_eq!(WifiOpmode::try_from(0x03), Ok(WifiOpmode::StaSoftAp));
         assert_eq!(WifiOpmode::try_from(0x04), Err(()));
+    }
+
+    #[test]
+    fn test_opmode_is_supported() {
+        assert!(!WifiOpmode::Null.is_supported());
+        assert!(!WifiOpmode::Sta.is_supported());
+        assert!(WifiOpmode::SoftAp.is_supported());
+        assert!(!WifiOpmode::StaSoftAp.is_supported());
     }
 
     #[test]
