@@ -2,6 +2,7 @@ mod certification;
 mod database;
 mod kernel;
 mod key_management;
+mod metrics;
 mod schema;
 mod shared;
 
@@ -18,6 +19,7 @@ use crate::schema::firmware::{
 use crate::schema::service::OneInArea;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use axum::extract::State;
+use axum::middleware;
 use axum::response::IntoResponse;
 use axum::{
     Router,
@@ -57,6 +59,7 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 pub(crate) struct AppState {
     db: Database,
     private_key: SigningKey,
+    prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
 async fn cert(State(state): State<AppState>) -> impl IntoResponse {
@@ -85,6 +88,12 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(tower_http::cors::Any);
     info!("CORS layer configured (permissive mode for development)");
+
+    // Initialize metrics
+    info!("Initializing metrics exporter...");
+    let prometheus_handle = metrics::init_metrics()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize metrics: {}", e))?;
+    info!("Metrics exporter initialized");
 
     // Load or generate persistent private key
     info!("Loading server private key...");
@@ -147,11 +156,16 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Server will bind to: {}", bind_addr);
 
-    let state = AppState { db, private_key };
+    let state = AppState {
+        db,
+        private_key,
+        prometheus_handle,
+    };
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health_check))
         .route("/cert", get(cert))
+        .route("/metrics", get(metrics::metrics_handler))
         .route("/api/auth/register", post(register_handler))
         .route("/api/auth/login", post(login_handler))
         .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
@@ -282,6 +296,7 @@ async fn main() -> anyhow::Result<()> {
             get(download_firmware_handler),
         )
         .route("/api/firmwares/:id", delete(delete_firmware_handler))
+        .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
         .with_state(state);
@@ -299,6 +314,7 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Server listening on {}", bind_addr);
     info!("Health check endpoint: http://{}/health", bind_addr);
+    info!("Metrics endpoint: http://{}/metrics", bind_addr);
     info!("API documentation: http://{}/", bind_addr);
 
     axum::serve(listener, app)
