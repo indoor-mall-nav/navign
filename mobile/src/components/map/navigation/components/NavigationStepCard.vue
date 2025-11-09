@@ -10,6 +10,10 @@ import {
 } from '../utils/icons'
 import { formatDistance } from '../utils/formatters'
 import type { NavigationStep } from '../types'
+import StairsAnimation from '../animations/StairsAnimation.vue'
+import ElevatorAnimation from '../animations/ElevatorAnimation.vue'
+import EscalatorAnimation from '../animations/EscalatorAnimation.vue'
+import GateAnimation from '../animations/GateAnimation.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -54,50 +58,104 @@ const containerSize = computed(() => {
       return 'w-8 h-8'
   }
 })
+
+// Show animation for transport steps when in large size and not preview
+const showAnimation = computed(() => {
+  return props.step.type === 'transport' && props.size === 'lg' && !props.isPreview
+})
+
+// Get transport type for animation selection
+const transportType = computed(() => {
+  if (props.step.type === 'transport' && props.step.transport) {
+    return props.step.transport[2]
+  }
+  return null
+})
+
+const fromArea = computed(() => {
+  if (props.step.type === 'transport' && props.step.transport) {
+    return props.step.transport[0]
+  }
+  return ''
+})
+
+const toArea = computed(() => {
+  if (props.step.type === 'transport' && props.step.transport) {
+    return props.step.transport[1]
+  }
+  return ''
+})
 </script>
 
 <template>
   <div
-    class="flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors"
+    class="rounded-lg border bg-card transition-colors"
     :class="{
       'bg-accent border-primary': isCurrent,
       'hover:bg-accent/50': !isCurrent && !isPreview,
     }"
   >
-    <div class="flex-shrink-0 mt-1">
-      <div
-        :class="[
-          'rounded-full bg-accent flex items-center justify-center',
-          containerSize,
-          { 'bg-background': size === 'lg' },
-        ]"
-      >
-        <Icon :icon="icon" :class="[iconSize, color]" />
-      </div>
-    </div>
-    <div class="flex-1 min-w-0">
-      <div class="flex items-center justify-between">
-        <span
+    <div class="flex items-start gap-3 p-3">
+      <div class="flex-shrink-0 mt-1">
+        <div
           :class="[
-            'font-medium capitalize',
+            'rounded-full bg-accent flex items-center justify-center',
+            containerSize,
+            { 'bg-background': size === 'lg' },
+          ]"
+        >
+          <Icon :icon="icon" :class="[iconSize, color]" />
+        </div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <span
+            :class="[
+              'font-medium capitalize',
+              size === 'sm' ? 'text-xs' : 'text-sm',
+            ]"
+          >
+            {{ title }}
+          </span>
+          <Badge v-if="index !== undefined" variant="outline" class="text-xs">
+            Step {{ index + 1 }}
+          </Badge>
+        </div>
+        <p
+          :class="[
+            'text-muted-foreground mt-1',
             size === 'sm' ? 'text-xs' : 'text-sm',
           ]"
         >
-          {{ title }}
-        </span>
-        <Badge v-if="index !== undefined" variant="outline" class="text-xs">
-          Step {{ index + 1 }}
-        </Badge>
+          {{ description }}
+        </p>
+        <slot name="actions"></slot>
       </div>
-      <p
-        :class="[
-          'text-muted-foreground mt-1',
-          size === 'sm' ? 'text-xs' : 'text-sm',
-        ]"
-      >
-        {{ description }}
-      </p>
-      <slot name="actions"></slot>
+    </div>
+
+    <!-- Transport animations -->
+    <div v-if="showAnimation" class="px-3 pb-3">
+      <StairsAnimation
+        v-if="transportType === 'stairs'"
+        :from-floor="fromArea"
+        :to-floor="toArea"
+      />
+      <ElevatorAnimation
+        v-else-if="transportType === 'elevator'"
+        :from-floor="fromArea"
+        :to-floor="toArea"
+      />
+      <EscalatorAnimation
+        v-else-if="transportType === 'escalator'"
+        :from-floor="fromArea"
+        :to-floor="toArea"
+      />
+      <GateAnimation
+        v-else-if="transportType === 'gate' || transportType === 'turnstile'"
+        :from-area="fromArea"
+        :to-area="toArea"
+        :gate-type="transportType as 'gate' | 'turnstile'"
+      />
     </div>
   </div>
 </template>

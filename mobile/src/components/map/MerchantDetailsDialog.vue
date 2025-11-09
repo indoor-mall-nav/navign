@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { getMerchantDetails, type MerchantDetails } from '@/lib/api/tauri'
+import { getMerchantDetails, unlockDevice, type MerchantDetails } from '@/lib/api/tauri'
 import { formatMerchantType } from '@/lib/structure/merchant'
 import {
   Dialog,
@@ -28,12 +28,17 @@ const emit = defineEmits<{
 const merchantDetails = ref<MerchantDetails | null>(null)
 const loading = ref(false)
 const error = ref<string>('')
+const unlockLoading = ref(false)
+const unlockError = ref<string>('')
+const unlockSuccess = ref(false)
 
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen && props.merchantId) {
       await loadMerchantDetails()
+      unlockError.value = ''
+      unlockSuccess.value = false
     }
   },
 )
@@ -90,6 +95,31 @@ function getSocialIcon(platform: string): string {
 
 function openLink(url: string) {
   window.open(url, '_blank')
+}
+
+async function unlockMerchantBeacon() {
+  if (!merchantDetails.value?.beacon_code) return
+
+  unlockLoading.value = true
+  unlockError.value = ''
+  unlockSuccess.value = false
+
+  try {
+    const result = await unlockDevice(props.entityId, merchantDetails.value.beacon_code)
+    if (result.status === 'success') {
+      unlockSuccess.value = true
+      setTimeout(() => {
+        unlockSuccess.value = false
+      }, 3000)
+    } else {
+      unlockError.value = result.message || 'Failed to unlock'
+    }
+  } catch (err) {
+    unlockError.value = `Error: ${err}`
+    await logError('Failed to unlock merchant beacon: ' + JSON.stringify(err))
+  } finally {
+    unlockLoading.value = false
+  }
 }
 </script>
 
@@ -332,19 +362,70 @@ function openLink(url: string) {
           </CardContent>
         </Card>
 
-        <!-- Beacon Code -->
+        <!-- Beacon Code & Unlock -->
         <Card>
-          <CardContent class="pt-6">
+          <CardContent class="pt-6 space-y-4">
             <div class="flex items-center gap-3">
               <Icon
                 icon="mdi:access-point"
                 class="w-5 h-5 text-muted-foreground"
               />
-              <div>
-                <h3 class="font-semibold mb-1">Beacon Code</h3>
+              <div class="flex-1">
+                <h3 class="font-semibold mb-1">Beacon Access</h3>
                 <p class="text-sm text-muted-foreground font-mono">
                   {{ merchantDetails.beacon_code }}
                 </p>
+              </div>
+            </div>
+
+            <!-- Unlock Button -->
+            <div class="flex flex-col gap-2">
+              <Button
+                @click="unlockMerchantBeacon"
+                :disabled="unlockLoading || unlockSuccess"
+                class="w-full"
+                :variant="unlockSuccess ? 'outline' : 'default'"
+              >
+                <Icon
+                  v-if="unlockLoading"
+                  icon="mdi:loading"
+                  class="w-4 h-4 mr-2 animate-spin"
+                />
+                <Icon
+                  v-else-if="unlockSuccess"
+                  icon="mdi:check-circle"
+                  class="w-4 h-4 mr-2 text-green-500"
+                />
+                <Icon
+                  v-else
+                  icon="mdi:lock-open-variant"
+                  class="w-4 h-4 mr-2"
+                />
+                {{
+                  unlockLoading
+                    ? 'Unlocking...'
+                    : unlockSuccess
+                      ? 'Unlocked!'
+                      : 'Unlock Access'
+                }}
+              </Button>
+
+              <!-- Success message -->
+              <div
+                v-if="unlockSuccess"
+                class="flex items-center gap-2 p-2 bg-green-100 dark:bg-green-900/30 rounded text-sm text-green-700 dark:text-green-400"
+              >
+                <Icon icon="mdi:check-circle" class="w-4 h-4" />
+                <span>Access granted successfully</span>
+              </div>
+
+              <!-- Error message -->
+              <div
+                v-if="unlockError"
+                class="flex items-start gap-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-sm text-red-700 dark:text-red-400"
+              >
+                <Icon icon="mdi:alert-circle" class="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{{ unlockError }}</span>
               </div>
             </div>
           </CardContent>
