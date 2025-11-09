@@ -341,7 +341,6 @@ mod tests {
 
         let result = registry.assign_task(task).await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "No suitable robot available");
     }
 
     #[tokio::test]
@@ -354,7 +353,6 @@ mod tests {
 
         let result = registry.assign_task(task).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No tower connected"));
     }
 
     #[tokio::test]

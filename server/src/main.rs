@@ -287,15 +287,15 @@ async fn main() -> ServerResult<()> {
         .route("/api/firmwares", get(get_firmwares_handler))
         .route("/api/firmwares/upload", post(upload_firmware_handler))
         .route(
-            "/api/firmwares/latest/:device",
+            "/api/firmwares/latest/{device}",
             get(get_latest_firmware_handler),
         )
-        .route("/api/firmwares/:id", get(get_firmware_by_id_handler))
+        .route("/api/firmwares/{id}", get(get_firmware_by_id_handler))
         .route(
-            "/api/firmwares/:id/download",
+            "/api/firmwares/{id}/download",
             get(download_firmware_handler),
         )
-        .route("/api/firmwares/:id", delete(delete_firmware_handler))
+        .route("/api/firmwares/{id}", delete(delete_firmware_handler))
         .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
