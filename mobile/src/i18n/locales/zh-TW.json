@@ -1,0 +1,204 @@
+{
+  "common": {
+    "email": "電子郵件",
+    "username": "使用者名稱",
+    "password": "密碼",
+    "confirmPassword": "確認密碼",
+    "login": "登入",
+    "logout": "登出",
+    "register": "註冊",
+    "cancel": "取消",
+    "confirm": "確認",
+    "save": "儲存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "search": "搜尋",
+    "close": "關閉",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "loading": "載入中...",
+    "error": "錯誤",
+    "success": "成功"
+  },
+  "auth": {
+    "loginTitle": "登入以繼續",
+    "registerTitle": "註冊帳戶",
+    "loginDescription": "您可以使用任何電子郵件和密碼登入，或以訪客身份繼續。您也可以使用 Google 或 GitHub 登入。為了確保流暢的體驗，我們建議您登入以建立個人化體驗。",
+    "continueAsGuest": "以訪客身份繼續",
+    "loginButton": "登入",
+    "registerButton": "註冊",
+    "loggingIn": "登入中...",
+    "registering": "註冊中...",
+    "alreadyHaveAccount": "已有帳戶？登入",
+    "dontHaveAccount": "還沒有帳戶？註冊",
+    "acceptTerms": "我同意服務條款和隱私權政策。",
+    "errors": {
+      "emailPasswordRequired": "請輸入電子郵件和密碼",
+      "fillAllFields": "請填寫所有欄位",
+      "passwordsNotMatch": "密碼不相符",
+      "acceptTermsRequired": "請接受服務條款",
+      "loginFailed": "登入失敗",
+      "registrationFailed": "註冊失敗",
+      "guestLoginFailed": "訪客登入失敗"
+    },
+    "registrationSuccess": "註冊成功！請登入。"
+  },
+  "home": {
+    "title": "室內導航",
+    "findLocation": {
+      "title": "尋找您的位置",
+      "description": "使用裝置位置或搜尋商場/建築名稱",
+      "getCurrentLocation": "取得目前位置",
+      "locationObtained": "位置：{lat}, {lng}",
+      "enterName": "輸入商場或建築名稱（例如：寧波商場）",
+      "findEntity": "尋找實體",
+      "searching": "搜尋中...",
+      "noResults": "未找到符合條件的實體。",
+      "multipleResults": "找到 {count} 個實體。請在下方選擇一個。",
+      "selected": "已選擇：{name}",
+      "found": "找到：{name}",
+      "errors": {
+        "permissionRequired": "需要位置權限才能繼續。",
+        "geolocationFailed": "無法取得地理位置。請確保已啟用位置服務。"
+      }
+    },
+    "areaDetection": {
+      "title": "偵測您的區域",
+      "description": "使用藍牙信標自動偵測您目前所在的區域",
+      "howItWorks": "工作原理：",
+      "step1": "掃描附近的藍牙信標",
+      "step2": "自動識別您目前的區域",
+      "step3": "支援行動裝置和桌面（使用模擬資料）",
+      "detectButton": "偵測目前區域",
+      "detecting": "偵測區域中...",
+      "foundArea": "找到區域：{name}",
+      "successfullyDetected": "成功偵測到：{name}",
+      "noBeacons": "未能偵測到區域。附近未找到信標。",
+      "selectEntityFirst": "請先選擇一個實體"
+    },
+    "location": {
+      "title": "目前位置",
+      "located": "已定位",
+      "position": "位置：({x}, {y})",
+      "locateMe": "定位我",
+      "locating": "定位中...",
+      "locatedAt": "定位於 ({x}, {y})",
+      "areaChanged": "區域已變更為 {name}",
+      "selectEntityAndArea": "請先選擇實體和區域",
+      "updateLocation": "更新位置"
+    },
+    "merchants": {
+      "title": "附近商家",
+      "searchMerchants": "搜尋商家"
+    },
+    "quickActions": {
+      "title": "快速操作",
+      "startNavigation": "開始導航",
+      "viewAllAreas": "檢視所有區域",
+      "searchMerchants": "搜尋商家",
+      "updateLocation": "更新位置"
+    },
+    "map": {
+      "noData": "暫無地圖資料",
+      "detectArea": "偵測區域"
+    },
+    "selectLocation": {
+      "title": "選擇位置",
+      "description": "找到多個位置。請選擇一個："
+    }
+  },
+  "navigation": {
+    "title": "室內導航",
+    "subtitle": "尋找您的路線",
+    "locateMe": "定位我",
+    "locating": "定位中...",
+    "stats": {
+      "distance": "距離",
+      "totalDistance": "總距離",
+      "steps": "步驟",
+      "areas": "區域",
+      "progress": "進度"
+    },
+    "destination": {
+      "selectTitle": "選擇目的地",
+      "selectDescription": "搜尋並選擇您要前往的地點",
+      "searchPlaceholder": "搜尋商家、店舖或標籤...",
+      "noResults": "未找到商家"
+    },
+    "preferences": {
+      "title": "路線偏好",
+      "allowElevators": "允許電梯",
+      "allowStairs": "允許樓梯",
+      "allowEscalators": "允許手扶梯"
+    },
+    "calculateRoute": "計算路線",
+    "calculating": "計算中...",
+    "startNavigation": "開始導航",
+    "stopNavigation": "停止導航",
+    "clearRoute": "清除路線",
+    "help": {
+      "title": "如何導航",
+      "step1": "搜尋您的目的地",
+      "step2": "選擇路線偏好",
+      "step3": "計算路線",
+      "step4": "開始導航取得逐步指引"
+    },
+    "instructions": {
+      "enterArea": "進入 {name}",
+      "exitArea": "離開 {name}",
+      "useElevator": "乘坐電梯至 {floor}",
+      "useStairs": "走樓梯至 {floor}",
+      "useEscalator": "乘坐手扶梯至 {floor}",
+      "turnLeft": "左轉",
+      "turnRight": "右轉",
+      "goStraight": "直行",
+      "arrived": "您已到達目的地"
+    }
+  },
+  "entityDetails": {
+    "title": "實體詳情",
+    "description": "檢視此實體內的所有區域、商家和信標",
+    "stats": {
+      "areas": "區域",
+      "merchants": "商家",
+      "beacons": "信標"
+    },
+    "sections": {
+      "areasTitle": "區域",
+      "code": "代碼：",
+      "merchants": "商家：",
+      "beacons": "信標：",
+      "polygonPoints": "多邊形點數：",
+      "viewArea": "檢視區域"
+    },
+    "empty": {
+      "noAreas": "未找到區域",
+      "noAreasDescription": "此實體尚未設定任何區域。"
+    },
+    "noDescription": "無描述"
+  },
+  "area": {
+    "floor": "樓層",
+    "details": "區域詳情"
+  },
+  "merchant": {
+    "store": "店舖",
+    "details": "商家詳情"
+  },
+  "beacon": {
+    "details": "信標詳情"
+  },
+  "units": {
+    "meters": "公尺",
+    "kilometers": "公里",
+    "centimeters": "公分"
+  },
+  "errors": {
+    "generic": "發生錯誤",
+    "network": "網路錯誤。請檢查您的連線。",
+    "notFound": "未找到",
+    "unauthorized": "未授權。請登入。",
+    "forbidden": "存取被拒絕"
+  }
+}

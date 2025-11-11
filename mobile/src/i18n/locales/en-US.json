@@ -1,1 +1,204 @@
-{}
+{
+  "common": {
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "auth": {
+    "loginTitle": "Login to Proceed",
+    "registerTitle": "Register an Account",
+    "loginDescription": "You may use any email and password to login, or proceed as a guest. You may also use Google or GitHub to login. To ensure a smooth experience, we recommend you to login to create a customized experience.",
+    "continueAsGuest": "Continue as Guest",
+    "loginButton": "Login",
+    "registerButton": "Register",
+    "loggingIn": "Logging in...",
+    "registering": "Registering...",
+    "alreadyHaveAccount": "Already have an account? Login",
+    "dontHaveAccount": "Don't have an account? Register",
+    "acceptTerms": "I agree to the Terms of Service and Privacy Policy.",
+    "errors": {
+      "emailPasswordRequired": "Please enter email and password",
+      "fillAllFields": "Please fill in all fields",
+      "passwordsNotMatch": "Passwords do not match",
+      "acceptTermsRequired": "Please accept the terms of service",
+      "loginFailed": "Login failed",
+      "registrationFailed": "Registration failed",
+      "guestLoginFailed": "Guest login failed"
+    },
+    "registrationSuccess": "Registration successful! Please login."
+  },
+  "home": {
+    "title": "Indoor Navigation",
+    "findLocation": {
+      "title": "Find Your Location",
+      "description": "Use your device's location or search for a mall/building name",
+      "getCurrentLocation": "Get Current Location",
+      "locationObtained": "Location: {lat}, {lng}",
+      "enterName": "Enter mall or building name (e.g., Ningbo Mall)",
+      "findEntity": "Find Entity",
+      "searching": "Searching...",
+      "noResults": "No entities found matching your criteria.",
+      "multipleResults": "Found {count} entities. Please select one below.",
+      "selected": "Selected: {name}",
+      "found": "Found: {name}",
+      "errors": {
+        "permissionRequired": "Location permission is required to proceed.",
+        "geolocationFailed": "Failed to obtain geolocation. Please ensure location services are enabled."
+      }
+    },
+    "areaDetection": {
+      "title": "Detect Your Area",
+      "description": "Use BLE beacons to automatically detect your current area",
+      "howItWorks": "How it works:",
+      "step1": "Scans for nearby BLE beacons",
+      "step2": "Identifies your current area automatically",
+      "step3": "Works on both mobile and desktop (with mock data)",
+      "detectButton": "Detect Current Area",
+      "detecting": "Detecting Area...",
+      "foundArea": "Found area: {name}",
+      "successfullyDetected": "Successfully detected: {name}",
+      "noBeacons": "Failed to detect area. No beacons found nearby.",
+      "selectEntityFirst": "Please select an entity first"
+    },
+    "location": {
+      "title": "Current Location",
+      "located": "Located",
+      "position": "Position: ({x}, {y})",
+      "locateMe": "Locate Me",
+      "locating": "Locating...",
+      "locatedAt": "Located at ({x}, {y})",
+      "areaChanged": "Area changed to {name}",
+      "selectEntityAndArea": "Please select an entity and area first",
+      "updateLocation": "Update Location"
+    },
+    "merchants": {
+      "title": "Nearby Merchants",
+      "searchMerchants": "Search Merchants"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "startNavigation": "Start Navigation",
+      "viewAllAreas": "View All Areas",
+      "searchMerchants": "Search Merchants",
+      "updateLocation": "Update Location"
+    },
+    "map": {
+      "noData": "No map data available",
+      "detectArea": "Detect Area"
+    },
+    "selectLocation": {
+      "title": "Select Location",
+      "description": "Multiple locations found. Please select one:"
+    }
+  },
+  "navigation": {
+    "title": "Indoor Navigation",
+    "subtitle": "Find your way around",
+    "locateMe": "Locate Me",
+    "locating": "Locating...",
+    "stats": {
+      "distance": "Distance",
+      "totalDistance": "Total Distance",
+      "steps": "Steps",
+      "areas": "Areas",
+      "progress": "Progress"
+    },
+    "destination": {
+      "selectTitle": "Select Destination",
+      "selectDescription": "Search and select where you want to go",
+      "searchPlaceholder": "Search merchants, stores, or tags...",
+      "noResults": "No merchants found"
+    },
+    "preferences": {
+      "title": "Route Preferences",
+      "allowElevators": "Allow Elevators",
+      "allowStairs": "Allow Stairs",
+      "allowEscalators": "Allow Escalators"
+    },
+    "calculateRoute": "Calculate Route",
+    "calculating": "Calculating...",
+    "startNavigation": "Start Navigation",
+    "stopNavigation": "Stop Navigation",
+    "clearRoute": "Clear Route",
+    "help": {
+      "title": "How to Navigate",
+      "step1": "Search for your destination",
+      "step2": "Select route preferences",
+      "step3": "Calculate the route",
+      "step4": "Start navigation for turn-by-turn directions"
+    },
+    "instructions": {
+      "enterArea": "Enter {name}",
+      "exitArea": "Exit {name}",
+      "useElevator": "Use elevator to {floor}",
+      "useStairs": "Use stairs to {floor}",
+      "useEscalator": "Use escalator to {floor}",
+      "turnLeft": "Turn left",
+      "turnRight": "Turn right",
+      "goStraight": "Go straight",
+      "arrived": "You have arrived at your destination"
+    }
+  },
+  "entityDetails": {
+    "title": "Entity Details",
+    "description": "View all areas, merchants, and beacons within this entity",
+    "stats": {
+      "areas": "Areas",
+      "merchants": "Merchants",
+      "beacons": "Beacons"
+    },
+    "sections": {
+      "areasTitle": "Areas",
+      "code": "Code:",
+      "merchants": "Merchants:",
+      "beacons": "Beacons:",
+      "polygonPoints": "Polygon Points:",
+      "viewArea": "View Area"
+    },
+    "empty": {
+      "noAreas": "No Areas Found",
+      "noAreasDescription": "This entity doesn't have any areas configured yet."
+    },
+    "noDescription": "No description"
+  },
+  "area": {
+    "floor": "Floor",
+    "details": "Area Details"
+  },
+  "merchant": {
+    "store": "Store",
+    "details": "Merchant Details"
+  },
+  "beacon": {
+    "details": "Beacon Details"
+  },
+  "units": {
+    "meters": "m",
+    "kilometers": "km",
+    "centimeters": "cm"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Network error. Please check your connection.",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized. Please login.",
+    "forbidden": "Access denied"
+  }
+}

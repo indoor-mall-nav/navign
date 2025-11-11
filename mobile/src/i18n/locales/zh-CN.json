@@ -1,1 +1,204 @@
-{}
+{
+  "common": {
+    "email": "邮箱",
+    "username": "用户名",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "login": "登录",
+    "logout": "退出登录",
+    "register": "注册",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "search": "搜索",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  },
+  "auth": {
+    "loginTitle": "登录以继续",
+    "registerTitle": "注册账户",
+    "loginDescription": "您可以使用任何邮箱和密码登录，或以访客身份继续。您也可以使用谷歌或GitHub登录。为了确保流畅的体验，我们建议您登录以创建个性化体验。",
+    "continueAsGuest": "以访客身份继续",
+    "loginButton": "登录",
+    "registerButton": "注册",
+    "loggingIn": "登录中...",
+    "registering": "注册中...",
+    "alreadyHaveAccount": "已有账户？登录",
+    "dontHaveAccount": "还没有账户？注册",
+    "acceptTerms": "我同意服务条款和隐私政策。",
+    "errors": {
+      "emailPasswordRequired": "请输入邮箱和密码",
+      "fillAllFields": "请填写所有字段",
+      "passwordsNotMatch": "密码不匹配",
+      "acceptTermsRequired": "请接受服务条款",
+      "loginFailed": "登录失败",
+      "registrationFailed": "注册失败",
+      "guestLoginFailed": "访客登录失败"
+    },
+    "registrationSuccess": "注册成功！请登录。"
+  },
+  "home": {
+    "title": "室内导航",
+    "findLocation": {
+      "title": "查找您的位置",
+      "description": "使用设备位置或搜索商场/建筑名称",
+      "getCurrentLocation": "获取当前位置",
+      "locationObtained": "位置：{lat}, {lng}",
+      "enterName": "输入商场或建筑名称（例如：宁波商场）",
+      "findEntity": "查找实体",
+      "searching": "搜索中...",
+      "noResults": "未找到符合条件的实体。",
+      "multipleResults": "找到 {count} 个实体。请在下方选择一个。",
+      "selected": "已选择：{name}",
+      "found": "找到：{name}",
+      "errors": {
+        "permissionRequired": "需要位置权限才能继续。",
+        "geolocationFailed": "无法获取地理位置。请确保已启用位置服务。"
+      }
+    },
+    "areaDetection": {
+      "title": "检测您的区域",
+      "description": "使用蓝牙信标自动检测您当前所在的区域",
+      "howItWorks": "工作原理：",
+      "step1": "扫描附近的蓝牙信标",
+      "step2": "自动识别您当前的区域",
+      "step3": "支持移动端和桌面端（使用模拟数据）",
+      "detectButton": "检测当前区域",
+      "detecting": "检测区域中...",
+      "foundArea": "找到区域：{name}",
+      "successfullyDetected": "成功检测到：{name}",
+      "noBeacons": "未能检测到区域。附近未找到信标。",
+      "selectEntityFirst": "请先选择一个实体"
+    },
+    "location": {
+      "title": "当前位置",
+      "located": "已定位",
+      "position": "位置：({x}, {y})",
+      "locateMe": "定位我",
+      "locating": "定位中...",
+      "locatedAt": "定位于 ({x}, {y})",
+      "areaChanged": "区域已更改为 {name}",
+      "selectEntityAndArea": "请先选择实体和区域",
+      "updateLocation": "更新位置"
+    },
+    "merchants": {
+      "title": "附近商家",
+      "searchMerchants": "搜索商家"
+    },
+    "quickActions": {
+      "title": "快捷操作",
+      "startNavigation": "开始导航",
+      "viewAllAreas": "查看所有区域",
+      "searchMerchants": "搜索商家",
+      "updateLocation": "更新位置"
+    },
+    "map": {
+      "noData": "暂无地图数据",
+      "detectArea": "检测区域"
+    },
+    "selectLocation": {
+      "title": "选择位置",
+      "description": "找到多个位置。请选择一个："
+    }
+  },
+  "navigation": {
+    "title": "室内导航",
+    "subtitle": "寻找您的路线",
+    "locateMe": "定位我",
+    "locating": "定位中...",
+    "stats": {
+      "distance": "距离",
+      "totalDistance": "总距离",
+      "steps": "步骤",
+      "areas": "区域",
+      "progress": "进度"
+    },
+    "destination": {
+      "selectTitle": "选择目的地",
+      "selectDescription": "搜索并选择您要去的地方",
+      "searchPlaceholder": "搜索商家、店铺或标签...",
+      "noResults": "未找到商家"
+    },
+    "preferences": {
+      "title": "路线偏好",
+      "allowElevators": "允许电梯",
+      "allowStairs": "允许楼梯",
+      "allowEscalators": "允许扶梯"
+    },
+    "calculateRoute": "计算路线",
+    "calculating": "计算中...",
+    "startNavigation": "开始导航",
+    "stopNavigation": "停止导航",
+    "clearRoute": "清除路线",
+    "help": {
+      "title": "如何导航",
+      "step1": "搜索您的目的地",
+      "step2": "选择路线偏好",
+      "step3": "计算路线",
+      "step4": "开始导航获取逐步指引"
+    },
+    "instructions": {
+      "enterArea": "进入 {name}",
+      "exitArea": "离开 {name}",
+      "useElevator": "乘坐电梯到 {floor}",
+      "useStairs": "走楼梯到 {floor}",
+      "useEscalator": "乘坐扶梯到 {floor}",
+      "turnLeft": "左转",
+      "turnRight": "右转",
+      "goStraight": "直行",
+      "arrived": "您已到达目的地"
+    }
+  },
+  "entityDetails": {
+    "title": "实体详情",
+    "description": "查看此实体内的所有区域、商家和信标",
+    "stats": {
+      "areas": "区域",
+      "merchants": "商家",
+      "beacons": "信标"
+    },
+    "sections": {
+      "areasTitle": "区域",
+      "code": "代码：",
+      "merchants": "商家：",
+      "beacons": "信标：",
+      "polygonPoints": "多边形点数：",
+      "viewArea": "查看区域"
+    },
+    "empty": {
+      "noAreas": "未找到区域",
+      "noAreasDescription": "此实体尚未配置任何区域。"
+    },
+    "noDescription": "无描述"
+  },
+  "area": {
+    "floor": "楼层",
+    "details": "区域详情"
+  },
+  "merchant": {
+    "store": "店铺",
+    "details": "商家详情"
+  },
+  "beacon": {
+    "details": "信标详情"
+  },
+  "units": {
+    "meters": "米",
+    "kilometers": "公里",
+    "centimeters": "厘米"
+  },
+  "errors": {
+    "generic": "发生错误",
+    "network": "网络错误。请检查您的连接。",
+    "notFound": "未找到",
+    "unauthorized": "未授权。请登录。",
+    "forbidden": "访问被拒绝"
+  }
+}
