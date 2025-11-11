@@ -1,13 +1,13 @@
 use crate::schema::Service;
-use bson::oid::ObjectId;
+use uuid::Uuid;
+use sqlx::FromRow;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct UserPublicKeys {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
+    pub id: Uuid,
     pub user: String,
     pub model: String,
     pub arch: String,
@@ -16,8 +16,10 @@ pub struct UserPublicKeys {
 }
 
 impl Service for UserPublicKeys {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id
     }
     fn get_name(&self) -> String {
         self.identifier.clone()
@@ -29,7 +31,7 @@ impl Service for UserPublicKeys {
         None
     }
     fn set_description(&mut self, _description: Option<String>) {}
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "user_public_keys"
     }
     fn require_unique_name() -> bool {
@@ -50,7 +52,7 @@ mod tests {
     #[test]
     fn test_user_public_keys_creation() {
         let keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "user123".to_string(),
             model: "iPhone 14".to_string(),
             arch: "arm64".to_string(),
@@ -67,7 +69,7 @@ mod tests {
     #[test]
     fn test_service_trait_implementation() {
         let keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "user456".to_string(),
             model: "Android".to_string(),
             arch: "x86_64".to_string(),
@@ -77,14 +79,14 @@ mod tests {
 
         assert_eq!(keys.get_name(), "device-002");
         assert_eq!(keys.get_description(), None);
-        assert_eq!(UserPublicKeys::get_collection_name(), "user_public_keys");
+        assert_eq!(UserPublicKeys::get_table_name(), "user_public_keys");
         assert!(UserPublicKeys::require_unique_name());
     }
 
     #[test]
     fn test_service_set_name() {
         let mut keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "user789".to_string(),
             model: "Desktop".to_string(),
             arch: "x86_64".to_string(),
@@ -100,7 +102,7 @@ mod tests {
     #[test]
     fn test_serialization() {
         let keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "testuser".to_string(),
             model: "Test Model".to_string(),
             arch: "test_arch".to_string(),
@@ -120,7 +122,7 @@ mod tests {
     #[test]
     fn test_public_key_invalid_pem() {
         let keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "user".to_string(),
             model: "model".to_string(),
             arch: "arch".to_string(),
@@ -135,7 +137,7 @@ mod tests {
     #[test]
     fn test_service_set_description() {
         let mut keys = UserPublicKeys {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             user: "user".to_string(),
             model: "model".to_string(),
             arch: "arch".to_string(),
@@ -149,10 +151,10 @@ mod tests {
     }
 
     #[test]
-    fn test_get_id_returns_hex() {
-        let obj_id = ObjectId::new();
+    fn test_get_id_returns_uuid() {
+        let uuid = Uuid::new_v4();
         let keys = UserPublicKeys {
-            id: obj_id,
+            id: uuid,
             user: "user".to_string(),
             model: "model".to_string(),
             arch: "arch".to_string(),
@@ -160,8 +162,8 @@ mod tests {
             public_key: "key".to_string(),
         };
 
-        let hex_id = keys.get_id();
-        assert_eq!(hex_id, obj_id.to_hex());
-        assert_eq!(hex_id.len(), 24); // ObjectId hex is 24 characters
+        let id = keys.get_id();
+        assert_eq!(id, uuid);
+        assert_eq!(id.to_string().len(), 36); // UUID string is 36 characters
     }
 }

@@ -2,11 +2,9 @@ use crate::AppState;
 use axum::extract::{Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use bson::doc;
-use bson::oid::ObjectId;
-use futures::stream::TryStreamExt;
 use log::info;
-use mongodb::{Collection, Database};
+use sqlx::PgPool;
+use uuid::Uuid;
 use navign_shared::{Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadResponse};
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -38,106 +36,221 @@ async fn calculate_checksum(file_path: &PathBuf) -> Result<String, std::io::Erro
 
 /// Get the latest firmware for a specific device
 pub async fn get_latest_firmware(
-    db: &Database,
+    pool: &PgPool,
     device: FirmwareDevice,
-) -> Result<Option<Firmware>, mongodb::error::Error> {
-    let collection: Collection<Firmware> = db.collection("firmwares");
+) -> Result<Option<Firmware>, sqlx::Error> {
+    let device_str = device.as_str();
 
-    let filter = doc! {
-        "device": device.as_str(),
-        "is_latest": true,
-    };
+    let firmware = sqlx::query_as!(
+        Firmware,
+        r#"
+        SELECT
+            id,
+            version,
+            device as "device: FirmwareDevice",
+            description,
+            file_path,
+            file_size,
+            checksum,
+            is_latest,
+            git_commit,
+            build_time,
+            created_at,
+            release_notes
+        FROM firmwares
+        WHERE device = $1 AND is_latest = true
+        LIMIT 1
+        "#,
+        device_str
+    )
+    .fetch_optional(pool)
+    .await?;
 
-    collection.find_one(filter).await
+    Ok(firmware)
 }
 
 /// Get firmware by ID
 pub async fn get_firmware_by_id(
-    db: &Database,
+    pool: &PgPool,
     id: &str,
-) -> Result<Option<Firmware>, mongodb::error::Error> {
-    let collection: Collection<Firmware> = db.collection("firmwares");
-    let oid = ObjectId::parse_str(id)
-        .map_err(|e| mongodb::error::Error::custom(format!("Invalid ObjectId: {}", e)))?;
+) -> Result<Option<Firmware>, sqlx::Error> {
+    let uuid = Uuid::parse_str(id)
+        .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
 
-    collection.find_one(doc! { "_id": oid }).await
+    let firmware = sqlx::query_as!(
+        Firmware,
+        r#"
+        SELECT
+            id,
+            version,
+            device as "device: FirmwareDevice",
+            description,
+            file_path,
+            file_size,
+            checksum,
+            is_latest,
+            git_commit,
+            build_time,
+            created_at,
+            release_notes
+        FROM firmwares
+        WHERE id = $1
+        "#,
+        uuid
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(firmware)
 }
 
 /// Get firmware by version and device
 pub async fn get_firmware_by_version(
-    db: &Database,
+    pool: &PgPool,
     version: &str,
     device: FirmwareDevice,
-) -> Result<Option<Firmware>, mongodb::error::Error> {
-    let collection: Collection<Firmware> = db.collection("firmwares");
+) -> Result<Option<Firmware>, sqlx::Error> {
+    let device_str = device.as_str();
 
-    let filter = doc! {
-        "version": version,
-        "device": device.as_str(),
-    };
+    let firmware = sqlx::query_as!(
+        Firmware,
+        r#"
+        SELECT
+            id,
+            version,
+            device as "device: FirmwareDevice",
+            description,
+            file_path,
+            file_size,
+            checksum,
+            is_latest,
+            git_commit,
+            build_time,
+            created_at,
+            release_notes
+        FROM firmwares
+        WHERE version = $1 AND device = $2
+        "#,
+        version,
+        device_str
+    )
+    .fetch_optional(pool)
+    .await?;
 
-    collection.find_one(filter).await
+    Ok(firmware)
 }
 
 /// List all firmwares with optional filtering
 pub async fn list_firmwares(
-    db: &Database,
+    pool: &PgPool,
     query: FirmwareQuery,
-) -> Result<Vec<Firmware>, mongodb::error::Error> {
-    let collection: Collection<Firmware> = db.collection("firmwares");
+) -> Result<Vec<Firmware>, sqlx::Error> {
+    // Build WHERE clauses
+    let mut conditions = Vec::new();
+    let mut sql = String::from(
+        r#"
+        SELECT
+            id,
+            version,
+            device as "device: FirmwareDevice",
+            description,
+            file_path,
+            file_size,
+            checksum,
+            is_latest,
+            git_commit,
+            build_time,
+            created_at,
+            release_notes
+        FROM firmwares
+        "#
+    );
 
-    let mut filter = doc! {};
-
-    if let Some(device) = &query.device {
-        filter.insert("device", device.as_str());
+    if query.device.is_some() || query.version.is_some() || query.latest_only.is_some() {
+        sql.push_str("WHERE ");
     }
 
-    if let Some(version) = &query.version {
-        filter.insert("version", version);
+    if query.device.is_some() {
+        conditions.push("device = $1");
     }
-
+    if query.version.is_some() {
+        let idx = if conditions.is_empty() { 1 } else { 2 };
+        conditions.push(&format!("version = ${}", idx));
+    }
     if let Some(true) = query.latest_only {
-        filter.insert("is_latest", true);
+        conditions.push("is_latest = true");
     }
 
-    let options = mongodb::options::FindOptions::builder()
-        .sort(doc! { "created_at": -1 })
-        .build();
+    sql.push_str(&conditions.join(" AND "));
+    sql.push_str(" ORDER BY created_at DESC");
 
-    let cursor = collection.find(filter).with_options(options).await?;
-    cursor.try_collect::<Vec<Firmware>>().await
+    // Execute query based on parameters
+    let firmwares = match (&query.device, &query.version) {
+        (Some(device), Some(version)) => {
+            sqlx::query_as::<_, Firmware>(&sql)
+                .bind(device.as_str())
+                .bind(version)
+                .fetch_all(pool)
+                .await?
+        }
+        (Some(device), None) => {
+            sqlx::query_as::<_, Firmware>(&sql)
+                .bind(device.as_str())
+                .fetch_all(pool)
+                .await?
+        }
+        (None, Some(version)) => {
+            sqlx::query_as::<_, Firmware>(&sql)
+                .bind(version)
+                .fetch_all(pool)
+                .await?
+        }
+        (None, None) => {
+            sqlx::query_as::<_, Firmware>(&sql)
+                .fetch_all(pool)
+                .await?
+        }
+    };
+
+    Ok(firmwares)
 }
 
 /// Mark a firmware as latest and unmark previous ones
 async fn mark_as_latest(
-    db: &Database,
-    firmware_id: ObjectId,
+    pool: &PgPool,
+    firmware_id: Uuid,
     device: FirmwareDevice,
-) -> Result<(), mongodb::error::Error> {
-    let collection: Collection<Firmware> = db.collection("firmwares");
+) -> Result<(), sqlx::Error> {
+    let device_str = device.as_str();
+
+    // Use a transaction to ensure atomicity
+    let mut tx = pool.begin().await?;
 
     // Unmark all previous firmwares for this device
-    collection
-        .update_many(
-            doc! {
-                "device": device.as_str(),
-                "is_latest": true,
-            },
-            doc! {
-                "$set": { "is_latest": false }
-            },
-        )
-        .await?;
+    sqlx::query!(
+        r#"
+        UPDATE firmwares
+        SET is_latest = false
+        WHERE device = $1 AND is_latest = true
+        "#,
+        device_str
+    )
+    .execute(&mut *tx)
+    .await?;
 
     // Mark the new firmware as latest
-    collection
-        .update_one(
-            doc! { "_id": firmware_id },
-            doc! {
-                "$set": { "is_latest": true }
-            },
-        )
-        .await?;
+    sqlx::query!(
+        r#"
+        UPDATE firmwares
+        SET is_latest = true
+        WHERE id = $1
+        "#,
+        firmware_id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }
@@ -375,48 +488,47 @@ pub async fn upload_firmware_handler(
         }
     };
 
-    // Create firmware document
-    let firmware = Firmware {
-        id: ObjectId::new(),
-        version: version.clone(),
-        device: device.clone(),
-        description,
-        file_path: filename.clone(),
-        file_size: file_data.len() as u64,
-        checksum: checksum.clone(),
-        is_latest: mark_latest,
-        git_commit,
-        build_time: chrono::Utc::now().timestamp_millis(),
-        created_at: chrono::Utc::now().timestamp_millis(),
-        release_notes,
-    };
+    // Generate new UUID for firmware
+    let firmware_id = Uuid::new_v4();
+    let device_str = device.as_str();
+    let file_size = file_data.len() as i64;
+    let build_time = chrono::Utc::now().timestamp_millis();
+    let created_at = chrono::Utc::now().timestamp_millis();
 
     // Save to database
-    let collection: Collection<Firmware> = state.db.collection("firmwares");
-    let insert_result = match collection.insert_one(&firmware).await {
-        Ok(result) => result,
-        Err(e) => {
-            log::error!("Failed to insert firmware into database: {}", e);
-            // Clean up file
-            let _ = fs::remove_file(&file_path).await;
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                axum::Json(json!({ "error": "Failed to save firmware to database" })),
-            );
-        }
-    };
+    let insert_result = sqlx::query!(
+        r#"
+        INSERT INTO firmwares (
+            id, version, device, description, file_path, file_size, checksum,
+            is_latest, git_commit, build_time, created_at, release_notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        "#,
+        firmware_id,
+        version,
+        device_str,
+        description,
+        filename,
+        file_size,
+        checksum,
+        mark_latest,
+        git_commit,
+        build_time,
+        created_at,
+        release_notes
+    )
+    .execute(&state.db)
+    .await;
 
-    let firmware_id = match insert_result.inserted_id.as_object_id() {
-        Some(id) => id,
-        None => {
-            log::error!("Failed to get inserted firmware ID");
-            let _ = fs::remove_file(&file_path).await;
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                axum::Json(json!({ "error": "Failed to get inserted firmware ID" })),
-            );
-        }
-    };
+    if let Err(e) = insert_result {
+        log::error!("Failed to insert firmware into database: {}", e);
+        // Clean up file
+        let _ = fs::remove_file(&file_path).await;
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            axum::Json(json!({ "error": "Failed to save firmware to database" })),
+        );
+    }
 
     // Mark as latest if requested
     if mark_latest && let Err(e) = mark_as_latest(&state.db, firmware_id, device.clone()).await {
@@ -425,7 +537,7 @@ pub async fn upload_firmware_handler(
     }
 
     let response = FirmwareUploadResponse {
-        id: firmware_id.to_hex(),
+        id: firmware_id.to_string(),
         version,
         device,
         file_size: file_data.len() as u64,
@@ -534,18 +646,26 @@ pub async fn delete_firmware_handler(
     }
 
     // Delete from database
-    let collection: Collection<Firmware> = state.db.collection("firmwares");
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
+    let uuid = match Uuid::parse_str(&id) {
+        Ok(uuid) => uuid,
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                axum::Json(json!({ "error": format!("Invalid ObjectId: {}", e) })),
+                axum::Json(json!({ "error": format!("Invalid UUID: {}", e) })),
             );
         }
     };
 
-    match collection.delete_one(doc! { "_id": oid }).await {
+    match sqlx::query!(
+        r#"
+        DELETE FROM firmwares
+        WHERE id = $1
+        "#,
+        uuid
+    )
+    .execute(&state.db)
+    .await
+    {
         Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "deleted" }))),
         Err(e) => {
             log::error!("Failed to delete firmware from database: {}", e);

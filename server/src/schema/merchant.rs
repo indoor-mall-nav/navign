@@ -1,4 +1,5 @@
 use crate::schema::service::{OneInArea, Service};
+use uuid::Uuid;
 
 // Re-export from navign-shared
 pub use navign_shared::{
@@ -7,8 +8,10 @@ pub use navign_shared::{
 };
 
 impl Service for Merchant {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id.expect("Merchant must have an ID")
     }
 
     fn get_name(&self) -> String {
@@ -27,7 +30,7 @@ impl Service for Merchant {
         self.description = description;
     }
 
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "merchants"
     }
 

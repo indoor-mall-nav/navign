@@ -40,7 +40,7 @@ impl<'a> Dummy<'a> for Merchant<'a> {
             name: Atom::from("Dummy Merchant"),
             coordinates: (0.0, 0.0),
             r#type: Box::new_in(MerchantType::Other, allocator),
-            database_id: Atom::from_in(bson::oid::ObjectId::new().to_hex(), allocator),
+            database_id: Atom::from_in(uuid::Uuid::new_v4().to_string(), allocator),
             phantom: std::marker::PhantomData,
         }
     }
@@ -54,7 +54,7 @@ impl<'a> FromIn<'a, crate::schema::Merchant> for Merchant<'a> {
             name: Atom::from_in(merchant.name.clone(), allocator),
             coordinates: merchant.location,
             r#type: Box::new_in(merchant.r#type.clone(), allocator),
-            database_id: Atom::from_in(merchant.id.to_hex(), allocator),
+            database_id: Atom::from_in(merchant.id.to_string(), allocator),
             phantom: std::marker::PhantomData,
         }
     }
@@ -64,13 +64,13 @@ impl<'a> IntoIn<'a, crate::schema::Merchant> for Merchant<'a> {
     fn into_in(self, _allocator: &'a Bump) -> crate::schema::Merchant {
         // Warn: it's better to reread from database to avoid data loss
         crate::schema::Merchant {
-            id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
-                .unwrap_or_else(|_| bson::oid::ObjectId::new()),
+            id: uuid::Uuid::parse_str(self.database_id.as_str())
+                .unwrap_or_else(|_| uuid::Uuid::new_v4()),
             name: self.name.to_string(),
             location: self.coordinates,
             r#type: (*self.r#type).clone(),
             description: None,
-            area: bson::oid::ObjectId::new(),
+            area_id: uuid::Uuid::new_v4(),
             tags: vec![],
             ..Default::default()
         }

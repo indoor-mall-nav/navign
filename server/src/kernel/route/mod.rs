@@ -2,9 +2,7 @@ use crate::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use bson::doc;
 use bumpalo::Bump;
-use futures::TryStreamExt;
 use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -42,7 +40,7 @@ pub fn route(
         let area = parts[2].to_string();
         (lon, lat, area)
     } else {
-        let departure = match merchants.iter().find(|m| m.id.to_hex() == departure) {
+        let departure = match merchants.iter().find(|m| m.id.to_string() == departure) {
             Some(m) => m,
             None => return Err(NavigationError::InvalidDeparture),
         }
@@ -50,7 +48,7 @@ pub fn route(
         (
             departure.location.0,
             departure.location.1,
-            departure.area.to_hex(),
+            departure.area.to_string(),
         )
     };
     let arrival = if arrival.contains(",") {
@@ -67,7 +65,7 @@ pub fn route(
         let area = parts[2].to_string();
         (lon, lat, area)
     } else {
-        let arrival = match merchants.iter().find(|m| m.id.to_hex() == arrival) {
+        let arrival = match merchants.iter().find(|m| m.id.to_string() == arrival) {
             Some(m) => m,
             None => return Err(NavigationError::InvalidArrival),
         }
@@ -75,7 +73,7 @@ pub fn route(
         (
             arrival.location.0,
             arrival.location.1,
-            arrival.area.to_hex(),
+            arrival.area.to_string(),
         )
     };
     route_point(
@@ -156,16 +154,14 @@ pub async fn find_route(
             );
         }
     };
-    let areas = match state
-        .db
-        .collection(crate::schema::Area::get_collection_name())
-        .find(doc! { "entity": entity.id })
-        .await
+    let areas = match sqlx::query_as::<_, crate::schema::Area>(
+        "SELECT * FROM areas WHERE entity_id = $1"
+    )
+    .bind(entity.id)
+    .fetch_all(&state.db)
+    .await
     {
-        Ok(cursor) => cursor
-            .try_collect::<Vec<crate::schema::Area>>()
-            .await
-            .unwrap_or_default(),
+        Ok(areas) => areas,
         Err(e) => {
             log::error!("Failed to find areas: {}", e);
             return (
@@ -175,16 +171,14 @@ pub async fn find_route(
         }
     };
 
-    let connections = match state
-        .db
-        .collection(crate::schema::Connection::get_collection_name())
-        .find(doc! { "entity": entity.id })
-        .await
+    let connections = match sqlx::query_as::<_, crate::schema::Connection>(
+        "SELECT * FROM connections WHERE entity_id = $1"
+    )
+    .bind(entity.id)
+    .fetch_all(&state.db)
+    .await
     {
-        Ok(cursor) => cursor
-            .try_collect::<Vec<crate::schema::Connection>>()
-            .await
-            .unwrap_or_default(),
+        Ok(connections) => connections,
         Err(e) => {
             log::error!("Failed to find connections: {}", e);
             return (
@@ -194,16 +188,14 @@ pub async fn find_route(
         }
     };
 
-    let merchants = match state
-        .db
-        .collection(crate::schema::Merchant::get_collection_name())
-        .find(doc! { "entity": entity.id })
-        .await
+    let merchants = match sqlx::query_as::<_, crate::schema::Merchant>(
+        "SELECT * FROM merchants WHERE entity_id = $1"
+    )
+    .bind(entity.id)
+    .fetch_all(&state.db)
+    .await
     {
-        Ok(cursor) => cursor
-            .try_collect::<Vec<crate::schema::Merchant>>()
-            .await
-            .unwrap_or_default(),
+        Ok(merchants) => merchants,
         Err(e) => {
             log::error!("Failed to find merchants: {}", e);
             return (

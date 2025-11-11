@@ -15,43 +15,38 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
 use crate::schema::User;
-use bson::doc;
-use bson::oid::ObjectId;
 use gravatar::Gravatar;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
-use mongodb::Database;
+use sqlx::PgPool;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub trait Authenticator<'de, T: Sized + Clone + Debug + Serialize + Deserialize<'de>> {
-    async fn authenticate(&self, credential: T, db: &Database) -> Result<String>;
+    async fn authenticate(&self, credential: T, db: &PgPool) -> Result<String>;
 
-    async fn username(&self, db: &Database) -> Result<String> {
-        let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db
-            .collection("users")
-            .find_one(doc! {
-                "_id": id,
-            })
-            .await?
-        {
-            Some(doc) => doc,
-            None => return Err(anyhow!("User not found")),
-        };
+    async fn username(&self, db: &PgPool) -> Result<String> {
+        let id = Uuid::from_str(self.userid().as_str())?;
+        let document: User = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE id = $1"
+        )
+        .bind(id)
+        .fetch_one(db)
+        .await
+        .map_err(|_| anyhow!("User not found"))?;
+
         Ok(document.username)
     }
 
-    async fn avatar_url(&self, db: &Database) -> Result<String> {
-        let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db
-            .collection("users")
-            .find_one(doc! {
-                "_id": id,
-            })
-            .await?
-        {
-            Some(doc) => doc,
-            None => return Err(anyhow!("User not found")),
-        };
+    async fn avatar_url(&self, db: &PgPool) -> Result<String> {
+        let id = Uuid::from_str(self.userid().as_str())?;
+        let document: User = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE id = $1"
+        )
+        .bind(id)
+        .fetch_one(db)
+        .await
+        .map_err(|_| anyhow!("User not found"))?;
+
         let gravatar = Gravatar::new(document.email.as_str()).image_url();
         Ok(gravatar.to_string())
     }
@@ -109,7 +104,7 @@ impl From<(&User, String)> for Token {
         let now = chrono::Utc::now().timestamp();
         Token {
             iss: "Navign".to_string(),
-            sub: user.id.to_hex(),
+            sub: user.id.to_string(),
             name: user.username.clone(),
             device,
             iat: now,

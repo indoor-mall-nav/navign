@@ -1,10 +1,10 @@
 use crate::kernel::route::{Area, CloneIn, Connection, Entity, FromIn, Merchant};
-use bson::oid::ObjectId;
 use bumpalo::Bump;
 use log::trace;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
+use uuid::Uuid;
 
 pub trait ConvertEntityIn<'a, T> {
     fn convert_entity_in(
@@ -44,7 +44,7 @@ impl<'a> ConvertEntityIn<'a, Entity<'a>> for Entity<'a> {
                     trace!("Processing connected area id: {}", connected_area_id);
                     if let Some(connected_area) =
                         Rc::clone(&allocated_areas).borrow().iter().find(|a| {
-                            a.database_id.as_str() == connected_area_id.to_hex().as_str() && *open
+                            a.database_id.as_str() == connected_area_id.to_string().as_str() && *open
                         })
                     {
                         let ptr = connected_area.deref() as *const Area;
@@ -67,14 +67,14 @@ impl<'a> ConvertEntityIn<'a, Entity<'a>> for Entity<'a> {
         );
         for area in allocated_areas.borrow_mut().iter_mut() {
             trace!("Processing area id: {}", area.database_id);
-            let area_id = ObjectId::parse_str(area.database_id.as_str()).ok()?;
+            let area_id = Uuid::parse_str(area.database_id.as_str()).ok()?;
             let connections = bumpalo::collections::Vec::from_iter_in(
                 allocated_connections.iter().filter_map(|conn| {
                     trace!("Checking connection id: {}", conn.database_id);
                     conn.connected_areas
                         .iter()
                         .any(|(a, _, _)| {
-                            let a_id = ObjectId::parse_str(a.database_id.as_str()).ok();
+                            let a_id = Uuid::parse_str(a.database_id.as_str()).ok();
                             trace!("Comparing area ids: {} and {:?}", area_id, a_id);
                             a_id == Some(area_id)
                         })
@@ -101,8 +101,8 @@ impl<'a> ConvertEntityIn<'a, Entity<'a>> for Entity<'a> {
             // Merchants are directly filtered from the original list
             let merchants = bumpalo::collections::Vec::from_iter_in(
                 merchant_list.iter().filter_map(|m| {
-                    trace!("Checking merchant id: {} with area id: {}", m.id, m.area);
-                    if m.area == area_id {
+                    trace!("Checking merchant id: {} with area id: {}", m.id, m.area_id);
+                    if m.area_id == area_id {
                         trace!("Merchant {} belongs to area {}", m.id, area.database_id);
                         Some(bumpalo::boxed::Box::new_in(
                             Merchant::from_in(m.clone(), alloc),

@@ -5,9 +5,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use bson::doc;
 use log::{error, info};
-use mongodb::Collection;
 use navign_shared::{AuthResponse, LoginRequest, RegisterRequest};
 use serde_json::json;
 
@@ -22,12 +20,14 @@ pub async fn register_handler(
     info!("Handling user registration for: {}", request.username);
 
     let db = &state.db;
-    let collection: Collection<User> = db.collection("users");
 
     // Check if username already exists
-    match collection
-        .find_one(doc! { "username": &request.username })
-        .await
+    match sqlx::query_as::<_, User>(
+        "SELECT * FROM users WHERE username = $1"
+    )
+    .bind(&request.username)
+    .fetch_optional(db)
+    .await
     {
         Ok(Some(_)) => {
             return (
@@ -50,7 +50,13 @@ pub async fn register_handler(
     }
 
     // Check if email already exists
-    match collection.find_one(doc! { "email": &request.email }).await {
+    match sqlx::query_as::<_, User>(
+        "SELECT * FROM users WHERE email = $1"
+    )
+    .bind(&request.email)
+    .fetch_optional(db)
+    .await
+    {
         Ok(Some(_)) => {
             return (
                 StatusCode::CONFLICT,
@@ -82,24 +88,28 @@ pub async fn register_handler(
     );
 
     // Insert user into database
-    match collection.insert_one(&user).await {
-        Ok(result) => {
-            let user_id = match result.inserted_id.as_object_id() {
-                Some(oid) => oid.to_hex(),
-                None => {
-                    error!("Inserted ID is not an ObjectId");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({
-                            "error": "Internal server error"
-                        })),
-                    );
-                }
-            };
+    match sqlx::query_as::<_, User>(
+        "INSERT INTO users (id, username, email, password_hash, activated, github_id, google_id, wechat_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *"
+    )
+    .bind(user.id)
+    .bind(&user.username)
+    .bind(&user.email)
+    .bind(&user.password_hash)
+    .bind(user.activated)
+    .bind(user.github_id)
+    .bind(user.google_id)
+    .bind(user.wechat_id)
+    .fetch_one(db)
+    .await
+    {
+        Ok(inserted_user) => {
+            let user_id = inserted_user.id.to_string();
             info!("User registered successfully: {}", user_id);
 
             // Generate JWT token using existing Token infrastructure
-            let token = Token::from((&user, DEFAULT_DEVICE.to_string()));
+            let token = Token::from((&inserted_user, DEFAULT_DEVICE.to_string()));
             let token_string = token.to_string();
 
             let response = AuthResponse {
@@ -129,12 +139,14 @@ pub async fn login_handler(
     info!("Handling user login for: {}", request.username);
 
     let db = &state.db;
-    let collection: Collection<User> = db.collection("users");
 
     // Find user by username
-    let user = match collection
-        .find_one(doc! { "username": &request.username })
-        .await
+    let user = match sqlx::query_as::<_, User>(
+        "SELECT * FROM users WHERE username = $1"
+    )
+    .bind(&request.username)
+    .fetch_optional(db)
+    .await
     {
         Ok(Some(user)) => user,
         Ok(None) => {
@@ -167,7 +179,7 @@ pub async fn login_handler(
     }
 
     // Generate JWT token using existing Token infrastructure
-    let user_id = user.id.to_hex();
+    let user_id = user.id.to_string();
     let token = Token::from((&user, DEFAULT_DEVICE.to_string()));
     let token_string = token.to_string();
 

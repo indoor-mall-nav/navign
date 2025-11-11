@@ -72,7 +72,7 @@ impl<'a> Dummy<'a> for Connection<'a> {
         Self {
             name: Atom::from("Dummy Connection"),
             description: Some(Atom::from("This is a dummy connection for testing.")),
-            database_id: Atom::from_in(bson::oid::ObjectId::new().to_hex(), allocator),
+            database_id: Atom::from_in(uuid::Uuid::new_v4().to_string(), allocator),
             r#type: Box::new_in(ConnectionType::Escalator, allocator),
             connected_areas: Vec::new_in(allocator),
             available_hours: None,
@@ -86,7 +86,7 @@ impl<'a> FromIn<'a, crate::schema::Connection> for Connection<'a> {
         Self {
             name: Atom::from_in(value.name, allocator),
             description: value.description.map(|d| Atom::from_in(d, allocator)),
-            database_id: Atom::from_in(value.id.to_hex(), allocator),
+            database_id: Atom::from_in(value.id.to_string(), allocator),
             r#type: Box::new_in(value.r#type, allocator),
             connected_areas: Vec::new_in(allocator), // Needs to be populated separately
             available_hours: Some(Vec::from_iter_in(
@@ -102,9 +102,9 @@ impl<'a> IntoIn<'a, crate::schema::Connection> for Connection<'a> {
     fn into_in(self, _allocator: &'a Bump) -> crate::schema::Connection {
         // Warn: it's better to reread from database to avoid data loss
         crate::schema::Connection {
-            id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
-                .unwrap_or_else(|_| bson::oid::ObjectId::new()),
-            entity: bson::oid::ObjectId::new(), // Needs to be set properly
+            id: uuid::Uuid::parse_str(self.database_id.as_str())
+                .unwrap_or_else(|_| uuid::Uuid::new_v4()),
+            entity_id: uuid::Uuid::new_v4(), // Needs to be set properly
             name: self.name.to_string(),
             description: self.description.map(|d| d.to_string()),
             r#type: (*self.r#type),

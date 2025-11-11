@@ -1,22 +1,24 @@
 use crate::schema::Service;
-use bson::oid::ObjectId;
+use uuid::Uuid;
+use sqlx::{FromRow, PgPool};
 use p256::pkcs8::DecodePrivateKey;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct BeaconSecrets {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
+    pub id: Uuid,
     pub mac: String,
-    pub last_epoch: u64,
-    pub counter: u64,
+    pub last_epoch: i64,
+    pub counter: i64,
     /// The PEM format of the ECDSA private key
     pub ecdsa_key: String,
 }
 
 impl Service for BeaconSecrets {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id
     }
     fn get_name(&self) -> String {
         self.mac.clone()
@@ -28,7 +30,7 @@ impl Service for BeaconSecrets {
         None
     }
     fn set_description(&mut self, _description: Option<String>) {}
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "beacon_secrets"
     }
     fn require_unique_name() -> bool {
@@ -39,7 +41,7 @@ impl Service for BeaconSecrets {
 impl BeaconSecrets {
     pub fn new(mac: String, ecdsa_key: String) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             mac,
             last_epoch: 0,
             counter: 0,
@@ -48,32 +50,34 @@ impl BeaconSecrets {
     }
 
     pub fn epoch(&mut self, epoch: u64) {
-        self.last_epoch = epoch;
+        self.last_epoch = epoch as i64;
     }
 
     pub fn ecdsa_key(&self) -> Option<p256::ecdsa::SigningKey> {
         p256::ecdsa::SigningKey::from_pkcs8_pem(self.ecdsa_key.as_str()).ok()
     }
 
-    pub async fn increment_counter(&mut self, db: &mongodb::Database) -> anyhow::Result<()> {
+    pub async fn increment_counter(&mut self, pool: &PgPool) -> anyhow::Result<()> {
         let new_counter = self
             .counter
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("Counter overflow"))?;
 
-        if new_counter > i64::MAX as u64 {
+        if new_counter > i64::MAX {
             return Err(anyhow::anyhow!(
                 "Counter exceeds max value allowed in database"
             ));
         }
 
-        let collection = db.collection::<BeaconSecrets>(Self::get_collection_name());
-        collection
-            .update_one(
-                bson::doc! { "_id": &self.id },
-                bson::doc! { "$set": { "counter": new_counter as i64 } },
-            )
-            .await?;
+        sqlx::query!(
+            "UPDATE beacon_secrets SET counter = $1 WHERE id = $2",
+            new_counter,
+            self.id
+        )
+        .execute(pool)
+        .await?;
+
+        self.counter = new_counter;
         Ok(())
     }
 }
@@ -99,50 +103,109 @@ mod tests {
 
     #[tokio::test]
     async fn test_increment_counter() {
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://localhost/navign_test".to_string());
+        let pool = PgPool::connect(&database_url).await.unwrap();
+
+        // Create test table
+        sqlx::query!(
+            r#"
+            CREATE TABLE IF NOT EXISTS beacon_secrets (
+                id UUID PRIMARY KEY,
+                mac TEXT NOT NULL,
+                last_epoch BIGINT NOT NULL,
+                counter BIGINT NOT NULL,
+                ecdsa_key TEXT NOT NULL
+            )
+            "#
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
         let mut beacon = BeaconSecrets::new("AA:BB:CC:DD:EE:FF".to_string(), "".to_string());
-        let counter = 0;
-        beacon.counter = counter;
-        let db_test = mongodb::Client::with_uri_str("mongodb://localhost:27017")
-            .await
-            .unwrap();
-        let db = db_test.database("test_db");
-        let collection = db.collection::<BeaconSecrets>(BeaconSecrets::get_collection_name());
-        collection.delete_many(bson::doc! {}).await.unwrap();
-        collection.insert_one(&beacon).await.unwrap();
+        beacon.counter = 0;
+
+        // Insert test beacon
+        sqlx::query!(
+            "INSERT INTO beacon_secrets (id, mac, last_epoch, counter, ecdsa_key) VALUES ($1, $2, $3, $4, $5)",
+            beacon.id,
+            beacon.mac,
+            beacon.last_epoch,
+            beacon.counter,
+            beacon.ecdsa_key
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
 
         // This should succeed
-        assert!(beacon.increment_counter(&db).await.is_ok());
-        let new_beacon = collection
-            .find_one(bson::doc! { "_id": &beacon.id })
+        assert!(beacon.increment_counter(&pool).await.is_ok());
+
+        let updated_beacon = sqlx::query_as!(
+            BeaconSecrets,
+            "SELECT id, mac, last_epoch, counter, ecdsa_key FROM beacon_secrets WHERE id = $1",
+            beacon.id
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(updated_beacon.counter, 1);
+
+        // Cleanup
+        sqlx::query!("DELETE FROM beacon_secrets WHERE id = $1", beacon.id)
+            .execute(&pool)
             .await
-            .ok()
-            .flatten()
             .unwrap();
-        assert_eq!(new_beacon.counter, 1);
     }
 
     #[tokio::test]
     #[should_panic]
     async fn test_increment_counter_panic() {
-        let mut beacon = BeaconSecrets::new("AA:BB:CC:DD:EE:FF".to_string(), "".to_string());
-        let counter = i64::MAX as u64;
-        beacon.counter = counter;
-        let db_test = mongodb::Client::with_uri_str("mongodb://localhost:27017")
-            .await
-            .unwrap();
-        let db = db_test.database("test_db");
-        let collection = db.collection::<BeaconSecrets>(BeaconSecrets::get_collection_name());
-        collection.delete_many(bson::doc! {}).await.unwrap();
-        collection.insert_one(&beacon).await.unwrap();
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://localhost/navign_test".to_string());
+        let pool = PgPool::connect(&database_url).await.unwrap();
 
-        // This should succeed
-        assert!(beacon.increment_counter(&db).await.is_ok());
-        let new_beacon = collection
-            .find_one(bson::doc! { "_id": &beacon.id })
+        // Create test table
+        sqlx::query!(
+            r#"
+            CREATE TABLE IF NOT EXISTS beacon_secrets (
+                id UUID PRIMARY KEY,
+                mac TEXT NOT NULL,
+                last_epoch BIGINT NOT NULL,
+                counter BIGINT NOT NULL,
+                ecdsa_key TEXT NOT NULL
+            )
+            "#
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut beacon = BeaconSecrets::new("AA:BB:CC:DD:EE:FF".to_string(), "".to_string());
+        beacon.counter = i64::MAX;
+
+        // Insert test beacon
+        sqlx::query!(
+            "INSERT INTO beacon_secrets (id, mac, last_epoch, counter, ecdsa_key) VALUES ($1, $2, $3, $4, $5)",
+            beacon.id,
+            beacon.mac,
+            beacon.last_epoch,
+            beacon.counter,
+            beacon.ecdsa_key
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // This should fail with counter overflow
+        beacon.increment_counter(&pool).await.unwrap();
+
+        // Cleanup
+        sqlx::query!("DELETE FROM beacon_secrets WHERE id = $1", beacon.id)
+            .execute(&pool)
             .await
-            .ok()
-            .flatten()
             .unwrap();
-        assert_eq!(new_beacon.counter, 1);
     }
 }

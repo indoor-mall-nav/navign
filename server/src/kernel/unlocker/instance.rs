@@ -10,15 +10,14 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use base64::Engine;
-use bson::doc;
-use bson::oid::ObjectId;
 use chrono::Duration;
 use log::info;
-use mongodb::Database;
+use sqlx::PgPool;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -57,10 +56,9 @@ impl std::fmt::Display for UnlockStage {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct UnlockInstance {
-    #[serde(rename = "_id")]
-    id: ObjectId,
+    pub id: Uuid,
     pub beacon: String,
-    pub timestamp: u64,
+    pub timestamp: i64,
     pub beacon_nonce: String,
     pub challenge_nonce: String,
     pub user: String,
@@ -71,18 +69,20 @@ pub struct UnlockInstance {
 }
 
 impl Service for UnlockInstance {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id
     }
     fn get_name(&self) -> String {
-        self.id.to_hex()
+        self.id.to_string()
     }
     fn set_name(&mut self, _name: String) {}
     fn get_description(&self) -> Option<String> {
         None
     }
     fn set_description(&mut self, _description: Option<String>) {}
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "unlock_instances"
     }
     fn require_unique_name() -> bool {
@@ -92,7 +92,7 @@ impl Service for UnlockInstance {
 
 impl UnlockInstance {
     pub async fn create_instance(
-        db: &Database,
+        db: &PgPool,
         beacon: String,
         payload: String,
         device: String,
@@ -130,9 +130,9 @@ impl UnlockInstance {
         let challenge_nonce = rand::random::<[u8; 16]>();
         // TODO verify if the user is allowed to unlock this beacon
         let instance = UnlockInstance {
-            id: ObjectId::new(),
+            id: Uuid::new_v4(),
             beacon: beacon.get_id(),
-            timestamp: chrono::Utc::now().timestamp() as u64,
+            timestamp: chrono::Utc::now().timestamp(),
             beacon_nonce: base64::engine::general_purpose::STANDARD.encode(beacon_nonce),
             challenge_nonce: base64::engine::general_purpose::STANDARD.encode(challenge_nonce),
             device,
@@ -146,10 +146,10 @@ impl UnlockInstance {
 
     pub async fn update_instance(
         &self,
-        db: &Database,
+        db: &PgPool,
         signing_key: &SigningKey,
         signature: String,
-        timestamp: u64,
+        timestamp: i64,
     ) -> Result<String> {
         let signature = base64::engine::general_purpose::STANDARD.decode(signature)?;
         if signature.len() != 64 {
@@ -169,7 +169,7 @@ impl UnlockInstance {
             anyhow::bail!("Timestamp is older than the instance timestamp");
         }
         // Only allow biometrics in a 3-minute window
-        if timestamp > self.timestamp + Duration::minutes(3).num_seconds() as u64 {
+        if timestamp > self.timestamp + Duration::minutes(3).num_seconds() {
             anyhow::bail!("Timestamp is too old");
         }
         device
@@ -198,7 +198,7 @@ impl UnlockInstance {
 
     async fn generate_proof(
         &self,
-        db: &Database,
+        db: &PgPool,
         signing_key: &SigningKey,
         device_signature_tail: [u8; 8],
     ) -> Result<[u8; 64]> {
@@ -217,7 +217,7 @@ impl UnlockInstance {
 
     pub async fn record_results(
         &self,
-        db: &Database,
+        db: &PgPool,
         success: bool,
         outcome: String,
     ) -> Result<()> {
@@ -235,20 +235,18 @@ impl UnlockInstance {
 
     async fn update_stage(
         &self,
-        db: &Database,
+        db: &PgPool,
         stage: UnlockStage,
         outcome: Option<String>,
     ) -> Result<()> {
-        let filter = doc! { "_id": &self.id };
-        let update = doc! {
-            "$set": {
-                "stage": stage.to_string(),
-                "outcome": outcome.unwrap_or_else(|| self.outcome.clone()),
-            }
-        };
-        db.collection::<UnlockInstance>(UnlockInstance::get_collection_name())
-            .update_one(filter, update)
-            .await?;
+        sqlx::query(
+            "UPDATE unlock_instances SET stage = $1, outcome = $2 WHERE id = $3"
+        )
+        .bind(stage.to_string())
+        .bind(outcome.unwrap_or_else(|| self.outcome.clone()))
+        .bind(self.id)
+        .execute(db)
+        .await?;
         Ok(())
     }
 }

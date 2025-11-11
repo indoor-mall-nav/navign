@@ -1,11 +1,14 @@
 use crate::schema::service::Service;
+use uuid::Uuid;
 
 // Re-export from navign-shared
 pub use navign_shared::{ConnectedArea, Connection, ConnectionType};
 
 impl Service for Connection {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id.expect("Connection must have an ID")
     }
 
     fn get_name(&self) -> String {
@@ -24,7 +27,7 @@ impl Service for Connection {
         self.description = description;
     }
 
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "connections"
     }
 

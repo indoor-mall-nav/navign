@@ -1,8 +1,8 @@
 use crate::kernel::route::types::{Area, Atom, CloneIn, Dummy, FromIn, IntoIn, TakeIn};
 use crate::schema::EntityType;
-use bson::oid::ObjectId;
 use bumpalo::{Bump, boxed::Box, collections::Vec};
 use std::fmt::{Debug, Display, Formatter};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct Entity<'a> {
@@ -48,7 +48,7 @@ impl<'a> Dummy<'a> for Entity<'a> {
             r#type: EntityType::Mall,
             name: Atom::from(""),
             areas: Vec::new_in(allocator),
-            database_id: Atom::from_in(ObjectId::new().to_hex(), allocator),
+            database_id: Atom::from_in(Uuid::new_v4().to_string(), allocator),
             phantom: std::marker::PhantomData,
         }
     }
@@ -62,7 +62,7 @@ impl<'a> FromIn<'a, crate::schema::Entity> for Entity<'a> {
             r#type: value.r#type,
             name: Atom::from_in(value.name, allocator),
             areas: Vec::new_in(allocator), // Areas should be loaded separately
-            database_id: Atom::from_in(value.id.to_hex(), allocator),
+            database_id: Atom::from_in(value.id.to_string(), allocator),
             phantom: std::marker::PhantomData,
         }
     }
@@ -72,7 +72,7 @@ impl<'a> IntoIn<'a, crate::schema::Entity> for Entity<'a> {
     fn into_in(self, _allocator: &'a Bump) -> crate::schema::Entity {
         // Warn: it's better to reread from database to avoid data loss
         crate::schema::Entity {
-            id: ObjectId::parse_str(self.database_id.as_str()).unwrap_or_else(|_| ObjectId::new()),
+            id: Uuid::parse_str(self.database_id.as_str()).unwrap_or_else(|_| Uuid::new_v4()),
             r#type: self.r#type,
             name: self.name.to_string(),
             ..Default::default()

@@ -14,13 +14,13 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {
-    pattern: &'a str,
-    offset: i64,
-    limit: i64,
-    sort: Option<&'a str>,
-    asc: bool,
-    case_insensitive: bool,
-    entity: &'a str,
+    pub pattern: &'a str,
+    pub offset: i64,
+    pub limit: i64,
+    pub sort: Option<&'a str>,
+    pub asc: bool,
+    pub case_insensitive: bool,
+    pub entity: &'a str,
 }
 
 #[async_trait]
@@ -123,7 +123,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
             query,
             Self::get_table_name()
         );
-        let pool = &state.pool;
+        let pool = &state.db;
         let offset = offset.unwrap_or(0) as i64;
         let limit = limit.unwrap_or(10).min(100) as i64;
         let query = query.unwrap_or_default();
@@ -171,7 +171,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         <Self::Id as std::str::FromStr>::Err: std::fmt::Display,
     {
         info!("Handling GET request for service with ID: {:?}", id);
-        let pool = &state.pool;
+        let pool = &state.db;
 
         let parsed_id = match id.1.parse::<Self::Id>() {
             Ok(id) => id,
@@ -210,7 +210,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     where
         Self::Id: Serialize,
     {
-        let pool = &state.pool;
+        let pool = &state.db;
         match service.create(pool).await {
             Ok(id) => (StatusCode::CREATED, axum::Json(json!({ "id": id }))),
             Err(e) => {
@@ -230,7 +230,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         State(state): State<AppState>,
         axum::Json(service): axum::Json<Self>,
     ) -> impl IntoResponse {
-        let pool = &state.pool;
+        let pool = &state.db;
         match service.update(pool).await {
             Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "updated" }))),
             Err(e) => {
@@ -254,7 +254,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         Self::Id: std::str::FromStr,
         <Self::Id as std::str::FromStr>::Err: std::fmt::Display,
     {
-        let pool = &state.pool;
+        let pool = &state.db;
 
         let parsed_id = match id.1.parse::<Self::Id>() {
             Ok(id) => id,
@@ -324,7 +324,7 @@ pub trait OneInArea: Service {
         };
 
         match Self::get_all_in_area(
-            &state.pool,
+            &state.db,
             area_id,
             entity_uuid,
             params.offset.unwrap_or(0) as i64,

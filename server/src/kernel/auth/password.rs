@@ -2,12 +2,11 @@
 use crate::kernel::auth::{Authenticator, Token};
 use crate::schema::User;
 use anyhow::anyhow;
-use bson::doc;
-use bson::oid::ObjectId;
-use mongodb::Database;
+use sqlx::PgPool;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
+use uuid::Uuid;
 
 pub struct PasswordAuthenticator {
     userid: String,
@@ -41,24 +40,20 @@ impl<'de> Authenticator<'de, PasswordPayload> for PasswordAuthenticator {
     async fn authenticate(
         &self,
         credential: PasswordPayload,
-        db: &Database,
+        db: &PgPool,
     ) -> anyhow::Result<String> {
         if !credential.verify_hash() {
             return Err(anyhow!("Hash does not match"));
         }
-        let userid = ObjectId::from_str(&credential.userid)?;
-        let user: User = match db
-            .collection("user")
-            .find_one(doc! {
-                "_id": userid,
-            })
-            .await
-            .ok()
-            .flatten()
-        {
-            Some(user) => user,
-            None => return Err(anyhow!("User does not exist")),
-        };
+        let userid = Uuid::from_str(&credential.userid)?;
+        let user: User = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE id = $1"
+        )
+        .bind(userid)
+        .fetch_optional(db)
+        .await?
+        .ok_or_else(|| anyhow!("User does not exist"))?;
+
         if user.verify_password(credential.password.as_str()) {
             let token = Token::from((&user, credential.device_id.clone()));
             Ok(token.to_string())

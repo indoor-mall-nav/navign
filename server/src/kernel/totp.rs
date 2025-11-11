@@ -14,10 +14,10 @@ use anyhow::Result;
 /// 4. If the challenge passed, the server generate a new TOTP code using the shared secret and the current timestamp, and send it to the phone.
 /// 5. The phone forward the TOTP code to the beacon via BLE.
 /// 6. The beacon verifies the TOTP code, and if it is valid, the beacon unlock the door.
-use bson::oid::ObjectId;
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -27,7 +27,7 @@ pub(crate) struct BeaconSecret {
     /// UUID of the beacon
     pub(crate) uuid: String,
     /// Database ID of the beacon
-    pub(crate) id: ObjectId,
+    pub(crate) id: Uuid,
     /// Client secret for the beacon used for TOTP generation
     pub(crate) secret: String,
     /// Time zone diff to UTC in hours
@@ -42,7 +42,7 @@ impl BeaconSecret {
     pub(crate) fn new(
         mac: String,
         uuid: String,
-        id: ObjectId,
+        id: Uuid,
         secret: String,
         tz_diff: i64,
         last_timestamp: u64,
@@ -104,8 +104,10 @@ impl BeaconSecret {
 }
 
 impl Service for BeaconSecret {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
+    type Id = Uuid;
+
+    fn get_id(&self) -> Uuid {
+        self.id
     }
 
     fn get_name(&self) -> String {
@@ -126,7 +128,7 @@ impl Service for BeaconSecret {
         }
     }
 
-    fn get_collection_name() -> &'static str {
+    fn get_table_name() -> &'static str {
         "beacon_secrets"
     }
 
@@ -144,7 +146,7 @@ mod tests {
         let beacon = BeaconSecret::new(
             "00:11:22:33:44:55".to_string(),
             "123e4567-e89b-12d3-a456-426614174000".to_string(),
-            ObjectId::new(),
+            Uuid::new_v4(),
             "JBSWY3DPEHPK3PXP".to_string(), // Base32 for "Hello!"
             0,
             1757142749,

@@ -70,7 +70,7 @@ impl<'a> Dummy<'a> for Area<'a> {
             floor: None,
             connections: Vec::new_in(allocator),
             merchants: Vec::new_in(allocator),
-            database_id: Atom::from_in(bson::oid::ObjectId::new().to_hex(), allocator),
+            database_id: Atom::from_in(uuid::Uuid::new_v4().to_string(), allocator),
             polygon: Polygon::default(),
             phantom: std::marker::PhantomData,
         }
@@ -90,7 +90,7 @@ impl<'a> FromIn<'a, crate::schema::Area> for Area<'a> {
             floor: area.floor,
             connections: Vec::new_in(allocator), // Connections need to be set up separately
             merchants: Vec::new_in(allocator),   // Merchants need to be set up separately
-            database_id: Atom::from_in(area.id.to_hex(), allocator),
+            database_id: Atom::from_in(area.id.to_string(), allocator),
             polygon: Polygon::from(area.polygon),
             phantom: std::marker::PhantomData,
         }
@@ -101,8 +101,8 @@ impl<'a> IntoIn<'a, crate::schema::Area> for Area<'a> {
     fn into_in(self, _allocator: &'a Bump) -> crate::schema::Area {
         // Warn: it's better to reread from database to avoid data loss
         crate::schema::Area {
-            id: bson::oid::ObjectId::parse_str(self.database_id.as_str())
-                .unwrap_or_else(|_| bson::oid::ObjectId::new()),
+            id: uuid::Uuid::parse_str(self.database_id.as_str())
+                .unwrap_or_else(|_| uuid::Uuid::new_v4()),
             name: self.name.to_string(),
             description: self.description.as_ref().map(|d| d.to_string()),
             floor: self.floor,
