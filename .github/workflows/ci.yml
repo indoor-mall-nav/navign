@@ -47,7 +47,7 @@ jobs:
           # Flags to track what needs to run
           run_shared=false
           run_server=false
-          run_beacon=false
+          run_firmware=false
           run_mobile=false
           run_tower=false
           run_orchestrator=false
@@ -61,15 +61,15 @@ jobs:
                 run_shared=true
                 # If shared is modified, run all Rust CI
                 run_server=true
-                run_beacon=true
+                run_firmware=true
                 run_orchestrator=true
                 run_mobile=true
                 ;;
               server/*)
                 run_server=true
                 ;;
-              beacon/*)
-                run_beacon=true
+              firmware/*)
+                run_firmware=true
                 ;;
               mobile/*)
                 run_mobile=true
@@ -102,7 +102,7 @@ jobs:
           # [ "$run_repo" = true ] && components+=("repo")
           [ "$run_shared" = true ] && components+=("shared")
           [ "$run_server" = true ] && components+=("server")
-          [ "$run_beacon" = true ] && components+=("beacon")
+          [ "$run_firmware" = true ] && components+=("firmware")
           [ "$run_mobile" = true ] && components+=("mobile")
           [ "$run_tower" = true ] && components+=("tower")
           [ "$run_orchestrator" = true ] && components+=("orchestrator")

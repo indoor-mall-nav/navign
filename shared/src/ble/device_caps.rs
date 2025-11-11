@@ -23,6 +23,13 @@ bitflags! {
     }
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for DeviceCapabilities {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(f, "DeviceCapabilities({:02x})", self.bits());
+    }
+}
+
 impl Depacketize for DeviceCapabilities {
     fn depacketize(packet: &[u8]) -> Option<Self> {
         if packet.len() != 1 {

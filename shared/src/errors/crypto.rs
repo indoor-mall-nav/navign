@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CryptoError {
     InvalidSignature,
     InvalidKey,

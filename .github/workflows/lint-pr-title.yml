@@ -31,7 +31,7 @@ jobs:
           # Allowed scopes (components)
           scopes: |
             server
-            beacon
+            firmware
             mobile
             miniapp
             vision
@@ -49,7 +49,7 @@ jobs:
 
             Examples:
             feat(server): add OAuth2 authentication
-            fix(beacon): correct nonce expiration bug
+            fix(firmware): correct nonce expiration bug
             docs(plot): update API documentation
             chore: update dependencies
             ci: fix workflow configuration

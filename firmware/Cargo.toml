@@ -1,13 +1,13 @@
 [package]
 edition.workspace = true
 license.workspace = true
-name              = "navign-beacon"
+name              = "navign-firmware"
 rust-version      = "1.86"
 version.workspace = true
 
 [[bin]]
 bench = false
-name  = "navign-beacon"
+name  = "navign-firmware"
 path  = "./src/bin/main.rs"
 test  = false
 
@@ -62,11 +62,12 @@ embedded-nal = "0.9.0"
 embedded-storage = "0.3.1"
 esp-backtrace = { version = "0.18.0", features = [
   "esp32c3",
-  "println",
+  "defmt",
   "panic-handler",
 ] }
-esp-println = { version = "0.16.0", features = ["auto", "esp32c3", "log-04"] }
+esp-println = { version = "0.16.0", features = ["auto", "esp32c3", "defmt-espflash"] }
 esp-storage = { version = "0.8.0", features = ["esp32c3"] }
+defmt = "0.3.9"
 futures = { version = "0.3.31", default-features = false, features = [
   "alloc",
   "async-await",
@@ -76,6 +77,7 @@ hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 navign-shared = { path = "../shared", default-features = false, features = [
   "heapless",
   "crypto",
+  "defmt",
 ] }
 nb = "1.1.0"
 p256 = { version = "0.13.2", default-features = false, features = [

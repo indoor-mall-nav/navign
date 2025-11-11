@@ -28,7 +28,7 @@ lint:
   cd shared && cargo clippy --features base64 --features crypto --features alloc --features serde --no-default-features -- -D warnings
   cd shared && cargo clippy --features mongodb --features serde --features crypto
   cd shared && cargo clippy --features sql --features serde --features crypto
-  cd beacon && cargo clippy -- -D warnings
+  cd firmware && cargo clippy -- -D warnings
   cd ts-schema && cargo clippy -- -D warnings
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
@@ -36,7 +36,7 @@ lint:
   cd maintenance-tool && cargo clippy --all-targets --all-features -- -D warnings
 
 test:
-  echo "No tests for beacons yet..."
+  echo "No tests for firmware yet..."
   cd shared && cargo test
   cd shared && cargo test --features heapless --no-default-features
   cd shared && cargo test --features alloc --no-default-features
@@ -53,7 +53,7 @@ fmt-check:
   cd animations && uvx ruff check --diff
   cd gesture_space && uvx ruff check --diff
   cd shared && cargo fmt -- --check
-  cd beacon && cargo fmt -- --check
+  cd firmware && cargo fmt -- --check
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check
   cd maintenance-tool && cargo fmt -- --check
@@ -74,12 +74,12 @@ ci-server:
   cd server && cargo clippy -- -D warnings
   cd server && cargo test
 
-ci-beacon:
-  cd beacon && cargo check --release
-  cd beacon && cargo fmt -- --check
-  cd beacon && cargo clippy --release -- -D warnings
-  # cd beacon && cargo test --release
-  echo "No tests for beacons yet..."
+ci-firmware:
+  cd firmware && cargo check --release
+  cd firmware && cargo fmt -- --check
+  cd firmware && cargo clippy --release -- -D warnings
+  # cd firmware && cargo test --release
+  echo "No tests for firmware yet..."
 
 ci-mobile:
   corepack enable
@@ -139,11 +139,11 @@ roll:
   just lint
   just check
 
-build-beacon:
+build-firmware:
   cargo install espup --locked
   espup install
 
-  cd beacon && cargo build --release
+  cd firmware && cargo build --release
 
 proto-tower:
   cd admin/tower && protoc --proto_path=../proto --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ../proto/task.proto

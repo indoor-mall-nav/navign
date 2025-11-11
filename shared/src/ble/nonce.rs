@@ -36,6 +36,13 @@ impl core::fmt::Debug for Nonce {
     }
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for Nonce {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(f, "Nonce({:02x})", self.0);
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl Packetize for Nonce {
     fn packetize(&self) -> alloc::vec::Vec<u8> {

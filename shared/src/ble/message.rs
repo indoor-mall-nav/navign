@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BleMessage {
     DeviceRequest,
     DeviceResponse(DeviceTypes, DeviceCapabilities, [u8; 24]), // 24-byte MongoDB ObjectId segment

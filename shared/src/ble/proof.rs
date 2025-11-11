@@ -6,6 +6,7 @@ use serde_big_array::BigArray;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Proof {
     pub nonce: [u8; 16],
     pub device_bytes: [u8; 8],
