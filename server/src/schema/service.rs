@@ -5,21 +5,18 @@ use async_trait::async_trait;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use bson::doc;
-use bson::oid::ObjectId;
-use futures::stream::TryStreamExt;
 use log::info;
-use mongodb::{Collection, Database};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::str::FromStr;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {
     pattern: &'a str,
-    offset: u64,
-    limit: u64,
+    offset: i64,
+    limit: i64,
     sort: Option<&'a str>,
     asc: bool,
     case_insensitive: bool,
@@ -29,258 +26,85 @@ pub struct SearchQueryParams<'a> {
 #[async_trait]
 #[allow(dead_code)]
 pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
-    fn get_id(&self) -> String;
+    type Id: Send + Sync;
+
+    fn get_id(&self) -> Self::Id;
     fn get_name(&self) -> String;
     fn set_name(&mut self, name: String);
     fn get_description(&self) -> Option<String>;
     fn set_description(&mut self, description: Option<String>);
-    fn get_collection_name() -> &'static str;
+    fn get_table_name() -> &'static str;
     fn require_unique_name() -> bool;
 
-    async fn get_one_by_id(db: &Database, id: &str) -> Option<Self>
+    async fn get_one_by_id(pool: &PgPool, id: Self::Id) -> Result<Option<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let oid = ObjectId::parse_str(id).ok()?;
-        collection
-            .find_one(doc! { "_id": oid })
-            .await
-            .ok()
-            .flatten()
-    }
+        Self: Sized;
 
     async fn get_one_by_name(
-        db: &Database,
+        pool: &PgPool,
         name: &str,
-    ) -> Result<Option<Self>, mongodb::error::Error>
+    ) -> Result<Option<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        collection.find_one(doc! { "name": name }).await
-    }
+        Self: Sized;
 
-    async fn get_all(db: &Database) -> Result<Vec<Self>, mongodb::error::Error>
+    async fn get_all(pool: &PgPool) -> Result<Vec<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let cursor = collection.find(doc! {}).await?;
-        cursor.try_collect::<Vec<Self>>().await
-    }
+        Self: Sized;
 
     async fn get_with_pagination(
-        db: &Database,
-        page: u64,
-        limit: u64,
+        pool: &PgPool,
+        page: i64,
+        limit: i64,
         sort: Option<&str>,
         asc: bool,
-    ) -> Result<Vec<Self>, mongodb::error::Error>
+    ) -> Result<Vec<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let options = mongodb::options::FindOptions::builder()
-            .skip((page - 1) * limit)
-            .limit(limit as i64)
-            .sort(sort.map(|s| {
-                if asc {
-                    doc! { s: 1 }
-                } else {
-                    doc! { s: -1 }
-                }
-            }))
-            .build();
-        let cursor = collection.find(doc! {}).with_options(options).await?;
-        cursor.try_collect::<Vec<Self>>().await
-    }
+        Self: Sized;
 
-    async fn create(&self, db: &Database) -> Result<ObjectId, mongodb::error::Error>
+    async fn create(&self, pool: &PgPool) -> Result<Self::Id, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        if Self::require_unique_name()
-            && let Some(existing) = Self::get_one_by_name(db, &self.get_name()).await?
-        {
-            return Err(mongodb::error::Error::custom(format!(
-                "An item with the name '{}' already exists.",
-                existing.get_name()
-            )));
-        }
-        let result = collection.insert_one(self.clone()).await;
-        match result {
-            Ok(insert_result) => {
-                if let Some(id) = insert_result.inserted_id.as_object_id() {
-                    Ok(id)
-                } else {
-                    Err(mongodb::error::Error::custom(
-                        "Inserted ID is not an ObjectId".to_string(),
-                    ))
-                }
-            }
-            Err(e) => Err(e),
-        }
-    }
+        Self: Sized;
 
-    async fn update(&self, db: &Database) -> Result<(), mongodb::error::Error>
+    async fn update(&self, pool: &PgPool) -> Result<(), sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let oid = ObjectId::parse_str(self.get_id()).map_err(|_| {
-            mongodb::error::Error::custom("Invalid ObjectId format for update".to_string())
-        })?;
-        let result = collection
-            .replace_one(doc! { "_id": oid }, self.clone())
-            .await?;
-        if result.matched_count == 0 {
-            Err(mongodb::error::Error::custom(
-                "No document found with the given ID".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
-    }
+        Self: Sized;
 
-    async fn delete_by_id(db: &Database, id: &str) -> Result<(), mongodb::error::Error>
+    async fn delete_by_id(pool: &PgPool, id: Self::Id) -> Result<(), sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let oid = ObjectId::parse_str(id).map_err(|_| {
-            mongodb::error::Error::custom("Invalid ObjectId format for deletion".to_string())
-        })?;
-        let result = collection.delete_one(doc! { "_id": oid }).await?;
-        if result.deleted_count == 0 {
-            Err(mongodb::error::Error::custom(
-                "No document found with the given ID".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
-    }
+        Self: Sized;
 
-    async fn delete_by_name(db: &Database, name: &str) -> Result<(), mongodb::error::Error>
+    async fn delete_by_name(pool: &PgPool, name: &str) -> Result<(), sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let result = collection.delete_one(doc! { "name": name }).await?;
-        if result.deleted_count == 0 {
-            Err(mongodb::error::Error::custom(
-                "No document found with the given name".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
-    }
+        Self: Sized;
 
-    async fn exists_by_name(db: &Database, name: &str) -> Result<bool, mongodb::error::Error>
+    async fn exists_by_name(pool: &PgPool, name: &str) -> Result<bool, sqlx::Error>
     where
         Self: Sized,
     {
-        Ok(Self::get_one_by_name(db, name).await?.is_some())
+        Ok(Self::get_one_by_name(pool, name).await?.is_some())
     }
 
     async fn search_and_page_by_name_pattern(
-        db: &Database,
-        SearchQueryParams {
-            pattern,
-            offset,
-            limit,
-            sort,
-            asc,
-            case_insensitive,
-            entity, // Not used in this trait, but kept for compatibility
-        }: SearchQueryParams<'_>,
-    ) -> Result<PaginationResponse<Self>, mongodb::error::Error>
+        pool: &PgPool,
+        params: SearchQueryParams<'_>,
+    ) -> Result<PaginationResponse<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let options = if case_insensitive { "i" } else { "" };
-
-        if ObjectId::parse_str(entity).is_err() {
-            return Err(mongodb::error::Error::custom(
-                "Invalid ObjectId format for entity".to_string(),
-            ));
-        }
-
-        let filter = doc! {
-            "name": {
-                "$regex": pattern,
-                "$options": options
-            },
-            "entity": ObjectId::parse_str(entity).expect("Invalid ObjectId format for entity")
-        };
-
-        let find_options = mongodb::options::FindOptions::builder()
-            .skip(offset)
-            .limit(limit as i64)
-            .sort(sort.map(|s| {
-                if asc {
-                    doc! { s: 1 }
-                } else {
-                    doc! { s: -1 }
-                }
-            }))
-            .build();
-
-        let cursor = collection
-            .find(filter.clone())
-            .with_options(find_options)
-            .await?;
-        let result: Vec<Self> = cursor.try_collect().await?;
-        let total_count = collection.count_documents(filter).await?;
-        Ok(PaginationResponse::new(
-            total_count,
-            offset,
-            limit,
-            &format!("/api/entity/{entity}/{}/", Self::get_collection_name()),
-            result,
-        ))
-    }
+        Self: Sized;
 
     async fn search_by_description_pattern(
-        db: &Database,
+        pool: &PgPool,
         pattern: &str,
         case_insensitive: bool,
-    ) -> Result<Vec<Self>, mongodb::error::Error>
+    ) -> Result<Vec<Self>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let options = if case_insensitive { "i" } else { "" };
-
-        let filter = doc! {
-            "description": {
-                "$regex": pattern,
-                "$options": options
-            }
-        };
-
-        let cursor = collection.find(filter).await?;
-        cursor.try_collect().await
-    }
+        Self: Sized;
 
     async fn bulk_create(
-        db: &Database,
+        pool: &PgPool,
         services: Vec<Self>,
-    ) -> Result<Vec<ObjectId>, mongodb::error::Error>
+    ) -> Result<Vec<Self::Id>, sqlx::Error>
     where
-        Self: Sized,
-    {
-        let collection: Collection<Self> = db.collection(Self::get_collection_name());
-        let result = collection.insert_many(services).await?;
-
-        Ok(result
-            .inserted_ids
-            .into_iter()
-            .filter_map(|(_, bson)| bson.as_object_id())
-            .collect())
-    }
+        Self: Sized;
 
     async fn get_handler(
         State(state): State<AppState>,
@@ -295,23 +119,23 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         Path(entity): Path<String>,
     ) -> impl IntoResponse {
         info!(
-            "Handling GET request for services with query: {:?} in collection {}",
+            "Handling GET request for services with query: {:?} in table {}",
             query,
-            Self::get_collection_name()
+            Self::get_table_name()
         );
-        let db = &state.db;
-        let offset = offset.unwrap_or(0);
-        let limit = limit.unwrap_or(10);
+        let pool = &state.pool;
+        let offset = offset.unwrap_or(0) as i64;
+        let limit = limit.unwrap_or(10).min(100) as i64;
         let query = query.unwrap_or_default();
         let sort = sort.as_deref();
         let asc = asc.unwrap_or(true);
         let case_sensitive = case_sensitive.unwrap_or(false);
         info!(
             "Query parameters in {}: offset={offset}, limit={limit}, query='{query}', sort={sort:?}, asc={asc}, case_sensitive={case_sensitive}",
-            Self::get_collection_name()
+            Self::get_table_name()
         );
         match Self::search_and_page_by_name_pattern(
-            db,
+            pool,
             SearchQueryParams {
                 pattern: &query,
                 offset,
@@ -341,15 +165,39 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     async fn get_one_handler(
         State(state): State<AppState>,
         Path(id): Path<(String, String)>,
-    ) -> impl IntoResponse {
+    ) -> impl IntoResponse
+    where
+        Self::Id: std::str::FromStr,
+        <Self::Id as std::str::FromStr>::Err: std::fmt::Display,
+    {
         info!("Handling GET request for service with ID: {:?}", id);
-        let db = &state.db;
-        match Self::get_one_by_id(db, &id.1).await {
-            Some(service) => (StatusCode::OK, axum::Json(json!(service))),
-            None => (
+        let pool = &state.pool;
+
+        let parsed_id = match id.1.parse::<Self::Id>() {
+            Ok(id) => id,
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    axum::Json(json!({
+                        "error": format!("Invalid ID format: {}", e)
+                    })),
+                )
+            }
+        };
+
+        match Self::get_one_by_id(pool, parsed_id).await {
+            Ok(Some(service)) => (StatusCode::OK, axum::Json(json!(service))),
+            Ok(None) => (
                 StatusCode::NOT_FOUND,
                 axum::Json(json!({
                     "error": "Service not found"
+                })),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(json!({
+                    "error": "Database error",
+                    "details": e.to_string()
                 })),
             ),
         }
@@ -358,9 +206,12 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     async fn create_handler(
         State(state): State<AppState>,
         axum::Json(service): axum::Json<Self>,
-    ) -> impl IntoResponse {
-        let db = &state.db;
-        match service.create(db).await {
+    ) -> impl IntoResponse
+    where
+        Self::Id: Serialize,
+    {
+        let pool = &state.pool;
+        match service.create(pool).await {
             Ok(id) => (StatusCode::CREATED, axum::Json(json!({ "id": id }))),
             Err(e) => {
                 log::error!("Failed to create service: {}", e);
@@ -379,8 +230,8 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         State(state): State<AppState>,
         axum::Json(service): axum::Json<Self>,
     ) -> impl IntoResponse {
-        let db = &state.db;
-        match service.update(db).await {
+        let pool = &state.pool;
+        match service.update(pool).await {
             Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "updated" }))),
             Err(e) => {
                 log::error!("Failed to update service: {}", e);
@@ -398,9 +249,26 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
     async fn delete_handler(
         State(state): State<AppState>,
         Path(id): Path<(String, String)>,
-    ) -> impl IntoResponse {
-        let db = &state.db;
-        match Self::delete_by_id(db, &id.0).await {
+    ) -> impl IntoResponse
+    where
+        Self::Id: std::str::FromStr,
+        <Self::Id as std::str::FromStr>::Err: std::fmt::Display,
+    {
+        let pool = &state.pool;
+
+        let parsed_id = match id.1.parse::<Self::Id>() {
+            Ok(id) => id,
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    axum::Json(json!({
+                        "error": format!("Invalid ID format: {}", e)
+                    })),
+                )
+            }
+        };
+
+        match Self::delete_by_id(pool, parsed_id).await {
             Ok(_) => (
                 StatusCode::NO_CONTENT,
                 axum::Json(json!({ "status": "deleted" })),
@@ -421,74 +289,46 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
 
 pub trait OneInArea: Service {
     async fn get_all_in_area(
-        db: &Database,
-        area_id: &str,
-        entity_id: &str,
-        offset: u64,
-        limit: u64,
+        pool: &PgPool,
+        area_id: i64,
+        entity_id: Uuid,
+        offset: i64,
+        limit: i64,
         sort: Option<&str>,
         asc: bool,
-    ) -> anyhow::Result<PaginationResponse<Self>> {
-        let collection = db.collection::<Self>(Self::get_collection_name());
-        let area_object_id =
-            ObjectId::from_str(area_id).map_err(|e| anyhow::anyhow!("Invalid area ID: {}", e))?;
-        let entity_object_id = ObjectId::from_str(entity_id)
-            .map_err(|e| anyhow::anyhow!("Invalid entity ID: {}", e))?;
-        let filter = doc! {
-            "area": area_object_id,
-            "entity": entity_object_id,
-        };
-        let sort_doc = if let Some(field) = sort {
-            let order = if asc { 1 } else { -1 };
-            doc! { field: order }
-        } else {
-            doc! { "_id": 1 } // Default sort by name ascending
-        };
-        let mut find_options = mongodb::options::FindOptions::builder()
-            .sort(sort_doc)
-            .skip(Some(offset))
-            .limit(Some(limit as i64))
-            .build();
-        let cursor = collection
-            .find(filter.clone())
-            .await
-            .map_err(|e| anyhow::anyhow!("Database query error: {}", e))?;
-        let items: Vec<Self> = cursor
-            .try_collect()
-            .await
-            .map_err(|e| anyhow::anyhow!("Error collecting results: {}", e))?;
-        let total_items = collection
-            .count_documents(filter)
-            .await
-            .map_err(|e| anyhow::anyhow!("Database count error: {}", e))?;
-        let metadata = PaginationResponseMetadata::new(
-            total_items,
-            offset,
-            limit,
-            &format!(
-                "/entities/{}/areas/{}/{}",
-                entity_id,
-                area_id,
-                Self::get_collection_name()
-            ),
-        );
-        Ok(PaginationResponse {
-            metadata,
-            data: items,
-        })
-    }
+    ) -> anyhow::Result<PaginationResponse<Self>>;
 
     async fn get_all_in_area_handler(
         State(state): State<AppState>,
         Query(params): Query<ReadQuery>,
         Path((entity, area)): Path<(String, String)>,
     ) -> impl IntoResponse {
+        let entity_uuid = match Uuid::parse_str(&entity) {
+            Ok(uuid) => uuid,
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("{{\"error\": \"Invalid entity UUID: {}\"}}", e),
+                )
+            }
+        };
+
+        let area_id = match area.parse::<i64>() {
+            Ok(id) => id,
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("{{\"error\": \"Invalid area ID: {}\"}}", e),
+                )
+            }
+        };
+
         match Self::get_all_in_area(
-            &state.db,
-            area.as_str(),
-            entity.as_str(),
-            params.offset.unwrap_or(1),
-            params.limit.unwrap_or(10),
+            &state.pool,
+            area_id,
+            entity_uuid,
+            params.offset.unwrap_or(0) as i64,
+            params.limit.unwrap_or(10).min(100) as i64,
             params.sort.as_deref(),
             params.asc.unwrap_or(true),
         )
@@ -504,7 +344,10 @@ pub trait OneInArea: Service {
                     )
                 }
             },
-            Err(e) => (StatusCode::BAD_REQUEST, e.to_string()),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("{{\"error\": \"{}\"}}", e),
+            ),
         }
     }
 }
