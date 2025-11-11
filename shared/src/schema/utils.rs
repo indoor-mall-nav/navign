@@ -1,8 +1,10 @@
+#[cfg(feature = "serde")]
 use super::ConnectedArea;
 
 /// Serialize connected areas
 /// For SQL: (i64, f64, f64, bool)
 /// For non-SQL: (String, f64, f64, bool)
+#[cfg(feature = "serde")]
 pub fn serialize_connected_areas<S>(
     areas: &Vec<ConnectedArea>,
     serializer: S,
@@ -25,6 +27,7 @@ where
 /// Deserialize connected areas
 /// For SQL: (i64, f64, f64, bool)
 /// For non-SQL: (String, f64, f64, bool)
+#[cfg(feature = "serde")]
 pub fn deserialize_connected_areas<'de, D>(deserializer: D) -> Result<Vec<ConnectedArea>, D::Error>
 where
     D: serde::Deserializer<'de>,
