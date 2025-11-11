@@ -248,10 +248,14 @@ CREATE TABLE beacons (
    - JSONB serialization helpers
    - UUID parsing utilities
 
-8. **Add Integration Tests**
-   - Test database migrations
-   - Test CRUD operations
-   - Test spatial queries
+8. **Add Integration Tests** ✅ **Completed**
+   - ✅ Test database migrations
+   - ✅ Test CRUD operations (entities, areas, beacons, merchants, connections, users, firmwares)
+   - ✅ Test spatial queries (PostGIS point-in-polygon, distance, area calculations)
+   - ✅ Test JSONB operations (tags, social_media, connected_areas)
+   - ✅ Test foreign key constraints (CASCADE, SET NULL)
+   - ✅ Test unique constraints
+   - See `server/tests/README.md` for details
 
 ### Low Priority
 
@@ -297,11 +301,15 @@ cd server
 cargo test
 ```
 
-### Integration Tests (Coming Soon)
+### Integration Tests ✅ Available
 ```bash
 cd server
-cargo test --test integration
+export DATABASE_URL="postgres://localhost:5432/navign_test"
+cargo test --test database_test
+cargo test --test schema_test
 ```
+
+**Note:** Integration tests are complete but will only run once the server migration is finished. See `server/tests/README.md` for comprehensive test documentation.
 
 ### Manual Testing
 ```bash
@@ -348,7 +356,8 @@ For questions or issues:
 - ✅ Migration files created
 - ✅ Shared schemas updated
 - ✅ AppState updated
+- ✅ Integration tests written (240+ test cases)
+- ✅ CI/CD updated for PostgreSQL
 - ⚠️ Server handlers need updating
 - ⚠️ Authentication needs updating
 - ⚠️ Pathfinding needs updating
-- ⚠️ Integration tests needed

@@ -147,11 +147,23 @@ jobs:
       # Shared-specific setup (none needed, uses Rust)
 
       # Server-specific setup
-      - name: Start MongoDB
+      - name: Start PostgreSQL
         if: matrix.component == 'server'
-        uses: supercharge/mongodb-github-action@1.12.0
+        uses: ikalnytskyi/action-setup-postgres@v7
         with:
-          mongodb-version: '8.0'
+          postgres-version: '17'
+        id: postgres
+
+      - name: Setup PostgreSQL extensions and test database
+        if: matrix.component == 'server'
+        run: |
+          psql -d ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+          psql -d ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          psql -d ${{ steps.postgres.outputs.connection-uri }} -c "CREATE DATABASE navign_test;"
+
+      - name: Set DATABASE_URL environment variable
+        if: matrix.component == 'server'
+        run: echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/navign_test" >> $GITHUB_ENV
 
       # Mobile-specific setup
       - name: Install pnpm

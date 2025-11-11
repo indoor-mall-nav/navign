@@ -57,10 +57,7 @@ pub(crate) async fn connect_with_db() -> Result<PgPool> {
         .run(&pool)
         .await
         .map_err(|e| {
-            ServerError::DatabaseConnection(format!(
-                "Failed to run database migrations: {}",
-                e
-            ))
+            ServerError::DatabaseConnection(format!("Failed to run database migrations: {}", e))
         })?;
 
     info!("Database migrations completed successfully");

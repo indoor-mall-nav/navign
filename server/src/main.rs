@@ -29,11 +29,11 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use log::{LevelFilter, info};
-use sqlx::PgPool;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
+use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
 use tower_governor::GovernorLayer;
