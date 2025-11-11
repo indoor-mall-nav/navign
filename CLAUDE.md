@@ -112,7 +112,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 
 ### Embedded (Rust)
 
-**Beacon:** `beacon/`
+**Firmware:** `firmware/`
 - **HAL:** esp-hal 1.0.0-rc.1 (bare-metal, no RTOS initially)
 - **BLE Stack:** bleps (async BLE protocol stack)
 - **Radio:** esp-radio 0.16.0 (WiFi + BLE + coexistence)
@@ -198,7 +198,7 @@ navign/
 │   │   └── schema/              # MongoDB data models
 │   └── Cargo.toml               # Dependencies
 │
-├── beacon/                      # ESP32-C3 BLE firmware
+├── firmware/                    # ESP32-C3 BLE firmware
 │   ├── src/bin/
 │   │   ├── main.rs              # 342 lines - BLE advertising + GATT
 │   │   ├── crypto/              # P-256 ECDSA, nonce, proof
@@ -369,7 +369,7 @@ RUST_LOG=info
 
 ---
 
-### Beacon (`beacon/`)
+### Firmware (`firmware/`)
 
 **Purpose:** ESP32-C3 firmware for BLE advertising and access control.
 
@@ -431,9 +431,9 @@ enum UnlockMethod {
 **Flashing Instructions:**
 ```bash
 # Requires esp-idf toolchain
-cd beacon
+cd firmware
 cargo build --release
-espflash flash target/riscv32imc-esp-espidf/release/navign-beacon
+espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 ```
 
 **Setting Private Key:**
@@ -446,7 +446,7 @@ cargo run -- --key <32-byte-hex-key>
 
 The beacon firmware includes OTA update capability for remote firmware upgrades without physical access.
 
-**Location:** `beacon/src/bin/ota.rs`
+**Location:** `firmware/src/bin/ota.rs`
 
 **Architecture:**
 - Uses ESP-IDF bootloader OTA partition system
@@ -551,7 +551,7 @@ esp-storage = "0.8"
 embedded-storage = "0.3"
 ```
 
-**Documentation:** See `beacon/OTA_INTEGRATION.md` for complete integration guide.
+**Documentation:** See `firmware/OTA_INTEGRATION.md` for complete integration guide.
 
 ---
 
@@ -985,11 +985,11 @@ cd mobile
 pnpm run tauri dev
 ```
 
-**Beacon:**
+**Firmware:**
 ```bash
-cd beacon
+cd firmware
 cargo build --release
-espflash flash target/riscv32imc-esp-espidf/release/navign-beacon
+espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 ```
 
 **Admin Orchestrator:**
@@ -1135,9 +1135,9 @@ pnpm run test
 
 ### Integration Tests
 
-**Beacon:** `beacon/tests/`
+**Firmware:** `firmware/tests/`
 ```bash
-cd beacon
+cd firmware
 # No tests yet - embedded testing is complex
 echo "TODO: Add embedded-test integration tests"
 ```
@@ -1233,7 +1233,7 @@ impl Packetize for BleMessage {
 
 3. **Update beacon handler:**
 ```rust
-// beacon/src/bin/main.rs
+// firmware/src/bin/main.rs
 match message {
     Some(BleMessage::MyRequest(data)) => {
         let result = process_my_request(data);
@@ -1293,7 +1293,7 @@ pub enum DeviceCapability {
 
 2. **Update beacon advertised capabilities:**
 ```rust
-// beacon/src/bin/main.rs
+// firmware/src/bin/main.rs
 let mut capabilities = Vec::<DeviceCapability, 4>::new();
 capabilities.push(DeviceCapability::MyNewCapability).unwrap();
 ```
@@ -1425,12 +1425,12 @@ navign-shared = { path = "../../shared", features = [
 
 ## Gotchas and Critical Notes
 
-### 1. Beacon Optimization Required
+### 1. Firmware Optimization Required
 
-The beacon firmware **MUST** be compiled with size optimization:
+The firmware **MUST** be compiled with size optimization:
 
 ```toml
-[profile.release.package.navign-beacon]
+[profile.release.package.navign-firmware]
 opt-level = 's'
 codegen-units = 1
 ```
@@ -1675,7 +1675,7 @@ just ci-mobile     # Mobile CI tasks
 ### Important File Locations
 
 - **Server Entry:** `server/src/main.rs:64`
-- **Beacon Entry:** `beacon/src/bin/main.rs:66`
+- **Firmware Entry:** `firmware/src/bin/main.rs:66`
 - **Mobile Entry:** `mobile/src/main.ts`
 - **Shared Exports:** `shared/src/lib.rs`
 - **Tauri Commands:** `mobile/src-tauri/src/lib.rs`
