@@ -69,12 +69,12 @@ clean-deps:
   rm -rf node_modules
 
 ci-server:
-  cd server && cargo check --features sql
+  cd server && cargo check
   cd server && cargo fmt -- --check
-  cd server && cargo clippy --features sql -- -D warnings
+  cd server && cargo clippy -- -D warnings
   # Note: Integration tests require PostgreSQL with PostGIS extension
   # See server/tests/README.md for setup instructions
-  cd server && cargo test --tests --features sql
+  cd server && cargo test --tests
 
 ci-firmware:
   cd firmware && cargo check --release
