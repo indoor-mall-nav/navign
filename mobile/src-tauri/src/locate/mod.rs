@@ -7,7 +7,6 @@ pub(crate) mod scan;
 
 use crate::api::map::Area;
 use crate::api::page_results::PaginationResponse;
-use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;
 use crate::locate::beacon::BeaconInfo;
 use crate::locate::locator::LocateResult;
@@ -106,16 +105,15 @@ pub async fn locate_device(
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Beacon {
-    #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
-    pub area: CustomizedObjectId,
+    pub id: Option<i64>,
+    pub entity: String, // Uuid stored as string
+    pub area: i64,
     #[serde(default)]
-    pub merchant: Option<CustomizedObjectId>,
+    pub merchant: Option<String>, // Uuid stored as string
     #[serde(default)]
-    pub connection: Option<CustomizedObjectId>,
+    pub connection: Option<String>, // Uuid stored as string
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
@@ -123,6 +121,24 @@ pub struct Beacon {
     pub location: (f64, f64),
     pub device: String,
     pub mac: String,
+}
+
+impl Default for Beacon {
+    fn default() -> Self {
+        Self {
+            id: None,
+            entity: Uuid::nil().to_string(),
+            area: 0,
+            merchant: None,
+            connection: None,
+            name: String::new(),
+            description: None,
+            r#type: String::new(),
+            location: (0.0, 0.0),
+            device: String::new(),
+            mac: String::new(),
+        }
+    }
 }
 
 pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Result<String> {
@@ -200,12 +216,12 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             "Beacon with ID {} already exists in the database.",
             object_id
         );
-        if ActiveArea::get_by_id(conn, &beacon.area)
+        if ActiveArea::get_by_id(conn, beacon.area)
             .await
             .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
             .is_none()
         {
-            update_area(conn, &beacon.area, entity).await?;
+            update_area(conn, beacon.area, entity).await?;
         }
     } else {
         info!("Fetched object ID: {} for MAC: {}", object_id, mac);
@@ -223,13 +239,13 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             .await
             .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
 
-        if ActiveArea::get_by_id(conn, &res.area)
+        if ActiveArea::get_by_id(conn, res.area)
             .await
             .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
             .is_some()
         {
             let beacon_info = BeaconInfo::new(
-                res.id.to_string(),
+                res.id.unwrap_or(0).to_string(),
                 res.mac,
                 res.location,
                 "unknown".to_string(),
@@ -237,16 +253,16 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
                 entity.to_string(),
             );
             beacon_info.insert(conn).await?;
-            info!("Beacon {} inserted/updated in the database.", res.id);
+            info!("Beacon {} inserted/updated in the database.", res.id.unwrap_or(0));
         } else {
-            update_area(conn, &res.area, entity).await?;
+            update_area(conn, res.area, entity).await?;
         }
     };
 
     Ok(object_id)
 }
 
-async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Result<()> {
+async fn update_area(conn: &SqlitePool, area: i64, entity: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let url = format!("{BASE_URL}api/entities/{entity}/areas/{area}");
     info!("Fetching area info from URL: {}", url);
@@ -259,7 +275,7 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
         .await
         .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
 
-    info!("Fetched area id: {}", res.id);
+    info!("Fetched area id: {:?}", res.id);
 
     if ActiveArea::get_by_id(conn, area)
         .await
@@ -287,33 +303,34 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
         info!("Fetched {} beacons for area {}", beacons.data.len(), area);
 
         for beacon in beacons.data.iter() {
-            info!("Processing beacon ID: {}, MAC: {}", beacon.id, beacon.mac);
+            let beacon_id = beacon.id.unwrap_or(0);
+            info!("Processing beacon ID: {}, MAC: {}", beacon_id, beacon.mac);
             let beacon_info = BeaconInfo::new(
-                beacon.id.to_string(),
+                beacon_id.to_string(),
                 beacon.mac.clone(),
                 beacon.location,
                 "unknown".to_string(),
                 beacon.area.to_string(),
                 entity.to_string(),
             );
-            if BeaconInfo::get_from_id(conn, &beacon.id.to_string())
+            if BeaconInfo::get_from_id(conn, &beacon_id.to_string())
                 .await
                 .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
                 .is_some()
             {
                 info!(
                     "Beacon with ID {} already exists in the database.",
-                    beacon.id
+                    beacon_id
                 );
                 beacon_info.update(conn).await?;
             } else {
                 info!(
                     "Inserting new beacon with ID {} into the database.",
-                    beacon.id
+                    beacon_id
                 );
                 beacon_info.insert(conn).await?;
             }
-            info!("Beacon {} inserted/updated in the database.", beacon.id);
+            info!("Beacon {} inserted/updated in the database.", beacon_id);
         }
         beacons_url = beacons.metadata.next_page_url;
     }
@@ -398,15 +415,9 @@ mod tests {
     #[test]
     fn test_beacon_serialization() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: Some(123),
+            entity: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+            area: 456,
             merchant: None,
             connection: None,
             name: "Beacon 1".to_string(),
@@ -425,18 +436,10 @@ mod tests {
     #[test]
     fn test_beacon_with_merchant() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
-            merchant: Some(CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439014".to_string(),
-            }),
+            id: Some(123),
+            entity: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+            area: 456,
+            merchant: Some("650e8400-e29b-41d4-a716-446655440000".to_string()),
             connection: None,
             name: "Store Beacon".to_string(),
             description: Some("Beacon at store entrance".to_string()),
@@ -453,15 +456,9 @@ mod tests {
     #[test]
     fn test_beacon_location_coordinates() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: Some(123),
+            entity: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+            area: 456,
             merchant: None,
             connection: None,
             name: "Location Test".to_string(),
@@ -483,15 +480,9 @@ mod tests {
 
         for device in devices {
             let beacon = Beacon {
-                id: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439011".to_string(),
-                },
-                entity: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439012".to_string(),
-                },
-                area: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439013".to_string(),
-                },
+                id: Some(123),
+                entity: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+                area: 456,
                 merchant: None,
                 connection: None,
                 name: "Test".to_string(),
@@ -522,15 +513,9 @@ mod tests {
     #[test]
     fn test_beacon_mac_address_format() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: Some(123),
+            entity: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+            area: 456,
             merchant: None,
             connection: None,
             name: "MAC Test".to_string(),
@@ -677,14 +662,14 @@ mod tests {
 
     #[test]
     fn test_serialize_beacon_info() {
-        let info = r#"{"_id":{"$oid":"68a84b6ebdfa76608b934b0a"},"entity":{"$oid":"68a8301fbdfa76608b934ae1"},"area":{"$oid":"68a83067bdfa76608b934aea"},"merchant":{"$oid":"68a848c6bdfa76608b934b01"},"connection":null,"name":"NAVIGN-BEACON","description":"Beacon in A.I. Lab","type":"security","location":[66.0,8.0],"device":"esp32c3","mac":"48:F6:EE:21:B0:7C"}"#;
+        let info = r#"{"id":123,"entity":"550e8400-e29b-41d4-a716-446655440000","area":456,"merchant":"650e8400-e29b-41d4-a716-446655440000","connection":null,"name":"NAVIGN-BEACON","description":"Beacon in A.I. Lab","type":"security","location":[66.0,8.0],"device":"esp32c3","mac":"48:F6:EE:21:B0:7C"}"#;
         let beacon: Beacon = serde_json::from_slice(info.as_bytes()).unwrap();
-        assert_eq!(beacon.id.oid, "68a84b6ebdfa76608b934b0a");
-        assert_eq!(beacon.entity.oid, "68a8301fbdfa76608b934ae1");
-        assert_eq!(beacon.area.oid, "68a83067bdfa76608b934aea");
+        assert_eq!(beacon.id, Some(123));
+        assert_eq!(beacon.entity, "550e8400-e29b-41d4-a716-446655440000");
+        assert_eq!(beacon.area, 456);
         assert_eq!(
-            beacon.merchant.as_ref().unwrap().oid,
-            "68a848c6bdfa76608b934b01"
+            beacon.merchant.as_ref().unwrap(),
+            "650e8400-e29b-41d4-a716-446655440000"
         );
         assert_eq!(beacon.connection, None);
     }

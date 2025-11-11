@@ -69,15 +69,12 @@ clean-deps:
   rm -rf node_modules
 
 ci-server:
-  # Temporarily disabled until PostgreSQL migration is complete
-  # See MIGRATION_MONGODB_TO_POSTGRESQL.md for status
-  # Integration tests are ready in server/tests/ but require server handlers to be updated first
-  echo "Server CI temporarily disabled during PostgreSQL migration"
-  echo "Integration tests available in server/tests/ - see server/tests/README.md"
-  # cd server && cargo check
-  # cd server && cargo fmt -- --check
-  # cd server && cargo clippy -- -D warnings
-  # cd server && cargo test --tests
+  cd server && cargo check --features sql
+  cd server && cargo fmt -- --check
+  cd server && cargo clippy --features sql -- -D warnings
+  # Note: Integration tests require PostgreSQL with PostGIS extension
+  # See server/tests/README.md for setup instructions
+  cd server && cargo test --tests --features sql
 
 ci-firmware:
   cd firmware && cargo check --release

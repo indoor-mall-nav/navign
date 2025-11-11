@@ -130,8 +130,8 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id,
-            area: b.area,
+            id: b.id.map(|id| id.to_string()).unwrap_or_default(),
+            area: b.area.to_string(),
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -158,7 +158,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id,
+            id: m.id.map(|id| id.to_string()).unwrap_or_default(),
             name: m.name,
             location: m.location,
             polygon: m.polygon.unwrap_or_default(),
@@ -169,7 +169,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     Ok(MapArea {
-        id: area_response.id,
+        id: area_response.id.map(|id| id.to_string()).unwrap_or_default(),
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
@@ -672,10 +672,14 @@ pub async fn compute_route_offline(
 
             let mut conn_areas = Vec::new();
             for ca in connected_areas {
-                let area_id = ca["area"]
-                    .as_str()
-                    .ok_or_else(|| anyhow::anyhow!("Missing area in connection"))?
-                    .to_string();
+                // Handle both string and integer area IDs for backward compatibility
+                let area_id = if let Some(s) = ca["area"].as_str() {
+                    s.to_string()
+                } else if let Some(i) = ca["area"].as_i64() {
+                    i.to_string()
+                } else {
+                    return Err(anyhow::anyhow!("Missing or invalid area in connection"));
+                };
                 let x = ca["x"]
                     .as_f64()
                     .ok_or_else(|| anyhow::anyhow!("Missing x in connection"))?;
@@ -687,7 +691,8 @@ pub async fn compute_route_offline(
             }
 
             // Check if this connection involves the current area
-            if conn_areas.iter().any(|(aid, _, _, _)| aid == &area_row.id) {
+            let area_id_str = area_row.id.to_string();
+            if conn_areas.iter().any(|(aid, _, _, _)| aid == &area_id_str) {
                 area_connections.push(ConnectionData {
                     id: conn.id.clone(),
                     conn_type: conn.connection_type(),
