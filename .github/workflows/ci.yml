@@ -154,6 +154,12 @@ jobs:
           postgres-version: '17'
         id: postgres
 
+      - name: Install PostGIS
+        if: matrix.component == 'server'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-17-postgis-3
+
       - name: Setup PostgreSQL extensions and test database
         if: matrix.component == 'server'
         run: |
