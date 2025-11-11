@@ -1,9 +1,8 @@
-#[cfg(feature = "mongodb")]
 use super::ConnectedArea;
 
-#[cfg(feature = "mongodb")]
-/// Serialize result: (String, f64, f64, bool),
-/// regardless it's ObjectId or String at the first element
+/// Serialize connected areas
+/// For SQL: (i64, f64, f64, bool)
+/// For non-SQL: (String, f64, f64, bool)
 pub fn serialize_connected_areas<S>(
     areas: &Vec<ConnectedArea>,
     serializer: S,
@@ -14,27 +13,18 @@ where
     use serde::ser::SerializeSeq;
     let mut seq = serializer.serialize_seq(Some(areas.len()))?;
     for area in areas {
-        #[cfg(feature = "mongodb")]
-        {
-            seq.serialize_element(&area.0.to_hex())?;
-            seq.serialize_element(&area.1)?;
-            seq.serialize_element(&area.2)?;
-            seq.serialize_element(&area.3)?;
-        }
-        #[cfg(not(feature = "mongodb"))]
-        {
-            seq.serialize_element(&area.0)?;
-            seq.serialize_element(&area.1)?;
-            seq.serialize_element(&area.2)?;
-            seq.serialize_element(&area.3)?;
-        }
+        // Serialize as tuple directly - works for both i64 and String
+        seq.serialize_element(&area.0)?;
+        seq.serialize_element(&area.1)?;
+        seq.serialize_element(&area.2)?;
+        seq.serialize_element(&area.3)?;
     }
     seq.end()
 }
 
-#[cfg(feature = "mongodb")]
-/// Deserialize result: (ObjectId, f64, f64, bool),
-/// regardless it's ObjectId or String at the first element
+/// Deserialize connected areas
+/// For SQL: (i64, f64, f64, bool)
+/// For non-SQL: (String, f64, f64, bool)
 pub fn deserialize_connected_areas<'de, D>(deserializer: D) -> Result<Vec<ConnectedArea>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -56,21 +46,41 @@ where
             A: SeqAccess<'de>,
         {
             let mut areas = Vec::new();
-            use bson::oid::ObjectId;
-            use std::str::FromStr;
-            while let Some(id_str) = seq.next_element::<String>()? {
-                let id = ObjectId::from_str(&id_str).map_err(serde::de::Error::custom)?;
-                let x = seq
-                    .next_element::<f64>()?
-                    .ok_or_else(|| serde::de::Error::custom("missing x"))?;
-                let y = seq
-                    .next_element::<f64>()?
-                    .ok_or_else(|| serde::de::Error::custom("missing y"))?;
-                let enabled = seq
-                    .next_element::<bool>()?
-                    .ok_or_else(|| serde::de::Error::custom("missing enabled"))?;
-                areas.push((id, x, y, enabled));
+
+            #[cfg(feature = "sql")]
+            {
+                // For SQL: area ID is i64
+                while let Some(id) = seq.next_element::<i64>()? {
+                    let x = seq
+                        .next_element::<f64>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing x"))?;
+                    let y = seq
+                        .next_element::<f64>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing y"))?;
+                    let enabled = seq
+                        .next_element::<bool>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing enabled"))?;
+                    areas.push((id, x, y, enabled));
+                }
             }
+
+            #[cfg(not(feature = "sql"))]
+            {
+                // For non-SQL: area ID is String
+                while let Some(id) = seq.next_element::<String>()? {
+                    let x = seq
+                        .next_element::<f64>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing x"))?;
+                    let y = seq
+                        .next_element::<f64>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing y"))?;
+                    let enabled = seq
+                        .next_element::<bool>()?
+                        .ok_or_else(|| serde::de::Error::custom("missing enabled"))?;
+                    areas.push((id, x, y, enabled));
+                }
+            }
+
             Ok(areas)
         }
     }
