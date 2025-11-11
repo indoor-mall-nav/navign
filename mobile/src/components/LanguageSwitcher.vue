@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
-const { locale, availableLocales } = useI18n()
+const { locale } = useI18n()
 
 interface Language {
   code: string
