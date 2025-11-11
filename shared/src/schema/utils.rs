@@ -1,10 +1,13 @@
-#[cfg(feature = "serde")]
+#[cfg(all(feature = "serde", feature = "alloc"))]
 use super::ConnectedArea;
+
+#[cfg(all(feature = "serde", feature = "alloc"))]
+use alloc::vec::Vec;
 
 /// Serialize connected areas
 /// For SQL: (i64, f64, f64, bool)
 /// For non-SQL: (String, f64, f64, bool)
-#[cfg(feature = "serde")]
+#[cfg(all(feature = "serde", feature = "alloc"))]
 pub fn serialize_connected_areas<S>(
     areas: &Vec<ConnectedArea>,
     serializer: S,
@@ -27,13 +30,13 @@ where
 /// Deserialize connected areas
 /// For SQL: (i64, f64, f64, bool)
 /// For non-SQL: (String, f64, f64, bool)
-#[cfg(feature = "serde")]
+#[cfg(all(feature = "serde", feature = "alloc"))]
 pub fn deserialize_connected_areas<'de, D>(deserializer: D) -> Result<Vec<ConnectedArea>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     use serde::de::{SeqAccess, Visitor};
-    use std::fmt;
+    use core::fmt;
 
     struct ConnectedAreasVisitor;
 
@@ -69,6 +72,7 @@ where
 
             #[cfg(not(feature = "sql"))]
             {
+                use alloc::string::String;
                 // For non-SQL: area ID is String
                 while let Some(id) = seq.next_element::<String>()? {
                     let x = seq
