@@ -1,6 +1,24 @@
 #[cfg(feature = "mongodb")]
 use super::ConnectedArea;
 
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+use bson::oid::ObjectId;
+
+/// Serialize Option<ObjectId> as Option<hex_string>
+#[cfg(all(feature = "mongodb", feature = "serde"))]
+pub fn serialize_option_object_id_as_hex_string<S>(
+    val: &Option<ObjectId>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match val {
+        Some(oid) => bson::serde_helpers::serialize_object_id_as_hex_string(oid, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
 #[cfg(feature = "mongodb")]
 /// Serialize result: (String, f64, f64, bool),
 /// regardless it's ObjectId or String at the first element

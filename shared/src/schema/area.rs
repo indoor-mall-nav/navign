@@ -10,27 +10,28 @@ use serde::{Deserialize, Serialize};
 use bson::oid::ObjectId;
 
 #[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::object_id::AsHexString;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use serde_with::serde_as;
+use bson::serde_helpers::serialize_object_id_as_hex_string;
 
 use core::fmt::{Display, Formatter};
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(all(feature = "mongodb", feature = "serde"), serde_as)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
 pub struct Area {
     #[cfg(feature = "mongodb")]
-    #[cfg_attr(feature = "serde", serde(rename = "_id"))]
-    #[serde_as(as = "AsHexString")]
+    #[cfg_attr(
+        all(feature = "mongodb", feature = "serde"),
+        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string")
+    )]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
     #[cfg(feature = "mongodb")]
-    #[serde_as(as = "AsHexString")]
+    #[cfg_attr(
+        all(feature = "mongodb", feature = "serde"),
+        serde(serialize_with = "serialize_object_id_as_hex_string")
+    )]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
