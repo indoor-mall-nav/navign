@@ -48,43 +48,49 @@ impl From<Proof> for BleMessage {
 #[cfg(feature = "heapless")]
 impl Packetize<128> for BleMessage {
     fn packetize(&self) -> heapless::Vec<u8, 128> {
+        self.try_packetize()
+            .expect("BLE message exceeds 128-byte buffer capacity")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 128>, ()> {
         let mut vec = heapless::Vec::<u8, 128>::new();
         match self {
             BleMessage::DeviceRequest => {
-                vec.push(DEVICE_REQUEST).unwrap();
+                vec.push(DEVICE_REQUEST).map_err(|_| ())?;
             }
             BleMessage::DeviceResponse(device_types, device_capabilities, object_id_segment) => {
-                vec.push(DEVICE_RESPONSE).unwrap();
-                vec.extend_from_slice(&device_types.packetize()).unwrap();
+                vec.push(DEVICE_RESPONSE).map_err(|_| ())?;
+                vec.extend_from_slice(&device_types.packetize())
+                    .map_err(|_| ())?;
                 vec.extend_from_slice(&device_capabilities.packetize())
-                    .unwrap();
-                vec.extend_from_slice(object_id_segment).unwrap();
+                    .map_err(|_| ())?;
+                vec.extend_from_slice(object_id_segment).map_err(|_| ())?;
             }
             BleMessage::NonceRequest => {
-                vec.push(NONCE_REQUEST).unwrap();
+                vec.push(NONCE_REQUEST).map_err(|_| ())?;
             }
             BleMessage::NonceResponse(nonce, verify_bytes) => {
-                vec.push(NONCE_RESPONSE).unwrap();
-                vec.extend_from_slice(nonce).unwrap();
-                vec.extend_from_slice(verify_bytes).unwrap();
+                vec.push(NONCE_RESPONSE).map_err(|_| ())?;
+                vec.extend_from_slice(nonce).map_err(|_| ())?;
+                vec.extend_from_slice(verify_bytes).map_err(|_| ())?;
             }
             BleMessage::UnlockRequest(proof) => {
-                vec.push(UNLOCK_REQUEST).unwrap();
+                vec.push(UNLOCK_REQUEST).map_err(|_| ())?;
                 let proof_packet = proof.packetize();
-                vec.extend_from_slice(&proof_packet).unwrap();
+                vec.extend_from_slice(&proof_packet).map_err(|_| ())?;
             }
             BleMessage::UnlockResponse(success, error) => {
-                vec.push(UNLOCK_RESPONSE).unwrap();
+                vec.push(UNLOCK_RESPONSE).map_err(|_| ())?;
                 vec.push(if *success {
                     UNLOCK_SUCCESS
                 } else {
                     UNLOCK_FAILURE
                 })
-                .unwrap();
-                vec.extend_from_slice(&error.packetize()).unwrap();
+                .map_err(|_| ())?;
+                vec.extend_from_slice(&error.packetize()).map_err(|_| ())?;
             }
         }
-        vec
+        Ok(vec)
     }
 }
 

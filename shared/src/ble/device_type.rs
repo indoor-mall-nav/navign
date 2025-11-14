@@ -35,9 +35,14 @@ impl Depacketize for DeviceTypes {
 #[cfg(feature = "heapless")]
 impl Packetize<1> for DeviceTypes {
     fn packetize(&self) -> heapless::Vec<u8, 1> {
+        self.try_packetize()
+            .expect("DeviceTypes exceeds 1-byte buffer capacity")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 1>, ()> {
         let mut vec = heapless::Vec::<u8, 1>::new();
-        vec.push(self.bits()).unwrap();
-        vec
+        vec.push(self.bits()).map_err(|_| ())?;
+        Ok(vec)
     }
 }
 

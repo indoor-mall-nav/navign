@@ -2,6 +2,11 @@
 pub trait Packetize<const N: usize> {
     fn packetize(&self) -> heapless::Vec<u8, N>;
 
+    /// Try to packetize, returning an error if buffer capacity is exceeded
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, ()> {
+        Ok(self.packetize())
+    }
+
     #[cfg(feature = "crypto")]
     fn get_hash(&self) -> [u8; 32] {
         use sha2::{Digest, Sha256};
@@ -86,9 +91,14 @@ pub trait Packetize {
 #[cfg(feature = "heapless")]
 impl<const N: usize> Packetize<N> for [u8] {
     fn packetize(&self) -> heapless::Vec<u8, N> {
+        self.try_packetize()
+            .expect("Buffer capacity exceeded during packetization")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, ()> {
         let mut vec = heapless::Vec::<u8, N>::new();
-        vec.extend_from_slice(self).unwrap();
-        vec
+        vec.extend_from_slice(self).map_err(|_| ())?;
+        Ok(vec)
     }
 }
 

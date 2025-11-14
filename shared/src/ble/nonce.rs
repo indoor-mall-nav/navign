@@ -53,9 +53,14 @@ impl Packetize for Nonce {
 #[cfg(feature = "heapless")]
 impl Packetize<16> for Nonce {
     fn packetize(&self) -> heapless::Vec<u8, 16> {
+        self.try_packetize()
+            .expect("Nonce exceeds 16-byte buffer capacity")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 16>, ()> {
         let mut vec = heapless::Vec::<u8, 16>::new();
-        vec.extend_from_slice(&self.0).unwrap();
-        vec
+        vec.extend_from_slice(&self.0).map_err(|_| ())?;
+        Ok(vec)
     }
 }
 

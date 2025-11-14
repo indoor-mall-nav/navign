@@ -1,6 +1,6 @@
 #![allow(unused)]
 use crate::schema::Service;
-use anyhow::Result;
+use anyhow::{Context, Result};
 /// Beacon and Server handshake.
 /// 1. The beacon sends its info to the server, and the server compare it with the database.
 /// 2. If the beacon is registered, the server sends back the timestamp back so that the beacon could adjust its clock.
@@ -15,9 +15,8 @@ use anyhow::Result;
 /// 5. The phone forward the TOTP code to the beacon via BLE.
 /// 6. The beacon verifies the TOTP code, and if it is valid, the beacon unlock the door.
 use bson::oid::ObjectId;
-use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
-use sha1::Sha1;
+use totp_lite::{totp_custom, Sha1};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -77,29 +76,17 @@ impl BeaconSecret {
         let timestamp = timestamp - time_diff;
 
         let counter = timestamp as u64 / 30;
-        Ok(self.generate_with_counter(counter))
+        self.generate_with_counter(counter)
     }
 
-    fn generate_with_counter(&self, counter: u64) -> String {
-        // Convert counter to 8-byte big-endian array
-        let counter_bytes = counter.to_be_bytes();
+    fn generate_with_counter(&self, counter: u64) -> Result<String> {
+        // Use audited totp-lite crate (RFC 6238 compliant)
+        let secret_bytes = self.secret.as_bytes();
 
-        // Create HMAC-SHA1 hash
-        let mut mac = Hmac::<Sha1>::new_from_slice(self.secret.as_bytes())
-            .expect("HMAC can take key of any size");
-        mac.update(&counter_bytes);
-        let result = mac.finalize().into_bytes();
+        // Generate TOTP using totp-lite with custom time step (30 seconds)
+        let code = totp_custom::<Sha1>(30, 6, secret_bytes, counter);
 
-        // Dynamic truncation
-        let offset = (result[19] & 0xf) as usize;
-        let binary = ((result[offset] & 0x7f) as u32) << 24
-            | (result[offset + 1] as u32) << 16
-            | (result[offset + 2] as u32) << 8
-            | result[offset + 3] as u32;
-
-        // Generate the final code
-        let code = binary % (10_u32.pow(6));
-        format!("{:0width$}", code, width = 6usize)
+        Ok(format!("{:06}", code))
     }
 }
 
@@ -151,7 +138,9 @@ mod tests {
             true,
         );
 
-        let totp = beacon.generate_totp().unwrap();
+        let totp = beacon
+            .generate_totp()
+            .expect("TOTP generation should succeed for active beacon");
         println!("Generated TOTP: {}", totp);
         assert_eq!(totp.len(), 6);
     }

@@ -37,14 +37,20 @@ impl Proof {
 #[cfg(feature = "heapless")]
 impl Packetize<104> for Proof {
     fn packetize(&self) -> heapless::Vec<u8, 104> {
+        self.try_packetize()
+            .expect("Proof exceeds 104-byte buffer capacity")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 104>, ()> {
         let mut vec = heapless::Vec::<u8, 104>::new();
-        vec.extend_from_slice(&self.nonce).unwrap();
-        vec.extend_from_slice(&self.device_bytes).unwrap();
-        vec.extend_from_slice(&self.verify_bytes).unwrap();
+        vec.extend_from_slice(&self.nonce).map_err(|_| ())?;
+        vec.extend_from_slice(&self.device_bytes).map_err(|_| ())?;
+        vec.extend_from_slice(&self.verify_bytes).map_err(|_| ())?;
         vec.extend_from_slice(&self.timestamp.to_be_bytes())
-            .unwrap();
-        vec.extend_from_slice(&self.server_signature).unwrap();
-        vec
+            .map_err(|_| ())?;
+        vec.extend_from_slice(&self.server_signature)
+            .map_err(|_| ())?;
+        Ok(vec)
     }
 }
 

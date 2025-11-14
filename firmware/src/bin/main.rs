@@ -88,8 +88,8 @@ fn main() -> ! {
     let mut flash = FlashStorage::new(peripherals.FLASH);
 
     let mut buffer = [0u8; esp_bootloader_esp_idf::partitions::PARTITION_TABLE_MAX_LEN];
-    let pt =
-        esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut buffer).unwrap();
+    let pt = esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut buffer)
+        .expect("Failed to read partition table - flash may be corrupted");
 
     // List all partitions - this is just FYI
     for part in pt.iter() {
@@ -98,10 +98,12 @@ fn main() -> ! {
 
     println!("Currently booted partition {:?}", pt.booted_partition());
 
-    let mut ota =
-        esp_bootloader_esp_idf::ota_updater::OtaUpdater::new(&mut flash, &mut buffer).unwrap();
+    let mut ota = esp_bootloader_esp_idf::ota_updater::OtaUpdater::new(&mut flash, &mut buffer)
+        .expect("Failed to initialize OTA updater - check partition configuration");
 
-    let current = ota.selected_partition().unwrap();
+    let current = ota
+        .selected_partition()
+        .expect("Failed to get selected partition - OTA configuration error");
     println!(
         "current image state {:?} (only relevant if the bootloader was built with auto-rollback support)",
         ota.current_ota_state()
@@ -125,7 +127,8 @@ fn main() -> ! {
     #[allow(unused)]
     let trng_source = TrngSource::new(peripherals.RNG, peripherals.ADC1);
 
-    let mut rng = Trng::try_new().unwrap();
+    let mut rng = Trng::try_new()
+        .expect("Failed to initialize TRNG - hardware random number generator unavailable");
 
     let private_key = Efuse::read_field_le::<[u8; 32]>(BLOCK_KEY0);
 
@@ -147,11 +150,12 @@ fn main() -> ! {
     executor
         .borrow_mut()
         .set_server_public_key(server_public_key)
-        .unwrap();
+        .expect("Failed to set server public key - invalid key format");
 
     Delay::new().delay_millis(3_000u32);
 
-    let esp_wifi_ctrl = init().unwrap();
+    let esp_wifi_ctrl = init()
+        .expect("Failed to initialize ESP WiFi/BLE radio - check hardware configuration");
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
     println!("Device ID: {:?}", device_id);
@@ -160,15 +164,23 @@ fn main() -> ! {
 
     let mut uuids = Vec::<Uuid, 4>::new();
 
-    uuids.push(Uuid::Uuid16(0x1819)).unwrap(); // Location and Navigation Service
-    uuids.push(Uuid::Uuid16(0x1821)).unwrap(); // Indoor Positioning Service
+    uuids
+        .push(Uuid::Uuid16(0x1819))
+        .expect("Failed to add Location and Navigation Service UUID - vector capacity exceeded");
+    uuids
+        .push(Uuid::Uuid16(0x1821))
+        .expect("Failed to add Indoor Positioning Service UUID - vector capacity exceeded");
 
     if capabilities.contains(DeviceCapabilities::UNLOCK_GATE) {
-        uuids.insert(0, Uuid::Uuid16(0x183D)).unwrap(); // Authorization Control Service
+        uuids
+            .insert(0, Uuid::Uuid16(0x183D))
+            .expect("Failed to add Authorization Control Service UUID - vector capacity exceeded");
     }
 
     if capabilities.contains(DeviceCapabilities::ENVIRONMENTAL_DATA) {
-        uuids.push(Uuid::Uuid16(0x181A)).unwrap(); // Environmental Sensing Service
+        uuids
+            .push(Uuid::Uuid16(0x181A))
+            .expect("Failed to add Environmental Sensing Service UUID - vector capacity exceeded");
     }
 
     let mut bluetooth = peripherals.BT;
@@ -185,19 +197,22 @@ fn main() -> ! {
         let hci = HciConnector::new(connector, now);
         let mut ble = Ble::new(&hci);
 
-        ble.init().unwrap();
-        ble.cmd_set_le_advertising_parameters().unwrap();
+        ble.init()
+            .expect("Failed to initialize BLE stack");
+        ble.cmd_set_le_advertising_parameters()
+            .expect("Failed to set BLE advertising parameters");
         ble.cmd_set_le_advertising_data(
             create_advertising_data(&[
                 AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
                 AdStructure::ServiceUuids16(uuids.as_ref()),
                 AdStructure::CompleteLocalName("NAVIGN-BEACON"),
             ])
-            .unwrap(),
+            .expect("Failed to create advertising data - check service UUIDs and name length"),
         )
-        .unwrap();
+        .expect("Failed to set BLE advertising data");
 
-        ble.cmd_set_le_advertise_enable(true).unwrap();
+        ble.cmd_set_le_advertise_enable(true)
+            .expect("Failed to enable BLE advertising");
 
         println!("Started advertising.");
 

@@ -38,13 +38,18 @@ impl Packetize for ServerChallenge {
 #[cfg(feature = "heapless")]
 impl Packetize<72> for ServerChallenge {
     fn packetize(&self) -> heapless::Vec<u8, 72> {
+        self.try_packetize()
+            .expect("ServerChallenge exceeds 72-byte buffer capacity")
+    }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 72>, ()> {
         let mut vec = heapless::Vec::<u8, 72>::new();
-        vec.extend_from_slice(&self.nonce).unwrap();
-        vec.extend_from_slice(&self.instance_id).unwrap();
+        vec.extend_from_slice(&self.nonce).map_err(|_| ())?;
+        vec.extend_from_slice(&self.instance_id).map_err(|_| ())?;
         vec.extend_from_slice(&self.timestamp.to_be_bytes())
-            .unwrap();
-        vec.extend_from_slice(&self.user_id).unwrap();
-        vec
+            .map_err(|_| ())?;
+        vec.extend_from_slice(&self.user_id).map_err(|_| ())?;
+        Ok(vec)
     }
 }
 
