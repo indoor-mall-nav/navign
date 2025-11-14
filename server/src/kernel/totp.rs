@@ -16,7 +16,7 @@ use anyhow::{Context, Result};
 /// 6. The beacon verifies the TOTP code, and if it is valid, the beacon unlock the door.
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use totp_lite::{totp_custom, Sha1};
+use totp_lite::{Sha1, totp_custom};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]

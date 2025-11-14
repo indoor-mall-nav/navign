@@ -154,8 +154,8 @@ fn main() -> ! {
 
     Delay::new().delay_millis(3_000u32);
 
-    let esp_wifi_ctrl = init()
-        .expect("Failed to initialize ESP WiFi/BLE radio - check hardware configuration");
+    let esp_wifi_ctrl =
+        init().expect("Failed to initialize ESP WiFi/BLE radio - check hardware configuration");
 
     let device_id = b"68a84b6ebdfa76608b934b0a";
     println!("Device ID: {:?}", device_id);
@@ -197,8 +197,7 @@ fn main() -> ! {
         let hci = HciConnector::new(connector, now);
         let mut ble = Ble::new(&hci);
 
-        ble.init()
-            .expect("Failed to initialize BLE stack");
+        ble.init().expect("Failed to initialize BLE stack");
         ble.cmd_set_le_advertising_parameters()
             .expect("Failed to set BLE advertising parameters");
         ble.cmd_set_le_advertising_data(

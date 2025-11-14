@@ -95,11 +95,8 @@ impl Polygon {
                 return (0.0, 0.0, 0.0, 0.0);
             }
 
-            let coords: Vec<Coord<f64>> = self
-                .vertices
-                .iter()
-                .map(|&(x, y)| Coord { x, y })
-                .collect();
+            let coords: Vec<Coord<f64>> =
+                self.vertices.iter().map(|&(x, y)| Coord { x, y }).collect();
 
             let mut closed_coords = coords;
             if let Some(&first) = self.vertices.first() {
@@ -147,11 +144,8 @@ impl Polygon {
         #[cfg(feature = "geo")]
         {
             // Convert to geo::Polygon for efficient point-in-polygon check
-            let coords: Vec<Coord<f64>> = self
-                .vertices
-                .iter()
-                .map(|&(x, y)| Coord { x, y })
-                .collect();
+            let coords: Vec<Coord<f64>> =
+                self.vertices.iter().map(|&(x, y)| Coord { x, y }).collect();
 
             // Create a closed LineString (geo requires first == last point)
             let mut closed_coords = coords;

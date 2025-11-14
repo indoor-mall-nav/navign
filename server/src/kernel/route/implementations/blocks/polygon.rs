@@ -1,6 +1,6 @@
 use crate::kernel::route::implementations::{BoundedBlock, BoundedBlockArray};
 use crate::kernel::route::types::CloneIn;
-use geo::{Contains, Coord, LineString, Polygon as GeoPolygon, Point as GeoPoint};
+use geo::{Contains, Coord, LineString, Point as GeoPoint, Polygon as GeoPolygon};
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -54,16 +54,15 @@ impl<'a> Polygon<'a> {
         }
 
         // Convert to geo::Polygon for efficient point-in-polygon check
-        let coords: Vec<Coord<f64>> = self
-            .points
-            .iter()
-            .map(|&(x, y)| Coord { x, y })
-            .collect();
+        let coords: Vec<Coord<f64>> = self.points.iter().map(|&(x, y)| Coord { x, y }).collect();
 
         // Create a closed LineString (geo requires first == last point)
         let mut closed_coords = coords;
         if let Some(&first) = self.points.first() {
-            closed_coords.push(Coord { x: first.0, y: first.1 });
+            closed_coords.push(Coord {
+                x: first.0,
+                y: first.1,
+            });
         }
 
         let line_string = LineString::new(closed_coords);
@@ -71,11 +70,7 @@ impl<'a> Polygon<'a> {
         let point = GeoPoint::new(x, y);
 
         let inside = geo_polygon.contains(&point);
-        if self.bounding {
-            inside
-        } else {
-            !inside
-        }
+        if self.bounding { inside } else { !inside }
     }
 
     pub fn get_sorted_coords(&self) -> (Vec<f64>, Vec<f64>) {
