@@ -2,14 +2,37 @@
 
 This document provides comprehensive guidance for testing the ESP32-C3 firmware for the Navign indoor navigation system.
 
+**⚠️ Current Status:** Mock-based unit tests are disabled pending library extraction from binary-only crate. QEMU simulation tests are available for manual execution.
+
 ## Table of Contents
 
-1. [Testing Approaches](#testing-approaches)
-2. [QEMU Simulation](#qemu-simulation)
-3. [Wokwi Simulation](#wokwi-simulation)
-4. [Mock-based Unit Tests](#mock-based-unit-tests)
-5. [Hardware-in-the-Loop Testing](#hardware-in-the-loop-testing)
-6. [CI/CD Integration](#cicd-integration)
+1. [Current Limitations](#current-limitations)
+2. [Testing Approaches](#testing-approaches)
+3. [QEMU Simulation](#qemu-simulation)
+4. [Wokwi Simulation](#wokwi-simulation)
+5. [Mock-based Unit Tests](#mock-based-unit-tests)
+6. [Hardware-in-the-Loop Testing](#hardware-in-the-loop-testing)
+7. [CI/CD Integration](#cicd-integration)
+
+---
+
+## Current Limitations
+
+**Mock-Based Tests Non-Functional (as of 2025-01-14):**
+- Firmware is structured as binary-only crate (`src/bin/main.rs` only)
+- Integration tests require library target (`src/lib.rs`)
+- ESP-specific dependencies don't compile for x86_64 host target
+- Test code in `tests/` directory is complete but can't execute
+
+**Required Fixes:**
+1. Extract testable modules to `src/lib.rs`
+2. Make ESP dependencies conditional: `[target.'cfg(target_arch = "riscv32")'.dependencies]`
+3. Re-enable tests in `justfile` ci-firmware target
+
+**Currently Working:**
+- QEMU simulation (manual execution only, requires setup)
+- Hardware-in-the-loop testing (requires physical device)
+- Code compilation checks (runs in CI)
 
 ---
 
@@ -19,12 +42,12 @@ The firmware can be tested using multiple approaches, each with different tradeo
 
 | Approach | Speed | Accuracy | Setup | Use Case |
 |----------|-------|----------|-------|----------|
-| Mock Unit Tests | ⚡ Fast | Medium | Easy | Development, CI/CD |
-| QEMU | Fast | High | Medium | Security, crypto testing |
+| Mock Unit Tests | ⚡ Fast | Medium | Easy | Development, CI/CD (DISABLED) |
+| QEMU | Fast | High | Medium | Security, crypto testing (MANUAL ONLY) |
 | Wokwi | Medium | High | Easy | BLE, peripheral testing |
 | Real Hardware | Slow | Perfect | Hard | Integration, final validation |
 
-**Recommendation:** Use mock tests for rapid development, QEMU for security features, Wokwi for BLE protocol validation, and real hardware for final acceptance testing.
+**Recommendation:** Use QEMU for security features validation (manual), Wokwi for BLE protocol testing, and real hardware for final acceptance testing.
 
 ---
 

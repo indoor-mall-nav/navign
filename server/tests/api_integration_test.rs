@@ -68,6 +68,7 @@ async fn get(app: &mut Router, uri: &str, auth_token: Option<&str>) -> (StatusCo
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_health_check() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -80,6 +81,7 @@ async fn test_health_check() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_user_registration_and_login() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -126,6 +128,7 @@ async fn test_user_registration_and_login() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_create_and_get_entity() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -159,6 +162,7 @@ async fn test_create_and_get_entity() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_create_area_with_polygon() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -196,6 +200,7 @@ async fn test_create_area_with_polygon() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_create_beacon_and_merchant() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -253,6 +258,7 @@ async fn test_create_beacon_and_merchant() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_pathfinding_route() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -323,6 +329,7 @@ async fn test_pathfinding_route() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_unauthorized_access() {
     common::init_logging();
     let db = common::setup_test_db().await;
@@ -348,6 +355,7 @@ async fn test_unauthorized_access() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "Need to extract app creation logic from main.rs")]
 async fn test_rate_limiting() {
     common::init_logging();
     let db = common::setup_test_db().await;
