@@ -15,7 +15,7 @@ axum-extra = { version = "0.10.3", features = [
 ] }
 base64 = "0.22.1"
 bcrypt = "0.17.1"
-bson = { version = "3.0.0" }
+bson = { version = "2.15.0" }
 bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }
 bumpalo-herd = "0.1.2"
 chrono = "0.4.41"
@@ -27,7 +27,7 @@ hmac = "0.12.1"
 jsonwebtoken = { version = "10.0.0", features = ["rust_crypto"] }
 lazy_static = "1.5.0"
 log = { version = "0.4.27", features = ["max_level_info", "serde", "std"] }
-mongodb = { version = "3.3.0", features = ["bson-3"] }
+mongodb = { version = "3.3.0" }
 navign-shared = { path = "../shared", default-features = false, features = [
   "std",
   "serde",
