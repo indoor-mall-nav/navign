@@ -99,7 +99,7 @@ class PathfindingVisualization(Scene):
     def polygon_quantification_and_routing(self):
         """Show polygon quantification process and inner routing"""
         process_label = (
-            Tex("Inner-Area: Polygon → Blocks → A* Path", font_size=18, color=GREEN)
+            Tex("Inner-Area: Polygon → Blocks → Path", font_size=18, color=GREEN)
             .to_edge(UP)
             .shift(DOWN * 0.5)
         )
@@ -188,8 +188,8 @@ class PathfindingVisualization(Scene):
 
         self.wait(0.3)
 
-        # Step 4: Show A* pathfinding (1.5s)
-        step3 = Tex("3. A* on bounded blocks", font_size=14, color=YELLOW).next_to(
+        # Step 4: Show pathfinding (1.5s)
+        step3 = Tex("3. Pathfinding on bounded blocks", font_size=14, color=YELLOW).next_to(
             step2, DOWN, buff=0.15, aligned_edge=LEFT
         )
         self.play(Write(step3), run_time=0.3)

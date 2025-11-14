@@ -53,7 +53,7 @@ class NavignIntro(Scene):
         solution_title = Tex("Solution", font_size=24, color=GREEN)
         solution_items = VGroup(
             Tex("BLE beacon localization", font_size=16, color=WHITE),
-            Tex("Two-tier A* pathfinding", font_size=16, color=WHITE),
+            Tex("Dijkstra multi-floor routing", font_size=16, color=WHITE),
             Tex("ECDSA + biometric auth", font_size=16, color=WHITE),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
 
