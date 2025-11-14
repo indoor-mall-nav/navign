@@ -1,4 +1,3 @@
-use crate::constants::*;
 use crate::{DeviceCapabilities, DeviceTypes, Packetize, Proof, errors::CryptoError};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -45,86 +44,27 @@ impl From<Proof> for BleMessage {
     }
 }
 
-#[cfg(feature = "heapless")]
+#[cfg(all(feature = "heapless", feature = "postcard"))]
 impl Packetize<128> for BleMessage {
     fn packetize(&self) -> heapless::Vec<u8, 128> {
+        let mut buf = [0u8; 128];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
         let mut vec = heapless::Vec::<u8, 128>::new();
-        match self {
-            BleMessage::DeviceRequest => {
-                vec.push(DEVICE_REQUEST).unwrap();
-            }
-            BleMessage::DeviceResponse(device_types, device_capabilities, object_id_segment) => {
-                vec.push(DEVICE_RESPONSE).unwrap();
-                vec.extend_from_slice(&device_types.packetize()).unwrap();
-                vec.extend_from_slice(&device_capabilities.packetize())
-                    .unwrap();
-                vec.extend_from_slice(object_id_segment).unwrap();
-            }
-            BleMessage::NonceRequest => {
-                vec.push(NONCE_REQUEST).unwrap();
-            }
-            BleMessage::NonceResponse(nonce, verify_bytes) => {
-                vec.push(NONCE_RESPONSE).unwrap();
-                vec.extend_from_slice(nonce).unwrap();
-                vec.extend_from_slice(verify_bytes).unwrap();
-            }
-            BleMessage::UnlockRequest(proof) => {
-                vec.push(UNLOCK_REQUEST).unwrap();
-                let proof_packet = proof.packetize();
-                vec.extend_from_slice(&proof_packet).unwrap();
-            }
-            BleMessage::UnlockResponse(success, error) => {
-                vec.push(UNLOCK_RESPONSE).unwrap();
-                vec.push(if *success {
-                    UNLOCK_SUCCESS
-                } else {
-                    UNLOCK_FAILURE
-                })
-                .unwrap();
-                vec.extend_from_slice(&error.packetize()).unwrap();
-            }
-        }
+        vec.extend_from_slice(used).unwrap();
         vec
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for BleMessage {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        let mut vec = alloc::vec::Vec::new();
-        match self {
-            BleMessage::DeviceRequest => {
-                vec.push(DEVICE_REQUEST);
-            }
-            BleMessage::DeviceResponse(device_types, device_capabilities, object_id_segment) => {
-                vec.push(DEVICE_RESPONSE);
-                vec.extend_from_slice(&device_types.packetize());
-                vec.extend_from_slice(&device_capabilities.packetize());
-                vec.extend_from_slice(object_id_segment);
-            }
-            BleMessage::NonceRequest => {
-                vec.push(NONCE_REQUEST);
-            }
-            BleMessage::NonceResponse(nonce, verify_bytes) => {
-                vec.push(NONCE_RESPONSE);
-                vec.extend_from_slice(nonce);
-                vec.extend_from_slice(verify_bytes);
-            }
-            BleMessage::UnlockRequest(proof) => {
-                vec.push(UNLOCK_REQUEST);
-                let proof_packet = proof.packetize();
-                vec.extend_from_slice(&proof_packet);
-            }
-            BleMessage::UnlockResponse(success, error) => {
-                vec.push(UNLOCK_RESPONSE);
-                vec.push(if *success {
-                    UNLOCK_SUCCESS
-                } else {
-                    UNLOCK_FAILURE
-                });
-                vec.extend_from_slice(&error.packetize());
-            }
-        }
-        vec
+        postcard::to_allocvec(self).unwrap()
+    }
+}
+
+#[cfg(feature = "postcard")]
+impl crate::Depacketize for BleMessage {
+    fn depacketize(data: &[u8]) -> Option<Self> {
+        postcard::from_bytes(data).ok()
     }
 }

@@ -1,3 +1,6 @@
+// NOTE: When using postcard feature, serialization is done via postcard crate.
+// Otherwise, manual implementations are required.
+
 #[cfg(feature = "heapless")]
 pub trait Packetize<const N: usize> {
     fn packetize(&self) -> heapless::Vec<u8, N>;

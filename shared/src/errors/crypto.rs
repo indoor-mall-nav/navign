@@ -46,37 +46,27 @@ impl From<CryptoError> for u8 {
     }
 }
 
-#[cfg(feature = "heapless")]
-impl Packetize<1> for CryptoError {
-    fn packetize(&self) -> heapless::Vec<u8, 1> {
-        let mut vec = heapless::Vec::<u8, 1>::new();
-        vec.push((*self).into()).unwrap();
+#[cfg(all(feature = "heapless", feature = "postcard"))]
+impl Packetize<8> for CryptoError {
+    fn packetize(&self) -> heapless::Vec<u8, 8> {
+        let mut buf = [0u8; 8];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
+        let mut vec = heapless::Vec::<u8, 8>::new();
+        vec.extend_from_slice(used).unwrap();
         vec
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for CryptoError {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        alloc::vec![(*self).into()]
+        postcard::to_allocvec(self).unwrap()
     }
 }
 
+#[cfg(feature = "postcard")]
 impl Depacketize for CryptoError {
     fn depacketize(packet: &[u8]) -> Option<Self> {
-        if packet.len() != 1 {
-            return None;
-        }
-        match packet[0] {
-            0x01 => Some(CryptoError::InvalidSignature),
-            0x02 => Some(CryptoError::InvalidKey),
-            0x03 => Some(CryptoError::InvalidNonce),
-            0x04 => Some(CryptoError::VerificationFailed),
-            0x05 => Some(CryptoError::BufferFull),
-            0x06 => Some(CryptoError::RateLimited),
-            0x07 => Some(CryptoError::ReplayDetected),
-            0x08 => Some(CryptoError::ServerPublicKeyNotSet),
-            _ => None,
-        }
+        postcard::from_bytes(packet).ok()
     }
 }

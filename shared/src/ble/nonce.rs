@@ -43,50 +43,50 @@ impl defmt::Format for Nonce {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for Nonce {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        self.0.to_vec()
+        postcard::to_allocvec(self).unwrap()
     }
 }
 
-#[cfg(feature = "heapless")]
-impl Packetize<16> for Nonce {
-    fn packetize(&self) -> heapless::Vec<u8, 16> {
-        let mut vec = heapless::Vec::<u8, 16>::new();
-        vec.extend_from_slice(&self.0).unwrap();
+#[cfg(all(feature = "heapless", feature = "postcard"))]
+impl Packetize<32> for Nonce {
+    fn packetize(&self) -> heapless::Vec<u8, 32> {
+        let mut buf = [0u8; 32];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
+        let mut vec = heapless::Vec::<u8, 32>::new();
+        vec.extend_from_slice(used).unwrap();
         vec
     }
 }
 
+#[cfg(feature = "postcard")]
 impl Depacketize for Nonce {
     fn depacketize(packet: &[u8]) -> Option<Self> {
-        if packet.len() != 16 {
-            return None;
-        }
-        let mut bytes = [0u8; 16];
-        bytes.copy_from_slice(&packet[0..16]);
-        Some(Nonce(bytes))
+        postcard::from_bytes(packet).ok()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
+    #[cfg(feature = "postcard")]
     fn test_nonce_packetize_depacketize() {
         let nonce = Nonce::new([1u8; 16]);
         #[cfg(feature = "heapless")]
         {
             let packet = nonce.packetize();
-            assert_eq!(packet.len(), 16);
+            assert!(packet.len() > 0);
             let depacketized = Nonce::depacketize(&packet).unwrap();
             assert_eq!(nonce, depacketized);
         }
         #[cfg(feature = "alloc")]
         {
             let packet = nonce.packetize();
-            assert_eq!(packet.len(), 16);
+            assert!(packet.len() > 0);
             let depacketized = Nonce::depacketize(&packet).unwrap();
             assert_eq!(nonce, depacketized);
         }
