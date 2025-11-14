@@ -147,11 +147,68 @@ jobs:
       # Shared-specific setup (none needed, uses Rust)
 
       # Firmware-specific setup
+      - name: Install Rust nightly (firmware)
+        if: matrix.component == 'firmware'
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Install RISC-V target (firmware)
+        if: matrix.component == 'firmware'
+        run: rustup target add riscv32imc-unknown-none-elf
+
       - name: Cache Rust dependencies (firmware)
         if: matrix.component == 'firmware'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: firmware -> target
+
+      - name: Install ESP-IDF dependencies (firmware)
+        if: matrix.component == 'firmware'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git wget flex bison gperf \
+            python3 python3-pip python3-venv \
+            cmake ninja-build ccache libffi-dev libssl-dev \
+            dfu-util libusb-1.0-0
+
+      - name: Install espup (firmware)
+        if: matrix.component == 'firmware'
+        run: |
+          cargo install espup
+          espup install
+          echo "source $HOME/export-esp.sh" >> $GITHUB_ENV
+
+      - name: Cache QEMU build (firmware)
+        if: matrix.component == 'firmware'
+        id: cache-qemu
+        uses: actions/cache@v4
+        with:
+          path: ~/qemu-esp-install
+          key: ${{ runner.os }}-qemu-esp-9.0.0-v3
+
+      - name: Build ESP32-C3 QEMU (firmware)
+        if: matrix.component == 'firmware' && steps.cache-qemu.outputs.cache-hit != 'true'
+        run: |
+          cd ~
+          git clone --depth 1 --branch esp-develop-9.0.0 https://github.com/espressif/qemu.git qemu-esp
+          cd qemu-esp
+          ./configure \
+            --target-list=riscv32-softmmu \
+            --enable-gcrypt \
+            --enable-slirp \
+            --disable-capstone \
+            --disable-vnc \
+            --disable-sdl \
+            --disable-gtk \
+            --prefix=$HOME/qemu-esp-install
+          make -j$(nproc)
+          make install
+
+      - name: Add QEMU to PATH (firmware)
+        if: matrix.component == 'firmware'
+        run: echo "$HOME/qemu-esp-install/bin" >> $GITHUB_PATH
 
       # Server-specific setup
       - name: Start MongoDB

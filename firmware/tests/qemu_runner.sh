@@ -1,8 +1,13 @@
 #!/bin/bash
 # QEMU ESP32-C3 Test Runner
-# This script builds and runs the firmware in QEMU for testing
+# This script runs the firmware in QEMU for testing
 
 set -e
+
+# Source ESP-IDF environment if available
+if [ -f "$HOME/export-esp.sh" ]; then
+    source "$HOME/export-esp.sh"
+fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 FIRMWARE_DIR="$(dirname "$SCRIPT_DIR")"
@@ -17,8 +22,11 @@ echo ""
 # Check if firmware binary exists
 if [ ! -f "$BINARY_PATH" ]; then
     echo "✗ Firmware binary not found at: $BINARY_PATH"
+    echo ""
     echo "  Please build the firmware first:"
     echo "  cd firmware && cargo build --release"
+    echo ""
+    echo "  Or run: just test-firmware-qemu (includes build)"
     exit 1
 fi
 

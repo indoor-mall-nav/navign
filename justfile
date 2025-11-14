@@ -99,6 +99,7 @@ ci-firmware:
   cd firmware && cargo fmt -- --check
   cd firmware && cargo clippy --release -- -D warnings
   just test-firmware-mocks
+  just test-firmware-qemu
 
 ci-mobile:
   corepack enable
