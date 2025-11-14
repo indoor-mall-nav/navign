@@ -36,7 +36,7 @@ lint:
   cd maintenance-tool && cargo clippy --all-targets --all-features -- -D warnings
 
 test:
-  echo "No tests for firmware yet..."
+  just test-firmware-mocks
   cd shared && cargo test
   cd shared && cargo test --features heapless --no-default-features
   cd shared && cargo test --features alloc --no-default-features
@@ -47,6 +47,26 @@ test:
   cd mobile && just test
   cd server && cargo test
   cd maintenance-tool && cargo test
+
+# Run firmware mock-based tests (fast, runs on host)
+test-firmware-mocks:
+  cd firmware && cargo test --test nonce_tests --features std
+  cd firmware && cargo test --test crypto_tests --features std
+  cd firmware && cargo test --test rate_limit_tests --features std
+
+# Run firmware tests in QEMU simulator (requires QEMU installation)
+test-firmware-qemu:
+  #!/usr/bin/env bash
+  set -e
+  echo "Building firmware for QEMU..."
+  cd firmware && cargo build --release
+  echo "Starting QEMU simulation..."
+  cd firmware && ./tests/qemu_runner.sh
+
+# Run all firmware tests (mocks + QEMU)
+test-firmware-all:
+  just test-firmware-mocks
+  just test-firmware-qemu
 
 fmt-check:
   taplo format --diff
@@ -78,8 +98,7 @@ ci-firmware:
   cd firmware && cargo check --release
   cd firmware && cargo fmt -- --check
   cd firmware && cargo clippy --release -- -D warnings
-  # cd firmware && cargo test --release
-  echo "No tests for firmware yet..."
+  just test-firmware-mocks
 
 ci-mobile:
   corepack enable

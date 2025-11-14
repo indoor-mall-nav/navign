@@ -146,6 +146,13 @@ jobs:
 
       # Shared-specific setup (none needed, uses Rust)
 
+      # Firmware-specific setup
+      - name: Cache Rust dependencies (firmware)
+        if: matrix.component == 'firmware'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: firmware -> target
+
       # Server-specific setup
       - name: Start MongoDB
         if: matrix.component == 'server'

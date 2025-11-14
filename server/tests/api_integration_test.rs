@@ -1,6 +1,10 @@
 mod common;
 
-use axum::{body::Body, http::{Request, StatusCode, header}, Router};
+use axum::{
+    Router,
+    body::Body,
+    http::{Request, StatusCode, header},
+};
 use mongodb::Database;
 use serde_json::{Value, json};
 use tower::ServiceExt; // for `oneshot`
