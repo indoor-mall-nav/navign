@@ -93,7 +93,7 @@ ci-server:
   cd server && cargo check
   cd server && cargo fmt -- --check
   cd server && cargo clippy -- -D warnings
-  cd server && cargo test
+  cd server && cargo test -- --include-ignored
 
 ci-firmware:
   cd firmware && cargo check --release
