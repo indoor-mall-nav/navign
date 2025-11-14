@@ -4,6 +4,7 @@ mod error;
 mod kernel;
 mod key_management;
 mod metrics;
+mod pg;
 mod schema;
 mod shared;
 
@@ -60,6 +61,7 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 #[derive(Clone)]
 pub(crate) struct AppState {
     db: Database,
+    pg_pool: Option<Arc<pg::PgPool>>,
     private_key: SigningKey,
     prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
@@ -146,9 +148,38 @@ async fn main() -> ServerResult<()> {
         }
     });
 
-    // Connect to database
-    info!("Connecting to database...");
+    // Connect to MongoDB database
+    info!("Connecting to MongoDB...");
     let db = database::connect_with_db().await?;
+
+    // Optionally connect to PostgreSQL for migration
+    let pg_pool = if let Ok(pg_url) = std::env::var("POSTGRES_URL") {
+        info!("PostgreSQL URL found, connecting to PostgreSQL...");
+        match pg::create_pool(&pg_url).await {
+            Ok(pool) => {
+                info!("Successfully connected to PostgreSQL");
+
+                // Run migrations if POSTGRES_RUN_MIGRATIONS=true
+                if std::env::var("POSTGRES_RUN_MIGRATIONS").unwrap_or_default() == "true" {
+                    info!("Running PostgreSQL migrations...");
+                    if let Err(e) = pool.run_migrations().await {
+                        log::warn!("Failed to run PostgreSQL migrations: {}", e);
+                    } else {
+                        info!("PostgreSQL migrations completed successfully");
+                    }
+                }
+
+                Some(Arc::new(pool))
+            }
+            Err(e) => {
+                log::warn!("Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.", e);
+                None
+            }
+        }
+    } else {
+        info!("No PostgreSQL URL configured, using MongoDB only");
+        None
+    };
 
     // Get server bind address from environment
     let bind_addr =
@@ -158,6 +189,7 @@ async fn main() -> ServerResult<()> {
 
     let state = AppState {
         db,
+        pg_pool,
         private_key,
         prometheus_handle,
     };
