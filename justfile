@@ -28,6 +28,7 @@ lint:
   cd shared && cargo clippy --features base64 --features crypto --features alloc --features serde --no-default-features -- -D warnings
   cd shared && cargo clippy --features mongodb --features serde --features crypto
   cd shared && cargo clippy --features sql --features serde --features crypto
+  cd proc_macros && cargo clippy -- -D warnings
   cd firmware && cargo clippy -- -D warnings
   cd ts-schema && cargo clippy -- -D warnings
   pnpm run --filter mobile lint
@@ -45,6 +46,7 @@ test:
   cd shared && cargo test --features base64 --features crypto --features alloc --features serde --no-default-features
   cd shared && cargo test --features mongodb --features serde --features crypto
   cd shared && cargo test --features sql --features serde --features crypto
+  cd proc_macros && cargo test
   cd mobile && just test
   cd server && cargo test
   cd maintenance-tool && cargo test
@@ -74,6 +76,7 @@ fmt-check:
   cd animations && uvx ruff check --diff
   cd gesture_space && uvx ruff check --diff
   cd shared && cargo fmt -- --check
+  cd proc_macros && cargo fmt -- --check
   cd firmware && cargo fmt -- --check
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check
@@ -130,6 +133,12 @@ ci-shared:
   cd shared && cargo clippy --features mongodb --features serde --features crypto
   cd shared && cargo clippy --features sql --features serde --features crypto
   cd shared && cargo test
+
+ci-proc-macros:
+  cd proc_macros && cargo check
+  cd proc_macros && cargo fmt -- --check
+  cd proc_macros && cargo clippy -- -D warnings
+  cd proc_macros && cargo test
 
 ci-repo:
   taplo format --diff

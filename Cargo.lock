@@ -5739,6 +5739,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "navign-proc-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
 name = "navign-server"
 version = "0.1.0"
 dependencies = [
