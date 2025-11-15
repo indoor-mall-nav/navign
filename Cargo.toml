@@ -10,11 +10,18 @@ members = [
   "ts-schema",
   "admin/orchestrator",
   "proc_macros",
+  "robot/lower",
 ]
 
 # Exclude members from default workspace builds if needed
 # This is useful since firmware needs special cross-compilation
-default-members = ["server", "maintenance-tool", "shared", "ts-schema", "proc_macros"]
+default-members = [
+  "server",
+  "maintenance-tool",
+  "shared",
+  "ts-schema",
+  "proc_macros",
+]
 
   [workspace.package]
   edition = "2024"
