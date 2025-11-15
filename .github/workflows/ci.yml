@@ -146,6 +146,26 @@ jobs:
 
       # Shared-specific setup (none needed, uses Rust)
 
+      # Firmware-specific setup
+      - name: Install Rust nightly (firmware)
+        if: matrix.component == 'firmware'
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Install RISC-V target (firmware)
+        if: matrix.component == 'firmware'
+        run: rustup target add riscv32imc-unknown-none-elf
+
+      - name: Cache Rust dependencies (firmware)
+        if: matrix.component == 'firmware'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: firmware -> target
+
+      # QEMU simulation tests are available via `just test-firmware-qemu` for manual testing
+      # Disabled in CI due to espup installation issues
+
       # Server-specific setup
       - name: Start MongoDB
         if: matrix.component == 'server'
