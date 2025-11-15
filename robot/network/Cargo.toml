@@ -1,0 +1,7 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "network"
+version.workspace = true
+
+[dependencies]

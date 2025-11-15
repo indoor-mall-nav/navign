@@ -7,4 +7,4 @@ requires-python = ">=3.12"
 version         = "0.1.0"
 
 [tool.ruff]
-ignore = ["F403"]
+lint.ignore = ["F403"]

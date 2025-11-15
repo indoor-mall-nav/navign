@@ -5369,27 +5369,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lower"
-version = "0.1.0"
-dependencies = [
- "alloc-cortex-m",
- "chrono",
- "cortex-m",
- "cortex-m-rt",
- "critical-section",
- "defmt 1.0.1",
- "defmt-rtt",
- "embassy-executor",
- "embassy-stm32",
- "embassy-sync 0.7.2",
- "embassy-time",
- "futures-util",
- "heapless 0.8.0",
- "nb 1.1.0",
- "panic-probe",
-]
-
-[[package]]
 name = "lru-cache"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6007,6 +5986,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "navign-robot-firmware"
+version = "0.1.0"
+dependencies = [
+ "alloc-cortex-m",
+ "chrono",
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt 1.0.1",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-stm32",
+ "embassy-sync 0.7.2",
+ "embassy-time",
+ "futures-util",
+ "heapless 0.8.0",
+ "nb 1.1.0",
+ "panic-probe",
+]
+
+[[package]]
 name = "navign-server"
 version = "0.1.0"
 dependencies = [
@@ -6127,6 +6127,10 @@ checksum = "ee6cda3051665f1fb8d9e08fc35c96d5a244fb1be711a03b71118828afc9a873"
 dependencies = [
  "jni-sys",
 ]
+
+[[package]]
+name = "network"
+version = "0.1.0"
 
 [[package]]
 name = "new_debug_unreachable"
@@ -8206,6 +8210,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "scheduler"
+version = "0.1.0"
+
+[[package]]
 name = "schemars"
 version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8640,6 +8648,10 @@ dependencies = [
  "base16ct",
  "serde",
 ]
+
+[[package]]
+name = "serial"
+version = "0.1.0"
 
 [[package]]
 name = "serialize-to-javascript"

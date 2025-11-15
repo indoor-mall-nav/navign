@@ -10,7 +10,10 @@ members = [
   "ts-schema",
   "admin/orchestrator",
   "proc_macros",
-  "robot/lower",
+  "robot/firmware",
+  "robot/scheduler",
+  "robot/network",
+  "robot/serial",
 ]
 
 # Exclude members from default workspace builds if needed
@@ -46,3 +49,6 @@ overflow-checks  = false
 
 [profile.release.package.ts-schema]
 strip = "symbols"
+
+[profile.release.package.navign-robot-firmware]
+debug = 2
