@@ -1,3 +1,4 @@
+#[cfg(feature = "postcard")]
 use crate::{Depacketize, Packetize};
 use bitflags::bitflags;
 #[cfg(feature = "serde")]
@@ -23,41 +24,47 @@ impl defmt::Format for DeviceTypes {
     }
 }
 
+#[cfg(feature = "postcard")]
 impl Depacketize for DeviceTypes {
     fn depacketize(packet: &[u8]) -> Option<Self> {
-        if packet.len() != 1 {
-            return None;
-        }
-        Some(DeviceTypes::from_bits_truncate(packet[0]))
+        postcard::from_bytes(packet).ok()
     }
 }
 
-#[cfg(feature = "heapless")]
-impl Packetize<1> for DeviceTypes {
-    fn packetize(&self) -> heapless::Vec<u8, 1> {
-        self.try_packetize()
-            .expect("DeviceTypes exceeds 1-byte buffer capacity")
+#[cfg(all(feature = "heapless", feature = "postcard"))]
+impl Packetize<8> for DeviceTypes {
+    fn packetize(&self) -> heapless::Vec<u8, 8> {
+        let mut buf = [0u8; 8];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
+        let mut vec = heapless::Vec::<u8, 8>::new();
+        vec.extend_from_slice(used).unwrap();
+        vec
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 1>, crate::PacketizeError> {
-        let mut vec = heapless::Vec::<u8, 1>::new();
-        vec.push(self.bits())
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 8>, crate::PacketizeError> {
+        let mut buf = [0u8; 8];
+        let used = postcard::to_slice(self, &mut buf)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+        let mut vec = heapless::Vec::<u8, 8>::new();
+        vec.extend_from_slice(used)
             .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for DeviceTypes {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        alloc::vec![self.bits()]
+        postcard::to_allocvec(self).unwrap()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
+    #[cfg(feature = "postcard")]
     fn test_device_types_packetize_depacketize() {
         let device_types = DeviceTypes::MERCHANT;
         #[cfg(feature = "heapless")]

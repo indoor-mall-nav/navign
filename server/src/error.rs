@@ -15,8 +15,17 @@ pub enum ServerError {
     #[error("Database connection failed: {0}")]
     DatabaseConnection(String),
 
+    #[error("Database query error: {0}")]
+    DatabaseQuery(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
     #[error("Entity not found: {0}")]
     EntityNotFound(String),
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 
     #[error("Invalid ObjectId format: {0}")]
     InvalidObjectId(String),
@@ -46,9 +55,6 @@ pub enum ServerError {
     // Validation errors
     #[error("Validation error: {0}")]
     ValidationError(String),
-
-    #[error("Invalid input: {field} - {reason}")]
-    InvalidInput { field: String, reason: String },
 
     #[error("Missing required field: {0}")]
     MissingField(String),
@@ -160,7 +166,7 @@ impl ServerError {
         match self {
             // 400 Bad Request
             Self::ValidationError(_)
-            | Self::InvalidInput { .. }
+            | Self::InvalidInput(_)
             | Self::MissingField(_)
             | Self::InvalidFormat(_)
             | Self::InvalidObjectId(_)
@@ -178,7 +184,8 @@ impl ServerError {
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
 
             // 404 Not Found
-            Self::EntityNotFound(_)
+            Self::NotFound(_)
+            | Self::EntityNotFound(_)
             | Self::AreaNotFound(_)
             | Self::ConnectionNotFound(_)
             | Self::FileNotFound(_)

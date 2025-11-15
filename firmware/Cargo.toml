@@ -78,6 +78,8 @@ navign-shared = { path = "../shared", default-features = false, features = [
   "heapless",
   "crypto",
   "defmt",
+  "postcard",
+  "serde",
 ] }
 nb = "1.1.0"
 p256 = { version = "0.13.2", default-features = false, features = [

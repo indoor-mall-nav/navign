@@ -64,4 +64,4 @@ tokio = { version = "1.47.1", features = ["sync"] }
 uuid = { version = "1.18.0", features = ["v4"] }
 wkt = { version = "0.14.0", features = ["serde"] }
 #tauri-plugin-gyroscope = { path = "../../tauri-plugin-gyroscope" }
-navign-shared = { path = "../../shared", features = ["std", "serde", "sql"] }
+navign-shared = { path = "../../shared", features = ["std", "serde", "sql", "postcard"] }

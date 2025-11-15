@@ -1,3 +1,4 @@
+#[cfg(feature = "postcard")]
 use crate::{Depacketize, Packetize};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -34,70 +35,37 @@ impl Proof {
     }
 }
 
-#[cfg(feature = "heapless")]
-impl Packetize<104> for Proof {
-    fn packetize(&self) -> heapless::Vec<u8, 104> {
-        self.try_packetize()
-            .expect("Proof exceeds 104-byte buffer capacity")
+#[cfg(all(feature = "heapless", feature = "postcard"))]
+impl Packetize<128> for Proof {
+    fn packetize(&self) -> heapless::Vec<u8, 128> {
+        let mut buf = [0u8; 128];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
+        let mut vec = heapless::Vec::<u8, 128>::new();
+        vec.extend_from_slice(used).unwrap();
+        vec
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 104>, crate::PacketizeError> {
-        let mut vec = heapless::Vec::<u8, 104>::new();
-        vec.extend_from_slice(&self.nonce)
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 128>, crate::PacketizeError> {
+        let mut buf = [0u8; 128];
+        let used = postcard::to_slice(self, &mut buf)
             .map_err(|_| crate::PacketizeError::BufferOverflow)?;
-        vec.extend_from_slice(&self.device_bytes)
-            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
-        vec.extend_from_slice(&self.verify_bytes)
-            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
-        vec.extend_from_slice(&self.timestamp.to_be_bytes())
-            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
-        vec.extend_from_slice(&self.server_signature)
+        let mut vec = heapless::Vec::<u8, 128>::new();
+        vec.extend_from_slice(used)
             .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for Proof {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        let mut vec = alloc::vec::Vec::with_capacity(16 + 8 + 8 + 8 + 64);
-        vec.extend_from_slice(&self.nonce);
-        vec.extend_from_slice(&self.device_bytes);
-        vec.extend_from_slice(&self.verify_bytes);
-        vec.extend_from_slice(&self.timestamp.to_be_bytes());
-        vec.extend_from_slice(&self.server_signature);
-        vec
+        postcard::to_allocvec(self).unwrap()
     }
 }
 
+#[cfg(feature = "postcard")]
 impl Depacketize for Proof {
     fn depacketize(data: &[u8]) -> Option<Self> {
-        if data.len() < 104 {
-            return None;
-        }
-
-        let mut nonce = [0u8; 16];
-        nonce.copy_from_slice(&data[0..16]);
-
-        let mut device_bytes = [0u8; 8];
-        device_bytes.copy_from_slice(&data[16..24]);
-
-        let mut verify_bytes = [0u8; 8];
-        verify_bytes.copy_from_slice(&data[24..32]);
-
-        let timestamp = u64::from_be_bytes([
-            data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39],
-        ]);
-
-        let mut server_signature = [0u8; 64];
-        server_signature.copy_from_slice(&data[40..104]);
-
-        Some(Self::new(
-            nonce,
-            device_bytes,
-            verify_bytes,
-            timestamp,
-            server_signature,
-        ))
+        postcard::from_bytes(data).ok()
     }
 }
