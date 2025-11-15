@@ -1,3 +1,4 @@
+#[cfg(feature = "postcard")]
 use crate::{Depacketize, Packetize};
 use bitflags::bitflags;
 #[cfg(feature = "serde")]

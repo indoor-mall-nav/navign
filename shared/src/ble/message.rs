@@ -1,4 +1,6 @@
-use crate::{DeviceCapabilities, DeviceTypes, Packetize, Proof, errors::CryptoError};
+use crate::{DeviceCapabilities, DeviceTypes, Proof, errors::CryptoError};
+#[cfg(feature = "postcard")]
+use crate::Packetize;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 

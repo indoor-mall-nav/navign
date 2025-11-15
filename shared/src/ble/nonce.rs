@@ -1,3 +1,4 @@
+#[cfg(feature = "postcard")]
 use crate::{Depacketize, Packetize};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
