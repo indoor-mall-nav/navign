@@ -132,7 +132,7 @@ function clearFilters() {
 }
 
 function toggleFavorite(merchant: Merchant) {
-  const merchantId = merchant._id?.$oid || ''
+  const merchantId = merchant._id || ''
   if (favorites.isMerchantFavorited(merchantId)) {
     favorites.removeMerchantFavorite(merchantId)
   } else {
@@ -275,7 +275,7 @@ function getMerchantTypeLabel(merchant: Merchant): string {
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card v-for="merchant in filteredMerchants" :key="merchant._id?.$oid || merchant.name">
+      <Card v-for="merchant in filteredMerchants" :key="merchant._id || merchant.name">
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -286,10 +286,10 @@ function getMerchantTypeLabel(merchant: Merchant): string {
               variant="ghost"
               size="sm"
               @click="toggleFavorite(merchant)"
-              :class="favorites.isMerchantFavorited(merchant._id?.$oid || '') ? 'text-red-500' : ''"
+              :class="favorites.isMerchantFavorited(merchant._id || '') ? 'text-red-500' : ''"
             >
               <Icon
-                :icon="favorites.isMerchantFavorited(merchant._id?.$oid || '') ? 'mdi:heart' : 'mdi:heart-outline'"
+                :icon="favorites.isMerchantFavorited(merchant._id || '') ? 'mdi:heart' : 'mdi:heart-outline'"
                 class="w-5 h-5"
               />
             </Button>

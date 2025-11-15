@@ -37,9 +37,13 @@ use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
 use std::sync::Arc;
+#[cfg(not(debug_assertions))]
 use std::time::Duration;
 use tower_governor::GovernorLayer;
 use tower_governor::governor::GovernorConfigBuilder;
+#[cfg(debug_assertions)]
+use tower_governor::key_extractor::GlobalKeyExtractor;
+#[cfg(not(debug_assertions))]
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
 
@@ -110,16 +114,19 @@ async fn main() -> ServerResult<()> {
     );
 
     // Configure rate limiting with environment variable support
+    #[cfg(not(debug_assertions))]
     let requests_per_second = std::env::var("RATE_LIMIT_PER_SECOND")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(100);
 
+    #[cfg(not(debug_assertions))]
     let burst_size = std::env::var("RATE_LIMIT_BURST_SIZE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(200);
 
+    #[cfg(not(debug_assertions))]
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(requests_per_second)
@@ -132,15 +139,32 @@ async fn main() -> ServerResult<()> {
                 )
             })?,
     );
+    #[cfg(debug_assertions)]
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(u32::MAX)
+            .key_extractor(GlobalKeyExtractor)
+            .finish()
+            .ok_or_else(|| {
+                ServerError::ConfigurationError(
+                    "Failed to build rate limiter configuration".to_string(),
+                )
+            })?,
+    );
 
+    #[cfg(not(debug_assertions))]
     info!(
         "Rate limiting configured: {} requests/second with burst size {}",
         requests_per_second, burst_size
     );
 
     // Start background task for rate limiter cleanup
+    #[cfg(not(debug_assertions))]
     let governor_limiter = governor_conf.limiter().clone();
+    #[cfg(not(debug_assertions))]
     let interval = Duration::from_secs(60);
+    #[cfg(not(debug_assertions))]
     std::thread::spawn(move || {
         loop {
             std::thread::sleep(interval);

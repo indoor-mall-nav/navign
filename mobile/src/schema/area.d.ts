@@ -1,12 +1,8 @@
 // Auto-generated from Rust schema: area.rs
 
-export interface ObjectId {
-  $oid: string
-}
-
 export interface Area {
-  _id: ObjectId
-  entity: ObjectId
+  _id: string
+  entity: string
   name: string
   description: string | null
   /** Unique identifier for the area for displaying in the beacon name. */

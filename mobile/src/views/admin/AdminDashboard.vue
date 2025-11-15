@@ -9,7 +9,7 @@ const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
 
-const entityId = computed(() => route.query.entity as string || session.entity?._id?.$oid || '')
+const entityId = computed(() => route.query.entity as string || session.entity?._id || '')
 
 const adminSections = [
   {

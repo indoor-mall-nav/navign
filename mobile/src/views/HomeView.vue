@@ -43,8 +43,8 @@ const geolocationError = ref('')
 const findingArea = ref(false)
 const areaFindingError = ref('')
 
-const entityId = computed(() => session.entity?._id?.$oid || '')
-const areaId = computed(() => session.area?._id?.$oid || '')
+const entityId = computed(() => session.entity?._id || '')
+const areaId = computed(() => session.area?._id || '')
 
 onMounted(() => {
   // Check if user is authenticated
@@ -381,7 +381,7 @@ watch(
         <CardContent class="space-y-2">
           <Card
             v-for="entity in entities"
-            :key="entity._id.$oid"
+            :key="entity._id"
             class="p-4 cursor-pointer hover:bg-accent transition-colors"
             @click="selectEntity(entity)"
           >
@@ -515,9 +515,9 @@ watch(
           <CardContent class="space-y-2">
             <div
               v-for="merchant in session.nearestMerchants.slice(0, 5)"
-              :key="merchant._id.$oid"
+              :key="merchant._id"
               class="p-2 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              @click="handleMerchantClick(merchant._id.$oid)"
+              @click="handleMerchantClick(merchant._id)"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

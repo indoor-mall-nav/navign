@@ -67,9 +67,9 @@ async function loadBeacon() {
         description: beacon.description || '',
         type: beacon.type,
         device: beacon.device,
-        area: beacon.area.$oid,
-        merchant: beacon.merchant?.$oid || null,
-        connection: beacon.connection?.$oid || null,
+        area: beacon.area,
+        merchant: beacon.merchant || null,
+        connection: beacon.connection || null,
         location: beacon.location,
       }
     } else {
@@ -216,7 +216,7 @@ function handleCancel() {
               required
             >
               <option value="" disabled>Select an area</option>
-              <option v-for="area in areas" :key="area._id.$oid" :value="area._id.$oid">
+              <option v-for="area in areas" :key="area._id" :value="area._id">
                 {{ area.name }}
               </option>
             </select>

@@ -73,7 +73,7 @@ async function loadMerchant() {
         name: merchant.name,
         description: merchant.description || '',
         chain: merchant.chain || '',
-        area: merchant.area.$oid,
+        area: merchant.area,
         beacon_code: merchant.beacon_code,
         type: merchant.type,
         tags: merchant.tags,
@@ -253,7 +253,7 @@ function handleCancel() {
               required
             >
               <option value="" disabled>Select an area</option>
-              <option v-for="area in areas" :key="area._id.$oid" :value="area._id.$oid">
+              <option v-for="area in areas" :key="area._id" :value="area._id">
                 {{ area.name }}
               </option>
             </select>

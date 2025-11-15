@@ -56,7 +56,7 @@ async function loadMapData() {
     if (merchants.status === 'success' && merchants.data) {
       merchantsData.value = merchants.data.map((x) => ({
         ...x,
-        id: x._id.$oid,
+        id: x._id,
       }))
     }
   } catch (err) {

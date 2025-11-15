@@ -1,19 +1,15 @@
 // Auto-generated from Rust schema: beacon.rs
 
-export interface ObjectId {
-  $oid: string
-}
-
 export interface Beacon {
-  _id: ObjectId
+  _id: string
   /** Reference to the Entity */
-  entity: ObjectId
+  entity: string
   /** Reference to the Area where the beacon is located */
-  area: ObjectId
+  area: string
   /** Optional reference to the Merchant associated with the beacon. */
-  merchant: ObjectId | null
+  merchant: string | null
   /** Optional reference to the Connection associated with the beacon. */
-  connection: ObjectId | null
+  connection: string | null
   /** The ssid of the beacon, typically used for display purposes in BLE scanning.
    * Format:
    * ```

@@ -7,7 +7,6 @@ pub(crate) mod scan;
 
 use crate::api::map::Area;
 use crate::api::page_results::PaginationResponse;
-use crate::api::unlocker::CustomizedObjectId;
 use crate::locate::area::ActiveArea;
 use crate::locate::beacon::BeaconInfo;
 use crate::locate::locator::LocateResult;
@@ -109,13 +108,13 @@ pub async fn locate_device(
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Beacon {
     #[serde(rename = "_id")]
-    pub id: CustomizedObjectId,
-    pub entity: CustomizedObjectId,
-    pub area: CustomizedObjectId,
+    pub id: String,
+    pub entity: String,
+    pub area: String,
     #[serde(default)]
-    pub merchant: Option<CustomizedObjectId>,
+    pub merchant: Option<String>,
     #[serde(default)]
-    pub connection: Option<CustomizedObjectId>,
+    pub connection: Option<String>,
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
@@ -398,15 +397,9 @@ mod tests {
     #[test]
     fn test_beacon_serialization() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: "507f1f77bcf86cd799439011".to_string(),
+            entity: "507f1f77bcf86cd799439012".to_string(),
+            area: "507f1f77bcf86cd799439013".to_string(),
             merchant: None,
             connection: None,
             name: "Beacon 1".to_string(),
@@ -425,18 +418,10 @@ mod tests {
     #[test]
     fn test_beacon_with_merchant() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
-            merchant: Some(CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439014".to_string(),
-            }),
+            id: "507f1f77bcf86cd799439011".to_string(),
+            entity: "507f1f77bcf86cd799439012".to_string(),
+            area: "507f1f77bcf86cd799439013".to_string(),
+            merchant: Some("507f1f77bcf86cd799439014".to_string()),
             connection: None,
             name: "Store Beacon".to_string(),
             description: Some("Beacon at store entrance".to_string()),
@@ -453,15 +438,9 @@ mod tests {
     #[test]
     fn test_beacon_location_coordinates() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: "507f1f77bcf86cd799439011".to_string(),
+            entity: "507f1f77bcf86cd799439012".to_string(),
+            area: "507f1f77bcf86cd799439013".to_string(),
             merchant: None,
             connection: None,
             name: "Location Test".to_string(),
@@ -483,15 +462,9 @@ mod tests {
 
         for device in devices {
             let beacon = Beacon {
-                id: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439011".to_string(),
-                },
-                entity: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439012".to_string(),
-                },
-                area: CustomizedObjectId {
-                    oid: "507f1f77bcf86cd799439013".to_string(),
-                },
+                id: "507f1f77bcf86cd799439011".to_string(),
+                entity: "507f1f77bcf86cd799439012".to_string(),
+                area: "507f1f77bcf86cd799439013".to_string(),
                 merchant: None,
                 connection: None,
                 name: "Test".to_string(),
@@ -522,15 +495,9 @@ mod tests {
     #[test]
     fn test_beacon_mac_address_format() {
         let beacon = Beacon {
-            id: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439011".to_string(),
-            },
-            entity: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439012".to_string(),
-            },
-            area: CustomizedObjectId {
-                oid: "507f1f77bcf86cd799439013".to_string(),
-            },
+            id: "507f1f77bcf86cd799439011".to_string(),
+            entity: "507f1f77bcf86cd799439012".to_string(),
+            area: "507f1f77bcf86cd799439013".to_string(),
             merchant: None,
             connection: None,
             name: "MAC Test".to_string(),
@@ -677,13 +644,13 @@ mod tests {
 
     #[test]
     fn test_serialize_beacon_info() {
-        let info = r#"{"_id":{"$oid":"68a84b6ebdfa76608b934b0a"},"entity":{"$oid":"68a8301fbdfa76608b934ae1"},"area":{"$oid":"68a83067bdfa76608b934aea"},"merchant":{"$oid":"68a848c6bdfa76608b934b01"},"connection":null,"name":"NAVIGN-BEACON","description":"Beacon in A.I. Lab","type":"security","location":[66.0,8.0],"device":"esp32c3","mac":"48:F6:EE:21:B0:7C"}"#;
+        let info = r#"{"_id":"68a84b6ebdfa76608b934b0a","entity":"68a8301fbdfa76608b934ae1","area":"68a83067bdfa76608b934aea","merchant":"68a848c6bdfa76608b934b01","connection":null,"name":"NAVIGN-BEACON","description":"Beacon in A.I. Lab","type":"security","location":[66.0,8.0],"device":"esp32c3","mac":"48:F6:EE:21:B0:7C"}"#;
         let beacon: Beacon = serde_json::from_slice(info.as_bytes()).unwrap();
-        assert_eq!(beacon.id.oid, "68a84b6ebdfa76608b934b0a");
-        assert_eq!(beacon.entity.oid, "68a8301fbdfa76608b934ae1");
-        assert_eq!(beacon.area.oid, "68a83067bdfa76608b934aea");
+        assert_eq!(beacon.id, "68a84b6ebdfa76608b934b0a");
+        assert_eq!(beacon.entity, "68a8301fbdfa76608b934ae1");
+        assert_eq!(beacon.area, "68a83067bdfa76608b934aea");
         assert_eq!(
-            beacon.merchant.as_ref().unwrap().oid,
+            beacon.merchant.as_ref().unwrap(),
             "68a848c6bdfa76608b934b01"
         );
         assert_eq!(beacon.connection, None);

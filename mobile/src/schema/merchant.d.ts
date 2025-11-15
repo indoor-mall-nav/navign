@@ -1,17 +1,13 @@
 // Auto-generated from Rust schema: merchant.rs
 
-export interface ObjectId {
-  $oid: string
-}
-
 export interface Merchant {
-  _id: ObjectId
+  _id: string
   name: string
   description: string | null
   chain: string | null // Name of the chain if part of a chain store series
-  entity: ObjectId // Reference to the Entity
+  entity: string // Reference to the Entity
   beacon_code: string // Unique identifier for the merchant for displaying in the beacon name
-  area: ObjectId
+  area: string
   type: MerchantType
   /** List of tags for categorization, e.g., "food", "electronics", "clothing"
    * Tags can be used for search and filtering
