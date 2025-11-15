@@ -17,20 +17,15 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v3
 
-      # Repo-specific setup
       - name: Setup Taplo
-        if: matrix.component == 'repo'
         uses: uncenter/setup-taplo@v1.0.8
 
-      # Mobile-specific setup
       - name: Install pnpm
-        if: matrix.component == 'mobile'
         uses: pnpm/action-setup@v4
         with:
           version: '10.20.0'
 
       - name: Use Node.js
-        if: matrix.component == 'mobile'
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
@@ -45,10 +40,6 @@ jobs:
         with:
           go-version: '1.25.3'
           cache-dependency-path: admin/tower/go.sum
-    
-      # Repo-specific setup
-      - name: Setup Taplo
-        uses: uncenter/setup-taplo@v1.0.8
 
       - name: Format Code
         run: just fmt
