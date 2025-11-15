@@ -14,17 +14,15 @@ import cv2
 from pathlib import Path
 import sys
 from unittest.mock import MagicMock
+from types import ModuleType
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Mock proto imports to avoid protobuf import issues
-sys.modules["proto"] = MagicMock()
-sys.modules["proto.task_pb2"] = MagicMock()
+proto_module = ModuleType("proto")
+sys.modules["proto"] = proto_module
 sys.modules["proto.task_pb2_grpc"] = MagicMock()
-
-# Import after mocking  # noqa: E402
-from plot_client import PlotExtractionClient  # noqa: E402
 
 
 # Create mock protobuf classes for testing
@@ -32,6 +30,7 @@ class MockPlotExtractionConfig:
     def __init__(self, **kwargs):
         self.blur_kernel_size = kwargs.get("blur_kernel_size", 0.0)
         self.threshold_value = kwargs.get("threshold_value", 0)
+        self.threshold_type = kwargs.get("threshold_type", 0)
         self.min_area = kwargs.get("min_area", 0.0)
         self.max_area = kwargs.get("max_area", 0.0)
         self.epsilon_factor = kwargs.get("epsilon_factor", 0.0)
@@ -59,15 +58,45 @@ class MockPolygon:
         self.label = label
 
 
-# Patch the task_pb2 module
-task_pb2 = MagicMock()
+class MockPlotProcessingStats:
+    def __init__(self, **kwargs):
+        self.contours_found = kwargs.get("contours_found", 0)
+        self.contours_filtered = kwargs.get("contours_filtered", 0)
+        self.processing_time_ms = kwargs.get("processing_time_ms", 0.0)
+        self.image_width = kwargs.get("image_width", 0)
+        self.image_height = kwargs.get("image_height", 0)
+
+
+class MockExtractPolygonsResponse:
+    def __init__(self, **kwargs):
+        self.polygons = kwargs.get("polygons", [])
+        self.total_count = kwargs.get("total_count", 0)
+        self.stats = kwargs.get("stats", MockPlotProcessingStats())
+
+
+class MockBatchExtractResponse:
+    def __init__(self, **kwargs):
+        self.extractions = kwargs.get("extractions", [])
+        self.successful = kwargs.get("successful", 0)
+        self.failed = kwargs.get("failed", 0)
+
+
+# Create task_pb2 module with mock classes
+task_pb2 = ModuleType("task_pb2")
 task_pb2.PlotExtractionConfig = MockPlotExtractionConfig
 task_pb2.Point = MockPoint
 task_pb2.Polygon = MockPolygon
-task_pb2.PlotProcessingStats = lambda **kwargs: MagicMock(**kwargs)
-task_pb2.ExtractPolygonsResponse = lambda **kwargs: MagicMock(**kwargs)
+task_pb2.PlotProcessingStats = MockPlotProcessingStats
+task_pb2.ExtractPolygonsResponse = MockExtractPolygonsResponse
 task_pb2.FloorExtraction = lambda **kwargs: MagicMock(**kwargs)
-task_pb2.BatchExtractResponse = lambda **kwargs: MagicMock(**kwargs)
+task_pb2.BatchExtractResponse = MockBatchExtractResponse
+
+# Register module in sys.modules and as attribute of proto
+sys.modules["proto.task_pb2"] = task_pb2
+proto_module.task_pb2 = task_pb2
+
+# Import after mocking  # noqa: E402
+from plot_client import PlotExtractionClient  # noqa: E402
 
 
 class TestPlotExtractionClient:
@@ -154,6 +183,8 @@ class TestPlotExtractionClient:
     def test_extract_polygons_with_numpy_image(self):
         """Test extract_polygons with numpy array image"""
         client = PlotExtractionClient()
+        # Mock the stub to bypass connection check
+        client.stub = MagicMock()
 
         # Create test image
         image = np.zeros((300, 300, 3), dtype=np.uint8)
@@ -177,6 +208,8 @@ class TestPlotExtractionClient:
     def test_batch_extract_empty_list(self):
         """Test batch_extract with empty floor plans list"""
         client = PlotExtractionClient()
+        # Mock the stub to bypass connection check
+        client.stub = MagicMock()
 
         response = client.batch_extract(
             floor_plans=[], entity_id="test-entity", config=None
