@@ -5,10 +5,10 @@ use axum::response::IntoResponse;
 use bson::doc;
 use bumpalo::Bump;
 use futures::TryStreamExt;
-use tracing::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::task::spawn_blocking;
+use tracing::{info, trace};
 
 pub mod implementations;
 pub mod instructions;

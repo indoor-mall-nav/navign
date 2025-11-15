@@ -35,7 +35,6 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use std::sync::Arc;
-use tracing::info;
 #[cfg(not(debug_assertions))]
 use std::time::Duration;
 use tower_governor::GovernorLayer;
@@ -45,6 +44,7 @@ use tower_governor::key_extractor::GlobalKeyExtractor;
 #[cfg(not(debug_assertions))]
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
+use tracing::info;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -84,7 +84,7 @@ async fn main() -> ServerResult<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .init();
 

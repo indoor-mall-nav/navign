@@ -8,12 +8,12 @@ use axum::response::IntoResponse;
 use bson::doc;
 use bson::oid::ObjectId;
 use futures::stream::TryStreamExt;
-use tracing::info;
 use mongodb::{Collection, Database};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::str::FromStr;
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {

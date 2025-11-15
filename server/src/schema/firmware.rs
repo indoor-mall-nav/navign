@@ -6,13 +6,13 @@ use bson::doc;
 use bson::oid::ObjectId;
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database};
-use tracing::info;
 use navign_shared::{Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadResponse};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use tracing::info;
 
 /// Get the firmware storage directory
 fn get_firmware_storage_dir() -> PathBuf {

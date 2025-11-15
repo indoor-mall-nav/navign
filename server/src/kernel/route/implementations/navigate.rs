@@ -3,9 +3,9 @@ use crate::kernel::route::instructions::{AsInstructions, InstructionType};
 use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::{ConnectivityLimits, Entity};
 use bumpalo::Bump;
-use tracing::trace;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use tracing::trace;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NavigationError {

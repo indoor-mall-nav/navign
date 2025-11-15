@@ -13,12 +13,12 @@ use base64::Engine;
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::Duration;
-use tracing::info;
 use mongodb::Database;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
