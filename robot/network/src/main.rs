@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tracing::{error, info};
-use zenoh::prelude::*;
+use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
@@ -28,7 +28,9 @@ impl NetworkComponent {
         info!("Initializing Network component");
 
         let config = zenoh::Config::default();
-        let session = zenoh::open(config).await?;
+        let session = zenoh::open(config)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
         let client = reqwest::Client::new();
 
         Ok(Self {
@@ -58,13 +60,15 @@ impl NetworkComponent {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/network/pathfinding/request")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
-        let server_url = self.server_url.clone();
-        let client = self.client.clone();
+        let _server_url = self.server_url.clone();
+        let _client = self.client.clone();
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
+                let _payload_bytes = sample.payload().to_bytes();
                 info!("Received pathfinding request");
                 // TODO: Forward to server and return response
             }
@@ -77,10 +81,12 @@ impl NetworkComponent {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/network/entity/request")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
+                let _payload_bytes = sample.payload().to_bytes();
                 info!("Received entity data request");
                 // TODO: Fetch from server and return response
             }

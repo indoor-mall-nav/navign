@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_serial::SerialPortBuilderExt;
 use tracing::{error, info};
-use zenoh::prelude::*;
+use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
@@ -36,7 +36,9 @@ impl SerialComponent {
 
         // Initialize Zenoh session
         let config = zenoh::Config::default();
-        let session = zenoh::open(config).await?;
+        let session = zenoh::open(config)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
 
         Ok(Self {
             zenoh_session: Arc::new(session),
@@ -124,11 +126,13 @@ impl SerialComponent {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/serial/motor/command")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
-                match prost::Message::decode(sample.payload().as_ref()) {
+                let payload_bytes = sample.payload().to_bytes();
+                match prost::Message::decode(payload_bytes.as_ref()) {
                     Ok::<MotorCommand, _>(cmd) => {
                         info!("Received motor command: {:?}", cmd.mode);
                         // TODO: Send command to lower controller via serial port

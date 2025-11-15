@@ -185,9 +185,9 @@ jobs:
           go-version: '1.25.3'
           cache-dependency-path: admin/tower/go.sum
 
-      # Protobuf compiler setup (needed for admin, plot, and robot components)
+      # Protobuf compiler setup (needed for admin and robot components)
       - name: Install Protobuf Compiler
-        if: matrix.component == 'admin' || matrix.component == 'plot' || matrix.component == 'robot'
+        if: matrix.component == 'admin' || matrix.component == 'robot'
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler

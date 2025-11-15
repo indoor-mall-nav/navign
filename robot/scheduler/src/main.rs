@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{error, info};
-use zenoh::prelude::*;
+use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
@@ -46,7 +46,9 @@ impl Scheduler {
         // Initialize Zenoh session
         info!("Initializing Zenoh session...");
         let config = zenoh::Config::default();
-        let session = zenoh::open(config).await?;
+        let session = zenoh::open(config)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
 
         // Initialize task manager
         let task_manager = task_manager::TaskManager::new().await?;
@@ -96,13 +98,15 @@ impl Scheduler {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/scheduler/task/submit")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         let task_manager = self.task_manager.clone();
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
-                match prost::Message::decode(sample.payload().as_ref()) {
+                let payload_bytes = sample.payload().to_bytes();
+                match prost::Message::decode(payload_bytes.as_ref()) {
                     Ok(task_submission) => {
                         info!("Received task submission: {:?}", task_submission);
                         let mut tm = task_manager.write().await;
@@ -123,11 +127,13 @@ impl Scheduler {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/vision/updates")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
-                info!("Received vision update: {} bytes", sample.payload().len());
+                let payload_bytes = sample.payload().to_bytes();
+                info!("Received vision update: {} bytes", payload_bytes.len());
                 // TODO: Process vision updates for localization/obstacle detection
             }
         });
@@ -140,11 +146,13 @@ impl Scheduler {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/audio/events")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
-                info!("Received audio event: {} bytes", sample.payload().len());
+                let payload_bytes = sample.payload().to_bytes();
+                info!("Received audio event: {} bytes", payload_bytes.len());
                 // TODO: Process audio events (wake word detections, etc.)
             }
         });
@@ -157,16 +165,18 @@ impl Scheduler {
         let subscriber = self
             .zenoh_session
             .declare_subscriber("robot/serial/sensors")
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
         let robot_state = self.robot_state.clone();
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
+                let payload_bytes = sample.payload().to_bytes();
                 // TODO: Decode sensor data and update robot state
                 info!(
                     "Received serial sensor update: {} bytes",
-                    sample.payload().len()
+                    payload_bytes.len()
                 );
             }
         });
