@@ -40,6 +40,9 @@ jobs:
         with:
           go-version: '1.25.3'
           cache-dependency-path: admin/tower/go.sum
+      
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Format Code
         run: just fmt
