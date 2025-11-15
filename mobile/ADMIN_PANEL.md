@@ -129,7 +129,18 @@ The admin panel routes all CRUD operations (Create, Read, Update, Delete) throug
 - **Orchestrator** (`localhost:8081`): The only service authorized to modify the central database for beacons, areas, merchants, and connections
 - **Security**: This ensures that only authorized admin operations can modify core infrastructure data
 
-When you use the admin panel in web mode, it makes HTTP requests to the orchestrator's REST API endpoints.
+#### Communication Protocol
+
+The admin panel is designed to use **gRPC-Web (WebRPC)** for communication with the orchestrator:
+
+**Architecture Flow:**
+```
+Admin Panel → gRPC-Web → Orchestrator → REST API → Server → Database
+```
+
+**Current Status:** Temporarily using HTTP REST while orchestrator gRPC service is being implemented. See [GRPC_WEB_INTEGRATION.md](./GRPC_WEB_INTEGRATION.md) for the full integration plan and migration path.
+
+**Proto Service:** `admin/proto/admin.proto` defines the `AdminService` gRPC service with all CRUD operations.
 
 ## API Abstraction Layer
 

@@ -1,0 +1,245 @@
+syntax = "proto3";
+
+package navign.orchestrator.admin;
+
+import "google/protobuf/timestamp.proto";
+
+// AdminService provides CRUD operations for managing infrastructure entities
+// This service is exposed via gRPC-Web for the admin panel frontend
+service AdminService {
+  // Beacon operations
+  rpc ListBeacons(ListBeaconsRequest) returns (ListBeaconsResponse);
+  rpc GetBeacon(GetBeaconRequest) returns (GetBeaconResponse);
+  rpc CreateBeacon(CreateBeaconRequest) returns (CreateBeaconResponse);
+  rpc UpdateBeacon(UpdateBeaconRequest) returns (UpdateBeaconResponse);
+  rpc DeleteBeacon(DeleteBeaconRequest) returns (DeleteBeaconResponse);
+
+  // Area operations
+  rpc ListAreas(ListAreasRequest) returns (ListAreasResponse);
+  rpc GetArea(GetAreaRequest) returns (GetAreaResponse);
+  rpc CreateArea(CreateAreaRequest) returns (CreateAreaResponse);
+  rpc UpdateArea(UpdateAreaRequest) returns (UpdateAreaResponse);
+  rpc DeleteArea(DeleteAreaRequest) returns (DeleteAreaResponse);
+
+  // Merchant operations
+  rpc ListMerchants(ListMerchantsRequest) returns (ListMerchantsResponse);
+  rpc GetMerchant(GetMerchantRequest) returns (GetMerchantResponse);
+  rpc CreateMerchant(CreateMerchantRequest) returns (CreateMerchantResponse);
+  rpc UpdateMerchant(UpdateMerchantRequest) returns (UpdateMerchantResponse);
+  rpc DeleteMerchant(DeleteMerchantRequest) returns (DeleteMerchantResponse);
+
+  // Connection operations
+  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse);
+  rpc GetConnection(GetConnectionRequest) returns (GetConnectionResponse);
+  rpc CreateConnection(CreateConnectionRequest) returns (CreateConnectionResponse);
+  rpc UpdateConnection(UpdateConnectionRequest) returns (UpdateConnectionResponse);
+  rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse);
+}
+
+// ============================================================================
+// Beacon Messages
+// ============================================================================
+
+message ListBeaconsRequest {
+  string entity_id = 1;
+}
+
+message ListBeaconsResponse {
+  repeated bytes beacons = 1;  // JSON-encoded Beacon objects
+}
+
+message GetBeaconRequest {
+  string entity_id = 1;
+  string beacon_id = 2;
+}
+
+message GetBeaconResponse {
+  bytes beacon = 1;  // JSON-encoded Beacon object
+}
+
+message CreateBeaconRequest {
+  string entity_id = 1;
+  bytes beacon = 2;  // JSON-encoded Beacon object (without _id)
+}
+
+message CreateBeaconResponse {
+  string beacon_id = 1;
+  bytes beacon = 2;  // JSON-encoded Beacon object (with _id)
+}
+
+message UpdateBeaconRequest {
+  string entity_id = 1;
+  bytes beacon = 2;  // JSON-encoded Beacon object (with _id)
+}
+
+message UpdateBeaconResponse {
+  bytes beacon = 1;  // JSON-encoded updated Beacon object
+}
+
+message DeleteBeaconRequest {
+  string entity_id = 1;
+  string beacon_id = 2;
+}
+
+message DeleteBeaconResponse {
+  bool success = 1;
+}
+
+// ============================================================================
+// Area Messages
+// ============================================================================
+
+message ListAreasRequest {
+  string entity_id = 1;
+}
+
+message ListAreasResponse {
+  repeated bytes areas = 1;  // JSON-encoded Area objects
+}
+
+message GetAreaRequest {
+  string entity_id = 1;
+  string area_id = 2;
+}
+
+message GetAreaResponse {
+  bytes area = 1;  // JSON-encoded Area object
+}
+
+message CreateAreaRequest {
+  string entity_id = 1;
+  bytes area = 2;  // JSON-encoded Area object (without _id)
+}
+
+message CreateAreaResponse {
+  string area_id = 1;
+  bytes area = 2;  // JSON-encoded Area object (with _id)
+}
+
+message UpdateAreaRequest {
+  string entity_id = 1;
+  bytes area = 2;  // JSON-encoded Area object (with _id)
+}
+
+message UpdateAreaResponse {
+  bytes area = 1;  // JSON-encoded updated Area object
+}
+
+message DeleteAreaRequest {
+  string entity_id = 1;
+  string area_id = 2;
+}
+
+message DeleteAreaResponse {
+  bool success = 1;
+}
+
+// ============================================================================
+// Merchant Messages
+// ============================================================================
+
+message ListMerchantsRequest {
+  string entity_id = 1;
+}
+
+message ListMerchantsResponse {
+  repeated bytes merchants = 1;  // JSON-encoded Merchant objects
+}
+
+message GetMerchantRequest {
+  string entity_id = 1;
+  string merchant_id = 2;
+}
+
+message GetMerchantResponse {
+  bytes merchant = 1;  // JSON-encoded Merchant object
+}
+
+message CreateMerchantRequest {
+  string entity_id = 1;
+  bytes merchant = 2;  // JSON-encoded Merchant object (without _id)
+}
+
+message CreateMerchantResponse {
+  string merchant_id = 1;
+  bytes merchant = 2;  // JSON-encoded Merchant object (with _id)
+}
+
+message UpdateMerchantRequest {
+  string entity_id = 1;
+  bytes merchant = 2;  // JSON-encoded Merchant object (with _id)
+}
+
+message UpdateMerchantResponse {
+  bytes merchant = 1;  // JSON-encoded updated Merchant object
+}
+
+message DeleteMerchantRequest {
+  string entity_id = 1;
+  string merchant_id = 2;
+}
+
+message DeleteMerchantResponse {
+  bool success = 1;
+}
+
+// ============================================================================
+// Connection Messages
+// ============================================================================
+
+message ListConnectionsRequest {
+  string entity_id = 1;
+}
+
+message ListConnectionsResponse {
+  repeated bytes connections = 1;  // JSON-encoded Connection objects
+}
+
+message GetConnectionRequest {
+  string entity_id = 1;
+  string connection_id = 2;
+}
+
+message GetConnectionResponse {
+  bytes connection = 1;  // JSON-encoded Connection object
+}
+
+message CreateConnectionRequest {
+  string entity_id = 1;
+  bytes connection = 2;  // JSON-encoded Connection object (without _id)
+}
+
+message CreateConnectionResponse {
+  string connection_id = 1;
+  bytes connection = 2;  // JSON-encoded Connection object (with _id)
+}
+
+message UpdateConnectionRequest {
+  string entity_id = 1;
+  bytes connection = 2;  // JSON-encoded Connection object (with _id)
+}
+
+message UpdateConnectionResponse {
+  bytes connection = 1;  // JSON-encoded updated Connection object
+}
+
+message DeleteConnectionRequest {
+  string entity_id = 1;
+  string connection_id = 2;
+}
+
+message DeleteConnectionResponse {
+  bool success = 1;
+}
+
+// ============================================================================
+// Common Error Messages
+// ============================================================================
+
+message ErrorResponse {
+  string code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string request_id = 5;
+}
