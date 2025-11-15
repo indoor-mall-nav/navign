@@ -75,15 +75,11 @@ class AudioService:
             # TODO: Decode request and update wake word settings
 
         # Subscribe to TTS requests
-        self.session.declare_subscriber(
-            "robot/audio/speak/request",
-            speak_callback
-        )
+        self.session.declare_subscriber("robot/audio/speak/request", speak_callback)
 
         # Subscribe to wake word config
         self.session.declare_subscriber(
-            "robot/audio/wakeword/config",
-            wake_word_config_callback
+            "robot/audio/wakeword/config", wake_word_config_callback
         )
 
     async def detect_wake_word(self):
@@ -104,7 +100,9 @@ class AudioService:
         logger.info("Wake word detection started")
 
         while self.running:
-            pcm = self.audio_stream.read(self.porcupine.frame_length, exception_on_overflow=False)
+            pcm = self.audio_stream.read(
+                self.porcupine.frame_length, exception_on_overflow=False
+            )
             pcm = struct.unpack_from("h" * self.porcupine.frame_length, pcm)
 
             keyword_index = self.porcupine.process(pcm)

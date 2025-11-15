@@ -86,14 +86,12 @@ class VisionService:
 
         # Subscribe to AprilTag requests
         self.session.declare_subscriber(
-            "robot/vision/apriltag/request",
-            apriltag_callback
+            "robot/vision/apriltag/request", apriltag_callback
         )
 
         # Subscribe to object detection requests
         self.session.declare_subscriber(
-            "robot/vision/object/request",
-            object_detection_callback
+            "robot/vision/object/request", object_detection_callback
         )
 
     async def publish_updates(self):
