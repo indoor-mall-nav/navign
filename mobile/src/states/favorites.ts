@@ -48,10 +48,14 @@ export const useFavoritesStore = defineStore('favorites', {
       })
     },
     removeMerchantFavorite(merchantId: string) {
-      this.merchants = this.merchants.filter((fav) => fav.merchantId !== merchantId)
+      this.merchants = this.merchants.filter(
+        (fav) => fav.merchantId !== merchantId,
+      )
     },
     updateMerchantNotes(merchantId: string, notes: string) {
-      const favorite = this.merchants.find((fav) => fav.merchantId === merchantId)
+      const favorite = this.merchants.find(
+        (fav) => fav.merchantId === merchantId,
+      )
       if (favorite) {
         favorite.notes = notes
       }

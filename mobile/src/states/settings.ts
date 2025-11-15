@@ -73,7 +73,9 @@ export const useSettingsStore = defineStore('settings', {
     toggleMerchantsOnMap() {
       this.showMerchantsOnMap = !this.showMerchantsOnMap
     },
-    updateNavigationPreferences(prefs: Partial<AppSettings['navigationPreferences']>) {
+    updateNavigationPreferences(
+      prefs: Partial<AppSettings['navigationPreferences']>,
+    ) {
       this.navigationPreferences = { ...this.navigationPreferences, ...prefs }
     },
     updatePrivacySettings(privacy: Partial<AppSettings['privacy']>) {
@@ -88,7 +90,9 @@ export const useSettingsStore = defineStore('settings', {
         root.classList.remove('dark')
       } else {
         // System preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const prefersDark = window.matchMedia(
+          '(prefers-color-scheme: dark)',
+        ).matches
         if (prefersDark) {
           root.classList.add('dark')
         } else {

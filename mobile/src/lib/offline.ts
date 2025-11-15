@@ -4,7 +4,9 @@ import { info, warn } from '@tauri-apps/plugin-log'
 // Offline state management
 const isOnline = ref(navigator.onLine)
 const lastOnlineTime = ref<number>(Date.now())
-const offlineQueue = ref<Array<{ action: string; data: any; timestamp: number }>>([])
+const offlineQueue = ref<
+  Array<{ action: string; data: any; timestamp: number }>
+>([])
 
 // Network status listeners
 if (typeof window !== 'undefined') {
@@ -139,7 +141,7 @@ export function useOffline() {
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries = 3,
-  baseDelay = 1000
+  baseDelay = 1000,
 ): Promise<T> {
   let lastError: Error | null = null
 
@@ -164,7 +166,7 @@ export async function retryWithBackoff<T>(
  */
 export async function withOfflineFallback<T>(
   onlineFn: () => Promise<T>,
-  offlineFn: () => Promise<T>
+  offlineFn: () => Promise<T>,
 ): Promise<T> {
   if (!navigator.onLine) {
     info('Offline: using fallback')

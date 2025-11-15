@@ -45,7 +45,7 @@ export async function checkBiometricAvailability(): Promise<BiometricStatus> {
  * Authenticate using biometric
  */
 export async function authenticateWithBiometric(
-  reason: string = 'Authenticate to continue'
+  reason: string = 'Authenticate to continue',
 ): Promise<boolean> {
   try {
     // TODO: Implement using tauri-plugin-biometric
@@ -71,7 +71,7 @@ export async function authenticateWithBiometric(
  */
 export async function storeBiometricCredentials(
   key: string,
-  value: string
+  value: string,
 ): Promise<boolean> {
   try {
     // TODO: Implement using tauri-plugin-stronghold
@@ -91,11 +91,13 @@ export async function storeBiometricCredentials(
  * Retrieve credentials with biometric authentication
  */
 export async function retrieveBiometricCredentials(
-  key: string
+  key: string,
 ): Promise<string | null> {
   try {
     // First authenticate
-    const authenticated = await authenticateWithBiometric('Access your saved credentials')
+    const authenticated = await authenticateWithBiometric(
+      'Access your saved credentials',
+    )
 
     if (!authenticated) {
       await warn('Biometric: authentication required to retrieve credentials')
@@ -118,7 +120,9 @@ export async function retrieveBiometricCredentials(
 /**
  * Remove stored credentials
  */
-export async function removeBiometricCredentials(key: string): Promise<boolean> {
+export async function removeBiometricCredentials(
+  key: string,
+): Promise<boolean> {
   try {
     // TODO: Implement using tauri-plugin-stronghold
     // const { Stronghold } = await import('@tauri-apps/plugin-stronghold')
@@ -138,7 +142,7 @@ export async function removeBiometricCredentials(key: string): Promise<boolean> 
  */
 export async function enableBiometricLogin(
   username: string,
-  token: string
+  token: string,
 ): Promise<boolean> {
   try {
     const status = await checkBiometricAvailability()
@@ -154,7 +158,9 @@ export async function enableBiometricLogin(
     }
 
     // Authenticate first
-    const authenticated = await authenticateWithBiometric('Enable biometric login')
+    const authenticated = await authenticateWithBiometric(
+      'Enable biometric login',
+    )
 
     if (!authenticated) {
       return false
@@ -178,7 +184,9 @@ export async function enableBiometricLogin(
 /**
  * Login using biometric authentication
  */
-export async function loginWithBiometric(username: string): Promise<string | null> {
+export async function loginWithBiometric(
+  username: string,
+): Promise<string | null> {
   try {
     const status = await checkBiometricAvailability()
 
@@ -205,7 +213,9 @@ export async function loginWithBiometric(username: string): Promise<string | nul
 /**
  * Disable biometric login
  */
-export async function disableBiometricLogin(username: string): Promise<boolean> {
+export async function disableBiometricLogin(
+  username: string,
+): Promise<boolean> {
   try {
     const removed = await removeBiometricCredentials(`login:${username}`)
 

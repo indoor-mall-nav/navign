@@ -49,7 +49,10 @@ export const useHistoryStore = defineStore('history', {
       return state.navigationHistory.filter((entry) => entry.completed)
     },
     frequentDestinations: (state) => {
-      const destinations = new Map<string, { count: number; lastVisit: number; name: string }>()
+      const destinations = new Map<
+        string,
+        { count: number; lastVisit: number; name: string }
+      >()
 
       state.navigationHistory.forEach((entry) => {
         if (entry.completed && entry.to.merchantId) {
@@ -86,7 +89,10 @@ export const useHistoryStore = defineStore('history', {
           .slice(0, this.maxNavigationHistory)
       }
     },
-    updateNavigationEntry(id: string, updates: Partial<NavigationHistoryEntry>) {
+    updateNavigationEntry(
+      id: string,
+      updates: Partial<NavigationHistoryEntry>,
+    ) {
       const entry = this.navigationHistory.find((e) => e.id === id)
       if (entry) {
         Object.assign(entry, updates)
@@ -104,7 +110,7 @@ export const useHistoryStore = defineStore('history', {
       // Avoid duplicates within the last hour
       const oneHourAgo = Date.now() - 60 * 60 * 1000
       const existing = this.searchHistory.find(
-        (entry) => entry.query === query && entry.timestamp > oneHourAgo
+        (entry) => entry.query === query && entry.timestamp > oneHourAgo,
       )
 
       if (!existing) {
@@ -133,7 +139,9 @@ export const useHistoryStore = defineStore('history', {
       this.searchHistory = []
     },
     deleteNavigationEntry(id: string) {
-      this.navigationHistory = this.navigationHistory.filter((entry) => entry.id !== id)
+      this.navigationHistory = this.navigationHistory.filter(
+        (entry) => entry.id !== id,
+      )
     },
   },
   persist: true,
