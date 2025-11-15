@@ -586,9 +586,7 @@ impl BeaconRepository {
         .bind(floor)
         .fetch_all(self.pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch beacons by floor: {}", e))
-        })
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch beacons by floor: {}", e)))
     }
 }
 
@@ -748,15 +746,13 @@ impl MerchantRepository {
     }
 
     pub async fn get_by_area(&self, area_id: i32) -> Result<Vec<PgMerchant>> {
-        sqlx::query_as::<_, PgMerchant>(
-            "SELECT * FROM merchants WHERE area_id = $1 ORDER BY name",
-        )
-        .bind(area_id)
-        .fetch_all(self.pool.inner())
-        .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch merchants by area: {}", e))
-        })
+        sqlx::query_as::<_, PgMerchant>("SELECT * FROM merchants WHERE area_id = $1 ORDER BY name")
+            .bind(area_id)
+            .fetch_all(self.pool.inner())
+            .await
+            .map_err(|e| {
+                ServerError::DatabaseQuery(format!("Failed to fetch merchants by area: {}", e))
+            })
     }
 
     pub async fn get_by_floor(&self, entity_id: Uuid, floor: &str) -> Result<Vec<PgMerchant>> {
@@ -1053,9 +1049,7 @@ impl Repository<PgConnection> for ConnectionRepository {
             .bind(int_id)
             .execute(self.pool.inner())
             .await
-            .map_err(|e| {
-                ServerError::DatabaseQuery(format!("Failed to delete connection: {}", e))
-            })?
+            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to delete connection: {}", e)))?
             .rows_affected();
 
         if rows_affected == 0 {
@@ -1166,15 +1160,11 @@ impl Repository<PgBeaconSecret> for BeaconSecretRepository {
         .bind(secret.id)
         .execute(self.pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to update beacon secret: {}", e))
-        })?
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to update beacon secret: {}", e)))?
         .rows_affected();
 
         if rows_affected == 0 {
-            return Err(ServerError::NotFound(
-                "Beacon secret not found".to_string(),
-            ));
+            return Err(ServerError::NotFound("Beacon secret not found".to_string()));
         }
 
         Ok(())
@@ -1195,9 +1185,7 @@ impl Repository<PgBeaconSecret> for BeaconSecretRepository {
             .rows_affected();
 
         if rows_affected == 0 {
-            return Err(ServerError::NotFound(
-                "Beacon secret not found".to_string(),
-            ));
+            return Err(ServerError::NotFound("Beacon secret not found".to_string()));
         }
 
         Ok(())
@@ -1222,7 +1210,9 @@ impl IntRepository<PgBeaconSecret> for BeaconSecretRepository {
             .bind(id)
             .fetch_optional(self.pool.inner())
             .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch beacon secret: {}", e)))
+            .map_err(|e| {
+                ServerError::DatabaseQuery(format!("Failed to fetch beacon secret: {}", e))
+            })
     }
 }
 
@@ -1248,21 +1238,20 @@ impl UserPublicKeyRepository {
         .bind(user_id)
         .fetch_all(self.pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch user public keys: {}", e))
-        })
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch user public keys: {}", e)))
     }
 
     pub async fn get_by_device_id(&self, device_id: &str) -> Result<Option<PgUserPublicKey>> {
-        sqlx::query_as::<_, PgUserPublicKey>(
-            "SELECT * FROM user_public_keys WHERE device_id = $1",
-        )
-        .bind(device_id)
-        .fetch_optional(self.pool.inner())
-        .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch user public key by device_id: {}", e))
-        })
+        sqlx::query_as::<_, PgUserPublicKey>("SELECT * FROM user_public_keys WHERE device_id = $1")
+            .bind(device_id)
+            .fetch_optional(self.pool.inner())
+            .await
+            .map_err(|e| {
+                ServerError::DatabaseQuery(format!(
+                    "Failed to fetch user public key by device_id: {}",
+                    e
+                ))
+            })
     }
 
     pub async fn get_by_user_and_device(
@@ -1303,9 +1292,7 @@ impl Repository<PgUserPublicKey> for UserPublicKeyRepository {
         .bind(offset)
         .fetch_all(self.pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch user public keys: {}", e))
-        })
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch user public keys: {}", e)))
     }
 
     async fn create(&self, key: &PgUserPublicKey) -> Result<String> {
@@ -1450,9 +1437,7 @@ impl FirmwareRepository {
         .bind(chip)
         .fetch_all(self.pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch stable firmwares: {}", e))
-        })
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch stable firmwares: {}", e)))
     }
 
     pub async fn get_latest_stable(&self, chip: &str) -> Result<Option<PgFirmware>> {
