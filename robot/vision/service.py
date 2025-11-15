@@ -3,11 +3,9 @@
 
 import asyncio
 import logging
-import time
 from typing import Optional
 
 import cv2
-import numpy as np
 import zenoh
 from pupil_apriltags import Detector
 from ultralytics import YOLO
