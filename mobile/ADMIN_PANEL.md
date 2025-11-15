@@ -82,7 +82,8 @@ The admin panel can be deployed as a standalone web application for browser-base
 1. Create `.env` file:
 ```bash
 cp .env.example .env
-# Edit .env and set VITE_API_BASE_URL to your server URL
+# Edit .env and set both VITE_API_BASE_URL and VITE_ORCHESTRATOR_URL
+# CRUD operations go through the orchestrator, not the server
 ```
 
 2. Build for production:
@@ -105,15 +106,30 @@ pnpm run build
 Create a `.env` file in the `mobile/` directory:
 
 ```env
+# Server API (for navigation, etc.)
 VITE_API_BASE_URL=http://localhost:3000
+
+# Orchestrator API (for admin CRUD operations)
+VITE_ORCHESTRATOR_URL=http://localhost:8081
 ```
 
 For production:
 ```env
 VITE_API_BASE_URL=https://api.yourserver.com
+VITE_ORCHESTRATOR_URL=https://orchestrator.yourserver.com
 ```
 
 **Note**: Environment variables are only used in web mode. Tauri mode ignores them and uses native commands.
+
+### Architecture: Why Orchestrator for CRUD?
+
+The admin panel routes all CRUD operations (Create, Read, Update, Delete) through the **orchestrator** rather than directly to the server. This is by design:
+
+- **Server** (`localhost:3000`): Handles end-user operations like navigation, routing, and search
+- **Orchestrator** (`localhost:8081`): The only service authorized to modify the central database for beacons, areas, merchants, and connections
+- **Security**: This ensures that only authorized admin operations can modify core infrastructure data
+
+When you use the admin panel in web mode, it makes HTTP requests to the orchestrator's REST API endpoints.
 
 ## API Abstraction Layer
 
@@ -158,9 +174,11 @@ All CRUD operations are available through the client API:
 - `updateConnection(entityId, connection, token)`
 - `deleteConnection(entityId, connectionId, token)`
 
-## API Endpoints (Web Mode)
+## API Endpoints (Web Mode - Orchestrator)
 
-When running as a standalone web app, the admin panel makes HTTP requests to these endpoints:
+When running as a standalone web app, the admin panel makes HTTP requests to these **orchestrator** endpoints (default: `http://localhost:8081`):
+
+**Important**: All CRUD operations are routed through the orchestrator, NOT the server. The orchestrator is the only service authorized to modify the central database.
 
 ### Beacons
 - `GET /api/entities/{entityId}/beacons` - List all beacons
