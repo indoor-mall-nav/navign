@@ -55,6 +55,20 @@ The admin system consists of three components that work together to manage robot
 
 ### Software Dependencies
 
+::: tip Using Prebuilt Binaries
+If you're using prebuilt binaries, you **only** need Python/uv (for Plot). Rust, Go, and protoc are only required if building from source.
+:::
+
+**Required for Prebuilt Binaries:**
+
+1. **Python with uv** (for Plot only)
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   source "$HOME/.cargo/env"
+   ```
+
+**Required for Building from Source:**
+
 1. **Rust** (1.86+)
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -89,87 +103,58 @@ The admin system consists of three components that work together to manage robot
    source ~/.bashrc
    ```
 
-5. **Python with uv** (for Plot)
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   source "$HOME/.cargo/env"
-   ```
-
 ## Installation
 
-### 1. Clone Repository
+### Option 1: Using Prebuilt Binaries (Recommended)
+
+Download the latest release binaries from GitHub releases:
+
+```bash
+# Set version
+VERSION="v0.1.0"  # Replace with latest version
+
+# Download Orchestrator
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/navign-orchestrator-linux-amd64
+chmod +x navign-orchestrator-linux-amd64
+
+# Download Tower
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/navign-tower-linux-amd64
+chmod +x navign-tower-linux-amd64
+
+# Download Plot (Python package)
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/navign-plot.tar.gz
+```
+
+### Option 2: Building from Source (Development)
+
+::: warning
+Building from source is recommended only for development or when prebuilt binaries are not available for your platform.
+:::
 
 ```bash
 # Clone the repository
 git clone https://github.com/indoor-mall-nav/navign.git
 cd navign
-```
 
-### 2. Generate Protocol Buffers
-
-```bash
-# From repository root
+# Generate protocol buffers
 just proto
 
-# Or manually:
-# For Tower
-cd admin/tower
-protoc --proto_path=../proto \
-       --go_out=. --go_opt=paths=source_relative \
-       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-       ../proto/task.proto \
-       ../proto/admin.proto
-
-# For Plot
-cd admin/plot
-python -m grpc_tools.protoc \
-    --proto_path=../proto \
-    --python_out=proto \
-    --grpc_python_out=proto \
-    --pyi_out=proto \
-    ../proto/plot.proto
-
-# Orchestrator proto is auto-generated via build.rs
-```
-
-### 3. Build Components
-
-#### Orchestrator (Rust)
-
-```bash
+# Build Orchestrator (Rust)
 cd admin/orchestrator
 cargo build --release
+# Binary: target/release/navign-orchestrator
 
-# Binary location: target/release/navign-orchestrator
-```
-
-#### Tower (Go)
-
-```bash
-cd admin/tower
-
-# Install dependencies
-go mod download
-go mod verify
-
-# Build
+# Build Tower (Go)
+cd ../tower
 go build -o tower ./cmd/tower
+# Binary: ./tower
 
-# Binary location: ./tower
-```
-
-#### Plot (Python)
-
-```bash
-cd admin/plot
-
-# Install dependencies
+# Setup Plot (Python)
+cd ../plot
 uv sync
-
-# Plot is run directly via uv
 ```
 
-### 4. Install Binaries
+### Install Binaries
 
 ```bash
 # Create installation directory
@@ -177,9 +162,15 @@ sudo mkdir -p /opt/navign/bin
 sudo mkdir -p /opt/navign/data
 sudo mkdir -p /var/log/navign
 
-# Copy binaries
-sudo cp admin/orchestrator/target/release/navign-orchestrator /opt/navign/bin/
-sudo cp admin/tower/tower /opt/navign/bin/
+# Copy binaries (adjust paths based on installation method)
+
+# If using prebuilt binaries:
+sudo mv navign-orchestrator-linux-amd64 /opt/navign/bin/navign-orchestrator
+sudo mv navign-tower-linux-amd64 /opt/navign/bin/navign-tower
+
+# If built from source:
+# sudo cp admin/orchestrator/target/release/navign-orchestrator /opt/navign/bin/
+# sudo cp admin/tower/tower /opt/navign/bin/
 
 # Set permissions
 sudo chmod +x /opt/navign/bin/*
@@ -704,7 +695,7 @@ LOG_LEVEL=debug systemctl start navign-tower
 
 ## Updating
 
-### Update Process
+### Update Process (Prebuilt Binaries)
 
 ```bash
 # 1. Stop services
@@ -712,7 +703,46 @@ sudo systemctl stop navign-tower navign-orchestrator
 
 # 2. Backup current version
 sudo cp /opt/navign/bin/navign-orchestrator /opt/navign/bin/navign-orchestrator.bak
-sudo cp /opt/navign/bin/tower /opt/navign/bin/tower.bak
+sudo cp /opt/navign/bin/navign-tower /opt/navign/bin/navign-tower.bak
+
+# 3. Download new version
+VERSION="v0.2.0"  # Replace with new version
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/navign-orchestrator-linux-amd64
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/navign-tower-linux-amd64
+
+# 4. Verify checksums (recommended)
+wget https://github.com/indoor-mall-nav/navign/releases/download/${VERSION}/checksums.txt
+sha256sum -c checksums.txt
+
+# 5. Install new binaries
+sudo mv navign-orchestrator-linux-amd64 /opt/navign/bin/navign-orchestrator
+sudo mv navign-tower-linux-amd64 /opt/navign/bin/navign-tower
+sudo chmod +x /opt/navign/bin/*
+
+# 6. Restart services
+sudo systemctl start navign-orchestrator navign-tower
+
+# 7. Verify
+sudo systemctl status navign-orchestrator navign-tower
+
+# 8. Test functionality
+curl -i localhost:50051  # Orchestrator health check
+curl -i localhost:8080   # Tower health check
+```
+
+### Update Process (From Source)
+
+::: warning
+Only use this method if prebuilt binaries are not available.
+:::
+
+```bash
+# 1. Stop services
+sudo systemctl stop navign-tower navign-orchestrator
+
+# 2. Backup current version
+sudo cp /opt/navign/bin/navign-orchestrator /opt/navign/bin/navign-orchestrator.bak
+sudo cp /opt/navign/bin/navign-tower /opt/navign/bin/navign-tower.bak
 
 # 3. Pull latest code
 cd /path/to/navign
@@ -738,10 +768,13 @@ sudo systemctl status navign-orchestrator navign-tower
 ```bash
 # Restore previous version
 sudo cp /opt/navign/bin/navign-orchestrator.bak /opt/navign/bin/navign-orchestrator
-sudo cp /opt/navign/bin/tower.bak /opt/navign/bin/tower
+sudo cp /opt/navign/bin/navign-tower.bak /opt/navign/bin/navign-tower
 
 # Restart
 sudo systemctl restart navign-orchestrator navign-tower
+
+# Verify
+sudo systemctl status navign-orchestrator navign-tower
 ```
 
 ## Performance Tuning
