@@ -49,7 +49,9 @@ async function httpRequest<T>(
       const errorData = await response.json().catch(() => ({}))
       return {
         status: 'error',
-        message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        message:
+          errorData.message ||
+          `HTTP ${response.status}: ${response.statusText}`,
       }
     }
 
@@ -93,7 +95,9 @@ async function orchestratorRequest<T>(
       const errorData = await response.json().catch(() => ({}))
       return {
         status: 'error',
-        message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        message:
+          errorData.message ||
+          `HTTP ${response.status}: ${response.statusText}`,
       }
     }
 
@@ -132,7 +136,11 @@ export async function register(
   if (isTauriMode()) {
     return tauriApi.register(email, username, password)
   }
-  return httpRequest('POST', '/api/auth/register', { email, username, password })
+  return httpRequest('POST', '/api/auth/register', {
+    email,
+    username,
+    password,
+  })
 }
 
 export async function logout(token: string): Promise<ApiResponse> {
@@ -191,7 +199,12 @@ export async function listBeacons(
   if (isTauriMode()) {
     return tauriApi.getAllBeacons(entityId)
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/beacons`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/beacons`,
+    undefined,
+    token,
+  )
 }
 
 export async function getBeacon(
@@ -203,7 +216,12 @@ export async function getBeacon(
     // TODO: Add Tauri command for getting single beacon
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/beacons/${beaconId}`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/beacons/${beaconId}`,
+    undefined,
+    token,
+  )
 }
 
 export async function createBeacon(
@@ -215,7 +233,12 @@ export async function createBeacon(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('POST', `/api/entities/${entityId}/beacons`, beacon, token)
+  return orchestratorRequest(
+    'POST',
+    `/api/entities/${entityId}/beacons`,
+    beacon,
+    token,
+  )
 }
 
 export async function updateBeacon(
@@ -227,7 +250,12 @@ export async function updateBeacon(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('PUT', `/api/entities/${entityId}/beacons`, beacon, token)
+  return orchestratorRequest(
+    'PUT',
+    `/api/entities/${entityId}/beacons`,
+    beacon,
+    token,
+  )
 }
 
 export async function deleteBeacon(
@@ -239,7 +267,12 @@ export async function deleteBeacon(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('DELETE', `/api/entities/${entityId}/beacons/${beaconId}`, undefined, token)
+  return orchestratorRequest(
+    'DELETE',
+    `/api/entities/${entityId}/beacons/${beaconId}`,
+    undefined,
+    token,
+  )
 }
 
 // ============================================================
@@ -277,7 +310,12 @@ export async function listAreas(
   if (isTauriMode()) {
     return tauriApi.getAllAreas(entityId)
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/areas`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/areas`,
+    undefined,
+    token,
+  )
 }
 
 export async function getArea(
@@ -288,7 +326,12 @@ export async function getArea(
   if (isTauriMode()) {
     return tauriApi.getAreaDetails(entityId, areaId)
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/areas/${areaId}`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/areas/${areaId}`,
+    undefined,
+    token,
+  )
 }
 
 export async function createArea(
@@ -300,7 +343,12 @@ export async function createArea(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('POST', `/api/entities/${entityId}/areas`, area, token)
+  return orchestratorRequest(
+    'POST',
+    `/api/entities/${entityId}/areas`,
+    area,
+    token,
+  )
 }
 
 export async function updateArea(
@@ -312,7 +360,12 @@ export async function updateArea(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('PUT', `/api/entities/${entityId}/areas`, area, token)
+  return orchestratorRequest(
+    'PUT',
+    `/api/entities/${entityId}/areas`,
+    area,
+    token,
+  )
 }
 
 export async function deleteArea(
@@ -324,7 +377,12 @@ export async function deleteArea(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('DELETE', `/api/entities/${entityId}/areas/${areaId}`, undefined, token)
+  return orchestratorRequest(
+    'DELETE',
+    `/api/entities/${entityId}/areas/${areaId}`,
+    undefined,
+    token,
+  )
 }
 
 // ============================================================
@@ -386,7 +444,12 @@ export async function listMerchants(
   if (isTauriMode()) {
     return tauriApi.getAllMerchants(entityId)
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/merchants`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/merchants`,
+    undefined,
+    token,
+  )
 }
 
 export async function getMerchant(
@@ -397,7 +460,12 @@ export async function getMerchant(
   if (isTauriMode()) {
     return tauriApi.getMerchantDetails(entityId, merchantId)
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/merchants/${merchantId}`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/merchants/${merchantId}`,
+    undefined,
+    token,
+  )
 }
 
 export async function createMerchant(
@@ -409,7 +477,12 @@ export async function createMerchant(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('POST', `/api/entities/${entityId}/merchants`, merchant, token)
+  return orchestratorRequest(
+    'POST',
+    `/api/entities/${entityId}/merchants`,
+    merchant,
+    token,
+  )
 }
 
 export async function updateMerchant(
@@ -421,7 +494,12 @@ export async function updateMerchant(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('PUT', `/api/entities/${entityId}/merchants`, merchant, token)
+  return orchestratorRequest(
+    'PUT',
+    `/api/entities/${entityId}/merchants`,
+    merchant,
+    token,
+  )
 }
 
 export async function deleteMerchant(
@@ -433,7 +511,12 @@ export async function deleteMerchant(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('DELETE', `/api/entities/${entityId}/merchants/${merchantId}`, undefined, token)
+  return orchestratorRequest(
+    'DELETE',
+    `/api/entities/${entityId}/merchants/${merchantId}`,
+    undefined,
+    token,
+  )
 }
 
 // ============================================================
@@ -468,7 +551,12 @@ export async function listConnections(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/connections`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/connections`,
+    undefined,
+    token,
+  )
 }
 
 export async function getConnection(
@@ -480,7 +568,12 @@ export async function getConnection(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('GET', `/api/entities/${entityId}/connections/${connectionId}`, undefined, token)
+  return orchestratorRequest(
+    'GET',
+    `/api/entities/${entityId}/connections/${connectionId}`,
+    undefined,
+    token,
+  )
 }
 
 export async function createConnection(
@@ -492,7 +585,12 @@ export async function createConnection(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('POST', `/api/entities/${entityId}/connections`, connection, token)
+  return orchestratorRequest(
+    'POST',
+    `/api/entities/${entityId}/connections`,
+    connection,
+    token,
+  )
 }
 
 export async function updateConnection(
@@ -504,7 +602,12 @@ export async function updateConnection(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('PUT', `/api/entities/${entityId}/connections`, connection, token)
+  return orchestratorRequest(
+    'PUT',
+    `/api/entities/${entityId}/connections`,
+    connection,
+    token,
+  )
 }
 
 export async function deleteConnection(
@@ -516,7 +619,12 @@ export async function deleteConnection(
     // TODO: Add Tauri command
     return { status: 'error', message: 'Not implemented in Tauri mode' }
   }
-  return orchestratorRequest('DELETE', `/api/entities/${entityId}/connections/${connectionId}`, undefined, token)
+  return orchestratorRequest(
+    'DELETE',
+    `/api/entities/${entityId}/connections/${connectionId}`,
+    undefined,
+    token,
+  )
 }
 
 // Re-export existing Tauri API functions that don't need abstraction
