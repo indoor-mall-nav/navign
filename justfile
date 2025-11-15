@@ -225,3 +225,14 @@ proto: proto-tower proto-plot
 clean-proto:
   rm -f admin/tower/proto/*.pb.go
   rm -f admin/plot/proto/plot_pb2.py admin/plot/proto/plot_pb2_grpc.py admin/plot/proto/plot_pb2.pyi
+
+# Generate TypeScript type definitions from Rust schemas
+gen-ts-schema:
+  @echo "Generating TypeScript definitions from Rust schemas..."
+  cd shared && cargo test --features ts-rs --quiet
+  @echo "Copying generated files to mobile/src/schema/generated/..."
+  mkdir -p mobile/src/schema/generated
+  cp ts-schema/bindings/generated/*.ts mobile/src/schema/generated/
+  @echo "✓ TypeScript schemas generated successfully"
+  @echo "  Output: mobile/src/schema/generated/"
+  @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:" 

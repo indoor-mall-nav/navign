@@ -16,12 +16,15 @@ use bson::serde_helpers::serialize_object_id_as_hex_string;
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Merchant {
     #[cfg(feature = "mongodb")]
     #[cfg_attr(
         all(feature = "mongodb", feature = "serde"),
         serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
@@ -33,6 +36,7 @@ pub struct Merchant {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
@@ -42,6 +46,7 @@ pub struct Merchant {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
@@ -64,6 +69,8 @@ pub struct Merchant {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum MerchantType {
     Food {
         cuisine: Option<FoodCuisine>,
@@ -148,6 +155,8 @@ impl core::fmt::Display for MerchantType {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum FacilityType {
     Restroom,
     Atm,
@@ -160,6 +169,8 @@ pub enum FacilityType {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum FoodType {
     Restaurant(FoodCuisine),
     Cafe,
@@ -173,6 +184,8 @@ pub enum FoodType {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum FoodCuisine {
     Italian,
     Chinese {
@@ -205,6 +218,8 @@ impl Default for FoodCuisine {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum ChineseFoodCuisine {
     Cantonese,
     Sichuan,
@@ -221,6 +236,8 @@ pub enum ChineseFoodCuisine {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct SocialMedia {
     pub platform: SocialMediaPlatform,
     pub handle: String,
@@ -230,6 +247,8 @@ pub struct SocialMedia {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum SocialMediaPlatform {
     Facebook,
     Twitter,
@@ -259,6 +278,8 @@ impl Default for SocialMediaPlatform {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum MerchantStyle {
     #[cfg_attr(feature = "mongodb", default)]
     Store,

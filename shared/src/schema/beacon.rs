@@ -16,12 +16,15 @@ use super::utils::serialize_option_object_id_as_hex_string;
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Beacon {
     #[cfg(feature = "mongodb")]
     #[cfg_attr(
         all(feature = "mongodb", feature = "serde"),
         serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
@@ -31,6 +34,7 @@ pub struct Beacon {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
@@ -40,6 +44,7 @@ pub struct Beacon {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub area: String,
@@ -49,6 +54,7 @@ pub struct Beacon {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_option_object_id_as_hex_string")
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string | null"))]
     pub merchant: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub merchant: Option<String>,
@@ -58,6 +64,7 @@ pub struct Beacon {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_option_object_id_as_hex_string")
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string | null"))]
     pub connection: Option<ObjectId>,
     #[cfg(not(feature = "mongodb"))]
     pub connection: Option<String>,
@@ -78,6 +85,8 @@ pub struct Beacon {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum BeaconDevice {
     Esp32,
     Esp32C3,
@@ -89,6 +98,8 @@ pub enum BeaconDevice {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum BeaconType {
     Navigation,
     Marketing,
