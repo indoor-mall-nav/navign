@@ -1,7 +1,6 @@
 pub mod area;
 pub mod beacon;
 mod locator;
-pub mod merchant;
 mod migration;
 pub(crate) mod scan;
 
