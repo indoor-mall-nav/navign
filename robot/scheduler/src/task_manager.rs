@@ -9,6 +9,7 @@ pub struct TaskManager {
     tasks: HashMap<String, TaskState>,
 }
 
+#[allow(dead_code)]
 struct TaskState {
     submission: TaskSubmission,
     status: TaskStatus,
@@ -44,11 +45,13 @@ impl TaskManager {
     }
 
     /// Get task status
+    #[allow(dead_code)]
     pub fn get_task_status(&self, task_id: &str) -> Option<TaskStatus> {
         self.tasks.get(task_id).map(|t| t.status)
     }
 
     /// Update task progress
+    #[allow(dead_code)]
     pub fn update_progress(&mut self, task_id: &str, progress: u32) {
         if let Some(task) = self.tasks.get_mut(task_id) {
             task.progress = progress;

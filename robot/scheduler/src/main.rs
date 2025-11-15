@@ -2,7 +2,6 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{error, info};
-use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
@@ -168,7 +167,7 @@ impl Scheduler {
             .await
             .map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
 
-        let robot_state = self.robot_state.clone();
+        let _robot_state = self.robot_state.clone();
 
         tokio::spawn(async move {
             while let Ok(sample) = subscriber.recv_async().await {
