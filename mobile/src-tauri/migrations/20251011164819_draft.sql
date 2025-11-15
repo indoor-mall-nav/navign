@@ -60,18 +60,27 @@ CREATE TABLE IF NOT EXISTS beacons
 
 CREATE TABLE IF NOT EXISTS merchants
 (
-    id
-        TEXT
-        PRIMARY
-            KEY,
-    name
-        TEXT
-        NOT
-            NULL,
-    entry
-        TEXT
-        NOT
-            NULL
+    id VARCHAR(24) PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    chain TEXT,
+    entity VARCHAR(24) NOT NULL,
+    beacon_code TEXT NOT NULL,
+    area VARCHAR(24) NOT NULL,
+    type TEXT NOT NULL,
+    color TEXT,
+    tags TEXT NOT NULL,
+    location TEXT NOT NULL,
+    style TEXT NOT NULL,
+    polygon TEXT,
+    available_period TEXT,
+    email TEXT,
+    phone TEXT,
+    website TEXT,
+    social_media TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
 );
 
-INSERT INTO merchants (id, name, entry) VALUES ('unknown', 'Unknown', 'unknown');
+INSERT INTO merchants (id, name, entity, beacon_code, area, type, tags, location, style, created_at, updated_at)
+VALUES ('unknown', 'Unknown', 'unknown', 'unknown', 'unknown', '"other"', '[]', 'POINT(0 0)', 'store', 0, 0);

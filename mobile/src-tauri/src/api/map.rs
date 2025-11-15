@@ -1,8 +1,9 @@
 use crate::api::page_results::PaginationResponse;
-use crate::locate::merchant::Merchant;
 use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
-pub use navign_shared::{Area, Beacon, BeaconType, ConnectionType, Merchant as SharedMerchant};
+pub use navign_shared::{
+    Area, Beacon, BeaconType, ConnectionType, Merchant as SharedMerchant, MerchantMobile,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -470,8 +471,8 @@ pub async fn search_merchants_handler(
         }
     };
 
-    let merchants = sqlx::query_as::<_, Merchant>(
-        "SELECT * FROM merchants WHERE entry = ? AND name LIKE ? LIMIT 20",
+    let merchants = sqlx::query_as::<_, MerchantMobile>(
+        "SELECT * FROM merchants WHERE entity = ? AND name LIKE ? LIMIT 20",
     )
     .bind(&entity)
     .bind(format!("%{}%", query))

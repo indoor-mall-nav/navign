@@ -125,7 +125,7 @@ impl BeaconInfo {
 mod tests {
     use super::*;
     use crate::locate::area::ActiveArea;
-    use crate::locate::merchant::Merchant;
+    use navign_shared::MerchantMobile;
     use sqlx::SqlitePool;
 
     #[tokio::test]
@@ -140,11 +140,27 @@ mod tests {
             .unwrap();
         // Execute `navign.sql` to create necessary tables
 
-        let merchant = Merchant {
+        let merchant = MerchantMobile {
             id: "merchant1".to_string(),
             name: "Test Merchant".to_string(),
-            entry: "entity1".to_string(),
-            ..Default::default()
+            description: None,
+            chain: None,
+            entity: "entity1".to_string(),
+            beacon_code: "beacon1".to_string(),
+            area: "area1".to_string(),
+            r#type: serde_json::to_string(&navign_shared::MerchantType::Other).unwrap(),
+            color: None,
+            tags: "[]".to_string(),
+            location: "POINT(0 0)".to_string(),
+            style: "store".to_string(),
+            polygon: None,
+            available_period: None,
+            email: None,
+            phone: None,
+            website: None,
+            social_media: None,
+            created_at: chrono::Utc::now().timestamp_millis(),
+            updated_at: chrono::Utc::now().timestamp_millis(),
         };
         let area = ActiveArea {
             id: "area1".to_string(),
