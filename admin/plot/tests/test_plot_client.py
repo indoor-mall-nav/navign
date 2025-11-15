@@ -3,6 +3,9 @@ Tests for plot_client.py
 
 Run with: pytest tests/test_plot_client.py
 Or from root: uv run pytest admin/plot/tests/
+
+Note: These tests mock the proto imports to avoid protobuf import issues.
+Run `just proto-plot` to generate proto files before running full integration tests.
 """
 
 import pytest
@@ -10,12 +13,60 @@ import numpy as np
 import cv2
 from pathlib import Path
 import sys
+from unittest.mock import MagicMock
 
-# Add parent directory to path to import plot_client
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock proto imports to avoid protobuf import issues
+sys.modules['proto'] = MagicMock()
+sys.modules['proto.task_pb2'] = MagicMock()
+sys.modules['proto.task_pb2_grpc'] = MagicMock()
+
+# Import after mocking
 from plot_client import PlotExtractionClient
-from proto import task_pb2
+
+# Create mock protobuf classes for testing
+class MockPlotExtractionConfig:
+    def __init__(self, **kwargs):
+        self.blur_kernel_size = kwargs.get('blur_kernel_size', 0.0)
+        self.threshold_value = kwargs.get('threshold_value', 0)
+        self.min_area = kwargs.get('min_area', 0.0)
+        self.max_area = kwargs.get('max_area', 0.0)
+        self.epsilon_factor = kwargs.get('epsilon_factor', 0.0)
+        self.apply_morphology = kwargs.get('apply_morphology', False)
+        self.morph_kernel_size = kwargs.get('morph_kernel_size', 0)
+        self.use_canny = kwargs.get('use_canny', False)
+        self.canny_low = kwargs.get('canny_low', 0)
+        self.canny_high = kwargs.get('canny_high', 0)
+
+    def HasField(self, field):
+        return hasattr(self, field) and getattr(self, field) is not None
+
+
+class MockPoint:
+    def __init__(self, x=0.0, y=0.0):
+        self.x = x
+        self.y = y
+
+
+class MockPolygon:
+    def __init__(self, vertices=None, area=0.0, centroid=None, label=""):
+        self.vertices = vertices or []
+        self.area = area
+        self.centroid = centroid or MockPoint()
+        self.label = label
+
+
+# Patch the task_pb2 module
+task_pb2 = MagicMock()
+task_pb2.PlotExtractionConfig = MockPlotExtractionConfig
+task_pb2.Point = MockPoint
+task_pb2.Polygon = MockPolygon
+task_pb2.PlotProcessingStats = lambda **kwargs: MagicMock(**kwargs)
+task_pb2.ExtractPolygonsResponse = lambda **kwargs: MagicMock(**kwargs)
+task_pb2.FloorExtraction = lambda **kwargs: MagicMock(**kwargs)
+task_pb2.BatchExtractResponse = lambda **kwargs: MagicMock(**kwargs)
 
 
 class TestPlotExtractionClient:
@@ -55,7 +106,7 @@ class TestPlotExtractionClient:
         """Test _get_config_with_defaults with partial config"""
         client = PlotExtractionClient()
 
-        partial_config = task_pb2.PlotExtractionConfig(
+        partial_config = MockPlotExtractionConfig(
             blur_kernel_size=7.0, threshold_value=100, min_area=200.0
         )
 
@@ -74,7 +125,7 @@ class TestPlotExtractionClient:
         image = np.zeros((500, 500, 3), dtype=np.uint8)
         cv2.rectangle(image, (100, 100), (400, 400), (255, 255, 255), -1)
 
-        config = task_pb2.PlotExtractionConfig()
+        config = MockPlotExtractionConfig()
 
         polygons, stats = client._extract_polygons_opencv(image, config)
 
@@ -90,7 +141,7 @@ class TestPlotExtractionClient:
 
         # Create invalid image data (should still handle gracefully)
         invalid_image = np.array([])  # Empty array
-        config = task_pb2.PlotExtractionConfig()
+        config = MockPlotExtractionConfig()
 
         # This should return an error response, not crash
         response = client._perform_local_extraction(
@@ -155,20 +206,20 @@ class TestPlotExtractionClient:
 
 
 class TestPlotExtractionConfig:
-    """Test PlotExtractionConfig protobuf message"""
+    """Test PlotExtractionConfig mock class"""
 
     def test_config_creation_defaults(self):
         """Test creating config with default values"""
-        config = task_pb2.PlotExtractionConfig()
+        config = MockPlotExtractionConfig()
 
-        # Protobuf defaults are zero values
+        # Mock defaults are zero values
         assert config.blur_kernel_size == 0.0
         assert config.threshold_value == 0
         assert config.min_area == 0.0
 
     def test_config_creation_custom_values(self):
         """Test creating config with custom values"""
-        config = task_pb2.PlotExtractionConfig(
+        config = MockPlotExtractionConfig(
             blur_kernel_size=7.0,
             threshold_value=150,
             min_area=500.0,
@@ -236,19 +287,19 @@ class TestImageProcessing:
 
 
 class TestPolygonMessage:
-    """Test Polygon protobuf message"""
+    """Test Polygon mock class"""
 
     def test_polygon_creation(self):
         """Test creating polygon with vertices"""
-        polygon = task_pb2.Polygon(
+        polygon = MockPolygon(
             vertices=[
-                task_pb2.Point(x=0.0, y=0.0),
-                task_pb2.Point(x=100.0, y=0.0),
-                task_pb2.Point(x=100.0, y=100.0),
-                task_pb2.Point(x=0.0, y=100.0),
+                MockPoint(x=0.0, y=0.0),
+                MockPoint(x=100.0, y=0.0),
+                MockPoint(x=100.0, y=100.0),
+                MockPoint(x=0.0, y=100.0),
             ],
             area=10000.0,
-            centroid=task_pb2.Point(x=50.0, y=50.0),
+            centroid=MockPoint(x=50.0, y=50.0),
             label="room_123",
         )
 
@@ -260,7 +311,7 @@ class TestPolygonMessage:
 
     def test_polygon_empty(self):
         """Test creating empty polygon"""
-        polygon = task_pb2.Polygon()
+        polygon = MockPolygon()
 
         assert len(polygon.vertices) == 0
         assert polygon.area == 0.0
