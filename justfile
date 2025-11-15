@@ -9,12 +9,11 @@ init:
   cargo check
 
 fmt:
-  taplo format
   cd animations && uvx ruff format
   cd gesture_space && uvx ruff format
   pnpm run --filter mobile format
-  pnpm run --filter ts-schema format
   cargo fmt
+  gofmt -w .
 
 lint:
   taplo lint

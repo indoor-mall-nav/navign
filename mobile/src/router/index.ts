@@ -33,6 +33,52 @@ const router = createRouter({
       name: 'entity-details',
       component: () => import('../views/EntityDetailsView.vue'),
     },
+    // Admin routes
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/admin/AdminDashboard.vue'),
+    },
+    {
+      path: '/admin/beacons',
+      name: 'admin-beacons',
+      component: () => import('../views/admin/BeaconsView.vue'),
+    },
+    {
+      path: '/admin/beacons/form',
+      name: 'admin-beacons-form',
+      component: () => import('../views/admin/BeaconFormView.vue'),
+    },
+    {
+      path: '/admin/areas',
+      name: 'admin-areas',
+      component: () => import('../views/admin/AreasView.vue'),
+    },
+    {
+      path: '/admin/areas/form',
+      name: 'admin-areas-form',
+      component: () => import('../views/admin/AreaFormView.vue'),
+    },
+    {
+      path: '/admin/merchants',
+      name: 'admin-merchants',
+      component: () => import('../views/admin/MerchantsView.vue'),
+    },
+    {
+      path: '/admin/merchants/form',
+      name: 'admin-merchants-form',
+      component: () => import('../views/admin/MerchantFormView.vue'),
+    },
+    {
+      path: '/admin/connections',
+      name: 'admin-connections',
+      component: () => import('../views/admin/ConnectionsView.vue'),
+    },
+    {
+      path: '/admin/connections/form',
+      name: 'admin-connections-form',
+      component: () => import('../views/admin/ConnectionFormView.vue'),
+    },
   ],
 })
 

@@ -98,7 +98,10 @@ class OTAUpdatePipeline(Scene):
         ).next_to(partition_objects[3][0], RIGHT, buff=0.3)
 
         self.play(
-            Create(ota0_highlight), Create(ota1_highlight), Write(dual_bank_note), run_time=0.7
+            Create(ota0_highlight),
+            Create(ota1_highlight),
+            Write(dual_bank_note),
+            run_time=0.7,
         )
 
         self.wait(0.3)
@@ -222,7 +225,10 @@ class OTAUpdatePipeline(Scene):
         )
 
         self.play(
-            Create(verify_arrow), FadeIn(checksum_box), Write(checksum_text), run_time=0.8
+            Create(verify_arrow),
+            FadeIn(checksum_box),
+            Write(checksum_text),
+            run_time=0.8,
         )
 
         self.wait(0.4)
@@ -286,9 +292,9 @@ class OTAUpdatePipeline(Scene):
         )
 
         # Failure scenario
-        failure_text = Tex(
-            "If new firmware crashes...", font_size=16, color=RED
-        ).shift(LEFT * 3.5 + UP * 0.5)
+        failure_text = Tex("If new firmware crashes...", font_size=16, color=RED).shift(
+            LEFT * 3.5 + UP * 0.5
+        )
         self.play(Write(failure_text), run_time=0.5)
 
         # Boot count
@@ -338,9 +344,7 @@ class OTAUpdatePipeline(Scene):
         )
 
         # Final highlight on OTA_0
-        final_highlight = self.partition_objects[2][0].copy().set_stroke(
-            GREEN, width=4
-        )
+        final_highlight = self.partition_objects[2][0].copy().set_stroke(GREEN, width=4)
         final_label = Tex("Safe \\& Running", font_size=12, color=GREEN).next_to(
             self.partition_objects[2][0], RIGHT, buff=0.2
         )

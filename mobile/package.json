@@ -17,6 +17,9 @@
     "check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.10.1",
+    "@connectrpc/connect": "^2.1.0",
+    "@connectrpc/connect-web": "^2.1.0",
     "@iconify-icons/mdi": "catalog:",
     "@iconify/icons-mdi": "catalog:",
     "@iconify/json": "catalog:",
@@ -58,6 +61,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@bufbuild/protoc-gen-es": "^2.10.1",
+    "@connectrpc/protoc-gen-connect-es": "^1.7.0",
     "@iconify/vue": "catalog:",
     "@tauri-apps/cli": "catalog:",
     "@types/node": "catalog:",
@@ -65,6 +70,7 @@
     "@vue/test-utils": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tailwind-merge": "catalog:",
@@ -72,7 +78,6 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-vue-devtools": "catalog:",
-    "vue-tsc": "catalog:",
-    "oxfmt": "catalog:"
+    "vue-tsc": "catalog:"
   }
 }
