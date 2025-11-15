@@ -19,26 +19,27 @@ from unittest.mock import MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Mock proto imports to avoid protobuf import issues
-sys.modules['proto'] = MagicMock()
-sys.modules['proto.task_pb2'] = MagicMock()
-sys.modules['proto.task_pb2_grpc'] = MagicMock()
+sys.modules["proto"] = MagicMock()
+sys.modules["proto.task_pb2"] = MagicMock()
+sys.modules["proto.task_pb2_grpc"] = MagicMock()
 
 # Import after mocking
 from plot_client import PlotExtractionClient
 
+
 # Create mock protobuf classes for testing
 class MockPlotExtractionConfig:
     def __init__(self, **kwargs):
-        self.blur_kernel_size = kwargs.get('blur_kernel_size', 0.0)
-        self.threshold_value = kwargs.get('threshold_value', 0)
-        self.min_area = kwargs.get('min_area', 0.0)
-        self.max_area = kwargs.get('max_area', 0.0)
-        self.epsilon_factor = kwargs.get('epsilon_factor', 0.0)
-        self.apply_morphology = kwargs.get('apply_morphology', False)
-        self.morph_kernel_size = kwargs.get('morph_kernel_size', 0)
-        self.use_canny = kwargs.get('use_canny', False)
-        self.canny_low = kwargs.get('canny_low', 0)
-        self.canny_high = kwargs.get('canny_high', 0)
+        self.blur_kernel_size = kwargs.get("blur_kernel_size", 0.0)
+        self.threshold_value = kwargs.get("threshold_value", 0)
+        self.min_area = kwargs.get("min_area", 0.0)
+        self.max_area = kwargs.get("max_area", 0.0)
+        self.epsilon_factor = kwargs.get("epsilon_factor", 0.0)
+        self.apply_morphology = kwargs.get("apply_morphology", False)
+        self.morph_kernel_size = kwargs.get("morph_kernel_size", 0)
+        self.use_canny = kwargs.get("use_canny", False)
+        self.canny_low = kwargs.get("canny_low", 0)
+        self.canny_high = kwargs.get("canny_high", 0)
 
     def HasField(self, field):
         return hasattr(self, field) and getattr(self, field) is not None
