@@ -17,7 +17,7 @@ pub mod pathfinding;
 
 mod ble;
 mod crypto;
-mod schema;
+pub mod schema;
 mod traits;
 
 pub use ble::blufi::{
