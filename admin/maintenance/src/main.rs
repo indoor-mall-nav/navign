@@ -125,6 +125,37 @@ enum Commands {
         #[arg(long)]
         area_id: Option<String>,
     },
+
+    /// Flash firmware to ESP32-C3 beacon
+    FlashFirmware {
+        /// Path to firmware binary file
+        #[arg(short, long)]
+        firmware: PathBuf,
+
+        /// ESP32-C3 port (e.g., /dev/ttyUSB0 or COM3)
+        #[arg(short, long)]
+        port: String,
+
+        /// Baud rate for flashing (default: 921600)
+        #[arg(short, long, default_value = "921600")]
+        baud: u32,
+
+        /// Skip confirmation prompt
+        #[arg(long)]
+        force: bool,
+
+        /// Erase flash before flashing
+        #[arg(long)]
+        erase: bool,
+
+        /// Verify flash after writing
+        #[arg(long, default_value = "true")]
+        verify: bool,
+
+        /// Monitor serial output after flashing
+        #[arg(long)]
+        monitor: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -234,6 +265,18 @@ async fn main() -> Result<()> {
             println!("✅ Beacon successfully registered!");
             println!("   Entity ID: {}", entity_id);
             println!("   Device ID: {}", device_id);
+        }
+
+        Commands::FlashFirmware {
+            firmware,
+            port,
+            baud,
+            force,
+            erase,
+            verify,
+            monitor,
+        } => {
+            flash_firmware(firmware, port, *baud, *force, *erase, *verify, *monitor)?;
         }
     }
 
@@ -542,4 +585,242 @@ async fn register_beacon_with_orchestrator(
     }
 
     Ok(())
+}
+
+/// Flash firmware to ESP32-C3 beacon
+fn flash_firmware(
+    firmware_path: &Path,
+    port: &str,
+    baud: u32,
+    force: bool,
+    erase: bool,
+    verify: bool,
+    monitor: bool,
+) -> Result<()> {
+    println!("🔥 ESP32-C3 Firmware Flashing");
+    println!("==============================");
+
+    // Verify firmware file exists
+    if !firmware_path.exists() {
+        bail!("Firmware file does not exist: {}", firmware_path.display());
+    }
+
+    let firmware_size = std::fs::metadata(firmware_path)
+        .context("Failed to get firmware file metadata")?
+        .len();
+
+    println!("\n📋 Flash Configuration:");
+    println!("   Firmware: {}", firmware_path.display());
+    println!(
+        "   Size: {} bytes ({:.2} KB)",
+        firmware_size,
+        firmware_size as f64 / 1024.0
+    );
+    println!("   Port: {}", port);
+    println!("   Baud rate: {}", baud);
+    println!("   Erase flash: {}", if erase { "Yes" } else { "No" });
+    println!("   Verify: {}", if verify { "Yes" } else { "No" });
+
+    // Check for espflash or esptool.py
+    let flash_tool = detect_flash_tool()?;
+    println!("   Flash tool: {}", flash_tool);
+
+    // Confirmation prompt
+    if !force {
+        println!("\n⚠️  WARNING: This will flash firmware to the ESP32-C3 device.");
+        if erase {
+            println!("   All data on the flash will be erased!");
+        }
+        print!("   Continue? (y/N): ");
+        std::io::Write::flush(&mut std::io::stdout()).unwrap();
+
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+
+        if !input.trim().to_lowercase().starts_with('y') {
+            println!("❌ Operation cancelled");
+            return Ok(());
+        }
+    }
+
+    // Flash the firmware
+    println!("\n🔥 Flashing firmware...");
+
+    match flash_tool.as_str() {
+        "espflash" => flash_with_espflash(firmware_path, port, baud, erase, verify, monitor)?,
+        "esptool.py" => flash_with_esptool(firmware_path, port, baud, erase, verify, monitor)?,
+        _ => bail!("Unsupported flash tool: {}", flash_tool),
+    }
+
+    println!("\n✅ Firmware flashed successfully!");
+
+    if monitor {
+        println!("\n📡 Starting serial monitor (press Ctrl+C to exit)...");
+        monitor_serial(port, 115200)?;
+    }
+
+    Ok(())
+}
+
+/// Detect available flash tool
+fn detect_flash_tool() -> Result<String> {
+    // Try espflash first (Rust-based, faster)
+    if which::which("espflash").is_ok() {
+        return Ok("espflash".to_string());
+    }
+
+    // Try esptool.py (Python-based, more widely available)
+    if which::which("esptool.py").is_ok() {
+        return Ok("esptool.py".to_string());
+    }
+
+    // Try python -m esptool
+    let alternatives = ["python3", "python"];
+    for alt in &alternatives {
+        if which::which(alt).is_ok() {
+            let output = Command::new(alt)
+                .args(["-m", "esptool", "version"])
+                .output();
+
+            if output.is_ok() && output.unwrap().status.success() {
+                return Ok("esptool.py".to_string());
+            }
+        }
+    }
+
+    bail!(
+        "❌ No flash tool found!\n\
+        Please install one of the following:\n\
+        - espflash: cargo install espflash (recommended)\n\
+        - esptool: pip install esptool"
+    );
+}
+
+/// Flash firmware using espflash
+fn flash_with_espflash(
+    firmware_path: &Path,
+    port: &str,
+    baud: u32,
+    erase: bool,
+    verify: bool,
+    monitor: bool,
+) -> Result<()> {
+    let mut cmd = Command::new("espflash");
+    cmd.arg("flash");
+    cmd.arg("--port").arg(port);
+    cmd.arg("--baud").arg(baud.to_string());
+
+    if erase {
+        cmd.arg("--erase-parts").arg("all");
+    }
+
+    if !verify {
+        cmd.arg("--no-verify");
+    }
+
+    if monitor {
+        cmd.arg("--monitor");
+    }
+
+    cmd.arg(firmware_path);
+
+    println!(
+        "   Executing: espflash flash --port {} --baud {} {}",
+        port,
+        baud,
+        firmware_path.display()
+    );
+
+    let output = cmd.output().context("Failed to execute espflash")?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if !line.trim().is_empty() {
+                println!("   {}", line);
+            }
+        }
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("espflash failed: {}", stderr);
+    }
+}
+
+/// Flash firmware using esptool.py
+fn flash_with_esptool(
+    firmware_path: &Path,
+    port: &str,
+    baud: u32,
+    erase: bool,
+    _verify: bool,  // esptool.py verifies by default
+    _monitor: bool, // Will handle monitoring separately
+) -> Result<()> {
+    // Erase flash if requested
+    if erase {
+        println!("   Erasing flash...");
+        let mut erase_cmd = Command::new("esptool.py");
+        erase_cmd.args(["--chip", "esp32c3", "--port", port, "erase_flash"]);
+
+        let output = erase_cmd
+            .output()
+            .context("Failed to execute esptool.py erase_flash")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            bail!("Failed to erase flash: {}", stderr);
+        }
+        println!("   ✅ Flash erased");
+    }
+
+    // Flash firmware
+    let mut cmd = Command::new("esptool.py");
+    cmd.args(["--chip", "esp32c3"]);
+    cmd.args(["--port", port]);
+    cmd.args(["--baud", &baud.to_string()]);
+    cmd.args(["write_flash", "0x0", firmware_path.to_str().unwrap()]);
+
+    println!(
+        "   Executing: esptool.py --chip esp32c3 --port {} --baud {} write_flash 0x0 {}",
+        port,
+        baud,
+        firmware_path.display()
+    );
+
+    let output = cmd
+        .output()
+        .context("Failed to execute esptool.py write_flash")?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if !line.trim().is_empty() {
+                println!("   {}", line);
+            }
+        }
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("esptool.py failed: {}", stderr);
+    }
+}
+
+/// Monitor serial output
+fn monitor_serial(port: &str, baud: u32) -> Result<()> {
+    // Try to use screen or minicom for monitoring
+    if which::which("screen").is_ok() {
+        let mut cmd = Command::new("screen");
+        cmd.arg(port).arg(baud.to_string());
+        cmd.status().context("Failed to execute screen")?;
+        Ok(())
+    } else if which::which("minicom").is_ok() {
+        let mut cmd = Command::new("minicom");
+        cmd.args(["-D", port, "-b", &baud.to_string()]);
+        cmd.status().context("Failed to execute minicom")?;
+        Ok(())
+    } else {
+        println!("⚠️  No serial monitor tool found (screen or minicom)");
+        println!("   Install with: sudo apt-get install screen");
+        Ok(())
+    }
 }

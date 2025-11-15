@@ -21,6 +21,40 @@ ESP32-C3 eFuse key management and beacon registration CLI tool.
 
 ## Usage
 
+### Flash Firmware to Beacon
+
+Flash firmware to an ESP32-C3 beacon:
+
+```bash
+cargo run -- flash-firmware \
+  --firmware ../firmware/target/riscv32imc-esp-espidf/release/navign-firmware \
+  --port /dev/ttyUSB0
+```
+
+Options:
+- `--firmware, -f`: Path to firmware binary file (required)
+- `--port, -p`: ESP32-C3 serial port (required, e.g., `/dev/ttyUSB0`, `COM3`)
+- `--baud, -b`: Baud rate for flashing (default: `921600`)
+- `--force`: Skip confirmation prompt
+- `--erase`: Erase flash before flashing (recommended for initial flash)
+- `--verify`: Verify flash after writing (default: `true`)
+- `--monitor`: Monitor serial output after flashing
+
+Example with full options:
+```bash
+cargo run -- flash-firmware \
+  --firmware path/to/firmware.bin \
+  --port /dev/ttyUSB0 \
+  --baud 921600 \
+  --erase \
+  --monitor
+```
+
+**Flash tools:**
+The maintenance tool automatically detects and uses:
+- `espflash` (Rust-based, recommended): `cargo install espflash`
+- `esptool.py` (Python-based): `pip install esptool`
+
 ### Generate and Fuse Private Key
 
 Generate a new P-256 private key and fuse it to ESP32-C3 eFuse:
