@@ -1,0 +1,241 @@
+/* Dark Mode CSS Variables and Styles */
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48%;
+}
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Dark mode specific styles */
+.dark {
+  color-scheme: dark;
+}
+
+/* Gradient backgrounds for dark mode */
+.dark .bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, rgb(17 24 39), rgb(31 41 55));
+}
+
+.dark .from-blue-50 {
+  --tw-gradient-from: rgb(17 24 39);
+}
+
+.dark .to-white {
+  --tw-gradient-to: rgb(31 41 55);
+}
+
+/* Card shadows in dark mode */
+.dark .shadow,
+.dark .shadow-sm,
+.dark .shadow-md {
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Input focus rings in dark mode */
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  --tw-ring-color: rgb(59 130 246);
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgb(31 41 55);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(75 85 99);
+  border-radius: 6px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+/* Selection color in dark mode */
+.dark ::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: rgb(210 240 255);
+}
+
+/* Link colors in dark mode */
+.dark a {
+  color: rgb(96 165 250);
+}
+
+.dark a:hover {
+  color: rgb(147 197 253);
+}
+
+/* Code blocks in dark mode */
+.dark pre,
+.dark code {
+  background-color: rgb(17 24 39);
+  color: rgb(209 213 219);
+}
+
+/* Badges and pills in dark mode */
+.dark .badge {
+  background-color: rgb(55 65 81);
+  color: rgb(229 231 235);
+}
+
+/* Table styling in dark mode */
+.dark table {
+  border-color: rgb(55 65 81);
+}
+
+.dark th {
+  background-color: rgb(31 41 55);
+  color: rgb(229 231 235);
+}
+
+.dark td {
+  border-color: rgb(55 65 81);
+}
+
+.dark tr:hover {
+  background-color: rgb(31 41 55);
+}
+
+/* Modal overlay in dark mode */
+.dark .modal-overlay,
+.dark .dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+/* Skeleton loading in dark mode */
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(31 41 55) 25%,
+    rgb(55 65 81) 50%,
+    rgb(31 41 55) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Toast notifications in dark mode */
+.dark .toast {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+  color: rgb(229 231 235);
+}
+
+.dark .toast-success {
+  border-color: rgb(34 197 94);
+}
+
+.dark .toast-error {
+  border-color: rgb(239 68 68);
+}
+
+.dark .toast-warning {
+  border-color: rgb(251 191 36);
+}
+
+.dark .toast-info {
+  border-color: rgb(59 130 246);
+}
+
+/* Map controls in dark mode */
+.dark .map-control {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+  color: rgb(229 231 235);
+}
+
+.dark .map-control:hover {
+  background-color: rgb(55 65 81);
+}
+
+/* Navigation elements in dark mode */
+.dark nav {
+  background-color: rgb(17 24 39);
+  border-color: rgb(55 65 81);
+}
+
+/* Dropdown menus in dark mode */
+.dark .dropdown-menu {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+}
+
+.dark .dropdown-item:hover {
+  background-color: rgb(55 65 81);
+}
+
+/* Progress bars in dark mode */
+.dark .progress-bar {
+  background-color: rgb(55 65 81);
+}
+
+.dark .progress-fill {
+  background-color: rgb(59 130 246);
+}
+
+/* Custom utilities for smooth dark mode */
+.dark-mode-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

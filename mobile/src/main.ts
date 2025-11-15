@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import './index.css'
+import './styles/dark-mode.css'
 import VConsole from 'vconsole'
 import VueKonva from 'vue-konva'
 import { createPinia } from 'pinia'

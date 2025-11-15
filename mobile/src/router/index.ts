@@ -33,6 +33,27 @@ const router = createRouter({
       name: 'entity-details',
       component: () => import('../views/EntityDetailsView.vue'),
     },
+    // User profile routes
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('../views/SettingsView.vue'),
+    },
+    {
+      path: '/favorites',
+      name: 'favorites',
+      component: () => import('../views/FavoritesView.vue'),
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('../views/HistoryView.vue'),
+    },
     // Admin routes
     {
       path: '/admin',
