@@ -61,6 +61,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "postcard")]
     fn test_device_capabilities_packetize_depacketize() {
         let capabilities = DeviceCapabilities::UNLOCK_GATE
             | DeviceCapabilities::BATTERY_STATUS

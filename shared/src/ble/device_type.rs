@@ -52,7 +52,9 @@ impl Packetize for DeviceTypes {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
+    #[cfg(feature = "postcard")]
     fn test_device_types_packetize_depacketize() {
         let device_types = DeviceTypes::MERCHANT;
         #[cfg(feature = "heapless")]
