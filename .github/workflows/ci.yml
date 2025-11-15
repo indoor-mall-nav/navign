@@ -191,6 +191,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+      
+      - name: Install Portaudio
+        if: matrix.component == 'robot'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev
 
       # Plot-specific setup
       - name: Setup Python
