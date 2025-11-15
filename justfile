@@ -199,6 +199,10 @@ ci-robot-serial:
 ci-robot-lower: ci-robot-firmware
 ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial
 
+ci-robot: ci-robot-lower ci-robot-upper
+
+ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
+
 roll:
   just fmt-check
   just lint

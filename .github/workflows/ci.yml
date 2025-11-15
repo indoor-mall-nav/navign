@@ -1,4 +1,4 @@
-name: Selective CI
+name: CI
 
 on:
   push:
@@ -49,14 +49,10 @@ jobs:
           run_server=false
           run_firmware=false
           run_mobile=false
-          run_tower=false
-          run_orchestrator=false
-          run_plot=false
-          run_maintenance=false
+          run_admin=false
           run_proc_macros=false
           run_repo=false
-          run_robot_lower=false
-          run_robot_upper=false
+          run_robot=false
 
           # Check which components are affected
           while IFS= read -r file; do
@@ -66,7 +62,7 @@ jobs:
                 # If shared is modified, run all Rust CI
                 run_server=true
                 run_firmware=true
-                run_orchestrator=true
+                run_admin=true
                 run_mobile=true
                 ;;
               server/*)
@@ -78,33 +74,15 @@ jobs:
               mobile/*)
                 run_mobile=true
                 ;;
-              admin/proto/*)
+              admin/*)
                 # Proto files affect all admin components
-                run_orchestrator=true
-                run_tower=true
-                run_plot=true
-                run_maintenance=true
-                ;;
-              admin/tower/*)
-                run_tower=true
-                ;;
-              admin/orchestrator/*)
-                run_orchestrator=true
-                ;;
-              admin/plot/*)
-                run_plot=true
-                ;;
-              admin/maintenance/*)
-                run_maintenance=true
+                run_admin=true
                 ;;
               proc_macros/*)
                 run_proc_macros=true
                 ;;
-              robot/lower/*)
-                run_robot_lower=true
-                ;;
-              robot/upper/*)
-                run_robot_upper=true
+              robot/*)
+                run_robot=true
                 ;;
               justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
                 run_repo=true
@@ -121,13 +99,9 @@ jobs:
           [ "$run_server" = true ] && components+=("server")
           [ "$run_firmware" = true ] && components+=("firmware")
           [ "$run_mobile" = true ] && components+=("mobile")
-          [ "$run_tower" = true ] && components+=("tower")
-          [ "$run_orchestrator" = true ] && components+=("orchestrator")
-          [ "$run_plot" = true ] && components+=("plot")
-          [ "$run_maintenance" = true ] && components+=("maintenance")
+          [ "$run_admin" = true ] && components+=("admin")
           [ "$run_proc_macros" = true ] && components+=("proc-macros")
-          [ "$run_robot_lower" = true ] && components+=("robot-lower")
-          [ "$run_robot_upper" = true ] && components+=("robot-upper")
+          [ "$run_robot" = true ] && components+=("robot")
 
           if [ ${#components[@]} -eq 0 ]; then
             echo "No CI tasks needed for these changes."
@@ -165,24 +139,9 @@ jobs:
         if: matrix.component == 'repo'
         uses: crate-ci/typos@v1.39.0
 
-      # Shared-specific setup (none needed, uses Rust)
-
-      # Firmware-specific setup
-      - name: Install Rust nightly (firmware)
-        if: matrix.component == 'firmware'
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src
-
-      - name: Install RISC-V target (firmware)
+      - name: Install RISC-V target
         if: matrix.component == 'firmware'
         run: rustup target add riscv32imc-unknown-none-elf
-
-      - name: Cache Rust dependencies (firmware)
-        if: matrix.component == 'firmware'
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: firmware -> target
 
       # QEMU simulation tests are available via `just test-firmware-qemu` for manual testing
       # Disabled in CI due to espup installation issues
@@ -227,48 +186,30 @@ jobs:
           cache-dependency-path: admin/tower/go.sum
 
       # Orchestrator-specific setup
-      - name: Install Protobuf Compiler (orchestrator)
-        if: matrix.component == 'orchestrator'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-
-      # Maintenance-specific setup
-      - name: Install Protobuf Compiler (maintenance)
-        if: matrix.component == 'maintenance'
+      - name: Install Protobuf Compiler
+        if: matrix.component == 'admin' || matrix.component == 'plot'
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
 
       # Plot-specific setup
       - name: Setup Python
-        if: matrix.component == 'plot'
+        if: matrix.component == 'admin' || matrix.component == 'robot'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
       - name: Install uv
-        if: matrix.component == 'plot'
+        if: matrix.component == 'admin' || matrix.component == 'robot'
         uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
           enable-cache: true
           cache-dependency-glob: "admin/plot/uv.lock"
 
-      # Robot Lower-specific setup
-      - name: Install Rust stable (robot-lower)
-        if: matrix.component == 'robot-lower'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install ARM target (robot-lower)
-        if: matrix.component == 'robot-lower'
+      - name: Install ARM target
+        if: matrix.component == 'robot'
         run: rustup target add thumbv7em-none-eabi
-
-      - name: Cache Rust dependencies (robot-lower)
-        if: matrix.component == 'robot-lower'
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: robot/lower -> target
 
       # Robot Upper-specific setup (placeholder - not yet implemented)
 
