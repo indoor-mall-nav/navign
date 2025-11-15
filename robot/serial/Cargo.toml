@@ -5,3 +5,32 @@ name              = "serial"
 version.workspace = true
 
 [dependencies]
+# Async runtime
+tokio = { version = "1.47", features = ["full"] }
+
+# Serial port communication
+tokio-serial = "5.4"
+
+# Zenoh for pub/sub
+zenoh = { version = "1.6.2", features = ["default"] }
+
+# Protocol Buffers
+prost = "0.13"
+prost-types = "0.13"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time
+chrono = "0.4"
+
+# Postcard for UART serialization (communication with lower/firmware)
+postcard = "1.0"
+
+[build-dependencies]
+prost-build = "0.13"

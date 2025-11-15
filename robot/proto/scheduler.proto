@@ -1,0 +1,283 @@
+syntax = "proto3";
+
+package navign.robot.scheduler;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// SchedulerService is the main coordinator/commander for the robot
+service SchedulerService {
+  // SubmitTask submits a new task to the scheduler
+  rpc SubmitTask(TaskSubmission) returns (TaskSubmissionResponse);
+
+  // CancelTask cancels an active or queued task
+  rpc CancelTask(TaskCancellation) returns (common.Response);
+
+  // GetTaskStatus queries the status of a task
+  rpc GetTaskStatus(TaskQuery) returns (TaskStatusResponse);
+
+  // ListTasks lists all tasks (with optional filtering)
+  rpc ListTasks(TaskListRequest) returns (TaskListResponse);
+
+  // StreamTaskUpdates provides real-time task status updates
+  rpc StreamTaskUpdates(TaskStreamRequest) returns (stream TaskUpdate);
+
+  // GetComponentStatus returns scheduler health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+}
+
+// ============================================================================
+// Task Management Messages
+// ============================================================================
+
+message TaskSubmission {
+  string task_id = 1;  // From tower/orchestrator
+  TaskType type = 2;
+  repeated common.Location sources = 3;
+  repeated common.Location destinations = 4;
+  TaskPriority priority = 5;
+  map<string, string> metadata = 6;
+  google.protobuf.Timestamp deadline = 7;
+}
+
+enum TaskType {
+  TASK_TYPE_UNSPECIFIED = 0;
+  TASK_TYPE_DELIVERY = 1;
+  TASK_TYPE_PATROL = 2;
+  TASK_TYPE_RETURN_HOME = 3;
+  TASK_TYPE_CHARGE = 4;
+  TASK_TYPE_EMERGENCY_STOP = 5;
+  TASK_TYPE_MANUAL_CONTROL = 6;
+}
+
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_NORMAL = 2;
+  TASK_PRIORITY_HIGH = 3;
+  TASK_PRIORITY_URGENT = 4;
+}
+
+message TaskSubmissionResponse {
+  bool accepted = 1;
+  string task_id = 2;
+  string message = 3;
+  TaskStatus status = 4;
+  google.protobuf.Timestamp estimated_start = 5;
+  google.protobuf.Timestamp estimated_completion = 6;
+}
+
+message TaskCancellation {
+  string task_id = 1;
+  string reason = 2;
+}
+
+message TaskQuery {
+  string task_id = 1;
+}
+
+message TaskStatusResponse {
+  string task_id = 1;
+  TaskStatus status = 2;
+  uint32 progress_percent = 3;
+  TaskExecution execution = 4;
+  repeated TaskStep steps = 5;
+  common.ErrorInfo error = 6;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_QUEUED = 1;
+  TASK_STATUS_PLANNING = 2;
+  TASK_STATUS_EXECUTING = 3;
+  TASK_STATUS_PAUSED = 4;
+  TASK_STATUS_COMPLETED = 5;
+  TASK_STATUS_FAILED = 6;
+  TASK_STATUS_CANCELLED = 7;
+}
+
+message TaskExecution {
+  google.protobuf.Timestamp started_at = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  google.protobuf.Timestamp completed_at = 3;
+  common.Location current_location = 4;
+  uint32 current_step = 5;
+  uint32 total_steps = 6;
+  float distance_traveled_meters = 7;
+  float remaining_distance_meters = 8;
+}
+
+message TaskStep {
+  uint32 step_number = 1;
+  StepType type = 2;
+  string description = 3;
+  TaskStatus status = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp completed_at = 6;
+  map<string, string> parameters = 7;
+}
+
+enum StepType {
+  STEP_TYPE_UNSPECIFIED = 0;
+  STEP_TYPE_NAVIGATE = 1;
+  STEP_TYPE_PICKUP = 2;
+  STEP_TYPE_DROPOFF = 3;
+  STEP_TYPE_WAIT = 4;
+  STEP_TYPE_UNLOCK_DOOR = 5;
+  STEP_TYPE_AVOID_OBSTACLE = 6;
+  STEP_TYPE_REPLAN = 7;
+}
+
+message TaskListRequest {
+  repeated TaskStatus filter_status = 1;
+  repeated TaskType filter_type = 2;
+  uint32 limit = 3;
+  uint32 offset = 4;
+  SortOrder sort = 5;
+}
+
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_CREATED_ASC = 1;
+  SORT_ORDER_CREATED_DESC = 2;
+  SORT_ORDER_PRIORITY_ASC = 3;
+  SORT_ORDER_PRIORITY_DESC = 4;
+  SORT_ORDER_DEADLINE_ASC = 5;
+  SORT_ORDER_DEADLINE_DESC = 6;
+}
+
+message TaskListResponse {
+  repeated TaskStatusResponse tasks = 1;
+  uint32 total_count = 2;
+  uint32 returned_count = 3;
+}
+
+message TaskStreamRequest {
+  repeated string task_ids = 1;  // Empty = all tasks
+  repeated TaskStatus filter_status = 2;
+}
+
+message TaskUpdate {
+  string task_id = 1;
+  TaskStatus status = 2;
+  uint32 progress_percent = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string message = 5;
+  TaskExecution execution = 6;
+}
+
+// ============================================================================
+// Internal Coordination Messages (for inter-component messaging)
+// ============================================================================
+
+message NavigationCommand {
+  string task_id = 1;
+  repeated common.Location waypoints = 2;
+  NavigationMode mode = 3;
+  float max_speed_mps = 4;
+  ObstacleAvoidance obstacle_avoidance = 5;
+}
+
+enum NavigationMode {
+  NAVIGATION_MODE_UNSPECIFIED = 0;
+  NAVIGATION_MODE_NORMAL = 1;
+  NAVIGATION_MODE_PRECISE = 2;  // For docking, pickup
+  NAVIGATION_MODE_SAFE = 3;  // Conservative, slower
+  NAVIGATION_MODE_EMERGENCY = 4;  // Return to base immediately
+}
+
+message ObstacleAvoidance {
+  bool enabled = 1;
+  float min_distance_meters = 2;
+  bool dynamic_objects = 3;
+  bool static_objects = 4;
+}
+
+message VisionRequest {
+  string task_id = 1;
+  VisionRequestType type = 2;
+  string target_object = 3;  // For object detection
+  uint32 apriltag_id = 4;  // For AprilTag detection
+}
+
+enum VisionRequestType {
+  VISION_REQUEST_TYPE_UNSPECIFIED = 0;
+  VISION_REQUEST_TYPE_DETECT_OBJECT = 1;
+  VISION_REQUEST_TYPE_DETECT_APRILTAG = 2;
+  VISION_REQUEST_TYPE_LOCALIZE = 3;
+  VISION_REQUEST_TYPE_VERIFY_POSITION = 4;
+}
+
+message AudioRequest {
+  string task_id = 1;
+  AudioRequestType type = 2;
+  string text = 3;  // For TTS
+  AudioPriority priority = 4;
+}
+
+enum AudioRequestType {
+  AUDIO_REQUEST_TYPE_UNSPECIFIED = 0;
+  AUDIO_REQUEST_TYPE_SPEAK = 1;
+  AUDIO_REQUEST_TYPE_PLAY_SOUND = 2;
+  AUDIO_REQUEST_TYPE_ALERT = 3;
+}
+
+enum AudioPriority {
+  AUDIO_PRIORITY_UNSPECIFIED = 0;
+  AUDIO_PRIORITY_BACKGROUND = 1;
+  AUDIO_PRIORITY_NORMAL = 2;
+  AUDIO_PRIORITY_IMPORTANT = 3;
+  AUDIO_PRIORITY_EMERGENCY = 4;
+}
+
+// ============================================================================
+// Status Messages
+// ============================================================================
+
+message StatusRequest {
+  // Empty request
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  SchedulerMetrics metrics = 2;
+  repeated ComponentHealth components = 3;
+  RobotState robot_state = 4;
+}
+
+message SchedulerMetrics {
+  uint32 total_tasks = 1;
+  uint32 queued_tasks = 2;
+  uint32 active_tasks = 3;
+  uint32 completed_tasks = 4;
+  uint32 failed_tasks = 5;
+  google.protobuf.Timestamp last_task_completed = 6;
+  float average_task_duration_seconds = 7;
+  uint64 uptime_seconds = 8;
+}
+
+message ComponentHealth {
+  common.ComponentType type = 1;
+  common.ComponentStatus status = 2;
+  google.protobuf.Timestamp last_seen = 3;
+  string error_message = 4;
+}
+
+message RobotState {
+  RobotMode mode = 1;
+  common.Location current_location = 2;
+  float battery_percent = 3;
+  float speed_mps = 4;
+  bool emergency_stop = 5;
+  repeated string active_warnings = 6;
+}
+
+enum RobotMode {
+  ROBOT_MODE_UNSPECIFIED = 0;
+  ROBOT_MODE_IDLE = 1;
+  ROBOT_MODE_AUTONOMOUS = 2;
+  ROBOT_MODE_MANUAL = 3;
+  ROBOT_MODE_CHARGING = 4;
+  ROBOT_MODE_ERROR = 5;
+  ROBOT_MODE_EMERGENCY = 6;
+}

@@ -1,0 +1,250 @@
+syntax = "proto3";
+
+package navign.robot.vision;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// VisionService provides computer vision capabilities
+service VisionService {
+  // DetectAprilTags performs AprilTag detection and pose estimation
+  rpc DetectAprilTags(AprilTagRequest) returns (AprilTagResponse);
+
+  // DetectObjects performs YOLO-based object detection
+  rpc DetectObjects(ObjectDetectionRequest) returns (ObjectDetectionResponse);
+
+  // GetCameraCalibration returns current camera calibration parameters
+  rpc GetCameraCalibration(CalibrationRequest) returns (CalibrationResponse);
+
+  // StreamVisionData provides continuous vision updates (for real-time tracking)
+  rpc StreamVisionData(VisionStreamRequest) returns (stream VisionUpdate);
+
+  // TransformCoordinates converts between camera and world coordinates
+  rpc TransformCoordinates(CoordinateTransformRequest) returns (CoordinateTransformResponse);
+
+  // GetComponentStatus returns vision component health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+}
+
+// ============================================================================
+// AprilTag Detection Messages
+// ============================================================================
+
+message AprilTagRequest {
+  bytes image_data = 1;  // Optional: if empty, uses live camera
+  ImageFormat format = 2;
+  CameraSource camera_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+enum ImageFormat {
+  IMAGE_FORMAT_UNSPECIFIED = 0;
+  IMAGE_FORMAT_RGB = 1;
+  IMAGE_FORMAT_BGR = 2;
+  IMAGE_FORMAT_GRAY = 3;
+  IMAGE_FORMAT_JPEG = 4;
+  IMAGE_FORMAT_PNG = 5;
+}
+
+enum CameraSource {
+  CAMERA_SOURCE_UNSPECIFIED = 0;
+  CAMERA_SOURCE_PRIMARY = 1;
+  CAMERA_SOURCE_SECONDARY = 2;
+  CAMERA_SOURCE_DEPTH = 3;
+}
+
+message AprilTagResponse {
+  repeated AprilTag tags = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  uint32 frame_id = 3;
+  common.Response status = 4;
+}
+
+message AprilTag {
+  uint32 tag_id = 1;
+  common.Pose pose = 2;
+  repeated Corner corners = 3;
+  float decision_margin = 4;
+  uint32 hamming_distance = 5;
+  string tag_family = 6;  // e.g., "tag36h11"
+  common.Point3D center = 7;
+  RotationMatrix rotation = 8;
+  TranslationVector translation = 9;
+}
+
+message Corner {
+  float x = 1;
+  float y = 2;
+}
+
+message RotationMatrix {
+  repeated double elements = 1 [packed=true];  // 3x3 = 9 elements
+}
+
+message TranslationVector {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+// ============================================================================
+// Object Detection Messages
+// ============================================================================
+
+message ObjectDetectionRequest {
+  bytes image_data = 1;  // Optional: if empty, uses live camera
+  ImageFormat format = 2;
+  CameraSource camera_id = 3;
+  DetectionMode mode = 4;
+  float confidence_threshold = 5;  // 0.0-1.0
+  repeated string filter_classes = 6;  // Empty = all classes
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+enum DetectionMode {
+  DETECTION_MODE_UNSPECIFIED = 0;
+  DETECTION_MODE_FAST = 1;  // Lower accuracy, faster
+  DETECTION_MODE_ACCURATE = 2;  // Higher accuracy, slower
+  DETECTION_MODE_TRACKING = 3;  // With temporal tracking
+}
+
+message ObjectDetectionResponse {
+  repeated DetectedObject objects = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  uint32 frame_id = 3;
+  uint32 processing_time_ms = 4;
+  common.Response status = 5;
+}
+
+message DetectedObject {
+  uint32 object_id = 1;  // Unique ID for tracking across frames
+  string class_name = 2;
+  float confidence = 3;
+  common.BoundingBox bbox = 4;
+  common.Point3D world_position = 5;  // Position in world coordinates
+  float distance_meters = 6;  // Distance from camera
+  Velocity velocity = 7;  // For tracking mode
+  map<string, string> attributes = 8;  // Additional attributes (color, size, etc.)
+}
+
+message Velocity {
+  double vx = 1;  // m/s in world X
+  double vy = 2;  // m/s in world Y
+  double vz = 3;  // m/s in world Z
+}
+
+// ============================================================================
+// Camera Calibration Messages
+// ============================================================================
+
+message CalibrationRequest {
+  CameraSource camera_id = 1;
+}
+
+message CalibrationResponse {
+  CameraIntrinsics intrinsics = 1;
+  CameraExtrinsics extrinsics = 2;
+  DistortionCoefficients distortion = 3;
+  common.Response status = 4;
+}
+
+message CameraIntrinsics {
+  double fx = 1;  // Focal length X
+  double fy = 2;  // Focal length Y
+  double cx = 3;  // Principal point X
+  double cy = 4;  // Principal point Y
+  uint32 image_width = 5;
+  uint32 image_height = 6;
+}
+
+message CameraExtrinsics {
+  RotationMatrix rotation = 1;  // Camera to world rotation
+  TranslationVector translation = 2;  // Camera to world translation
+}
+
+message DistortionCoefficients {
+  repeated double radial = 1;  // k1, k2, k3, ...
+  repeated double tangential = 2;  // p1, p2, ...
+}
+
+// ============================================================================
+// Vision Streaming Messages
+// ============================================================================
+
+message VisionStreamRequest {
+  repeated VisionDataType data_types = 1;
+  uint32 fps = 2;  // Desired frames per second
+  CameraSource camera_id = 3;
+}
+
+enum VisionDataType {
+  VISION_DATA_TYPE_UNSPECIFIED = 0;
+  VISION_DATA_TYPE_APRILTAGS = 1;
+  VISION_DATA_TYPE_OBJECTS = 2;
+  VISION_DATA_TYPE_RAW_IMAGE = 3;
+  VISION_DATA_TYPE_DEPTH = 4;
+}
+
+message VisionUpdate {
+  google.protobuf.Timestamp timestamp = 1;
+  uint32 frame_id = 2;
+  AprilTagResponse apriltag_data = 3;
+  ObjectDetectionResponse object_data = 4;
+  bytes raw_image = 5;
+  bytes depth_image = 6;
+}
+
+// ============================================================================
+// Coordinate Transform Messages
+// ============================================================================
+
+message CoordinateTransformRequest {
+  repeated common.Point3D points = 1;
+  CoordinateFrame source_frame = 2;
+  CoordinateFrame target_frame = 3;
+  CameraSource camera_id = 4;
+}
+
+enum CoordinateFrame {
+  COORDINATE_FRAME_UNSPECIFIED = 0;
+  COORDINATE_FRAME_CAMERA = 1;
+  COORDINATE_FRAME_WORLD = 2;
+  COORDINATE_FRAME_ROBOT = 3;
+}
+
+message CoordinateTransformResponse {
+  repeated common.Point3D transformed_points = 1;
+  common.Response status = 2;
+}
+
+// ============================================================================
+// Status Messages
+// ============================================================================
+
+message StatusRequest {
+  // Empty request for status
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  VisionMetrics metrics = 2;
+  repeated CameraStatus cameras = 3;
+}
+
+message VisionMetrics {
+  uint32 frames_processed = 1;
+  float average_fps = 2;
+  uint32 tags_detected = 3;
+  uint32 objects_detected = 4;
+  uint32 processing_queue_size = 5;
+  float average_latency_ms = 6;
+}
+
+message CameraStatus {
+  CameraSource camera_id = 1;
+  bool connected = 2;
+  uint32 width = 3;
+  uint32 height = 4;
+  float current_fps = 5;
+  string error_message = 6;
+}

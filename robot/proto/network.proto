@@ -1,0 +1,370 @@
+syntax = "proto3";
+
+package navign.robot.network;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// NetworkService handles external communication (BLE, server requests)
+service NetworkService {
+  // ConnectToTower establishes connection to admin/tower via Socket.IO
+  rpc ConnectToTower(TowerConnectionConfig) returns (TowerConnectionResponse);
+
+  // DisconnectFromTower closes tower connection
+  rpc DisconnectFromTower(DisconnectRequest) returns (common.Response);
+
+  // SendTaskUpdate reports task progress to tower
+  rpc SendTaskUpdate(TaskUpdateReport) returns (common.Response);
+
+  // RequestPathfinding requests navigation path from server
+  rpc RequestPathfinding(PathfindingRequest) returns (PathfindingResponse);
+
+  // RequestEntityData fetches entity/area/merchant data from server
+  rpc RequestEntityData(EntityDataRequest) returns (EntityDataResponse);
+
+  // ScanBLEBeacons scans for nearby BLE beacons
+  rpc ScanBLEBeacons(BLEScanRequest) returns (BLEScanResponse);
+
+  // ConnectToBeacon establishes BLE connection to a beacon
+  rpc ConnectToBeacon(BLEConnectionRequest) returns (BLEConnectionResponse);
+
+  // UnlockGate requests access control unlock via BLE
+  rpc UnlockGate(UnlockRequest) returns (UnlockResponse);
+
+  // GetComponentStatus returns network component health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+}
+
+// ============================================================================
+// Tower Connection Messages
+// ============================================================================
+
+message TowerConnectionConfig {
+  string tower_url = 1;  // e.g., "http://[::1]:8080"
+  string robot_id = 2;
+  string entity_id = 3;
+  AuthenticationConfig auth = 4;
+  ConnectionOptions options = 5;
+}
+
+message AuthenticationConfig {
+  AuthType type = 1;
+  string token = 2;
+  string api_key = 3;
+  map<string, string> credentials = 4;
+}
+
+enum AuthType {
+  AUTH_TYPE_UNSPECIFIED = 0;
+  AUTH_TYPE_TOKEN = 1;
+  AUTH_TYPE_API_KEY = 2;
+  AUTH_TYPE_OAUTH = 3;
+  AUTH_TYPE_CERTIFICATE = 4;
+}
+
+message ConnectionOptions {
+  uint32 reconnect_attempts = 1;
+  uint32 reconnect_delay_ms = 2;
+  uint32 heartbeat_interval_ms = 3;
+  uint32 timeout_ms = 4;
+  bool auto_reconnect = 5;
+}
+
+message TowerConnectionResponse {
+  bool connected = 1;
+  string message = 2;
+  string session_id = 3;
+  google.protobuf.Timestamp connected_at = 4;
+}
+
+message DisconnectRequest {
+  string reason = 1;
+}
+
+// ============================================================================
+// Task Update Messages
+// ============================================================================
+
+message TaskUpdateReport {
+  string task_id = 1;
+  TaskStatus status = 2;
+  uint32 progress_percent = 3;
+  common.Location current_location = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  string message = 6;
+  TaskMetrics metrics = 7;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_ACCEPTED = 1;
+  TASK_STATUS_IN_PROGRESS = 2;
+  TASK_STATUS_COMPLETED = 3;
+  TASK_STATUS_FAILED = 4;
+  TASK_STATUS_CANCELLED = 5;
+}
+
+message TaskMetrics {
+  float distance_traveled_meters = 1;
+  float remaining_distance_meters = 2;
+  uint32 elapsed_seconds = 3;
+  uint32 estimated_remaining_seconds = 4;
+  float average_speed_mps = 5;
+}
+
+// ============================================================================
+// Pathfinding Request Messages
+// ============================================================================
+
+message PathfindingRequest {
+  string entity_id = 1;
+  common.Location start = 2;
+  common.Location destination = 3;
+  PathfindingOptions options = 4;
+}
+
+message PathfindingOptions {
+  PathStrategy strategy = 1;
+  bool avoid_stairs = 2;
+  bool prefer_elevators = 3;
+  float max_distance_meters = 4;
+  repeated string avoid_areas = 5;  // Area IDs to avoid
+}
+
+enum PathStrategy {
+  PATH_STRATEGY_UNSPECIFIED = 0;
+  PATH_STRATEGY_SHORTEST = 1;
+  PATH_STRATEGY_FASTEST = 2;
+  PATH_STRATEGY_SAFEST = 3;  // Avoid crowded areas
+  PATH_STRATEGY_ACCESSIBLE = 4;  // Wheelchair accessible
+}
+
+message PathfindingResponse {
+  bool success = 1;
+  string message = 2;
+  Path path = 3;
+  float total_distance_meters = 4;
+  uint32 estimated_duration_seconds = 5;
+}
+
+message Path {
+  repeated Waypoint waypoints = 1;
+  repeated Instruction instructions = 2;
+  repeated PathSegment segments = 3;
+}
+
+message Waypoint {
+  uint32 sequence = 1;
+  common.Location location = 2;
+  WaypointType type = 3;
+  string description = 4;
+}
+
+enum WaypointType {
+  WAYPOINT_TYPE_UNSPECIFIED = 0;
+  WAYPOINT_TYPE_START = 1;
+  WAYPOINT_TYPE_DESTINATION = 2;
+  WAYPOINT_TYPE_INTERMEDIATE = 3;
+  WAYPOINT_TYPE_ELEVATOR = 4;
+  WAYPOINT_TYPE_STAIRS = 5;
+  WAYPOINT_TYPE_DOOR = 6;
+}
+
+message Instruction {
+  uint32 sequence = 1;
+  InstructionType type = 2;
+  string text = 3;
+  float distance_meters = 4;
+  float bearing_degrees = 5;
+}
+
+enum InstructionType {
+  INSTRUCTION_TYPE_UNSPECIFIED = 0;
+  INSTRUCTION_TYPE_START = 1;
+  INSTRUCTION_TYPE_CONTINUE = 2;
+  INSTRUCTION_TYPE_TURN_LEFT = 3;
+  INSTRUCTION_TYPE_TURN_RIGHT = 4;
+  INSTRUCTION_TYPE_TAKE_ELEVATOR = 5;
+  INSTRUCTION_TYPE_TAKE_STAIRS = 6;
+  INSTRUCTION_TYPE_ENTER_AREA = 7;
+  INSTRUCTION_TYPE_EXIT_AREA = 8;
+  INSTRUCTION_TYPE_ARRIVE = 9;
+}
+
+message PathSegment {
+  uint32 sequence = 1;
+  string area_id = 2;
+  string floor = 3;
+  float distance_meters = 4;
+  repeated common.Location points = 5;
+}
+
+// ============================================================================
+// Entity Data Request Messages
+// ============================================================================
+
+message EntityDataRequest {
+  string entity_id = 1;
+  repeated DataType data_types = 2;
+  DataFetchOptions options = 3;
+}
+
+enum DataType {
+  DATA_TYPE_UNSPECIFIED = 0;
+  DATA_TYPE_ENTITY = 1;
+  DATA_TYPE_AREAS = 2;
+  DATA_TYPE_BEACONS = 3;
+  DATA_TYPE_MERCHANTS = 4;
+  DATA_TYPE_CONNECTIONS = 5;
+}
+
+message DataFetchOptions {
+  bool cache_enabled = 1;
+  uint32 cache_ttl_seconds = 2;
+  bool force_refresh = 3;
+}
+
+message EntityDataResponse {
+  bool success = 1;
+  string message = 2;
+  bytes entity_data = 3;  // JSON-encoded entity data
+  bytes areas_data = 4;  // JSON-encoded areas array
+  bytes beacons_data = 5;  // JSON-encoded beacons array
+  bytes merchants_data = 6;  // JSON-encoded merchants array
+  bytes connections_data = 7;  // JSON-encoded connections array
+  google.protobuf.Timestamp cached_at = 8;
+}
+
+// ============================================================================
+// BLE Messages
+// ============================================================================
+
+message BLEScanRequest {
+  uint32 scan_duration_ms = 1;
+  repeated string filter_device_ids = 2;  // Empty = all beacons
+  int32 rssi_threshold = 3;  // Minimum RSSI (-127 to 0)
+}
+
+message BLEScanResponse {
+  repeated BLEBeacon beacons = 1;
+  uint32 scan_duration_ms = 2;
+  google.protobuf.Timestamp scanned_at = 3;
+}
+
+message BLEBeacon {
+  string device_id = 1;
+  string address = 2;  // MAC address
+  int32 rssi = 3;
+  BeaconType type = 4;
+  repeated string capabilities = 5;
+  float estimated_distance_meters = 6;
+  bytes manufacturer_data = 7;
+}
+
+enum BeaconType {
+  BEACON_TYPE_UNSPECIFIED = 0;
+  BEACON_TYPE_MERCHANT = 1;
+  BEACON_TYPE_PATHWAY = 2;
+  BEACON_TYPE_CONNECTION = 3;
+  BEACON_TYPE_TURNSTILE = 4;
+}
+
+message BLEConnectionRequest {
+  string device_id = 1;
+  string address = 2;
+  uint32 timeout_ms = 3;
+}
+
+message BLEConnectionResponse {
+  bool connected = 1;
+  string message = 2;
+  string device_id = 3;
+  google.protobuf.Timestamp connected_at = 4;
+}
+
+// ============================================================================
+// Access Control Messages
+// ============================================================================
+
+message UnlockRequest {
+  string beacon_id = 1;
+  string device_id = 2;
+  bytes private_key = 3;  // Robot's private key for signing
+  uint32 timeout_ms = 4;
+}
+
+message UnlockResponse {
+  bool success = 1;
+  string message = 2;
+  UnlockResult result = 3;
+  uint32 unlock_duration_ms = 4;
+  google.protobuf.Timestamp unlocked_at = 5;
+}
+
+enum UnlockResult {
+  UNLOCK_RESULT_UNSPECIFIED = 0;
+  UNLOCK_RESULT_SUCCESS = 1;
+  UNLOCK_RESULT_DENIED = 2;
+  UNLOCK_RESULT_TIMEOUT = 3;
+  UNLOCK_RESULT_ERROR = 4;
+  UNLOCK_RESULT_NOT_SUPPORTED = 5;
+}
+
+// ============================================================================
+// Status Messages
+// ============================================================================
+
+message StatusRequest {
+  // Empty request
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  NetworkMetrics metrics = 2;
+  TowerConnectionStatus tower = 3;
+  ServerConnectionStatus server = 4;
+  BLEStatus ble = 5;
+}
+
+message NetworkMetrics {
+  uint64 messages_sent = 1;
+  uint64 messages_received = 2;
+  uint64 bytes_sent = 3;
+  uint64 bytes_received = 4;
+  uint64 errors = 5;
+  uint64 retries = 6;
+  float average_latency_ms = 7;
+  uint64 uptime_seconds = 8;
+}
+
+message TowerConnectionStatus {
+  bool connected = 1;
+  string tower_url = 2;
+  string session_id = 3;
+  google.protobuf.Timestamp connected_at = 4;
+  google.protobuf.Timestamp last_heartbeat = 5;
+  uint32 reconnect_count = 6;
+}
+
+message ServerConnectionStatus {
+  bool reachable = 1;
+  string server_url = 2;
+  google.protobuf.Timestamp last_request = 3;
+  uint32 cached_entities = 4;
+  uint32 cache_hit_rate_percent = 5;
+}
+
+message BLEStatus {
+  bool adapter_available = 1;
+  bool scanning = 2;
+  uint32 connected_beacons = 3;
+  uint32 discovered_beacons = 4;
+  repeated BLEConnection active_connections = 5;
+}
+
+message BLEConnection {
+  string device_id = 1;
+  string address = 2;
+  int32 rssi = 3;
+  google.protobuf.Timestamp connected_at = 4;
+}

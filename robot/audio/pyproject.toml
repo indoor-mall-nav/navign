@@ -8,8 +8,11 @@ dependencies = [
   "pytest>=9.0.1",
   "torch>=2.9.0",
   "transformers>=4.40.0",
+  "eclipse-zenoh>=1.6.2",
+  "protobuf>=5.29.3",
+  "grpcio-tools>=1.70.1",
 ]
-description = "Add your description here"
+description = "Audio component for wake word detection and TTS"
 name = "audio"
 readme = "README.md"
 requires-python = ">=3.12"
