@@ -1,17 +1,9 @@
 [project]
 dependencies = [
-  "edge-tts>=7.2.3",
-  "mediapipe>=0.10.14",
   "openai>=2.6.1",
-  "opencv-contrib-python>=4.12.0.88",
-  "pillow>=12.0.0",
-  "pupil-apriltags>=1.0.4.post11",
-  "pvporcupine>=3.0.5",
-  "pyaudio>=0.2.14",
-  "pygame>=2.6.1",
+  "requests>=2.31.0",
   "torch>=2.9.0",
-  "torchvision>=0.24.0",
-  "ultralytics>=8.3.221",
+  "transformers>=4.40.0",
 ]
 description = "Add your description here"
 name = "gesture-space"
