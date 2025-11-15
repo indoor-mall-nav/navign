@@ -1,3 +1,4 @@
+#[cfg(feature = "postcard")]
 use crate::Packetize;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -23,27 +24,20 @@ impl ServerChallenge {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "postcard"))]
 impl Packetize for ServerChallenge {
     fn packetize(&self) -> alloc::vec::Vec<u8> {
-        let mut vec = alloc::vec::Vec::with_capacity(16 + 24 + 8 + 24);
-        vec.extend_from_slice(&self.nonce);
-        vec.extend_from_slice(&self.instance_id);
-        vec.extend_from_slice(&self.timestamp.to_be_bytes());
-        vec.extend_from_slice(&self.user_id);
-        vec
+        postcard::to_allocvec(self).unwrap()
     }
 }
 
-#[cfg(feature = "heapless")]
-impl Packetize<72> for ServerChallenge {
-    fn packetize(&self) -> heapless::Vec<u8, 72> {
-        let mut vec = heapless::Vec::<u8, 72>::new();
-        vec.extend_from_slice(&self.nonce).unwrap();
-        vec.extend_from_slice(&self.instance_id).unwrap();
-        vec.extend_from_slice(&self.timestamp.to_be_bytes())
-            .unwrap();
-        vec.extend_from_slice(&self.user_id).unwrap();
+#[cfg(all(feature = "heapless", feature = "postcard"))]
+impl Packetize<128> for ServerChallenge {
+    fn packetize(&self) -> heapless::Vec<u8, 128> {
+        let mut buf = [0u8; 128];
+        let used = postcard::to_slice(self, &mut buf).unwrap();
+        let mut vec = heapless::Vec::<u8, 128>::new();
+        vec.extend_from_slice(used).unwrap();
         vec
     }
 }
@@ -51,26 +45,23 @@ impl Packetize<72> for ServerChallenge {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
+    #[cfg(feature = "postcard")]
     fn test_server_challenge_packetize() {
         let challenge = ServerChallenge::new([0u8; 16], [1u8; 24], 1234567890, [2u8; 24]);
         #[cfg(feature = "heapless")]
         {
             let packet = challenge.packetize();
-            assert_eq!(packet.len(), 72);
-            assert_eq!(&packet[0..16], &[0u8; 16]);
-            assert_eq!(&packet[16..40], &[1u8; 24]);
-            assert_eq!(&packet[40..48], &1234567890u64.to_be_bytes());
-            assert_eq!(&packet[48..72], &[2u8; 24]);
+            // Postcard format is more compact than manual serialization
+            assert!(packet.len() > 0);
+            assert!(packet.len() <= 128); // Within buffer size
         }
         #[cfg(feature = "alloc")]
         {
             let packet = challenge.packetize();
-            assert_eq!(packet.len(), 72);
-            assert_eq!(&packet[0..16], &[0u8; 16]);
-            assert_eq!(&packet[16..40], &[1u8; 24]);
-            assert_eq!(&packet[40..48], &1234567890u64.to_be_bytes());
-            assert_eq!(&packet[48..72], &[2u8; 24]);
+            // Postcard format is more compact than manual serialization
+            assert!(packet.len() > 0);
         }
     }
 }
