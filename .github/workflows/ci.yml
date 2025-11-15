@@ -52,6 +52,7 @@ jobs:
           run_tower=false
           run_orchestrator=false
           run_plot=false
+          run_proc_macros=false
           run_repo=false
 
           # Check which components are affected
@@ -89,6 +90,9 @@ jobs:
               admin/plot/*)
                 run_plot=true
                 ;;
+              proc_macros/*)
+                run_proc_macros=true
+                ;;
               justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
                 run_repo=true
                 ;;
@@ -107,6 +111,7 @@ jobs:
           [ "$run_tower" = true ] && components+=("tower")
           [ "$run_orchestrator" = true ] && components+=("orchestrator")
           [ "$run_plot" = true ] && components+=("plot")
+          [ "$run_proc_macros" = true ] && components+=("proc-macros")
 
           if [ ${#components[@]} -eq 0 ]; then
             echo "No CI tasks needed for these changes."
