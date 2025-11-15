@@ -188,7 +188,7 @@ async fn main() -> Result<()> {
             hardware_revision,
             area_id,
         } => {
-            let (metadata_path, public_key) =
+            let (_metadata_path, public_key) =
                 fuse_private_key(output_dir, key_name, *force, port.as_deref(), *dry_run)?;
 
             // Register beacon if requested
@@ -201,8 +201,8 @@ async fn main() -> Result<()> {
 
                 // Generate device_id if not provided
                 let device_id = device_id.clone().unwrap_or_else(|| {
-                    let mut rng = rand::thread_rng();
-                    let bytes: [u8; 12] = rand::Rng::r#gen(&mut rng);
+                    let mut rng = rand::rng();
+                    let bytes: [u8; 12] = rand::Rng::random(&mut rng);
                     hex::encode(bytes)
                 });
 
@@ -244,8 +244,8 @@ async fn main() -> Result<()> {
 
             // Use device_id from args or generate new one
             let device_id = device_id.clone().unwrap_or_else(|| {
-                let mut rng = rand::thread_rng();
-                let bytes: [u8; 12] = rand::Rng::r#gen(&mut rng);
+                let mut rng = rand::rng();
+                let bytes: [u8; 12] = rand::Rng::random(&mut rng);
                 hex::encode(bytes)
             });
 
@@ -353,7 +353,8 @@ fn fuse_private_key(
 
     if dry_run {
         println!("\n🏃 Dry run mode - skipping eFuse programming");
-        return Ok(());
+        let public_key_hex = hex::encode(public_key.to_encoded_point(false).as_bytes());
+        return Ok((metadata_path, public_key_hex));
     }
 
     // Step 5: Get chip info (optional)
@@ -376,7 +377,7 @@ fn fuse_private_key(
 
         if !input.trim().to_lowercase().starts_with('y') {
             println!("❌ Operation cancelled");
-            return Ok(());
+            bail!("eFuse programming cancelled by user");
         }
     }
 
@@ -505,6 +506,7 @@ fn fuse_key_to_efuse(key_file: &Path, port: Option<&str>) -> Result<()> {
 }
 
 /// Register beacon with orchestrator via gRPC
+#[allow(clippy::too_many_arguments)]
 async fn register_beacon_with_orchestrator(
     orchestrator_addr: &str,
     entity_id: &str,

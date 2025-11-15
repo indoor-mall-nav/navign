@@ -55,6 +55,8 @@ jobs:
           run_maintenance=false
           run_proc_macros=false
           run_repo=false
+          run_robot_lower=false
+          run_robot_upper=false
 
           # Check which components are affected
           while IFS= read -r file; do
@@ -98,6 +100,12 @@ jobs:
               proc_macros/*)
                 run_proc_macros=true
                 ;;
+              robot/lower/*)
+                run_robot_lower=true
+                ;;
+              robot/upper/*)
+                run_robot_upper=true
+                ;;
               justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
                 run_repo=true
                 ;;
@@ -118,6 +126,8 @@ jobs:
           [ "$run_plot" = true ] && components+=("plot")
           [ "$run_maintenance" = true ] && components+=("maintenance")
           [ "$run_proc_macros" = true ] && components+=("proc-macros")
+          [ "$run_robot_lower" = true ] && components+=("robot-lower")
+          [ "$run_robot_upper" = true ] && components+=("robot-upper")
 
           if [ ${#components[@]} -eq 0 ]; then
             echo "No CI tasks needed for these changes."
@@ -244,6 +254,23 @@ jobs:
           version: "latest"
           enable-cache: true
           cache-dependency-glob: "admin/plot/uv.lock"
+
+      # Robot Lower-specific setup
+      - name: Install Rust stable (robot-lower)
+        if: matrix.component == 'robot-lower'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install ARM target (robot-lower)
+        if: matrix.component == 'robot-lower'
+        run: rustup target add thumbv7em-none-eabi
+
+      - name: Cache Rust dependencies (robot-lower)
+        if: matrix.component == 'robot-lower'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: robot/lower -> target
+
+      # Robot Upper-specific setup (placeholder - not yet implemented)
 
       # Run the specific CI task
       - name: Run CI for ${{ matrix.component }}
