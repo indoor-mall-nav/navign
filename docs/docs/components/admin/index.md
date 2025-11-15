@@ -4,6 +4,11 @@ The `admin` component is the administrative interface *within an entity* (mall, 
 
 This document explains how the robot management system integrates with other Navign components.
 
+## Getting Started
+
+- **[Quick Start Guide](./quickstart.md)** - Get the system running locally in 5 minutes for development
+- **[Deployment Guide](./deployment.md)** - Production deployment with systemd, monitoring, and security
+
 ## Shared Schema Integration
 
 The robot system uses the `shared` crate's schemas for consistency across the platform:
