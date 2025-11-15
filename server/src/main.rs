@@ -30,12 +30,10 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use bson::doc;
-use log::{LevelFilter, info};
 use mongodb::Database;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
-use simple_logger::SimpleLogger;
 use std::sync::Arc;
 #[cfg(not(debug_assertions))]
 use std::time::Duration;
@@ -46,6 +44,7 @@ use tower_governor::key_extractor::GlobalKeyExtractor;
 #[cfg(not(debug_assertions))]
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
+use tracing::info;
 
 async fn root() -> impl IntoResponse {
     (StatusCode::OK, "Hello, World!")
@@ -81,12 +80,13 @@ async fn cert(State(state): State<AppState>) -> Result<String, ServerError> {
 
 #[tokio::main]
 async fn main() -> ServerResult<()> {
-    // Initialize logger
-    log::set_boxed_logger(Box::new(SimpleLogger::new()))
-        .map(|()| log::set_max_level(LevelFilter::Info))
-        .map_err(|e| {
-            ServerError::ConfigurationError(format!("Failed to initialize logger: {}", e))
-        })?;
+    // Initialize tracing subscriber
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
 
     info!("Starting Navign Server v{}", env!("CARGO_PKG_VERSION"));
 
@@ -188,7 +188,7 @@ async fn main() -> ServerResult<()> {
                 if std::env::var("POSTGRES_RUN_MIGRATIONS").unwrap_or_default() == "true" {
                     info!("Running PostgreSQL migrations...");
                     if let Err(e) = pool.run_migrations().await {
-                        log::warn!("Failed to run PostgreSQL migrations: {}", e);
+                        tracing::warn!("Failed to run PostgreSQL migrations: {}", e);
                     } else {
                         info!("PostgreSQL migrations completed successfully");
                     }
@@ -197,7 +197,7 @@ async fn main() -> ServerResult<()> {
                 Some(Arc::new(pool))
             }
             Err(e) => {
-                log::warn!(
+                tracing::warn!(
                     "Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.",
                     e
                 );

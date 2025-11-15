@@ -5,10 +5,10 @@ use axum::response::IntoResponse;
 use bson::doc;
 use bumpalo::Bump;
 use futures::TryStreamExt;
-use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::task::spawn_blocking;
+use tracing::{info, trace};
 
 pub mod implementations;
 pub mod instructions;
@@ -167,7 +167,7 @@ pub async fn find_route(
             .await
             .unwrap_or_default(),
         Err(e) => {
-            log::error!("Failed to find areas: {}", e);
+            tracing::error!("Failed to find areas: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({"error": "Failed to query areas"})),
@@ -186,7 +186,7 @@ pub async fn find_route(
             .await
             .unwrap_or_default(),
         Err(e) => {
-            log::error!("Failed to find connections: {}", e);
+            tracing::error!("Failed to find connections: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({"error": "Failed to query connections"})),
@@ -205,7 +205,7 @@ pub async fn find_route(
             .await
             .unwrap_or_default(),
         Err(e) => {
-            log::error!("Failed to find merchants: {}", e);
+            tracing::error!("Failed to find merchants: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({"error": "Failed to query merchants"})),

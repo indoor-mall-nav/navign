@@ -5,7 +5,6 @@ use axum::response::IntoResponse;
 use bson::doc;
 use bson::oid::ObjectId;
 use futures::stream::TryStreamExt;
-use log::info;
 use mongodb::{Collection, Database};
 use navign_shared::{Firmware, FirmwareDevice, FirmwareQuery, FirmwareUploadResponse};
 use serde_json::json;
@@ -13,6 +12,7 @@ use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use tracing::info;
 
 /// Get the firmware storage directory
 fn get_firmware_storage_dir() -> PathBuf {
@@ -152,7 +152,7 @@ pub async fn get_firmwares_handler(
     match list_firmwares(&state.db, query).await {
         Ok(firmwares) => (StatusCode::OK, axum::Json(json!(firmwares))),
         Err(e) => {
-            log::error!("Failed to list firmwares: {}", e);
+            tracing::error!("Failed to list firmwares: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({
@@ -180,7 +180,7 @@ pub async fn get_firmware_by_id_handler(
             })),
         ),
         Err(e) => {
-            log::error!("Failed to get firmware: {}", e);
+            tracing::error!("Failed to get firmware: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({
@@ -221,7 +221,7 @@ pub async fn get_latest_firmware_handler(
             })),
         ),
         Err(e) => {
-            log::error!("Failed to get latest firmware: {}", e);
+            tracing::error!("Failed to get latest firmware: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({
@@ -324,7 +324,7 @@ pub async fn upload_firmware_handler(
     let storage_dir = match ensure_storage_dir().await {
         Ok(dir) => dir,
         Err(e) => {
-            log::error!("Failed to create storage directory: {}", e);
+            tracing::error!("Failed to create storage directory: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to create storage directory" })),
@@ -345,7 +345,7 @@ pub async fn upload_firmware_handler(
     match fs::File::create(&file_path).await {
         Ok(mut file) => {
             if let Err(e) = file.write_all(&file_data).await {
-                log::error!("Failed to write firmware file: {}", e);
+                tracing::error!("Failed to write firmware file: {}", e);
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(json!({ "error": "Failed to write firmware file" })),
@@ -353,7 +353,7 @@ pub async fn upload_firmware_handler(
             }
         }
         Err(e) => {
-            log::error!("Failed to create firmware file: {}", e);
+            tracing::error!("Failed to create firmware file: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to create firmware file" })),
@@ -365,7 +365,7 @@ pub async fn upload_firmware_handler(
     let checksum = match calculate_checksum(&file_path).await {
         Ok(sum) => sum,
         Err(e) => {
-            log::error!("Failed to calculate checksum: {}", e);
+            tracing::error!("Failed to calculate checksum: {}", e);
             // Clean up file
             let _ = fs::remove_file(&file_path).await;
             return (
@@ -396,7 +396,7 @@ pub async fn upload_firmware_handler(
     let insert_result = match collection.insert_one(&firmware).await {
         Ok(result) => result,
         Err(e) => {
-            log::error!("Failed to insert firmware into database: {}", e);
+            tracing::error!("Failed to insert firmware into database: {}", e);
             // Clean up file
             let _ = fs::remove_file(&file_path).await;
             return (
@@ -409,7 +409,7 @@ pub async fn upload_firmware_handler(
     let firmware_id = match insert_result.inserted_id.as_object_id() {
         Some(id) => id,
         None => {
-            log::error!("Failed to get inserted firmware ID");
+            tracing::error!("Failed to get inserted firmware ID");
             let _ = fs::remove_file(&file_path).await;
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -420,7 +420,7 @@ pub async fn upload_firmware_handler(
 
     // Mark as latest if requested
     if mark_latest && let Err(e) = mark_as_latest(&state.db, firmware_id, device.clone()).await {
-        log::error!("Failed to mark firmware as latest: {}", e);
+        tracing::error!("Failed to mark firmware as latest: {}", e);
         // Don't fail the upload, just log the error
     }
 
@@ -452,7 +452,7 @@ pub async fn download_firmware_handler(
             ));
         }
         Err(e) => {
-            log::error!("Failed to get firmware: {}", e);
+            tracing::error!("Failed to get firmware: {}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to get firmware" })),
@@ -492,7 +492,7 @@ pub async fn download_firmware_handler(
             Ok((headers, contents))
         }
         Err(e) => {
-            log::error!("Failed to read firmware file: {}", e);
+            tracing::error!("Failed to read firmware file: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to read firmware file" })),
@@ -517,7 +517,7 @@ pub async fn delete_firmware_handler(
             );
         }
         Err(e) => {
-            log::error!("Failed to get firmware: {}", e);
+            tracing::error!("Failed to get firmware: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to get firmware" })),
@@ -529,7 +529,7 @@ pub async fn delete_firmware_handler(
     let storage_dir = get_firmware_storage_dir();
     let file_path = storage_dir.join(&firmware.file_path);
     if let Err(e) = fs::remove_file(&file_path).await {
-        log::warn!("Failed to delete firmware file: {}", e);
+        tracing::warn!("Failed to delete firmware file: {}", e);
         // Continue with database deletion even if file deletion fails
     }
 
@@ -548,7 +548,7 @@ pub async fn delete_firmware_handler(
     match collection.delete_one(doc! { "_id": oid }).await {
         Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "deleted" }))),
         Err(e) => {
-            log::error!("Failed to delete firmware from database: {}", e);
+            tracing::error!("Failed to delete firmware from database: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(json!({ "error": "Failed to delete firmware" })),

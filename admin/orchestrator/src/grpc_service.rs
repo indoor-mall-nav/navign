@@ -50,7 +50,7 @@ impl OrchestratorService for OrchestratorServiceImpl {
         request: Request<RobotDistributionRequest>,
     ) -> Result<Response<Self::GetTaskAssignmentStream>, Status> {
         let entity_id = request.into_inner().entity_id;
-        log::info!("Task assignment stream requested for entity: {}", entity_id);
+        tracing::info!("Task assignment stream requested for entity: {}", entity_id);
 
         let (tx, rx) = tokio::sync::mpsc::channel(100);
 
@@ -62,7 +62,7 @@ impl OrchestratorService for OrchestratorServiceImpl {
         // Convert mpsc::Receiver to ReceiverStream for tonic
         let stream = ReceiverStream::new(rx);
 
-        log::info!("Task assignment stream active for entity: {}", entity_id);
+        tracing::info!("Task assignment stream active for entity: {}", entity_id);
 
         Ok(Response::new(stream))
     }

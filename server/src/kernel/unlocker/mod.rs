@@ -7,9 +7,9 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use base64::Engine;
-use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tracing::info;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct UnlockData {

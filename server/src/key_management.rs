@@ -1,10 +1,10 @@
 use crate::error::{Result, ServerError};
-use log::info;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
 use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tracing::info;
 
 const DEFAULT_KEY_FILE: &str = "private_key.pem";
 

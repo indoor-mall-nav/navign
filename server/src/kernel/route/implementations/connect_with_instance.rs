@@ -1,8 +1,8 @@
 use crate::kernel::route::{Area, Atom, ConnectivityLimits, Entity};
 use crate::kernel::route::{ConnectivityGraph, Contiguous};
 use bumpalo::Bump;
-use log::trace;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use tracing::trace;
 
 /// Simplified priority node for pathfinding: lower distance = higher priority
 #[derive(Debug, Clone)]

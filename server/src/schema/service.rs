@@ -8,12 +8,12 @@ use axum::response::IntoResponse;
 use bson::doc;
 use bson::oid::ObjectId;
 use futures::stream::TryStreamExt;
-use log::info;
 use mongodb::{Collection, Database};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::str::FromStr;
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQueryParams<'a> {
@@ -363,7 +363,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         match service.create(db).await {
             Ok(id) => (StatusCode::CREATED, axum::Json(json!({ "id": id }))),
             Err(e) => {
-                log::error!("Failed to create service: {}", e);
+                tracing::error!("Failed to create service: {}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(json!({
@@ -383,7 +383,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
         match service.update(db).await {
             Ok(_) => (StatusCode::OK, axum::Json(json!({ "status": "updated" }))),
             Err(e) => {
-                log::error!("Failed to update service: {}", e);
+                tracing::error!("Failed to update service: {}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(json!({
@@ -406,7 +406,7 @@ pub trait Service: Serialize + DeserializeOwned + Send + Sync + Clone {
                 axum::Json(json!({ "status": "deleted" })),
             ),
             Err(e) => {
-                log::error!("Failed to delete service: {}", e);
+                tracing::error!("Failed to delete service: {}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(json!({
@@ -497,7 +497,7 @@ pub trait OneInArea: Service {
             Ok(items) => match serde_json::to_string(&items) {
                 Ok(json) => (StatusCode::OK, json),
                 Err(e) => {
-                    log::error!("Failed to serialize response: {}", e);
+                    tracing::error!("Failed to serialize response: {}", e);
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         r#"{"error": "Failed to serialize response"}"#.to_string(),

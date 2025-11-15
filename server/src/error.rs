@@ -245,9 +245,9 @@ impl IntoResponse for ServerError {
 
         // Log errors with appropriate level
         if self.should_log_details() {
-            log::error!("Server error: {:?}", self);
+            tracing::error!("Server error: {:?}", self);
         } else {
-            log::warn!("Request error: {}", self);
+            tracing::warn!("Request error: {}", self);
         }
 
         let body = Json(json!({
