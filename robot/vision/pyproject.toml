@@ -1,0 +1,13 @@
+[project]
+dependencies = [
+  "eclipse-zenoh>=1.6.2",
+  "opencv-python>=4.12.0.88",
+  "pupil-apriltags>=1.0.4.post11",
+  "pytest>=9.0.1",
+  "ultralytics>=8.3.228",
+]
+description = "Add your description here"
+name = "vision"
+readme = "README.md"
+requires-python = "==3.12.7"
+version = "0.1.0"

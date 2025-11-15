@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 
 # Lists to store calibration points
-object_points = []  # 3D points in real-world space
-image_points = []  # 2D points in image plane
+object_points: list[MatLike] = []  # 3D points in real-world space
+image_points: list[MatLike] = []  # 2D points in image plane
 
 # Set chessboard dimensions
 chessboard_size = (9, 6)  # 9x7 internal corners
@@ -58,8 +59,17 @@ while True:
 
 # After the loop, perform calibration if points were collected
 if object_points and image_points:
+    camera_matrix = cv2.initCameraMatrix2D(
+        object_points, image_points, gray.shape[::-1], 0
+    )
+    dist_coeffs = np.zeros((5, 1))  # Initial distortion coefficients
     ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
-        object_points, image_points, gray.shape[::-1], None, None
+        object_points,
+        image_points,
+        gray.shape[::-1],
+        camera_matrix,
+        dist_coeffs,
+        flags=cv2.CALIB_USE_INTRINSIC_GUESS,
     )
     np.savez(
         "assets/interstices.npz",

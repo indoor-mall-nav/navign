@@ -9,7 +9,7 @@ dependencies = [
 description = "Computer vision core for plotting indoor maps for indoor navigation"
 name = "navign-plot"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 version = "0.1.0"
 
   [project.optional-dependencies]

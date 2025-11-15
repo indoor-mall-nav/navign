@@ -9,11 +9,9 @@ init:
   cargo check
 
 fmt:
-  cd animations && uvx ruff format
-  cd gesture_space && uvx ruff format
   pnpm run --filter mobile format
   cargo fmt
-  cd robot/lower && cargo fmt
+  uvx ruff format
   gofmt -w .
 
 lint:
@@ -21,6 +19,9 @@ lint:
   just check
   cd animations && uvx ruff check
   cd gesture_space && uvx ruff check
+  cd robot/vision && uvx ruff check
+  cd robot/audio && uvx ruff check
+  cd admin/plot && uvx ruff check
   cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features -- -D warnings
   cd shared && cargo clippy --features alloc --no-default-features -- -D warnings
@@ -36,23 +37,10 @@ lint:
   cd mobile/src-tauri && cargo clippy -- -D warnings
   cd server && cargo clippy --all-targets --all-features -- -D warnings
   cd admin/maintenance && cargo clippy --all-targets --all-features -- -D warnings
-  cd robot/lower && cargo clippy -- -D warnings
-
-test:
-  # Note: firmware mock tests disabled - need lib.rs extraction (see firmware/TESTING.md)
-  # just test-firmware-mocks
-  cd shared && cargo test
-  cd shared && cargo test --features heapless --no-default-features
-  cd shared && cargo test --features alloc --no-default-features
-  cd shared && cargo test --features crypto,heapless,serde --no-default-features
-  cd shared && cargo test --features base64,crypto,alloc,serde --no-default-features
-  cd shared && cargo test --features mongodb,serde,crypto
-  cd shared && cargo test --features sql,serde,crypto
-  cd shared && cargo test --features postgres,sql,serde,crypto
-  cd proc_macros && cargo test
-  cd mobile && just test
-  cd server && cargo test
-  cd admin/maintenance && cargo test
+  cd robot/firmware && cargo clippy -- -D warnings
+  cd robot/scheduler && cargo clippy -- -D warnings
+  cd robot/network && cargo clippy -- -D warnings
+  cd robot/serial && cargo clippy -- -D warnings
 
 # Run firmware mock-based tests (fast, runs on host)
 test-firmware-mocks:
@@ -76,15 +64,10 @@ test-firmware-all:
 
 fmt-check:
   taplo format --diff
-  cd animations && uvx ruff check --diff
-  cd gesture_space && uvx ruff check --diff
-  cd shared && cargo fmt -- --check
-  cd proc_macros && cargo fmt -- --check
-  cd firmware && cargo fmt -- --check
-  cd mobile && just fmt-check
-  cd server && cargo fmt -- --check
-  cd admin/maintenance && cargo fmt -- --check
-  cd robot/lower && cargo fmt -- --check
+  cargo fmt -- --check
+  pnpm run --filter mobile format --check
+  uvx ruff format --check
+  test -z "$(gofmt -l .)" || (echo "Go code is not formatted:" && gofmt -d . && exit 1)
 
 clean:
   cargo clean
@@ -176,15 +159,49 @@ ci-maintenance:
   cd admin/maintenance && cargo clippy -- -D warnings
   cd admin/maintenance && cargo test
 
-ci-robot-lower:
-  cd robot/lower && cargo check --release
-  cd robot/lower && cargo fmt -- --check
-  cd robot/lower && cargo clippy --release -- -D warnings
+ci-robot-firmware:
+  cd robot/firmware && cargo check --release
+  cd robot/firmware && cargo fmt -- --check
+  cd robot/firmware && cargo clippy --release -- -D warnings
   # Note: Embedded testing requires hardware or QEMU setup
-  echo "No tests for robot/lower yet (requires hardware/QEMU)"
+  echo "No tests for robot/firmware yet (requires hardware/QEMU)"
 
-ci-robot-upper:
-  echo "robot/upper not yet implemented"
+ci-robot-audio:
+  cd robot/audio && uv sync
+  cd robot/audio && uvx ruff check
+  cd robot/audio && uvx ruff format --check
+  # cd robot/audio && uv run pytest
+
+ci-robot-vision:
+  cd robot/vision && uv sync
+  cd robot/vision && uvx ruff check
+  cd robot/vision && uvx ruff format --check
+  # cd robot/vision && uv run pytest
+
+ci-robot-scheduler:
+  cd robot/scheduler && cargo check
+  cd robot/scheduler && cargo fmt -- --check
+  cd robot/scheduler && cargo clippy -- -D warnings
+  cd robot/scheduler && cargo test
+
+ci-robot-network:
+  cd robot/network && cargo check
+  cd robot/network && cargo fmt -- --check
+  cd robot/network && cargo clippy -- -D warnings
+  cd robot/network && cargo test
+
+ci-robot-serial:
+  cd robot/serial && cargo check
+  cd robot/serial && cargo fmt -- --check
+  cd robot/serial && cargo clippy -- -D warnings
+  cd robot/serial && cargo test
+
+ci-robot-lower: ci-robot-firmware
+ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial
+
+ci-robot: ci-robot-lower ci-robot-upper
+
+ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
 
 roll:
   just fmt-check
