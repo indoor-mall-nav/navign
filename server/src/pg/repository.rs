@@ -419,8 +419,8 @@ impl Repository<PgArea> for AreaRepository {
     async fn create(&self, area: &PgArea) -> Result<String> {
         let result = sqlx::query_as::<_, (i32,)>(
             r#"
-            INSERT INTO areas (entity_id, name, description, floor, beacon_code, polygon, centroid_x, centroid_y)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO areas (entity_id, name, description, floor, beacon_code, polygon, centroid)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id
             "#,
         )
@@ -430,8 +430,7 @@ impl Repository<PgArea> for AreaRepository {
         .bind(&area.floor)
         .bind(&area.beacon_code)
         .bind(&area.polygon)
-        .bind(area.centroid_x)
-        .bind(area.centroid_y)
+        .bind(&area.centroid)
         .fetch_one(self.pool.inner())
         .await
         .map_err(|e| ServerError::DatabaseQuery(format!("Failed to create area: {}", e)))?;
@@ -444,8 +443,8 @@ impl Repository<PgArea> for AreaRepository {
             r#"
             UPDATE areas
             SET entity_id = $1, name = $2, description = $3, floor = $4,
-                beacon_code = $5, polygon = $6, centroid_x = $7, centroid_y = $8
-            WHERE id = $9
+                beacon_code = $5, polygon = $6, centroid = $7
+            WHERE id = $8
             "#,
         )
         .bind(area.entity_id)
@@ -454,8 +453,7 @@ impl Repository<PgArea> for AreaRepository {
         .bind(&area.floor)
         .bind(&area.beacon_code)
         .bind(&area.polygon)
-        .bind(area.centroid_x)
-        .bind(area.centroid_y)
+        .bind(&area.centroid)
         .bind(area.id)
         .execute(self.pool.inner())
         .await

@@ -63,3 +63,7 @@ pub use connection::mobile::ConnectionMobile;
 pub use entity::mobile::EntityMobile;
 #[cfg(feature = "sql")]
 pub use merchant::mobile::MerchantMobile;
+
+// PostgreSQL-specific exports
+#[cfg(feature = "postgres")]
+pub mod postgres;
