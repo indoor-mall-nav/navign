@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use bson::doc;
-use log::{error, info};
+use tracing::{error, info};
 use mongodb::Collection;
 use navign_shared::{AuthResponse, LoginRequest, RegisterRequest};
 use serde_json::json;

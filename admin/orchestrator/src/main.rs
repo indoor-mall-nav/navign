@@ -51,14 +51,20 @@ async fn create_example_task(registry: &RobotRegistry, entity_id: &str) {
     };
 
     match registry.assign_task(task).await {
-        Ok(robot_id) => log::info!("Task assigned to robot: {}", robot_id),
-        Err(e) => log::warn!("Failed to assign task: {}", e),
+        Ok(robot_id) => tracing::info!("Task assigned to robot: {}", robot_id),
+        Err(e) => tracing::warn!("Failed to assign task: {}", e),
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+    // Initialize tracing subscriber
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+        )
+        .init();
 
     // Get configuration from environment variables
     let grpc_addr = std::env::var("ORCHESTRATOR_GRPC_ADDR")
@@ -71,10 +77,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server_url =
         std::env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
 
-    log::info!("Orchestrator starting...");
-    log::info!("  gRPC server: {}", grpc_addr);
-    log::info!("  HTTP server: {}", http_addr);
-    log::info!("  Backend server: {}", server_url);
+    tracing::info!("Orchestrator starting...");
+    tracing::info!("  gRPC server: {}", grpc_addr);
+    tracing::info!("  HTTP server: {}", http_addr);
+    tracing::info!("  Backend server: {}", server_url);
 
     // Create orchestrator service for gRPC
     let orchestrator = OrchestratorServiceImpl::new();
@@ -109,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create gRPC server future
     let grpc_server = async move {
-        log::info!("gRPC server listening on {}", grpc_addr);
+        tracing::info!("gRPC server listening on {}", grpc_addr);
         Server::builder()
             .add_service(OrchestratorServiceServer::new(orchestrator))
             .serve(grpc_addr)
@@ -119,23 +125,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create HTTP server future
     let http_server = async move {
         let listener = tokio::net::TcpListener::bind(&http_addr).await.unwrap();
-        log::info!("HTTP server listening on {}", http_addr);
+        tracing::info!("HTTP server listening on {}", http_addr);
         axum::serve(listener, app).await
     };
 
     // Run both servers concurrently
-    log::info!("Both servers started successfully");
+    tracing::info!("Both servers started successfully");
 
     tokio::select! {
         result = grpc_server => {
             if let Err(e) = result {
-                log::error!("gRPC server error: {}", e);
+                tracing::error!("gRPC server error: {}", e);
                 return Err(e.into());
             }
         }
         result = http_server => {
             if let Err(e) = result {
-                log::error!("HTTP server error: {}", e);
+                tracing::error!("HTTP server error: {}", e);
                 return Err(e.into());
             }
         }

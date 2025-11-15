@@ -3,7 +3,7 @@ use crate::kernel::route::instructions::{AsInstructions, InstructionType};
 use crate::kernel::route::types::Atom;
 use crate::kernel::route::types::{ConnectivityLimits, Entity};
 use bumpalo::Bump;
-use log::trace;
+use tracing::trace;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 

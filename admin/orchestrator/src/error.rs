@@ -247,9 +247,9 @@ impl IntoResponse for OrchestratorError {
 
         // Log errors with appropriate level
         if self.should_log_details() {
-            log::error!("Orchestrator error: {:?}", self);
+            tracing::error!("Orchestrator error: {:?}", self);
         } else {
-            log::warn!("Request error: {}", self);
+            tracing::warn!("Request error: {}", self);
         }
 
         let body = Json(json!({

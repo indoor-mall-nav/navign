@@ -31,12 +31,12 @@ impl FirmwareClient {
             device.as_str()
         );
 
-        log::info!("Fetching latest firmware from: {}", url);
+        tracing::info!("Fetching latest firmware from: {}", url);
 
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
-            log::error!("Failed to fetch firmware: {}", response.status());
+            tracing::error!("Failed to fetch firmware: {}", response.status());
             return Err(OrchestratorError::FirmwareServerUnavailable);
         }
 
@@ -47,12 +47,12 @@ impl FirmwareClient {
     pub async fn download_firmware(&self, firmware_id: &str) -> Result<Vec<u8>> {
         let url = format!("{}/api/firmwares/{}/download", self.server_url, firmware_id);
 
-        log::info!("Downloading firmware from: {}", url);
+        tracing::info!("Downloading firmware from: {}", url);
 
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
-            log::error!("Failed to download firmware: {}", response.status());
+            tracing::error!("Failed to download firmware: {}", response.status());
             return Err(OrchestratorError::FirmwareDownloadFailed(format!(
                 "HTTP {}",
                 response.status()
@@ -86,12 +86,12 @@ impl FirmwareClient {
             url.push_str(&params.join("&"));
         }
 
-        log::info!("Listing firmwares from: {}", url);
+        tracing::info!("Listing firmwares from: {}", url);
 
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
-            log::error!("Failed to list firmwares: {}", response.status());
+            tracing::error!("Failed to list firmwares: {}", response.status());
             return Err(OrchestratorError::FirmwareServerUnavailable);
         }
 
@@ -102,12 +102,12 @@ impl FirmwareClient {
     pub async fn get_firmware_by_id(&self, id: &str) -> Result<Firmware> {
         let url = format!("{}/api/firmwares/{}", self.server_url, id);
 
-        log::info!("Fetching firmware metadata from: {}", url);
+        tracing::info!("Fetching firmware metadata from: {}", url);
 
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
-            log::error!("Failed to fetch firmware metadata: {}", response.status());
+            tracing::error!("Failed to fetch firmware metadata: {}", response.status());
             return Err(if response.status() == reqwest::StatusCode::NOT_FOUND {
                 OrchestratorError::FirmwareNotFound(id.to_string())
             } else {
@@ -130,7 +130,7 @@ pub async fn get_latest_firmware_handler(
     State(state): State<AppState>,
     Path(device_str): Path<String>,
 ) -> Result<impl IntoResponse> {
-    log::info!("GET /firmwares/latest/{}", device_str);
+    tracing::info!("GET /firmwares/latest/{}", device_str);
 
     let device = device_str.parse::<FirmwareDevice>().map_err(|_| {
         OrchestratorError::ValidationError(format!("Invalid device type: {}", device_str))
@@ -146,7 +146,7 @@ pub async fn list_firmwares_handler(
     State(state): State<AppState>,
     Query(query): Query<FirmwareQuery>,
 ) -> Result<impl IntoResponse> {
-    log::info!("GET /firmwares - query: {:?}", query);
+    tracing::info!("GET /firmwares - query: {:?}", query);
 
     let firmwares = state.firmware_client.list_firmwares(query).await?;
     Ok((StatusCode::OK, Json(serde_json::json!(firmwares))))
@@ -158,7 +158,7 @@ pub async fn get_firmware_by_id_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    log::info!("GET /firmwares/{}", id);
+    tracing::info!("GET /firmwares/{}", id);
 
     let firmware = state.firmware_client.get_firmware_by_id(&id).await?;
     Ok((StatusCode::OK, Json(serde_json::json!(firmware))))
@@ -170,7 +170,7 @@ pub async fn download_firmware_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    log::info!("GET /firmwares/{}/download", id);
+    tracing::info!("GET /firmwares/{}/download", id);
 
     // First get firmware metadata
     let firmware = state.firmware_client.get_firmware_by_id(&id).await?;
@@ -216,7 +216,7 @@ pub struct OrchestratorInfo {
 /// Handler: GET /health
 /// Returns orchestrator health status
 pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
-    log::debug!("GET /health");
+    tracing::debug!("GET /health");
 
     let info = OrchestratorInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),

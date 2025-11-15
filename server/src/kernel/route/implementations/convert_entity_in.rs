@@ -1,7 +1,7 @@
 use crate::kernel::route::{Area, CloneIn, Connection, Entity, FromIn, Merchant};
 use bson::oid::ObjectId;
 use bumpalo::Bump;
-use log::trace;
+use tracing::trace;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;

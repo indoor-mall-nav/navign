@@ -54,7 +54,7 @@ pub async fn create_pool(database_url: &str) -> Result<PgPool> {
             ))
         })?;
 
-    log::info!("Successfully connected to PostgreSQL");
+    tracing::info!("Successfully connected to PostgreSQL");
 
     Ok(PgPool::new(pool))
 }

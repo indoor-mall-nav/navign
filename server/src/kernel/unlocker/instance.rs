@@ -13,7 +13,7 @@ use base64::Engine;
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::Duration;
-use log::info;
+use tracing::info;
 use mongodb::Database;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey};

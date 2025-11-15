@@ -1,6 +1,6 @@
 use crate::error::{Result, ServerError};
-use log::info;
 use p256::ecdsa::SigningKey;
+use tracing::info;
 use p256::elliptic_curve::rand_core::OsRng;
 use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
 use std::fs;

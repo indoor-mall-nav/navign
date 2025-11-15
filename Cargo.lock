@@ -1411,15 +1411,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
-name = "colored"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
-dependencies = [
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "combine"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5349,7 +5340,6 @@ version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 dependencies = [
- "serde",
  "value-bag",
 ]
 
@@ -5981,8 +5971,6 @@ name = "navign-orchestrator"
 version = "0.1.0"
 dependencies = [
  "axum 0.8.6",
- "env_logger",
- "log",
  "navign-shared",
  "prost",
  "reqwest",
@@ -5994,6 +5982,8 @@ dependencies = [
  "tonic 0.12.3",
  "tonic-build",
  "tower-http",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -6029,7 +6019,6 @@ dependencies = [
  "hmac",
  "jsonwebtoken",
  "lazy_static",
- "log",
  "metrics",
  "metrics-exporter-prometheus",
  "mongodb",
@@ -6044,7 +6033,6 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2",
- "simple_logger",
  "sqlx",
  "state",
  "tempfile",
@@ -6054,6 +6042,8 @@ dependencies = [
  "tower 0.5.2",
  "tower-http",
  "tower_governor",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
  "wkt",
 ]
@@ -8751,18 +8741,6 @@ dependencies = [
  "num-traits",
  "thiserror 2.0.17",
  "time",
-]
-
-[[package]]
-name = "simple_logger"
-version = "5.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291bee647ce7310b0ea721bfd7e0525517b4468eb7c7e15eb8bd774343179702"
-dependencies = [
- "colored",
- "log",
- "time",
- "windows-sys 0.61.2",
 ]
 
 [[package]]

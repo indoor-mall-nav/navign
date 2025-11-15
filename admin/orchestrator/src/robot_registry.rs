@@ -24,7 +24,7 @@ impl RobotRegistry {
 
     pub async fn register_robot(&self, robot: RobotInfo) {
         let mut robots = self.robots.write().await;
-        log::info!(
+        tracing::info!(
             "Robot registered: {} (Entity: {}, Battery: {:.1}%, State: {:?})",
             robot.id,
             robot.entity_id,
@@ -38,7 +38,7 @@ impl RobotRegistry {
         let mut robots = self.robots.write().await;
         if let Some(existing) = robots.get_mut(&robot.id) {
             *existing = robot.clone();
-            log::debug!("Robot status updated: {} - {:?}", robot.id, robot.state);
+            tracing::debug!("Robot status updated: {} - {:?}", robot.id, robot.state);
         } else {
             // If robot doesn't exist, register it
             drop(robots);
@@ -96,7 +96,7 @@ impl RobotRegistry {
         let robot_id = robot.id.clone();
         let entity_id = robot.entity_id.clone();
 
-        log::info!(
+        tracing::info!(
             "Assigning task {} to robot {} (Battery: {:.1}%)",
             task.id,
             robot_id,

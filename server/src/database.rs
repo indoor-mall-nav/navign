@@ -1,9 +1,9 @@
 use crate::error::{Result, ServerError};
-use log::info;
 use mongodb::options::{ClientOptions, ServerAddress};
 use mongodb::{Client, Database};
 use std::str::FromStr;
 use std::time::Duration;
+use tracing::info;
 
 pub(crate) async fn connect_with_db() -> Result<Database> {
     // Load .env file if it exists, but don't fail if it's missing
@@ -13,7 +13,7 @@ pub(crate) async fn connect_with_db() -> Result<Database> {
             info!("No .env file found, using system environment variables");
         }
         Err(e) => {
-            log::warn!(
+            tracing::warn!(
                 "Error loading .env file: {}. Continuing with system environment variables.",
                 e
             );
