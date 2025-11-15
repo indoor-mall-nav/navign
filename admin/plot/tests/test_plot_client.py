@@ -23,8 +23,8 @@ sys.modules["proto"] = MagicMock()
 sys.modules["proto.task_pb2"] = MagicMock()
 sys.modules["proto.task_pb2_grpc"] = MagicMock()
 
-# Import after mocking
-from plot_client import PlotExtractionClient
+# Import after mocking  # noqa: E402
+from plot_client import PlotExtractionClient  # noqa: E402
 
 
 # Create mock protobuf classes for testing
