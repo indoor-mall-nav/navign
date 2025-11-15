@@ -36,13 +36,13 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use simple_logger::SimpleLogger;
-#[cfg(debug_assertions)]
-use tower_governor::key_extractor::GlobalKeyExtractor;
 use std::sync::Arc;
 #[cfg(not(debug_assertions))]
 use std::time::Duration;
 use tower_governor::GovernorLayer;
 use tower_governor::governor::GovernorConfigBuilder;
+#[cfg(debug_assertions)]
+use tower_governor::key_extractor::GlobalKeyExtractor;
 #[cfg(not(debug_assertions))]
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
