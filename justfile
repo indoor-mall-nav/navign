@@ -13,6 +13,7 @@ fmt:
   cd gesture_space && uvx ruff format
   pnpm run --filter mobile format
   cargo fmt
+  cd robot/lower && cargo fmt
   gofmt -w .
 
 lint:
@@ -35,6 +36,7 @@ lint:
   cd mobile/src-tauri && cargo clippy -- -D warnings
   cd server && cargo clippy --all-targets --all-features -- -D warnings
   cd maintenance-tool && cargo clippy --all-targets --all-features -- -D warnings
+  cd robot/lower && cargo clippy -- -D warnings
 
 test:
   # Note: firmware mock tests disabled - need lib.rs extraction (see firmware/TESTING.md)
@@ -82,6 +84,7 @@ fmt-check:
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check
   cd maintenance-tool && cargo fmt -- --check
+  cd robot/lower && cargo fmt -- --check
 
 clean:
   cargo clean
@@ -166,6 +169,16 @@ ci-plot:
   cd admin/plot && uvx ruff format --check
   cd admin/plot && uvx ruff check
   cd admin/plot && uv run pytest
+
+ci-robot-lower:
+  cd robot/lower && cargo check --release
+  cd robot/lower && cargo fmt -- --check
+  cd robot/lower && cargo clippy --release -- -D warnings
+  # Note: Embedded testing requires hardware or QEMU setup
+  echo "No tests for robot/lower yet (requires hardware/QEMU)"
+
+ci-robot-upper:
+  echo "robot/upper not yet implemented"
 
 roll:
   just fmt-check
