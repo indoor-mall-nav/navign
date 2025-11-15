@@ -5,6 +5,9 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "geo")]
+use geo::{BoundingRect, Contains, Coord, LineString, Point, Polygon as GeoPolygon};
+
 /// A rectangular block with bounds
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -86,42 +89,99 @@ impl Polygon {
 
     /// Get bounding box of the polygon
     pub fn bounds(&self) -> (f64, f64, f64, f64) {
-        let mut min_x = f64::MAX;
-        let mut max_x = f64::MIN;
-        let mut min_y = f64::MAX;
-        let mut max_y = f64::MIN;
+        #[cfg(feature = "geo")]
+        {
+            if self.vertices.is_empty() {
+                return (0.0, 0.0, 0.0, 0.0);
+            }
 
-        for (x, y) in &self.vertices {
-            min_x = min_x.min(*x);
-            max_x = max_x.max(*x);
-            min_y = min_y.min(*y);
-            max_y = max_y.max(*y);
+            let coords: Vec<Coord<f64>> =
+                self.vertices.iter().map(|&(x, y)| Coord { x, y }).collect();
+
+            let mut closed_coords = coords;
+            if let Some(&first) = self.vertices.first() {
+                closed_coords.push(Coord {
+                    x: first.0,
+                    y: first.1,
+                });
+            }
+
+            let line_string = LineString::new(closed_coords);
+            let geo_polygon = GeoPolygon::new(line_string, vec![]);
+
+            if let Some(rect) = geo_polygon.bounding_rect() {
+                return (rect.min().x, rect.min().y, rect.max().x, rect.max().y);
+            }
+
+            (0.0, 0.0, 0.0, 0.0)
         }
 
-        (min_x, min_y, max_x, max_y)
+        #[cfg(not(feature = "geo"))]
+        {
+            let mut min_x = f64::MAX;
+            let mut max_x = f64::MIN;
+            let mut min_y = f64::MAX;
+            let mut max_y = f64::MIN;
+
+            for (x, y) in &self.vertices {
+                min_x = min_x.min(*x);
+                max_x = max_x.max(*x);
+                min_y = min_y.min(*y);
+                max_y = max_y.max(*y);
+            }
+
+            (min_x, min_y, max_x, max_y)
+        }
     }
 
-    /// Check if a point is inside the polygon using ray casting
+    /// Check if a point is inside the polygon
+    /// Uses geo crate's optimized Contains trait when available
     pub fn contains(&self, x: f64, y: f64) -> bool {
-        let n = self.vertices.len();
-        if n < 3 {
+        if self.vertices.len() < 3 {
             return false;
         }
 
-        let mut inside = false;
-        let mut j = n - 1;
+        #[cfg(feature = "geo")]
+        {
+            // Convert to geo::Polygon for efficient point-in-polygon check
+            let coords: Vec<Coord<f64>> =
+                self.vertices.iter().map(|&(x, y)| Coord { x, y }).collect();
 
-        for i in 0..n {
-            let (xi, yi) = self.vertices[i];
-            let (xj, yj) = self.vertices[j];
-
-            if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
-                inside = !inside;
+            // Create a closed LineString (geo requires first == last point)
+            let mut closed_coords = coords;
+            if let Some(&first) = self.vertices.first() {
+                closed_coords.push(Coord {
+                    x: first.0,
+                    y: first.1,
+                });
             }
-            j = i;
+
+            let line_string = LineString::new(closed_coords);
+            let geo_polygon = GeoPolygon::new(line_string, vec![]);
+            let point = Point::new(x, y);
+
+            geo_polygon.contains(&point)
         }
 
-        inside
+        #[cfg(not(feature = "geo"))]
+        {
+            // Fallback to manual ray-casting algorithm
+            let n = self.vertices.len();
+            let mut inside = false;
+            let mut j = n - 1;
+
+            for i in 0..n {
+                let (xi, yi) = self.vertices[i];
+                let (xj, yj) = self.vertices[j];
+
+                if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+                    inside = !inside;
+                }
+                j = i;
+            }
+
+            inside
+        }
     }
 
     /// Convert polygon to a grid of bounded blocks for pathfinding

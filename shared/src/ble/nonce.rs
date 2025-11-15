@@ -60,6 +60,16 @@ impl Packetize<32> for Nonce {
         vec.extend_from_slice(used).unwrap();
         vec
     }
+
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 32>, crate::PacketizeError> {
+        let mut buf = [0u8; 32];
+        let used = postcard::to_slice(self, &mut buf)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+        let mut vec = heapless::Vec::<u8, 32>::new();
+        vec.extend_from_slice(used)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+        Ok(vec)
+    }
 }
 
 #[cfg(feature = "postcard")]

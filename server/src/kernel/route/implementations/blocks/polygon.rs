@@ -1,5 +1,6 @@
 use crate::kernel::route::implementations::{BoundedBlock, BoundedBlockArray};
 use crate::kernel::route::types::CloneIn;
+use geo::{Contains, Coord, LineString, Point as GeoPoint, Polygon as GeoPolygon};
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -46,19 +47,29 @@ impl<'a> Polygon<'a> {
         }
     }
 
-    /// Ray-casting algorithm to determine if a point is inside the polygon
+    /// Use geo crate's Contains trait for point-in-polygon check
     pub fn is_point_inside(&self, x: f64, y: f64) -> bool {
-        let mut inside = false;
-        let n = self.points.len();
-        let mut j = n - 1;
-        for i in 0..n {
-            let (xi, yi) = self.points[i];
-            let (xj, yj) = self.points[j];
-            if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
-                inside = !inside;
-            }
-            j = i;
+        if self.points.is_empty() {
+            return false;
         }
+
+        // Convert to geo::Polygon for efficient point-in-polygon check
+        let coords: Vec<Coord<f64>> = self.points.iter().map(|&(x, y)| Coord { x, y }).collect();
+
+        // Create a closed LineString (geo requires first == last point)
+        let mut closed_coords = coords;
+        if let Some(&first) = self.points.first() {
+            closed_coords.push(Coord {
+                x: first.0,
+                y: first.1,
+            });
+        }
+
+        let line_string = LineString::new(closed_coords);
+        let geo_polygon = GeoPolygon::new(line_string, vec![]);
+        let point = GeoPoint::new(x, y);
+
+        let inside = geo_polygon.contains(&point);
         if self.bounding { inside } else { !inside }
     }
 
