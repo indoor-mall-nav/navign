@@ -48,7 +48,6 @@ jobs:
     
       # Repo-specific setup
       - name: Setup Taplo
-        if: matrix.component == 'repo'
         uses: uncenter/setup-taplo@v1.0.8
 
       - name: Format Code
