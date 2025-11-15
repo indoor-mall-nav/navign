@@ -1946,6 +1946,15 @@ dependencies = [
 
 [[package]]
 name = "defmt"
+version = "0.3.100"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0963443817029b2024136fc4dd07a5107eb8f977eaf18fcd1fdeb11306b64ad"
+dependencies = [
+ "defmt 1.0.1",
+]
+
+[[package]]
+name = "defmt"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "548d977b6da32fa1d1fda2876453da1e7df63ad0304c8b3dae4dbe7b96f39b78"
@@ -2803,7 +2812,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdd8a541e17aa485d82df547f03c77b89f78cb110f59dea67cc90733d67e3678"
 dependencies = [
  "cfg-if",
- "defmt",
+ "defmt 1.0.1",
  "document-features",
  "esp-config",
  "esp-metadata-generated 0.2.0",
@@ -2942,7 +2951,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dcd18cbb132db6eb30d7c96bd831c3b6916894210f4528321f69fa66178b331"
 dependencies = [
- "defmt",
+ "defmt 1.0.1",
  "document-features",
  "esp-metadata-generated 0.2.0",
  "esp-sync",
@@ -5752,7 +5761,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "critical-section",
- "defmt",
+ "defmt 0.3.100",
  "embedded-dht-rs",
  "embedded-io 0.7.1",
  "embedded-nal",
@@ -5916,7 +5925,7 @@ dependencies = [
  "bitflags 2.10.0",
  "bson",
  "chrono",
- "defmt",
+ "defmt 1.0.1",
  "geo",
  "geo-types",
  "heapless 0.9.1",

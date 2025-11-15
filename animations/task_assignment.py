@@ -32,9 +32,9 @@ from manim import (
 class RobotTaskAssignment(Scene):
     def construct(self):
         # Title
-        title = Tex(
-            "Robot Task Assignment Pipeline", font_size=32, color=TEAL
-        ).to_edge(UP)
+        title = Tex("Robot Task Assignment Pipeline", font_size=32, color=TEAL).to_edge(
+            UP
+        )
         self.play(Write(title), run_time=0.5)
 
         # Part 1: System Architecture (2.5s)
@@ -104,10 +104,10 @@ class RobotTaskAssignment(Scene):
         ]
 
         for i, pos in enumerate(robot_positions):
-            robot_circle = Circle(
-                radius=0.3, color=ORANGE, fill_opacity=0.3
-            ).move_to(pos)
-            robot_label = Tex(f"R{i+1}", font_size=10, color=WHITE).move_to(
+            robot_circle = Circle(radius=0.3, color=ORANGE, fill_opacity=0.3).move_to(
+                pos
+            )
+            robot_label = Tex(f"R{i + 1}", font_size=10, color=WHITE).move_to(
                 robot_circle.get_center()
             )
             robots.append((robot_circle, robot_label))

@@ -1,58 +1,54 @@
 [project]
-name = "navign-plot"
-version = "0.1.0"
+dependencies = [
+  "grpcio>=1.76.0",
+  "grpcio-tools>=1.76.0",
+  "protobuf>=5.29.0",
+  "opencv-python>=4.12.0.88",
+  "numpy>=2.0.0",
+]
 description = "Computer vision core for plotting indoor maps for indoor navigation"
+name = "navign-plot"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "grpcio>=1.76.0",
-    "grpcio-tools>=1.76.0",
-    "protobuf>=5.29.0",
-    "opencv-python>=4.12.0.88",
-    "numpy>=2.0.0",
-]
+version = "0.1.0"
 
-[project.optional-dependencies]
-dev = [
+  [project.optional-dependencies]
+  dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
     "pytest-asyncio>=0.24.0",
-]
+  ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 addopts = [
-    "-v",
-    "--strict-markers",
-    "--tb=short",
-    "--cov=.",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+  "-v",
+  "--strict-markers",
+  "--tb=short",
+  "--cov=.",
+  "--cov-report=term-missing",
+  "--cov-report=html",
 ]
 markers = [
-    "unit: Unit tests",
-    "integration: Integration tests",
-    "slow: Slow running tests",
+  "unit: Unit tests",
+  "integration: Integration tests",
+  "slow: Slow running tests",
 ]
+python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
 
 [tool.coverage.run]
+omit   = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
 source = ["."]
-omit = [
-    "tests/*",
-    "proto/*_pb2.py",
-    "*/__pycache__/*",
-]
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
 ]
