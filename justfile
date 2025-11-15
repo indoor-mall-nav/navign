@@ -159,6 +159,19 @@ ci-maintenance:
   cd admin/maintenance && cargo clippy -- -D warnings
   cd admin/maintenance && cargo test
 
+ci-gesture-space:
+  cd gesture_space && uv sync
+  cd gesture_space && uvx ruff format --check
+  cd gesture_space && uvx ruff check
+  cd gesture_space && uv run pytest tests/
+
+ci-ts-schema:
+  cd ts-schema && cargo check
+  cd ts-schema && cargo fmt -- --check
+  cd ts-schema && cargo clippy -- -D warnings
+  # Note: ts-schema is a NAPI module (cdylib), tested via Node.js, not Rust unit tests
+  echo "ts-schema is a NAPI module - use Node.js tests for integration testing"
+
 ci-robot-firmware:
   cd robot/firmware && cargo check --release
   cd robot/firmware && cargo fmt -- --check
