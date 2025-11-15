@@ -34,7 +34,16 @@ const sortBy = ref<'name' | 'distance' | 'recent'>('name')
 const availableTypes = computed(() => {
   const types = new Set<string>()
   props.merchants.forEach((m) => {
-    if (m.merchant_type) types.add(m.merchant_type)
+    const type = m.type
+    if (typeof type === 'string') {
+      types.add(type)
+    } else if ('food' in type) {
+      types.add('food')
+    } else if ('electronics' in type) {
+      types.add('electronics')
+    } else if ('clothing' in type) {
+      types.add('clothing')
+    }
   })
   return Array.from(types)
 })
@@ -66,7 +75,19 @@ const filteredMerchants = computed(() => {
 
   // Type filter
   if (selectedTypes.value.length > 0) {
-    results = results.filter((m) => m.merchant_type && selectedTypes.value.includes(m.merchant_type))
+    results = results.filter((m) => {
+      const type = m.type
+      if (typeof type === 'string') {
+        return selectedTypes.value.includes(type)
+      } else if ('food' in type) {
+        return selectedTypes.value.includes('food')
+      } else if ('electronics' in type) {
+        return selectedTypes.value.includes('electronics')
+      } else if ('clothing' in type) {
+        return selectedTypes.value.includes('clothing')
+      }
+      return false
+    })
   }
 
   // Tags filter
@@ -125,6 +146,20 @@ function handleNavigate(merchant: Merchant) {
     history.addSearchEntry(searchQuery.value, filteredMerchants.value.length)
   }
   emit('navigate', merchant)
+}
+
+function getMerchantTypeLabel(merchant: Merchant): string {
+  const type = merchant.type
+  if (typeof type === 'string') {
+    return type
+  } else if ('food' in type) {
+    return 'Food'
+  } else if ('electronics' in type) {
+    return 'Electronics'
+  } else if ('clothing' in type) {
+    return 'Clothing'
+  }
+  return 'Other'
 }
 </script>
 
@@ -263,10 +298,10 @@ function handleNavigate(merchant: Merchant) {
         <CardContent>
           <div class="space-y-3">
             <!-- Type Badge -->
-            <div v-if="merchant.merchant_type">
+            <div>
               <Badge variant="secondary">
                 <Icon icon="mdi:store" class="w-3 h-3 mr-1" />
-                {{ merchant.merchant_type }}
+                {{ getMerchantTypeLabel(merchant) }}
               </Badge>
             </div>
 

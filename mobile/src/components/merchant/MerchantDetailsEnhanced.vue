@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Merchant } from '@/schema'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -25,6 +24,20 @@ const activeTab = ref<'details' | 'contact' | 'hours'>('details')
 const isFavorited = computed(() => {
   const merchantId = props.merchant._id?.$oid || ''
   return favorites.isMerchantFavorited(merchantId)
+})
+
+const merchantTypeLabel = computed(() => {
+  const type = props.merchant.type
+  if (typeof type === 'string') {
+    return type
+  } else if ('food' in type) {
+    return 'Food'
+  } else if ('electronics' in type) {
+    return 'Electronics'
+  } else if ('clothing' in type) {
+    return 'Clothing'
+  }
+  return 'Other'
 })
 
 function toggleFavorite() {
@@ -54,12 +67,36 @@ function sendEmail() {
   }
 }
 
-function openSocialMedia(platform: 'wechat' | 'weibo' | 'douyin') {
-  const handle = props.merchant.social_media?.[platform]
-  if (handle) {
-    // TODO: Implement platform-specific URL schemes
-    console.log(`Open ${platform}: ${handle}`)
+function openSocialMedia(platform: string) {
+  const socialEntry = props.merchant.social_media?.find(s => s.platform === platform)
+  if (socialEntry) {
+    if (socialEntry.url) {
+      window.open(socialEntry.url, '_blank')
+    } else {
+      // TODO: Implement platform-specific URL schemes
+      console.log(`Open ${platform}: ${socialEntry.handle}`)
+    }
   }
+}
+
+function getSocialIcon(platform: string): string {
+  const iconMap: Record<string, string> = {
+    wechat: 'mdi:wechat',
+    weibo: 'simple-icons:sinaweibo',
+    tiktok: 'simple-icons:tiktok',
+    facebook: 'mdi:facebook',
+    instagram: 'mdi:instagram',
+    twitter: 'mdi:twitter',
+    linkedin: 'mdi:linkedin',
+    youtube: 'mdi:youtube',
+    reddit: 'mdi:reddit',
+    discord: 'mdi:discord',
+    whatsapp: 'mdi:whatsapp',
+    telegram: 'mdi:telegram',
+    rednote: 'mdi:note',
+    bluesky: 'mdi:cloud',
+  }
+  return iconMap[platform] || 'mdi:link'
 }
 </script>
 
@@ -71,9 +108,9 @@ function openSocialMedia(platform: 'wechat' | 'weibo' | 'douyin') {
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ merchant.name }}</h2>
         <p class="text-gray-600 dark:text-gray-400 mt-1">{{ merchant.description }}</p>
         <div class="flex flex-wrap gap-2 mt-3">
-          <Badge v-if="merchant.merchant_type" variant="secondary">
+          <Badge variant="secondary">
             <Icon icon="mdi:store" class="w-3 h-3 mr-1" />
-            {{ merchant.merchant_type }}
+            {{ merchantTypeLabel }}
           </Badge>
           <Badge v-if="merchant.style" variant="outline">
             <Icon icon="mdi:format-paint" class="w-3 h-3 mr-1" />
@@ -163,8 +200,7 @@ function openSocialMedia(platform: 'wechat' | 'weibo' | 'douyin') {
           <div>
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Location</p>
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              Floor {{ merchant.location?.floor || 'Ground' }}
-              {{ merchant.location?.x && merchant.location?.y ? `• (${merchant.location.x.toFixed(1)}, ${merchant.location.y.toFixed(1)})` : '' }}
+              Coordinates: ({{ merchant.location[0].toFixed(1) }}, {{ merchant.location[1].toFixed(1) }})
             </p>
           </div>
         </div>
@@ -231,35 +267,18 @@ function openSocialMedia(platform: 'wechat' | 'weibo' | 'douyin') {
         <Separator v-if="merchant.website" />
 
         <!-- Social Media -->
-        <div v-if="merchant.social_media" class="space-y-3">
+        <div v-if="merchant.social_media && merchant.social_media.length > 0" class="space-y-3">
           <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Social Media</p>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <Button
-              v-if="merchant.social_media.wechat"
+              v-for="social in merchant.social_media"
+              :key="social.platform"
               size="sm"
               variant="outline"
-              @click="openSocialMedia('wechat')"
+              @click="openSocialMedia(social.platform)"
             >
-              <Icon icon="mdi:wechat" class="w-4 h-4 mr-1" />
-              WeChat
-            </Button>
-            <Button
-              v-if="merchant.social_media.weibo"
-              size="sm"
-              variant="outline"
-              @click="openSocialMedia('weibo')"
-            >
-              <Icon icon="simple-icons:sinaweibo" class="w-4 h-4 mr-1" />
-              Weibo
-            </Button>
-            <Button
-              v-if="merchant.social_media.douyin"
-              size="sm"
-              variant="outline"
-              @click="openSocialMedia('douyin')"
-            >
-              <Icon icon="simple-icons:tiktok" class="w-4 h-4 mr-1" />
-              Douyin
+              <Icon :icon="getSocialIcon(social.platform)" class="w-4 h-4 mr-1" />
+              {{ social.platform }}
             </Button>
           </div>
         </div>

@@ -8,12 +8,17 @@ const offlineQueue = ref<
   Array<{ action: string; data: any; timestamp: number }>
 >([])
 
+// Forward declaration for processOfflineQueue
+let processOfflineQueueFn: (() => Promise<void>) | null = null
+
 // Network status listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline.value = true
     info('Network: back online')
-    processOfflineQueue()
+    if (processOfflineQueueFn) {
+      processOfflineQueueFn()
+    }
   })
 
   window.addEventListener('offline', () => {
@@ -65,6 +70,9 @@ export function useOffline() {
     }
   }
 
+  // Set the function reference for the event listener
+  processOfflineQueueFn = processOfflineQueue
+
   /**
    * Clear the offline queue
    */
@@ -75,7 +83,7 @@ export function useOffline() {
   /**
    * Check if a specific resource is cached for offline use
    */
-  async function isCached(key: string): Promise<boolean> {
+  async function isCached(_key: string): Promise<boolean> {
     try {
       // TODO: Implement cache check using Tauri SQLite
       return false
@@ -87,7 +95,7 @@ export function useOffline() {
   /**
    * Cache a resource for offline use
    */
-  async function cacheResource(key: string, data: any): Promise<void> {
+  async function cacheResource(key: string, _data: any): Promise<void> {
     try {
       // TODO: Implement cache storage using Tauri SQLite
       info(`Cache: stored ${key}`)
@@ -99,12 +107,12 @@ export function useOffline() {
   /**
    * Retrieve a cached resource
    */
-  async function getCachedResource(key: string): Promise<any> {
+  async function getCachedResource(_key: string): Promise<any> {
     try {
       // TODO: Implement cache retrieval using Tauri SQLite
       return null
     } catch (error) {
-      warn(`Cache: failed to retrieve ${key}: ${error}`)
+      warn(`Cache: failed to retrieve ${_key}: ${error}`)
       return null
     }
   }

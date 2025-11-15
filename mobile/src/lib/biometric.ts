@@ -71,13 +71,13 @@ export async function authenticateWithBiometric(
  */
 export async function storeBiometricCredentials(
   key: string,
-  value: string,
+  _value: string,
 ): Promise<boolean> {
   try {
     // TODO: Implement using tauri-plugin-stronghold
     // const { Stronghold } = await import('@tauri-apps/plugin-stronghold')
     // const stronghold = await Stronghold.load('credentials.hold')
-    // await stronghold.insert(key, value)
+    // await stronghold.insert(key, _value)
 
     await info(`Biometric: stored credentials for ${key}`)
     return true
@@ -107,7 +107,7 @@ export async function retrieveBiometricCredentials(
     // TODO: Implement using tauri-plugin-stronghold
     // const { Stronghold } = await import('@tauri-apps/plugin-stronghold')
     // const stronghold = await Stronghold.load('credentials.hold')
-    // const value = await stronghold.get(key)
+    // const _value = await stronghold.get(key)
 
     await info(`Biometric: retrieved credentials for ${key}`)
     return null // Placeholder

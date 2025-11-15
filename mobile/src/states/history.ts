@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import type { Merchant, Area } from '@/schema'
 
 export interface NavigationHistoryEntry {
   id: string

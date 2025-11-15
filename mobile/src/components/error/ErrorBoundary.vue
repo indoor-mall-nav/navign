@@ -9,13 +9,13 @@ interface Props {
   fallbackComponent?: any
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const hasError = ref(false)
 const errorMessage = ref('')
 const errorStack = ref('')
 
-onErrorCaptured((err, instance, info) => {
+onErrorCaptured((err, _instance, info) => {
   hasError.value = true
   errorMessage.value = err.message
   errorStack.value = err.stack || ''
