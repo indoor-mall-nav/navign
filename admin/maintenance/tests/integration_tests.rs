@@ -1,9 +1,9 @@
 // Integration tests for admin/maintenance
 // Tests core cryptographic and file handling functionality
 
-use p256::{PublicKey, SecretKey};
 use p256::elliptic_curve::rand_core::OsRng;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tempfile::TempDir;
@@ -59,10 +59,8 @@ fn test_key_generation_and_storage() {
     let read_key = fs::read(&private_key_path).expect("Should read key");
     assert_eq!(read_key.len(), 32, "Private key should be 32 bytes");
 
-    let read_metadata =
-        fs::read_to_string(&metadata_path).expect("Should read metadata");
-    let parsed: KeyMetadata =
-        serde_json::from_str(&read_metadata).expect("Should parse metadata");
+    let read_metadata = fs::read_to_string(&metadata_path).expect("Should read metadata");
+    let parsed: KeyMetadata = serde_json::from_str(&read_metadata).expect("Should parse metadata");
     assert_eq!(parsed.key_name, "test_key");
     assert_eq!(parsed.fused, false);
 }
@@ -168,8 +166,7 @@ fn test_metadata_fused_flag() {
 
     // Read and verify fused
     let updated_content = fs::read_to_string(&metadata_path).expect("Should read");
-    let updated_parsed: KeyMetadata =
-        serde_json::from_str(&updated_content).expect("Should parse");
+    let updated_parsed: KeyMetadata = serde_json::from_str(&updated_content).expect("Should parse");
     assert_eq!(updated_parsed.fused, true);
     assert_eq!(
         updated_parsed.chip_info,
@@ -190,8 +187,8 @@ fn test_timestamp_format() {
     );
 
     // Verify can be parsed
-    let parsed = chrono::DateTime::parse_from_rfc3339(&timestamp)
-        .expect("Should parse RFC 3339 timestamp");
+    let parsed =
+        chrono::DateTime::parse_from_rfc3339(&timestamp).expect("Should parse RFC 3339 timestamp");
     assert!(parsed.timestamp() > 0);
 }
 

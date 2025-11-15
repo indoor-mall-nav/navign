@@ -68,8 +68,7 @@ fn test_orchestrator_info_serialization() {
     let json = serde_json::to_string(&info).expect("Should serialize");
 
     // Deserialize
-    let deserialized: OrchestratorInfo =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: OrchestratorInfo = serde_json::from_str(&json).expect("Should deserialize");
 
     assert_eq!(info.version, deserialized.version);
     assert_eq!(info.server_url, deserialized.server_url);
