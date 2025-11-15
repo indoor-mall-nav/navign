@@ -1,5 +1,6 @@
 init:
   pnpm install
+  pnpm run generate:schemas
   cd src-tauri && cargo build
 
 fmt:
@@ -28,5 +29,6 @@ clean:
   cd src-tauri && cargo clean
 
 check:
+  pnpm run generate:schemas
   pnpm run check
   cd src-tauri && cargo check

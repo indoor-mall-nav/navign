@@ -25,6 +25,11 @@ mod tests {
 
   #[test]
   fn generate_all_types() {
+    // Set output directory to mobile/src/schema/generated/
+    unsafe {
+      std::env::set_var("TS_RS_EXPORT_DIR", "../mobile/src/schema");
+    }
+
     // Generate all types - export_to paths are set in the type definitions
     Entity::export_all().expect("Failed to export Entity");
     EntityType::export_all().expect("Failed to export EntityType");
@@ -50,6 +55,6 @@ mod tests {
     Connection::export_all().expect("Failed to export Connection");
     ConnectionType::export_all().expect("Failed to export ConnectionType");
 
-    println!("✓ Generated all TypeScript definitions");
+    println!("✓ Generated all TypeScript definitions in mobile/src/schema/generated/");
   }
 }

@@ -1430,6 +1430,33 @@ Planned workflow:
 
 ## Common Development Tasks
 
+### Generating TypeScript Schemas
+
+TypeScript type definitions are **automatically generated** from Rust schemas during the build process.
+
+**Automatic Generation:**
+- Runs automatically during `just init`
+- Runs before `mobile` checks and builds
+- Generated files located in `mobile/src/schema/generated/`
+
+**Manual Generation:**
+```bash
+# Generate schemas manually
+just generate-schemas
+
+# Or from mobile directory
+cd mobile && pnpm run generate:schemas
+```
+
+**After modifying `shared/src/schema/`:**
+The schemas will be automatically regenerated on next build. No manual intervention required.
+
+**Location:**
+- Source: `shared/src/schema/*.rs` (Rust types with `#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]`)
+- Generator: `ts-schema/src/lib.rs` (test suite that exports types)
+- Output: `mobile/src/schema/generated/*.ts`
+- Re-exports: `mobile/src/schema/index.d.ts`
+
 ### Adding a New API Endpoint
 
 1. **Define schema** in `server/src/schema/`:
@@ -1464,16 +1491,17 @@ impl Service for MyEntity {
 ```rust
 // shared/src/schema/my_entity.rs
 #[cfg(feature = "alloc")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct MyEntity {
     // Same structure, but with feature gates
 }
 ```
 
-5. **Run code generation** for TypeScript:
+5. **TypeScript types will be automatically generated** on next build.
+   To generate immediately:
 ```bash
-cd ts-schema
-cargo build --release
-# Generates mobile/src/schema/my_entity.d.ts
+just generate-schemas
 ```
 
 ### Adding a BLE Message Type
@@ -1835,19 +1863,7 @@ ci-beacon:
 
 Embedded testing requires hardware or simulators (not yet configured).
 
-### 11. TypeScript Schema Generation is Manual
-
-After modifying `shared/src/schema/`, you must regenerate TypeScript types:
-
-```bash
-cd ts-schema
-cargo build --release
-# Outputs to mobile/src/schema/*.d.ts
-```
-
-This is **not** automated in the build process.
-
-### 12. pnpm Catalog Versioning
+### 11. pnpm Catalog Versioning
 
 The monorepo uses pnpm's catalog feature for version management:
 
@@ -1867,7 +1883,7 @@ When adding dependencies to mobile or other pnpm packages, use `catalog:`:
 }
 ```
 
-### 13. Tauri Plugin Versions
+### 12. Tauri Plugin Versions
 
 Tauri plugins use `~2` version range:
 
@@ -1877,7 +1893,7 @@ Tauri plugins use `~2` version range:
 
 This means ">=2.0.0 <2.1.0". Always check compatibility with Tauri version.
 
-### 14. Robot/Lower Component Now Implemented ✅
+### 13. Robot/Lower Component Now Implemented ✅
 
 The robot lower layer (`robot/lower/`) is **now implemented** with STM32F407ZG + Embassy async runtime.
 
@@ -1886,12 +1902,12 @@ The robot lower layer (`robot/lower/`) is **now implemented** with STM32F407ZG +
 - ❌ `robot/upper` - Not yet implemented (Raspberry Pi planned)
 - ✅ Admin orchestration layer (Orchestrator + Tower) exists and functional
 
-### 15. Gesturespace is Standalone
+### 14. Gesturespace is Standalone
 
 The `gesture_space` Python component is **not integrated** with the main system yet.
 It's a proof-of-concept for future AR/gesture features.
 
-### 16. MongoDB + PostgreSQL Dual-Database Support ✅
+### 15. MongoDB + PostgreSQL Dual-Database Support ✅
 
 The PostgreSQL migration layer is **now implemented** (previously planned).
 

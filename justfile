@@ -4,6 +4,7 @@ init:
   cargo clean
   corepack enable
   pnpm install
+  pnpm run --filter mobile generate:schemas
   cd animations && uv sync
   cd gesture_space && uv sync
   cargo check
@@ -74,6 +75,10 @@ clean:
   rm -rf mobile/.turbo
   rm -rf mobile/dist
 
+generate-schemas:
+  cd ts-schema && cargo test --quiet
+  echo "✓ TypeScript schemas generated"
+
 clean-deps:
   just clean
   uvx cache clear
@@ -95,6 +100,7 @@ ci-firmware:
 ci-mobile:
   corepack enable
   pnpm install
+  pnpm run --filter mobile generate:schemas
   cd mobile && just check
   cd mobile && just fmt-check
   cd mobile && just lint
