@@ -24,9 +24,9 @@ bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5
 critical-section = "1.2.0"
 embedded-io = "0.7.1"
 esp-alloc = "0.9.0"
-esp-bootloader-esp-idf = { version = "0.4.0", features = ["esp32c3"] }
-esp-hal = { version = "=1.0.0", features = ["esp32c3", "unstable"] }
-esp-radio = { version = "0.17.0", features = [
+esp-bootloader-esp-idf = { version = "0.3.0", features = ["esp32c3"] }
+esp-hal = { version = "1.0.0-rc.1", features = ["esp32c3", "unstable"] }
+esp-radio = { version = "0.16.0", features = [
   "ble",
   "coex",
   "esp-alloc",
@@ -35,8 +35,8 @@ esp-radio = { version = "0.17.0", features = [
   "wifi",
   "unstable",
 ] }
-esp-radio-rtos-driver = { version = "0.2.0" }
-esp-rtos = { version = "0.2.0", features = [
+esp-radio-rtos-driver = { version = "0.1.0" }
+esp-rtos = { version = "0.1.1", features = [
   "esp32c3",
   "esp-radio",
   "esp-alloc",
@@ -71,7 +71,7 @@ esp-println = { version = "0.16.0", features = [
   "esp32c3",
   "defmt-espflash",
 ] }
-esp-storage = { version = "0.8.1", features = ["esp32c3"] }
+esp-storage = { version = "0.8.0", features = ["esp32c3"] }
 futures = { version = "0.3.31", default-features = false, features = [
   "alloc",
   "async-await",
