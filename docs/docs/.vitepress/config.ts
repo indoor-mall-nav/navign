@@ -28,6 +28,14 @@ export default defineConfig({
           link: '/components/admin/',
           items: [
             {
+              text: 'Quick Start',
+              link: '/components/admin/quickstart',
+            },
+            {
+              text: 'Deployment',
+              link: '/components/admin/deployment',
+            },
+            {
               text: 'Orchestrator',
               link: '/components/admin/orchestrator',
             },
@@ -38,6 +46,14 @@ export default defineConfig({
             {
               text: 'Client',
               link: '/components/admin/client',
+            },
+            {
+              text: 'Protocol',
+              link: '/components/admin/protocol',
+            },
+            {
+              text: 'Implementation Guide',
+              link: '/components/admin/implementation-guide',
             },
             {
               text: 'Vision',

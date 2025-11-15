@@ -1,6 +1,10 @@
 # Quick Start Guide
 
-Get the robot management system running in 5 minutes.
+Get the robot management system running in 5 minutes for local development.
+
+::: tip Production Deployment
+For production deployments with systemd services, TLS, monitoring, and more, see the [Deployment Guide](./deployment.md).
+:::
 
 ## Prerequisites
 
