@@ -3,7 +3,6 @@ from manim import (
     Scene,
     VGroup,
     Rectangle,
-    Text,
     Arrow,
     Write,
     FadeIn,
@@ -22,7 +21,6 @@ from manim import (
     PURPLE,
     GRAY,
     WHITE,
-    DL,
 )
 
 
