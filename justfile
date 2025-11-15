@@ -23,10 +23,11 @@ lint:
   cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features -- -D warnings
   cd shared && cargo clippy --features alloc --no-default-features -- -D warnings
-  cd shared && cargo clippy --features crypto --features heapless --features serde --no-default-features -- -D warnings
-  cd shared && cargo clippy --features base64 --features crypto --features alloc --features serde --no-default-features -- -D warnings
-  cd shared && cargo clippy --features mongodb --features serde --features crypto
-  cd shared && cargo clippy --features sql --features serde --features crypto
+  cd shared && cargo clippy --features crypto,heapless,serde --no-default-features -- -D warnings
+  cd shared && cargo clippy --features base64,crypto,alloc,serde --no-default-features -- -D warnings
+  cd shared && cargo clippy --features mongodb,serde,crypto
+  cd shared && cargo clippy --features sql,serde,crypto
+  cd shared && cargo clippy --features postgres,sql,serde,crypto
   cd proc_macros && cargo clippy -- -D warnings
   cd firmware && cargo clippy -- -D warnings
   cd ts-schema && cargo clippy -- -D warnings
@@ -41,10 +42,11 @@ test:
   cd shared && cargo test
   cd shared && cargo test --features heapless --no-default-features
   cd shared && cargo test --features alloc --no-default-features
-  cd shared && cargo test --features crypto --features heapless --features serde --no-default-features
-  cd shared && cargo test --features base64 --features crypto --features alloc --features serde --no-default-features
-  cd shared && cargo test --features mongodb --features serde --features crypto
-  cd shared && cargo test --features sql --features serde --features crypto
+  cd shared && cargo test --features crypto,heapless,serde --no-default-features
+  cd shared && cargo test --features base64,crypto,alloc,serde --no-default-features
+  cd shared && cargo test --features mongodb,serde,crypto
+  cd shared && cargo test --features sql,serde,crypto
+  cd shared && cargo test --features postgres,sql,serde,crypto
   cd proc_macros && cargo test
   cd mobile && just test
   cd server && cargo test
@@ -119,18 +121,20 @@ ci-shared:
   cd shared && cargo check
   cd shared && cargo check --features heapless --no-default-features
   cd shared && cargo check --features alloc --no-default-features
-  cd shared && cargo check --features heapless --features serde --features crypto --no-default-features
-  cd shared && cargo check --features base64 --features alloc --features serde --features crypto --no-default-features
-  cd shared && cargo check --features mongodb --features serde --features crypto
-  cd shared && cargo check --features sql --features serde --features crypto
+  cd shared && cargo check --features heapless,serde,crypto --no-default-features
+  cd shared && cargo check --features base64,alloc,serde,crypto --no-default-features
+  cd shared && cargo check --features mongodb,serde,crypto
+  cd shared && cargo check --features sql,serde,crypto
+  cd shared && cargo check --features postgres,sql,serde,crypto
   cd shared && cargo fmt -- --check
   cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features
   cd shared && cargo clippy --features alloc --no-default-features
-  cd shared && cargo clippy --features heapless --features serde --features crypto --no-default-features
-  cd shared && cargo clippy --features base64 --features alloc --features serde --features crypto --no-default-features
-  cd shared && cargo clippy --features mongodb --features serde --features crypto
-  cd shared && cargo clippy --features sql --features serde --features crypto
+  cd shared && cargo clippy --features heapless,serde,crypto --no-default-features
+  cd shared && cargo clippy --features base64,alloc,serde,crypto --no-default-features
+  cd shared && cargo clippy --features mongodb,serde,crypto
+  cd shared && cargo clippy --features sql,serde,crypto
+  cd shared && cargo clippy --features postgres,sql,serde,crypto
   cd shared && cargo test
 
 ci-proc-macros:

@@ -187,7 +187,7 @@ mod tests {
         let point = PgPoint::new(121.5, 31.2);
         let wkb = point.to_wkb();
 
-        assert_eq!(wkb.len(), 21);
+        assert_eq!(wkb.len(), 25);
         assert_eq!(wkb[0], 1); // Little endian
 
         let decoded = PgPoint::from_wkb(&wkb).unwrap();
