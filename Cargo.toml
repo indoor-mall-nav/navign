@@ -5,7 +5,7 @@ members = [
   "firmware",
   "server",
   "mobile/src-tauri",
-  "maintenance-tool",
+  "admin/maintenance",
   "shared",
   "ts-schema",
   "admin/orchestrator",
@@ -17,7 +17,7 @@ members = [
 # This is useful since firmware needs special cross-compilation
 default-members = [
   "server",
-  "maintenance-tool",
+  "admin/maintenance",
   "shared",
   "ts-schema",
   "proc_macros",

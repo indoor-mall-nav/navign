@@ -52,6 +52,7 @@ jobs:
           run_tower=false
           run_orchestrator=false
           run_plot=false
+          run_maintenance=false
           run_proc_macros=false
           run_repo=false
           run_robot_lower=false
@@ -82,6 +83,7 @@ jobs:
                 run_orchestrator=true
                 run_tower=true
                 run_plot=true
+                run_maintenance=true
                 ;;
               admin/tower/*)
                 run_tower=true
@@ -91,6 +93,9 @@ jobs:
                 ;;
               admin/plot/*)
                 run_plot=true
+                ;;
+              admin/maintenance/*)
+                run_maintenance=true
                 ;;
               proc_macros/*)
                 run_proc_macros=true
@@ -119,6 +124,7 @@ jobs:
           [ "$run_tower" = true ] && components+=("tower")
           [ "$run_orchestrator" = true ] && components+=("orchestrator")
           [ "$run_plot" = true ] && components+=("plot")
+          [ "$run_maintenance" = true ] && components+=("maintenance")
           [ "$run_proc_macros" = true ] && components+=("proc-macros")
           [ "$run_robot_lower" = true ] && components+=("robot-lower")
           [ "$run_robot_upper" = true ] && components+=("robot-upper")
@@ -221,8 +227,15 @@ jobs:
           cache-dependency-path: admin/tower/go.sum
 
       # Orchestrator-specific setup
-      - name: Install Protobuf Compiler
+      - name: Install Protobuf Compiler (orchestrator)
         if: matrix.component == 'orchestrator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      # Maintenance-specific setup
+      - name: Install Protobuf Compiler (maintenance)
+        if: matrix.component == 'maintenance'
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler

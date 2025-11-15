@@ -28,7 +28,11 @@ navign/
 ├── presentation/        # Slidev presentation for GestureSpace project
 ├── vision/              # Apple Vision Pro spatial computing app (Swift)
 ├── robot/               # Robotics delivery system (empty/planned)
-├── maintenance-tool/    # ESP32-C3 key management CLI (Rust)
+├── admin/
+│   ├── maintenance/     # ESP32-C3 key management CLI (Rust)
+│   ├── orchestrator/    # Robot task orchestration (Rust gRPC)
+│   ├── tower/           # Robot WebSocket server (Go)
+│   └── plot/            # Floor plan polygon extraction (Python)
 ├── ts-schema/           # TypeScript schema generator (Rust NAPI)
 ├── shared/              # Shared Rust types (no_std compatible)
 └── schematics/          # KiCad PCB designs for hardware
@@ -130,7 +134,7 @@ Lightweight WeChat-based navigation experience:
 
 **Tech Stack**: TypeScript, WeChat Mini Program SDK
 
-#### 🔧 **Maintenance Tool** (`maintenance-tool/`)
+#### 🔧 **Maintenance Tool** (`admin/maintenance/`)
 
 ESP32-C3 key management and provisioning CLI:
 
@@ -183,7 +187,7 @@ KiCad PCB designs for custom beacon hardware:
 
 ### Prerequisites
 
-- **Rust** 1.86+ (for server, beacon, maintenance-tool, shared, ts-schema)
+- **Rust** 1.86+ (for server, beacon, admin/maintenance, shared, ts-schema, admin/orchestrator)
 - **Node.js** 18+ with **pnpm** (for mobile, miniapp, ts-schema)
 - **Python** 3.12+ with **uv** (for gesture_space, animations)
 - **Xcode** 16+ (for vision app, iOS/macOS builds)
@@ -283,7 +287,7 @@ pnpm export       # Export as PDF
 #### Maintenance Tool
 
 ```bash
-cd maintenance-tool
+cd admin/maintenance
 cargo run -- fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
 ```
 

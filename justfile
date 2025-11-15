@@ -35,7 +35,7 @@ lint:
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
   cd server && cargo clippy --all-targets --all-features -- -D warnings
-  cd maintenance-tool && cargo clippy --all-targets --all-features -- -D warnings
+  cd admin/maintenance && cargo clippy --all-targets --all-features -- -D warnings
   cd robot/lower && cargo clippy -- -D warnings
 
 test:
@@ -52,7 +52,7 @@ test:
   cd proc_macros && cargo test
   cd mobile && just test
   cd server && cargo test
-  cd maintenance-tool && cargo test
+  cd admin/maintenance && cargo test
 
 # Run firmware mock-based tests (fast, runs on host)
 test-firmware-mocks:
@@ -83,7 +83,7 @@ fmt-check:
   cd firmware && cargo fmt -- --check
   cd mobile && just fmt-check
   cd server && cargo fmt -- --check
-  cd maintenance-tool && cargo fmt -- --check
+  cd admin/maintenance && cargo fmt -- --check
   cd robot/lower && cargo fmt -- --check
 
 clean:
@@ -169,6 +169,12 @@ ci-plot:
   cd admin/plot && uvx ruff format --check
   cd admin/plot && uvx ruff check
   cd admin/plot && uv run pytest
+
+ci-maintenance:
+  cd admin/maintenance && cargo check
+  cd admin/maintenance && cargo fmt -- --check
+  cd admin/maintenance && cargo clippy -- -D warnings
+  cd admin/maintenance && cargo test
 
 ci-robot-lower:
   cd robot/lower && cargo check --release

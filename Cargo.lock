@@ -5471,22 +5471,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "maintenance-tool"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "hex",
- "p256",
- "rand 0.9.2",
- "serde",
- "serde_json",
- "tokio",
- "which",
-]
-
-[[package]]
 name = "managed"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5924,6 +5908,27 @@ dependencies = [
  "serde-json-core",
  "sha2",
  "smoltcp",
+]
+
+[[package]]
+name = "navign-maintenance"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "hex",
+ "p256",
+ "pem",
+ "prost",
+ "prost-types",
+ "rand 0.9.2",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tonic 0.12.3",
+ "tonic-build",
+ "which",
 ]
 
 [[package]]

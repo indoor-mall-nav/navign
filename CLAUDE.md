@@ -226,7 +226,7 @@ navign/
 │   ├── package.json
 │   └── justfile                 # Mobile-specific tasks
 │
-├── admin/                       # Robot fleet management
+├── admin/                       # Robot fleet management and maintenance
 │   ├── proto/                   # Protocol Buffer definitions
 │   │   ├── task.proto           # Robot task management (OrchestratorService)
 │   │   ├── plot.proto           # Polygon extraction (PlotService)
@@ -238,14 +238,17 @@ navign/
 │   │   ├── plot_client.py       # gRPC client for polygon extraction
 │   │   ├── generate_proto.sh    # Proto code generation script
 │   │   └── proto/               # Generated Python protobuf code
-│   └── tower/                   # Go Socket.IO server
-│       ├── cmd/tower/main.go    # Server entry point
-│       ├── internal/
-│       │   ├── controller/      # gRPC client
-│       │   ├── robot/           # Robot state management
-│       │   └── socket_server/   # Socket.IO server
-│       ├── Makefile             # Proto generation (use justfile instead)
-│       └── go.mod
+│   ├── tower/                   # Go Socket.IO server
+│   │   ├── cmd/tower/main.go    # Server entry point
+│   │   ├── internal/
+│   │   │   ├── controller/      # gRPC client
+│   │   │   ├── robot/           # Robot state management
+│   │   │   └── socket_server/   # Socket.IO server
+│   │   ├── Makefile             # Proto generation (use justfile instead)
+│   │   └── go.mod
+│   └── maintenance/             # ESP32-C3 key management CLI (Rust)
+│       ├── src/main.rs          # CLI for eFuse key programming
+│       └── Cargo.toml           # Dependencies
 │
 ├── gesture_space/               # Python CV system
 │   ├── main.py                  # Entry point
@@ -264,7 +267,6 @@ navign/
 │   │   └── traits/              # Packetize/Depacketize
 │   └── Cargo.toml               # Multiple feature flags
 │
-├── maintenance-tool/            # ESP32-C3 key management CLI
 ├── ts-schema/                   # Rust → TypeScript schema generator (NAPI)
 ├── docs/                        # VitePress documentation site
 │   └── docs/components/         # Component documentation
@@ -438,8 +440,8 @@ espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 
 **Setting Private Key:**
 ```bash
-cd maintenance-tool
-cargo run -- --key <32-byte-hex-key>
+cd admin/maintenance
+cargo run -- fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
 ```
 
 **OTA (Over-The-Air) Updates:**
@@ -947,7 +949,7 @@ just test
 # - shared/ tests with multiple feature combinations
 # - server/ tests (requires MongoDB)
 # - mobile/ tests (Vitest)
-# - maintenance-tool/ tests
+# - admin/maintenance/ tests
 ```
 
 **Run specific component tests:**
@@ -955,6 +957,7 @@ just test
 cd server && cargo test
 cd mobile && just test
 cd shared && cargo test --features mongodb --features serde --features crypto
+cd admin/maintenance && cargo test
 ```
 
 ### CI Tasks
@@ -1465,7 +1468,7 @@ if private_key == [0u8; 32] {
 }
 ```
 
-Use the `maintenance-tool` to program keys before deploying beacons.
+Use the `admin/maintenance` tool to program keys before deploying beacons.
 
 ### 4. MongoDB Required for Server Tests
 
