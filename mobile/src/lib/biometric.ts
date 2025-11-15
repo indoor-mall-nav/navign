@@ -32,7 +32,8 @@ export async function checkBiometricAvailability(): Promise<BiometricStatus> {
       type: 'none',
     }
   } catch (error) {
-    await warn(`Biometric: availability check failed: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: availability check failed: ${errorMessage}`)
     return {
       available: false,
       enrolled: false,
@@ -61,7 +62,8 @@ export async function authenticateWithBiometric(
     // Placeholder implementation
     return false
   } catch (error) {
-    await warn(`Biometric: authentication failed: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: authentication failed: ${errorMessage}`)
     return false
   }
 }
@@ -82,7 +84,8 @@ export async function storeBiometricCredentials(
     await info(`Biometric: stored credentials for ${key}`)
     return true
   } catch (error) {
-    await warn(`Biometric: failed to store credentials: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: failed to store credentials: ${errorMessage}`)
     return false
   }
 }
@@ -112,7 +115,8 @@ export async function retrieveBiometricCredentials(
     await info(`Biometric: retrieved credentials for ${key}`)
     return null // Placeholder
   } catch (error) {
-    await warn(`Biometric: failed to retrieve credentials: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: failed to retrieve credentials: ${errorMessage}`)
     return null
   }
 }
@@ -132,7 +136,8 @@ export async function removeBiometricCredentials(
     await info(`Biometric: removed credentials for ${key}`)
     return true
   } catch (error) {
-    await warn(`Biometric: failed to remove credentials: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: failed to remove credentials: ${errorMessage}`)
     return false
   }
 }
@@ -176,7 +181,8 @@ export async function enableBiometricLogin(
 
     return false
   } catch (error) {
-    await warn(`Biometric: failed to enable biometric login: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: failed to enable biometric login: ${errorMessage}`)
     return false
   }
 }
@@ -205,7 +211,8 @@ export async function loginWithBiometric(
 
     return null
   } catch (error) {
-    await warn(`Biometric: login failed: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: login failed: ${errorMessage}`)
     return null
   }
 }
@@ -226,7 +233,8 @@ export async function disableBiometricLogin(
 
     return false
   } catch (error) {
-    await warn(`Biometric: failed to disable biometric login: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await warn(`Biometric: failed to disable biometric login: ${errorMessage}`)
     return false
   }
 }

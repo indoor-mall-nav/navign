@@ -26,6 +26,7 @@ const activeTab = ref<'merchants' | 'areas'>('merchants')
 const searchQuery = ref('')
 const selectedItem = ref<any>(null)
 const showDeleteDialog = ref(false)
+const showClearAllDialog = ref(false)
 
 onMounted(() => {
   if (!session.isAuthenticated) {
@@ -96,9 +97,12 @@ function handleDelete() {
 }
 
 function clearAllFavorites() {
-  if (confirm('Are you sure you want to remove all favorites?')) {
-    favorites.clearAllFavorites()
-  }
+  showClearAllDialog.value = true
+}
+
+function confirmClearAll() {
+  favorites.clearAllFavorites()
+  showClearAllDialog.value = false
 }
 </script>
 
@@ -272,6 +276,22 @@ function clearAllFavorites() {
           <DialogFooter>
             <Button variant="outline" @click="showDeleteDialog = false">Cancel</Button>
             <Button variant="destructive" @click="handleDelete">Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <!-- Clear All Confirmation Dialog -->
+      <Dialog v-model:open="showClearAllDialog">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear All Favorites?</DialogTitle>
+            <DialogDescription>
+              This will remove all your favorite merchants and areas. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" @click="showClearAllDialog = false">Cancel</Button>
+            <Button variant="destructive" @click="confirmClearAll">Clear All</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

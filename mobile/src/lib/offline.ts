@@ -15,16 +15,16 @@ let processOfflineQueueFn: (() => Promise<void>) | null = null
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline.value = true
-    info('Network: back online')
+    void info('Network: back online')
     if (processOfflineQueueFn) {
-      processOfflineQueueFn()
+      void processOfflineQueueFn()
     }
   })
 
   window.addEventListener('offline', () => {
     isOnline.value = false
     lastOnlineTime.value = Date.now()
-    warn('Network: went offline')
+    void warn('Network: went offline')
   })
 }
 
@@ -44,7 +44,7 @@ export function useOffline() {
       data,
       timestamp: Date.now(),
     })
-    info(`Offline queue: added ${action}`)
+    void info(`Offline queue: added ${action}`)
   }
 
   /**
@@ -53,7 +53,7 @@ export function useOffline() {
   async function processOfflineQueue() {
     if (offlineQueue.value.length === 0) return
 
-    info(`Offline queue: processing ${offlineQueue.value.length} actions`)
+    void info(`Offline queue: processing ${offlineQueue.value.length} actions`)
 
     const queue = [...offlineQueue.value]
     offlineQueue.value = []
@@ -61,9 +61,10 @@ export function useOffline() {
     for (const item of queue) {
       try {
         // TODO: Implement action handlers
-        info(`Offline queue: processing ${item.action}`)
+        void info(`Offline queue: processing ${item.action}`)
       } catch (error) {
-        warn(`Offline queue: failed to process ${item.action}: ${error}`)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        void warn(`Offline queue: failed to process ${item.action}: ${errorMessage}`)
         // Re-queue failed actions
         offlineQueue.value.push(item)
       }
@@ -98,9 +99,10 @@ export function useOffline() {
   async function cacheResource(key: string, _data: any): Promise<void> {
     try {
       // TODO: Implement cache storage using Tauri SQLite
-      info(`Cache: stored ${key}`)
+      void info(`Cache: stored ${key}`)
     } catch (error) {
-      warn(`Cache: failed to store ${key}: ${error}`)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      void warn(`Cache: failed to store ${key}: ${errorMessage}`)
     }
   }
 
@@ -112,7 +114,8 @@ export function useOffline() {
       // TODO: Implement cache retrieval using Tauri SQLite
       return null
     } catch (error) {
-      warn(`Cache: failed to retrieve ${_key}: ${error}`)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      void warn(`Cache: failed to retrieve ${_key}: ${errorMessage}`)
       return null
     }
   }
@@ -123,9 +126,10 @@ export function useOffline() {
   async function clearCache(): Promise<void> {
     try {
       // TODO: Implement cache clearing using Tauri SQLite
-      info('Cache: cleared all resources')
+      void info('Cache: cleared all resources')
     } catch (error) {
-      warn(`Cache: failed to clear: ${error}`)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      void warn(`Cache: failed to clear: ${errorMessage}`)
     }
   }
 
@@ -160,7 +164,7 @@ export async function retryWithBackoff<T>(
       lastError = error as Error
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt)
-        warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`)
+        void warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`)
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
@@ -177,14 +181,15 @@ export async function withOfflineFallback<T>(
   offlineFn: () => Promise<T>,
 ): Promise<T> {
   if (!navigator.onLine) {
-    info('Offline: using fallback')
+    void info('Offline: using fallback')
     return await offlineFn()
   }
 
   try {
     return await onlineFn()
   } catch (error) {
-    warn(`Network error: falling back to offline mode: ${error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    void warn(`Network error: falling back to offline mode: ${errorMessage}`)
     return await offlineFn()
   }
 }

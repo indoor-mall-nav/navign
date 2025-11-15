@@ -81,9 +81,8 @@ function formatDistance(meters: number | undefined) {
   return `${(meters / 1000).toFixed(2)}km`
 }
 
-function repeatNavigation(nav: any) {
+function repeatNavigation(_nav: any) {
   // TODO: Start navigation to the same destination
-  console.log('Repeat navigation:', nav)
 }
 
 function deleteNavigation(id: string) {
@@ -99,9 +98,8 @@ function handleClearHistory() {
   showClearDialog.value = false
 }
 
-function navigateToDestination(dest: any) {
+function navigateToDestination(_dest: any) {
   // TODO: Navigate to frequent destination
-  console.log('Navigate to:', dest)
 }
 </script>
 

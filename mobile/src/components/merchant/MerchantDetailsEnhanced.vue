@@ -72,10 +72,8 @@ function openSocialMedia(platform: string) {
   if (socialEntry) {
     if (socialEntry.url) {
       window.open(socialEntry.url, '_blank')
-    } else {
-      // TODO: Implement platform-specific URL schemes
-      console.log(`Open ${platform}: ${socialEntry.handle}`)
     }
+    // TODO: Implement platform-specific URL schemes for platforms without URL
   }
 }
 
