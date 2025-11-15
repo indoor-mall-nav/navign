@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Not yet integrated with handlers
+
 /// PostgreSQL-specific models with correct ID types
 ///
 /// These models map to PostgreSQL tables with:

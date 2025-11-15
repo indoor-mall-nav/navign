@@ -61,6 +61,7 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
 #[derive(Clone)]
 pub(crate) struct AppState {
     db: Database,
+    #[allow(dead_code)] // PostgreSQL layer not yet integrated
     pg_pool: Option<Arc<pg::PgPool>>,
     private_key: SigningKey,
     prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,

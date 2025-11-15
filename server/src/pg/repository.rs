@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Not yet integrated with handlers
+
 /// Repository traits and implementations for PostgreSQL
 ///
 /// This provides a clean abstraction layer for database operations

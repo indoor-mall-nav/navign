@@ -8,4 +8,3 @@ pub mod repository;
 pub mod models;
 
 pub use pool::{PgPool, create_pool};
-pub use repository::*;

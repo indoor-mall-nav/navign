@@ -166,7 +166,6 @@ impl ServerError {
         match self {
             // 400 Bad Request
             Self::ValidationError(_)
-            | Self::InvalidInput { .. }
             | Self::InvalidInput(_)
             | Self::MissingField(_)
             | Self::InvalidFormat(_)
