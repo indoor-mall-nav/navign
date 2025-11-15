@@ -29,12 +29,15 @@ pub type ConnectedArea = (String, f64, f64, bool);
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Connection {
     #[cfg(feature = "mongodb")]
     #[cfg_attr(
         all(feature = "mongodb", feature = "serde"),
         serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub id: String,
@@ -44,6 +47,7 @@ pub struct Connection {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_object_id_as_hex_string",)
     )]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
     pub entity: String,
@@ -77,6 +81,8 @@ impl Connection {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "mongodb", derive(Default))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum ConnectionType {
     Gate,
     #[cfg_attr(feature = "mongodb", default)]
