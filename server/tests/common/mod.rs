@@ -6,8 +6,11 @@ static INIT: Once = Once::new();
 /// Initialize logging for tests (only once)
 pub fn init_logging() {
     INIT.call_once(|| {
-        env_logger::Builder::from_default_env()
-            .filter_level(log::LevelFilter::Debug)
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("debug")),
+            )
             .init();
     });
 }
