@@ -1,7 +1,7 @@
-use sqlx::postgres::{PgPool as SqlxPgPool, PgPoolOptions};
-use sqlx::migrate::Migrator;
-use std::time::Duration;
 use crate::error::{Result, ServerError};
+use sqlx::migrate::Migrator;
+use sqlx::postgres::{PgPool as SqlxPgPool, PgPoolOptions};
+use std::time::Duration;
 
 /// PostgreSQL connection pool wrapper
 #[derive(Clone)]
@@ -25,12 +25,13 @@ impl PgPool {
         // Migrations are embedded in the binary
         let migrator = Migrator::new(std::path::Path::new("./migrations"))
             .await
-            .map_err(|e| ServerError::DatabaseConnection(format!("Failed to load migrations: {}", e)))?;
+            .map_err(|e| {
+                ServerError::DatabaseConnection(format!("Failed to load migrations: {}", e))
+            })?;
 
-        migrator
-            .run(&self.pool)
-            .await
-            .map_err(|e| ServerError::DatabaseConnection(format!("Failed to run migrations: {}", e)))?;
+        migrator.run(&self.pool).await.map_err(|e| {
+            ServerError::DatabaseConnection(format!("Failed to run migrations: {}", e))
+        })?;
 
         Ok(())
     }

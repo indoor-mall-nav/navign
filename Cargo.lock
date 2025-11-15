@@ -5758,6 +5758,7 @@ dependencies = [
  "bson",
  "chrono",
  "defmt 1.0.1",
+ "geo-types",
  "heapless 0.9.1",
  "hmac 0.12.1",
  "p256 0.14.0-rc.0",

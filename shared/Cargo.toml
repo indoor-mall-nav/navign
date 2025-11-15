@@ -34,7 +34,7 @@ serde = [
   "serde_with?/macros",
 ]
 sql = ["std", "serde", "dep:sqlx", "dep:async-trait"]
-postgres = ["std", "serde", "dep:sqlx", "dep:async-trait", "sqlx?/postgres", "sqlx?/uuid", "sqlx?/chrono", "sqlx?/json", "dep:uuid", "dep:serde_json", "chrono"]
+postgres = ["std", "serde", "dep:sqlx", "dep:async-trait", "sqlx?/postgres", "sqlx?/uuid", "sqlx?/chrono", "sqlx?/json", "dep:uuid", "dep:serde_json", "dep:geo-types", "chrono"]
 std = [
   "serde?/std",
   "chrono?/std",
@@ -70,6 +70,7 @@ sqlx = { version = "0.8.6", optional = true, default-features = false, features 
   "macros",
 ] }
 uuid = { version = "1.18.1", optional = true, features = ["v4", "serde"] }
+geo-types = { version = "0.7", optional = true, features = ["serde"] }
 
 [dev-dependencies]
 serde_json = "1.0"

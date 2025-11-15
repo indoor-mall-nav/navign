@@ -1,15 +1,14 @@
 #![allow(dead_code)] // Not yet integrated with handlers
 
+use super::models::*;
+use super::pool::PgPool;
+use crate::error::{Result, ServerError};
 /// Repository traits and implementations for PostgreSQL
 ///
 /// This provides a clean abstraction layer for database operations
 /// without modifying the existing MongoDB service trait.
-
 use async_trait::async_trait;
 use sqlx::types::Uuid;
-use crate::error::{Result, ServerError};
-use super::pool::PgPool;
-use super::models::*;
 
 // ============================================================================
 // Repository Traits
@@ -87,10 +86,16 @@ impl EntityRepository {
             conditions.push(format!(" AND name ILIKE '%{}%'", name_val));
         }
         if let Some(lon) = longitude {
-            conditions.push(format!(" AND longitude_min <= {} AND longitude_max >= {}", lon, lon));
+            conditions.push(format!(
+                " AND longitude_min <= {} AND longitude_max >= {}",
+                lon, lon
+            ));
         }
         if let Some(lat) = latitude {
-            conditions.push(format!(" AND latitude_min <= {} AND latitude_max >= {}", lat, lat));
+            conditions.push(format!(
+                " AND latitude_min <= {} AND latitude_max >= {}",
+                lat, lat
+            ));
         }
 
         for condition in conditions {
@@ -113,12 +118,14 @@ impl Repository<PgEntity> for EntityRepository {
     }
 
     async fn get_all(&self, offset: i64, limit: i64) -> Result<Vec<PgEntity>> {
-        sqlx::query_as::<_, PgEntity>("SELECT * FROM entities ORDER BY created_at DESC LIMIT $1 OFFSET $2")
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(self.pool.inner())
-            .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch entities: {}", e)))
+        sqlx::query_as::<_, PgEntity>(
+            "SELECT * FROM entities ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(self.pool.inner())
+        .await
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch entities: {}", e)))
     }
 
     async fn create(&self, entity: &PgEntity) -> Result<String> {
@@ -241,7 +248,9 @@ impl UserRepository {
             .bind(username)
             .fetch_optional(self.pool.inner())
             .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch user by username: {}", e)))
+            .map_err(|e| {
+                ServerError::DatabaseQuery(format!("Failed to fetch user by username: {}", e))
+            })
     }
 
     pub async fn get_by_email(&self, email: &str) -> Result<Option<PgUser>> {
@@ -249,7 +258,9 @@ impl UserRepository {
             .bind(email)
             .fetch_optional(self.pool.inner())
             .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch user by email: {}", e)))
+            .map_err(|e| {
+                ServerError::DatabaseQuery(format!("Failed to fetch user by email: {}", e))
+            })
     }
 }
 
@@ -262,12 +273,14 @@ impl Repository<PgUser> for UserRepository {
     }
 
     async fn get_all(&self, offset: i64, limit: i64) -> Result<Vec<PgUser>> {
-        sqlx::query_as::<_, PgUser>("SELECT * FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2")
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(self.pool.inner())
-            .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch users: {}", e)))
+        sqlx::query_as::<_, PgUser>(
+            "SELECT * FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(self.pool.inner())
+        .await
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch users: {}", e)))
     }
 
     async fn create(&self, user: &PgUser) -> Result<String> {
@@ -375,9 +388,14 @@ impl AreaRepository {
         Self { pool }
     }
 
-    pub async fn get_by_entity(&self, entity_id: Uuid, offset: i64, limit: i64) -> Result<Vec<PgArea>> {
+    pub async fn get_by_entity(
+        &self,
+        entity_id: Uuid,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<PgArea>> {
         sqlx::query_as::<_, PgArea>(
-            "SELECT * FROM areas WHERE entity_id = $1 ORDER BY name LIMIT $2 OFFSET $3"
+            "SELECT * FROM areas WHERE entity_id = $1 ORDER BY name LIMIT $2 OFFSET $3",
         )
         .bind(entity_id)
         .bind(limit)
@@ -389,7 +407,7 @@ impl AreaRepository {
 
     pub async fn get_by_floor(&self, entity_id: Uuid, floor: &str) -> Result<Vec<PgArea>> {
         sqlx::query_as::<_, PgArea>(
-            "SELECT * FROM areas WHERE entity_id = $1 AND floor = $2 ORDER BY name"
+            "SELECT * FROM areas WHERE entity_id = $1 AND floor = $2 ORDER BY name",
         )
         .bind(entity_id)
         .bind(floor)
@@ -402,18 +420,21 @@ impl AreaRepository {
 #[async_trait]
 impl Repository<PgArea> for AreaRepository {
     async fn get_by_id(&self, id: &str) -> Result<Option<PgArea>> {
-        let int_id: i32 = id.parse()
+        let int_id: i32 = id
+            .parse()
             .map_err(|_| ServerError::InvalidInput("Invalid integer ID format".to_string()))?;
         self.get_by_int(int_id).await
     }
 
     async fn get_all(&self, offset: i64, limit: i64) -> Result<Vec<PgArea>> {
-        sqlx::query_as::<_, PgArea>("SELECT * FROM areas ORDER BY created_at DESC LIMIT $1 OFFSET $2")
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(self.pool.inner())
-            .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch areas: {}", e)))
+        sqlx::query_as::<_, PgArea>(
+            "SELECT * FROM areas ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(self.pool.inner())
+        .await
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch areas: {}", e)))
     }
 
     async fn create(&self, area: &PgArea) -> Result<String> {
@@ -430,7 +451,7 @@ impl Repository<PgArea> for AreaRepository {
         .bind(&area.floor)
         .bind(&area.beacon_code)
         .bind(&area.polygon)
-        .bind(&area.centroid)
+        .bind(area.centroid)
         .fetch_one(self.pool.inner())
         .await
         .map_err(|e| ServerError::DatabaseQuery(format!("Failed to create area: {}", e)))?;
@@ -453,7 +474,7 @@ impl Repository<PgArea> for AreaRepository {
         .bind(&area.floor)
         .bind(&area.beacon_code)
         .bind(&area.polygon)
-        .bind(&area.centroid)
+        .bind(area.centroid)
         .bind(area.id)
         .execute(self.pool.inner())
         .await
@@ -468,7 +489,8 @@ impl Repository<PgArea> for AreaRepository {
     }
 
     async fn delete(&self, id: &str) -> Result<()> {
-        let int_id: i32 = id.parse()
+        let int_id: i32 = id
+            .parse()
             .map_err(|_| ServerError::InvalidInput("Invalid integer ID format".to_string()))?;
 
         let rows_affected = sqlx::query("DELETE FROM areas WHERE id = $1")

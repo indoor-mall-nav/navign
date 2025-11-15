@@ -1,36 +1,30 @@
 #![allow(dead_code)] // Not yet integrated with handlers
 
-//! PostgreSQL-specific models
+//! PostgreSQL-specific models with PostGIS support
 //!
 //! These models use:
 //! - UUID for entities and users
 //! - i32 (SERIAL) for all other tables
-//! - JSONB for coordinates (TODO: migrate to PostGIS GEOMETRY when `postgis` crate is integrated)
+//! - PostGIS GEOMETRY(POINT, 4326) for all coordinates
 //!
-//! Note: For proper PostGIS support, use the `geo-types` or `postgis` crates.
-//! This would allow using `Point<f64>` type with spatial indexes and queries.
+//! PostGIS points use WGS84 (SRID 4326) which is the standard for GPS coordinates.
 
-#[cfg(feature = "postgres")]
-pub use entity::PgEntity;
-#[cfg(feature = "postgres")]
-pub use user::PgUser;
 #[cfg(feature = "postgres")]
 pub use area::PgArea;
 #[cfg(feature = "postgres")]
 pub use beacon::PgBeacon;
 #[cfg(feature = "postgres")]
+pub use connection::PgConnection;
+#[cfg(feature = "postgres")]
+pub use entity::PgEntity;
+#[cfg(feature = "postgres")]
 pub use merchant::PgMerchant;
 #[cfg(feature = "postgres")]
-pub use connection::PgConnection;
+pub use user::PgUser;
 
-/// Point stored as JSONB: {"x": f64, "y": f64}
-/// TODO: Replace with PostGIS GEOMETRY(POINT) when postgis crate is added
+/// Re-export PgPoint for PostGIS GEOMETRY(POINT, 4326)
 #[cfg(feature = "postgres")]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Point {
-    pub x: f64,
-    pub y: f64,
-}
+pub use super::postgis::PgPoint;
 
 #[cfg(feature = "postgres")]
 mod entity {
@@ -85,6 +79,7 @@ mod user {
 
 #[cfg(feature = "postgres")]
 mod area {
+    use super::PgPoint;
     use serde::{Deserialize, Serialize};
     use sqlx::{FromRow, types::Json};
 
@@ -97,7 +92,7 @@ mod area {
         pub floor: String,
         pub beacon_code: String,
         pub polygon: Json<serde_json::Value>, // GeoJSON or WKT
-        pub centroid: Option<Json<super::Point>>, // JSONB for now (TODO: PostGIS POINT)
+        pub centroid: Option<PgPoint>,        // PostGIS GEOMETRY(POINT, 4326)
         #[serde(skip_serializing_if = "Option::is_none")]
         pub created_at: Option<chrono::DateTime<chrono::Utc>>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -107,6 +102,7 @@ mod area {
 
 #[cfg(feature = "postgres")]
 mod beacon {
+    use super::PgPoint;
     use serde::{Deserialize, Serialize};
     use sqlx::{FromRow, types::Json};
 
@@ -122,7 +118,7 @@ mod beacon {
         pub r#type: String,
         pub device_id: String,
         pub floor: String,
-        pub location: Json<super::Point>, // JSONB for now (TODO: PostGIS POINT)
+        pub location: PgPoint, // PostGIS GEOMETRY(POINT, 4326)
         pub public_key: Option<String>,
         pub capabilities: Json<Vec<String>>,
         pub unlock_method: Option<String>,
@@ -135,6 +131,7 @@ mod beacon {
 
 #[cfg(feature = "postgres")]
 mod merchant {
+    use super::PgPoint;
     use serde::{Deserialize, Serialize};
     use sqlx::{FromRow, types::Json};
 
@@ -151,7 +148,7 @@ mod merchant {
         pub images: Json<Vec<String>>,
         pub social_media: Json<Vec<serde_json::Value>>,
         pub floor: String,
-        pub location: Json<super::Point>, // JSONB for now (TODO: PostGIS POINT)
+        pub location: PgPoint, // PostGIS GEOMETRY(POINT, 4326)
         pub merchant_style: Option<String>,
         pub food_type: Option<String>,
         pub food_cuisine: Option<String>,

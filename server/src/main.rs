@@ -173,7 +173,10 @@ async fn main() -> ServerResult<()> {
                 Some(Arc::new(pool))
             }
             Err(e) => {
-                log::warn!("Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.", e);
+                log::warn!(
+                    "Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.",
+                    e
+                );
                 None
             }
         }

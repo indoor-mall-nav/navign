@@ -1,8 +1,10 @@
--- Initial PostgreSQL schema migration
+-- Initial PostgreSQL schema migration with PostGIS
 -- UUID for entities and users, INTEGER for other tables
+-- PostGIS GEOMETRY(POINT) for all coordinates
 
--- Enable UUID extension
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Entities table (UUID)
 CREATE TABLE entities (
@@ -46,7 +48,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 
--- Areas table (INTEGER)
+-- Areas table (INTEGER) with PostGIS
 CREATE TABLE areas (
     id SERIAL PRIMARY KEY,
     entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
@@ -55,8 +57,7 @@ CREATE TABLE areas (
     floor VARCHAR(50) NOT NULL,
     beacon_code VARCHAR(100) NOT NULL,
     polygon JSONB NOT NULL,
-    centroid_x DOUBLE PRECISION,
-    centroid_y DOUBLE PRECISION,
+    centroid GEOMETRY(POINT, 4326), -- PostGIS POINT with WGS84 SRID
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -65,8 +66,37 @@ CREATE INDEX idx_areas_entity ON areas(entity_id);
 CREATE INDEX idx_areas_floor ON areas(floor);
 CREATE INDEX idx_areas_beacon_code ON areas(beacon_code);
 CREATE INDEX idx_areas_name ON areas(name);
+CREATE INDEX idx_areas_centroid ON areas USING GIST(centroid); -- Spatial index
 
--- Merchants table (INTEGER)
+-- Beacons table (INTEGER) with PostGIS
+CREATE TABLE beacons (
+    id SERIAL PRIMARY KEY,
+    entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    area_id INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+    merchant_id INTEGER,
+    connection_id INTEGER,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    type VARCHAR(50) NOT NULL,
+    device_id VARCHAR(48) NOT NULL UNIQUE,
+    floor VARCHAR(50) NOT NULL,
+    location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT with WGS84 SRID
+    public_key TEXT,
+    capabilities JSONB DEFAULT '[]'::jsonb,
+    unlock_method VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_beacons_entity ON beacons(entity_id);
+CREATE INDEX idx_beacons_area ON beacons(area_id);
+CREATE INDEX idx_beacons_merchant ON beacons(merchant_id);
+CREATE INDEX idx_beacons_device_id ON beacons(device_id);
+CREATE INDEX idx_beacons_name ON beacons(name);
+CREATE INDEX idx_beacons_floor ON beacons(floor);
+CREATE INDEX idx_beacons_location ON beacons USING GIST(location); -- Spatial index
+
+-- Merchants table (INTEGER) with PostGIS
 CREATE TABLE merchants (
     id SERIAL PRIMARY KEY,
     entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
@@ -79,8 +109,7 @@ CREATE TABLE merchants (
     images JSONB DEFAULT '[]'::jsonb,
     social_media JSONB DEFAULT '[]'::jsonb,
     floor VARCHAR(50) NOT NULL,
-    x DOUBLE PRECISION NOT NULL,
-    y DOUBLE PRECISION NOT NULL,
+    location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT with WGS84 SRID
     merchant_style VARCHAR(50),
     food_type VARCHAR(50),
     food_cuisine VARCHAR(50),
@@ -98,34 +127,7 @@ CREATE INDEX idx_merchants_area ON merchants(area_id);
 CREATE INDEX idx_merchants_name ON merchants(name);
 CREATE INDEX idx_merchants_type ON merchants(type);
 CREATE INDEX idx_merchants_floor ON merchants(floor);
-
--- Beacons table (INTEGER)
-CREATE TABLE beacons (
-    id SERIAL PRIMARY KEY,
-    entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
-    area_id INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
-    merchant_id INTEGER REFERENCES merchants(id) ON DELETE SET NULL,
-    connection_id INTEGER,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    type VARCHAR(50) NOT NULL,
-    device_id VARCHAR(48) NOT NULL UNIQUE,
-    floor VARCHAR(50) NOT NULL,
-    x DOUBLE PRECISION NOT NULL,
-    y DOUBLE PRECISION NOT NULL,
-    public_key TEXT,
-    capabilities JSONB DEFAULT '[]'::jsonb,
-    unlock_method VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_beacons_entity ON beacons(entity_id);
-CREATE INDEX idx_beacons_area ON beacons(area_id);
-CREATE INDEX idx_beacons_merchant ON beacons(merchant_id);
-CREATE INDEX idx_beacons_device_id ON beacons(device_id);
-CREATE INDEX idx_beacons_name ON beacons(name);
-CREATE INDEX idx_beacons_floor ON beacons(floor);
+CREATE INDEX idx_merchants_location ON merchants USING GIST(location); -- Spatial index
 
 -- Connections table (INTEGER)
 CREATE TABLE connections (
@@ -229,3 +231,7 @@ CREATE TRIGGER update_user_public_keys_updated_at BEFORE UPDATE ON user_public_k
 
 CREATE TRIGGER update_firmwares_updated_at BEFORE UPDATE ON firmwares
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Helper functions for creating PostGIS POINTs from x, y coordinates
+-- Usage: ST_SetSRID(ST_MakePoint(x, y), 4326)
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
