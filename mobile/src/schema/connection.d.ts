@@ -1,13 +1,9 @@
 // Auto-generated from Rust schema: connection.rs
 
-export interface ObjectId {
-  $oid: string
-}
-
 export interface Connection {
-  _id: ObjectId
+  _id: string
   /** Reference to the Entity */
-  entity: ObjectId
+  entity: string
   name: string
   description: string | null
   type: ConnectionType
@@ -21,7 +17,7 @@ export interface Connection {
    * If the connection is a rail or shuttle, the coordinates would represent the
    * position of the rail or shuttle stop in the first area.
    */
-  connected_areas: [ObjectId, number, number][]
+  connected_areas: [string, number, number, boolean][]
   /** List of `[start_time, end_time]` in milliseconds on a 24-hour clock */
   available_period: [number, number][]
   tags: string[]

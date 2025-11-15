@@ -68,12 +68,12 @@ async function loadConnection() {
         description: connection.description || '',
         type: connection.type,
         connected_areas: connection.connected_areas.map((ca: any) => [
-          ca[0].$oid,
+          ca[0],
           ca[1],
           ca[2]
         ]) as [string, number, number][],
         connected_areas_input: JSON.stringify(connection.connected_areas.map((ca: any) => [
-          ca[0].$oid,
+          ca[0],
           ca[1],
           ca[2]
         ])),

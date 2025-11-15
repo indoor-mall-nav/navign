@@ -26,7 +26,7 @@ const areas = ref<AreaDetails[]>([])
 const merchants = ref<Merchant[]>([])
 const beacons = ref<MapBeacon[]>([])
 
-const entityId = computed(() => session.entity?._id?.$oid || '')
+const entityId = computed(() => session.entity?._id || '')
 const entityName = computed(() => session.entity?.name || 'Entity')
 
 onMounted(async () => {
@@ -81,8 +81,8 @@ function navigateToArea(areaId: string) {
   const area = areas.value.find((a) => a._id === areaId)
   if (area) {
     session.area = {
-      _id: { $oid: area._id },
-      entity: { $oid: area.entity },
+      _id: area._id,
+      entity: area.entity,
       name: area.name,
       description: area.description,
       beacon_code: area.beacon_code,
@@ -96,7 +96,7 @@ function navigateToArea(areaId: string) {
 }
 
 function getMerchantsInArea(areaId: string): Merchant[] {
-  return merchants.value.filter((m) => m.area.$oid === areaId)
+  return merchants.value.filter((m) => m.area === areaId)
 }
 
 function getBeaconsInArea(areaId: string): MapBeacon[] {

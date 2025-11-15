@@ -19,7 +19,7 @@ const error = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const areaToDelete = ref<Area | null>(null)
 
-const entityId = computed(() => route.query.entity as string || session.entity?._id?.$oid || '')
+const entityId = computed(() => route.query.entity as string || session.entity?._id || '')
 
 onMounted(async () => {
   await loadAreas()
@@ -57,7 +57,7 @@ function navigateToEdit(area: Area) {
     name: 'admin-areas-form',
     query: {
       entity: entityId.value,
-      id: area._id.$oid
+      id: area._id
     }
   })
 }
@@ -76,7 +76,7 @@ async function confirmDelete() {
   try {
     const response = await deleteArea(
       entityId.value,
-      areaToDelete.value._id.$oid,
+      areaToDelete.value._id,
       session.userToken || ''
     )
     if (response.status === 'success') {
@@ -138,7 +138,7 @@ function getFloorBadgeVariant(floorType: string | undefined) {
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="area in areas" :key="area._id.$oid" class="hover:shadow-lg transition-shadow">
+      <Card v-for="area in areas" :key="area._id" class="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">

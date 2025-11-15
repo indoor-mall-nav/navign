@@ -1,11 +1,7 @@
 // Auto-generated from Rust schema: entity.rs
 
-export interface ObjectId {
-  $oid: string
-}
-
 export interface Entity {
-  _id: ObjectId
+  _id: string
   type: EntityType
   name: string
   description: string | null
