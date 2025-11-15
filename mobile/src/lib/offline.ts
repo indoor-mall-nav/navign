@@ -63,8 +63,11 @@ export function useOffline() {
         // TODO: Implement action handlers
         void info(`Offline queue: processing ${item.action}`)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        void warn(`Offline queue: failed to process ${item.action}: ${errorMessage}`)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        void warn(
+          `Offline queue: failed to process ${item.action}: ${errorMessage}`,
+        )
         // Re-queue failed actions
         offlineQueue.value.push(item)
       }
@@ -101,7 +104,8 @@ export function useOffline() {
       // TODO: Implement cache storage using Tauri SQLite
       void info(`Cache: stored ${key}`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       void warn(`Cache: failed to store ${key}: ${errorMessage}`)
     }
   }
@@ -114,7 +118,8 @@ export function useOffline() {
       // TODO: Implement cache retrieval using Tauri SQLite
       return null
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       void warn(`Cache: failed to retrieve ${_key}: ${errorMessage}`)
       return null
     }
@@ -128,7 +133,8 @@ export function useOffline() {
       // TODO: Implement cache clearing using Tauri SQLite
       void info('Cache: cleared all resources')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       void warn(`Cache: failed to clear: ${errorMessage}`)
     }
   }
