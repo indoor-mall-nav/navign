@@ -39,9 +39,10 @@ impl Packetize<1> for DeviceTypes {
             .expect("DeviceTypes exceeds 1-byte buffer capacity")
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 1>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 1>, crate::PacketizeError> {
         let mut vec = heapless::Vec::<u8, 1>::new();
-        vec.push(self.bits()).map_err(|_| ())?;
+        vec.push(self.bits())
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }

@@ -3,7 +3,7 @@ pub trait Packetize<const N: usize> {
     fn packetize(&self) -> heapless::Vec<u8, N>;
 
     /// Try to packetize, returning an error if buffer capacity is exceeded
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, crate::PacketizeError> {
         Ok(self.packetize())
     }
 
@@ -95,9 +95,10 @@ impl<const N: usize> Packetize<N> for [u8] {
             .expect("Buffer capacity exceeded during packetization")
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, N>, crate::PacketizeError> {
         let mut vec = heapless::Vec::<u8, N>::new();
-        vec.extend_from_slice(self).map_err(|_| ())?;
+        vec.extend_from_slice(self)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }

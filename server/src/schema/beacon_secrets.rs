@@ -98,6 +98,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires MongoDB running on localhost:27017"]
     async fn test_increment_counter() {
         let mut beacon = BeaconSecrets::new("AA:BB:CC:DD:EE:FF".to_string(), "".to_string());
         let counter = 0;

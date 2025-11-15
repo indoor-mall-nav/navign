@@ -41,15 +41,18 @@ impl Packetize<104> for Proof {
             .expect("Proof exceeds 104-byte buffer capacity")
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 104>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 104>, crate::PacketizeError> {
         let mut vec = heapless::Vec::<u8, 104>::new();
-        vec.extend_from_slice(&self.nonce).map_err(|_| ())?;
-        vec.extend_from_slice(&self.device_bytes).map_err(|_| ())?;
-        vec.extend_from_slice(&self.verify_bytes).map_err(|_| ())?;
+        vec.extend_from_slice(&self.nonce)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+        vec.extend_from_slice(&self.device_bytes)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+        vec.extend_from_slice(&self.verify_bytes)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         vec.extend_from_slice(&self.timestamp.to_be_bytes())
-            .map_err(|_| ())?;
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         vec.extend_from_slice(&self.server_signature)
-            .map_err(|_| ())?;
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }

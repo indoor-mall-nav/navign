@@ -57,9 +57,10 @@ impl Packetize<16> for Nonce {
             .expect("Nonce exceeds 16-byte buffer capacity")
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 16>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 16>, crate::PacketizeError> {
         let mut vec = heapless::Vec::<u8, 16>::new();
-        vec.extend_from_slice(&self.0).map_err(|_| ())?;
+        vec.extend_from_slice(&self.0)
+            .map_err(|_| crate::PacketizeError::BufferOverflow)?;
         Ok(vec)
     }
 }

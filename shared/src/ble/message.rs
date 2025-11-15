@@ -52,42 +52,53 @@ impl Packetize<128> for BleMessage {
             .expect("BLE message exceeds 128-byte buffer capacity")
     }
 
-    fn try_packetize(&self) -> Result<heapless::Vec<u8, 128>, ()> {
+    fn try_packetize(&self) -> Result<heapless::Vec<u8, 128>, crate::PacketizeError> {
         let mut vec = heapless::Vec::<u8, 128>::new();
         match self {
             BleMessage::DeviceRequest => {
-                vec.push(DEVICE_REQUEST).map_err(|_| ())?;
+                vec.push(DEVICE_REQUEST)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
             BleMessage::DeviceResponse(device_types, device_capabilities, object_id_segment) => {
-                vec.push(DEVICE_RESPONSE).map_err(|_| ())?;
+                vec.push(DEVICE_RESPONSE)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
                 vec.extend_from_slice(&device_types.packetize())
-                    .map_err(|_| ())?;
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
                 vec.extend_from_slice(&device_capabilities.packetize())
-                    .map_err(|_| ())?;
-                vec.extend_from_slice(object_id_segment).map_err(|_| ())?;
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+                vec.extend_from_slice(object_id_segment)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
             BleMessage::NonceRequest => {
-                vec.push(NONCE_REQUEST).map_err(|_| ())?;
+                vec.push(NONCE_REQUEST)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
             BleMessage::NonceResponse(nonce, verify_bytes) => {
-                vec.push(NONCE_RESPONSE).map_err(|_| ())?;
-                vec.extend_from_slice(nonce).map_err(|_| ())?;
-                vec.extend_from_slice(verify_bytes).map_err(|_| ())?;
+                vec.push(NONCE_RESPONSE)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+                vec.extend_from_slice(nonce)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+                vec.extend_from_slice(verify_bytes)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
             BleMessage::UnlockRequest(proof) => {
-                vec.push(UNLOCK_REQUEST).map_err(|_| ())?;
+                vec.push(UNLOCK_REQUEST)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
                 let proof_packet = proof.packetize();
-                vec.extend_from_slice(&proof_packet).map_err(|_| ())?;
+                vec.extend_from_slice(&proof_packet)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
             BleMessage::UnlockResponse(success, error) => {
-                vec.push(UNLOCK_RESPONSE).map_err(|_| ())?;
+                vec.push(UNLOCK_RESPONSE)
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
                 vec.push(if *success {
                     UNLOCK_SUCCESS
                 } else {
                     UNLOCK_FAILURE
                 })
-                .map_err(|_| ())?;
-                vec.extend_from_slice(&error.packetize()).map_err(|_| ())?;
+                .map_err(|_| crate::PacketizeError::BufferOverflow)?;
+                vec.extend_from_slice(&error.packetize())
+                    .map_err(|_| crate::PacketizeError::BufferOverflow)?;
             }
         }
         Ok(vec)

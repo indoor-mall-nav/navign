@@ -9,6 +9,13 @@ compile_error!("Either feature 'heapless' or 'alloc' must be enabled.");
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+/// Error type for packetization operations
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PacketizeError {
+    /// Buffer capacity exceeded
+    BufferOverflow,
+}
+
 pub mod constants;
 pub mod errors;
 
