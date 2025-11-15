@@ -107,7 +107,7 @@ The beacon's private key resides in ESP32-C3 efuse `BLOCK_KEY0`. Efuses are one-
 
 **Key Programming Procedure:**
 
-The `maintenance-tool` utility programs keys during beacon initialization:
+The `admin/maintenance` utility programs keys during beacon initialization:
 1. Generate 32-byte P-256 private key
 2. Write key to efuse `BLOCK_KEY0`
 3. Set read protection bits

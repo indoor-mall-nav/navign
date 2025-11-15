@@ -1,13 +1,30 @@
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use p256::SecretKey;
 use p256::elliptic_curve::rand_core::OsRng;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::{PublicKey, SecretKey};
+use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+// Include generated protobuf code
+pub mod proto {
+    pub mod navign {
+        pub mod orchestrator {
+            pub mod sync {
+                tonic::include_proto!("navign.orchestrator.sync");
+            }
+        }
+    }
+}
+
+use proto::navign::orchestrator::sync::{
+    BeaconLocation, BeaconRegistrationRequest, Location,
+    orchestrator_sync_client::OrchestratorSyncClient,
+};
 
 #[derive(Parser)]
 #[command(name = "esp32c3-efuse")]
@@ -40,6 +57,73 @@ enum Commands {
         /// Dry run - generate and store key but don't fuse
         #[arg(long)]
         dry_run: bool,
+
+        /// Register beacon with orchestrator after key generation
+        #[arg(long)]
+        register: bool,
+
+        /// Orchestrator address (e.g., http://localhost:50051)
+        #[arg(long, default_value = "http://localhost:50051")]
+        orchestrator_addr: String,
+
+        /// Entity ID for beacon registration
+        #[arg(long)]
+        entity_id: Option<String>,
+
+        /// Device ID (24-character hex string, auto-generated if not provided)
+        #[arg(long)]
+        device_id: Option<String>,
+
+        /// Device type (Merchant, Pathway, Connection, Turnstile)
+        #[arg(long, default_value = "Pathway")]
+        device_type: String,
+
+        /// Firmware version
+        #[arg(long, default_value = "0.1.0")]
+        firmware_version: String,
+
+        /// Hardware revision
+        #[arg(long, default_value = "v1.0")]
+        hardware_revision: String,
+
+        /// Area ID where beacon is located
+        #[arg(long)]
+        area_id: Option<String>,
+    },
+
+    /// Register an existing beacon with the orchestrator
+    RegisterBeacon {
+        /// Path to key metadata JSON file
+        #[arg(short, long)]
+        metadata: PathBuf,
+
+        /// Orchestrator address (e.g., http://localhost:50051)
+        #[arg(long, default_value = "http://localhost:50051")]
+        orchestrator_addr: String,
+
+        /// Entity ID for beacon registration
+        #[arg(short, long)]
+        entity_id: String,
+
+        /// Device ID (24-character hex string, read from metadata if not provided)
+        #[arg(long)]
+        device_id: Option<String>,
+
+        /// Device type (Merchant, Pathway, Connection, Turnstile)
+        #[arg(long, default_value = "Pathway")]
+        device_type: String,
+
+        /// Firmware version
+        #[arg(long, default_value = "0.1.0")]
+        firmware_version: String,
+
+        /// Hardware revision
+        #[arg(long, default_value = "v1.0")]
+        hardware_revision: String,
+
+        /// Area ID where beacon is located
+        #[arg(long)]
+        area_id: Option<String>,
     },
 }
 
@@ -53,7 +137,8 @@ struct KeyMetadata {
     chip_info: Option<String>,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
@@ -63,8 +148,92 @@ fn main() -> Result<()> {
             force,
             port,
             dry_run,
+            register,
+            orchestrator_addr,
+            entity_id,
+            device_id,
+            device_type,
+            firmware_version,
+            hardware_revision,
+            area_id,
         } => {
-            fuse_private_key(output_dir, key_name, *force, port.as_deref(), *dry_run)?;
+            let (metadata_path, public_key) =
+                fuse_private_key(output_dir, key_name, *force, port.as_deref(), *dry_run)?;
+
+            // Register beacon if requested
+            if *register {
+                if entity_id.is_none() {
+                    bail!("--entity-id is required when --register is specified");
+                }
+
+                println!("\n📡 Step 5: Registering beacon with orchestrator...");
+
+                // Generate device_id if not provided
+                let device_id = device_id.clone().unwrap_or_else(|| {
+                    let mut rng = rand::thread_rng();
+                    let bytes: [u8; 12] = rand::Rng::r#gen(&mut rng);
+                    hex::encode(bytes)
+                });
+
+                register_beacon_with_orchestrator(
+                    orchestrator_addr,
+                    entity_id.as_ref().unwrap(),
+                    &device_id,
+                    device_type,
+                    &public_key,
+                    firmware_version,
+                    hardware_revision,
+                    area_id.as_deref(),
+                    vec!["UnlockGate".to_string()], // Default capability
+                )
+                .await?;
+
+                println!("✅ Beacon successfully registered with orchestrator!");
+                println!("   Device ID: {}", device_id);
+            }
+        }
+
+        Commands::RegisterBeacon {
+            metadata,
+            orchestrator_addr,
+            entity_id,
+            device_id,
+            device_type,
+            firmware_version,
+            hardware_revision,
+            area_id,
+        } => {
+            println!("📡 Registering existing beacon with orchestrator...");
+
+            // Read metadata file
+            let metadata_content =
+                std::fs::read_to_string(metadata).context("Failed to read metadata file")?;
+            let key_metadata: KeyMetadata =
+                serde_json::from_str(&metadata_content).context("Failed to parse metadata JSON")?;
+
+            // Use device_id from args or generate new one
+            let device_id = device_id.clone().unwrap_or_else(|| {
+                let mut rng = rand::thread_rng();
+                let bytes: [u8; 12] = rand::Rng::r#gen(&mut rng);
+                hex::encode(bytes)
+            });
+
+            register_beacon_with_orchestrator(
+                orchestrator_addr,
+                entity_id,
+                &device_id,
+                device_type,
+                &key_metadata.public_key_hex,
+                firmware_version,
+                hardware_revision,
+                area_id.as_deref(),
+                vec!["UnlockGate".to_string()], // Default capability
+            )
+            .await?;
+
+            println!("✅ Beacon successfully registered!");
+            println!("   Entity ID: {}", entity_id);
+            println!("   Device ID: {}", device_id);
         }
     }
 
@@ -77,7 +246,7 @@ fn fuse_private_key(
     force: bool,
     port: Option<&str>,
     dry_run: bool,
-) -> Result<()> {
+) -> Result<(PathBuf, String)> {
     println!("🔑 ESP32-C3 eFuse Private Key Management");
     println!("==========================================");
 
@@ -189,7 +358,9 @@ fn fuse_private_key(
     println!("   Metadata file: {}", metadata_path.display());
     println!("   eFuse status: PROGRAMMED");
 
-    Ok(())
+    // Return metadata path and public key hex for optional registration
+    let public_key_hex = hex::encode(public_key.to_encoded_point(false).as_bytes());
+    Ok((metadata_path, public_key_hex))
 }
 
 fn check_espefuse_command() -> Result<()> {
@@ -288,4 +459,87 @@ fn fuse_key_to_efuse(key_file: &Path, port: Option<&str>) -> Result<()> {
         let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("Failed to burn key to eFuse: {}", stderr);
     }
+}
+
+/// Register beacon with orchestrator via gRPC
+async fn register_beacon_with_orchestrator(
+    orchestrator_addr: &str,
+    entity_id: &str,
+    device_id: &str,
+    device_type: &str,
+    public_key_hex: &str,
+    firmware_version: &str,
+    hardware_revision: &str,
+    area_id: Option<&str>,
+    capabilities: Vec<String>,
+) -> Result<()> {
+    // Convert hex public key to PEM format
+    let public_key_bytes =
+        hex::decode(public_key_hex).context("Failed to decode public key hex")?;
+
+    let public_key =
+        PublicKey::from_sec1_bytes(&public_key_bytes).context("Failed to parse public key")?;
+
+    let public_key_pem = pem::encode(&pem::Pem::new(
+        "PUBLIC KEY".to_string(),
+        public_key.to_sec1_bytes().to_vec(),
+    ));
+
+    // Connect to orchestrator
+    println!("   Connecting to orchestrator at {}...", orchestrator_addr);
+    let mut client = OrchestratorSyncClient::connect(orchestrator_addr.to_string())
+        .await
+        .context("Failed to connect to orchestrator")?;
+
+    println!("   Connected successfully!");
+
+    // Prepare beacon registration request
+    let request = tonic::Request::new(BeaconRegistrationRequest {
+        entity_id: entity_id.to_string(),
+        device_id: device_id.to_string(),
+        device_type: device_type.to_string(),
+        capabilities,
+        public_key: public_key_pem,
+        firmware_version: firmware_version.to_string(),
+        hardware_revision: hardware_revision.to_string(),
+        location: area_id.map(|aid| BeaconLocation {
+            area_id: aid.to_string(),
+            coordinates: Some(Location {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                floor: String::new(),
+            }),
+        }),
+        registered_at: Some(Timestamp::from(std::time::SystemTime::now())),
+    });
+
+    println!("   Sending beacon registration request...");
+    let response = client
+        .register_beacon(request)
+        .await
+        .context("Failed to register beacon")?;
+
+    let beacon_response = response.into_inner();
+
+    if beacon_response.approved {
+        println!("   ✅ Beacon approved by orchestrator");
+        println!("      Beacon ID: {}", beacon_response.beacon_id);
+        println!("      Entity ID: {}", beacon_response.entity_id);
+        println!(
+            "      Sync interval: {} seconds",
+            beacon_response.sync_interval_seconds
+        );
+
+        if beacon_response.firmware_update_available {
+            println!("      ⚠️  Firmware update available");
+            if let Some(firmware) = beacon_response.latest_firmware {
+                println!("         Latest version: {}", firmware.version);
+            }
+        }
+    } else {
+        bail!("Beacon registration was not approved by orchestrator");
+    }
+
+    Ok(())
 }
