@@ -19,11 +19,9 @@ CAMERA_HEIGHT = 480
 
 # Camera intrinsic parameters (obtained from calibrate.py)
 # These are example values - run calibrate.py to get your actual values
-CAMERA_MATRIX = np.array([
-    [800.0, 0.0, 320.0],
-    [0.0, 800.0, 240.0],
-    [0.0, 0.0, 1.0]
-], dtype=np.float32)
+CAMERA_MATRIX = np.array(
+    [[800.0, 0.0, 320.0], [0.0, 800.0, 240.0], [0.0, 0.0, 1.0]], dtype=np.float32
+)
 
 # Distortion coefficients (k1, k2, p1, p2, k3)
 DIST_COEFFS = np.array([0.1, -0.2, 0.0, 0.0, 0.0], dtype=np.float32)

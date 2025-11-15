@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 # Import vision modules
-from detection import model, K, dist, Z0
+from detection import model, Z0
 from objects import detect_objects
 from locate import get_camera_pose, get_point_3d_place
 from finger import get_finger_direction
@@ -23,6 +23,7 @@ from finger import get_finger_direction
 # Optional: Import config if you created one
 try:
     import config
+
     CAMERA_INDEX = config.CAMERA_INDEX
     DETECTION_CONFIDENCE = config.DETECTION_CONFIDENCE
     ENABLE_VISUALIZATION = config.ENABLE_VISUALIZATION
@@ -52,20 +53,28 @@ def example_basic_detection():
             # Print detected objects
             for u, v, name, conf in objects:
                 if conf >= DETECTION_CONFIDENCE:
-                    print(f"Detected: {name} at ({u:.0f}, {v:.0f}) - Confidence: {conf:.2f}")
+                    print(
+                        f"Detected: {name} at ({u:.0f}, {v:.0f}) - Confidence: {conf:.2f}"
+                    )
 
                     # Draw bounding box
                     if ENABLE_VISUALIZATION:
                         cv2.circle(frame, (int(u), int(v)), 5, (0, 255, 0), -1)
-                        cv2.putText(frame, f"{name} {conf:.2f}",
-                                  (int(u), int(v) - 10),
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        cv2.putText(
+                            frame,
+                            f"{name} {conf:.2f}",
+                            (int(u), int(v) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 255, 0),
+                            2,
+                        )
 
             if ENABLE_VISUALIZATION:
                 cv2.imshow("Object Detection", frame)
 
             # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
@@ -90,14 +99,16 @@ def example_pose_estimation():
             camera_pos, R = get_camera_pose(frame)
 
             if camera_pos is not None:
-                print(f"Camera position: X={camera_pos[0]:.3f}m, "
-                      f"Y={camera_pos[1]:.3f}m, Z={camera_pos[2]:.3f}m")
+                print(
+                    f"Camera position: X={camera_pos[0]:.3f}m, "
+                    f"Y={camera_pos[1]:.3f}m, Z={camera_pos[2]:.3f}m"
+                )
 
             if ENABLE_VISUALIZATION:
                 cv2.imshow("AprilTag Pose Estimation", frame)
 
             # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
@@ -125,7 +136,7 @@ def example_3d_localization():
                 print("Camera pose not available, need AprilTags in view")
                 if ENABLE_VISUALIZATION:
                     cv2.imshow("3D Localization", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
 
@@ -140,30 +151,34 @@ def example_3d_localization():
                 # Convert 2D image point to 3D world coordinates
                 point_2d = np.array([[[u, v]]], dtype=np.float32)
                 point_3d = get_point_3d_place(
-                    point_2d,
-                    Z0=Z0,
-                    camera_pos=camera_pos,
-                    R=R
+                    point_2d, Z0=Z0, camera_pos=camera_pos, R=R
                 )
 
                 if point_3d is not None:
-                    print(f"{name}: 3D position = "
-                          f"X={point_3d[0]:.2f}m, "
-                          f"Y={point_3d[1]:.2f}m, "
-                          f"Z={point_3d[2]:.2f}m")
+                    print(
+                        f"{name}: 3D position = "
+                        f"X={point_3d[0]:.2f}m, "
+                        f"Y={point_3d[1]:.2f}m, "
+                        f"Z={point_3d[2]:.2f}m"
+                    )
 
                     if ENABLE_VISUALIZATION:
                         cv2.circle(frame, (int(u), int(v)), 5, (255, 0, 0), -1)
-                        cv2.putText(frame,
-                                  f"{name} ({point_3d[0]:.1f}, {point_3d[1]:.1f})",
-                                  (int(u), int(v) - 10),
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 1)
+                        cv2.putText(
+                            frame,
+                            f"{name} ({point_3d[0]:.1f}, {point_3d[1]:.1f})",
+                            (int(u), int(v) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.4,
+                            (255, 0, 0),
+                            1,
+                        )
 
             if ENABLE_VISUALIZATION:
                 cv2.imshow("3D Localization", frame)
 
             # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
@@ -191,7 +206,7 @@ def example_finger_pointing():
                 print("Camera pose not available, need AprilTags in view")
                 if ENABLE_VISUALIZATION:
                     cv2.imshow("Finger Pointing", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
 
@@ -199,15 +214,17 @@ def example_finger_pointing():
             directions = get_finger_direction(frame, Z0, camera_pos, R)
 
             for direction, base in directions:
-                print(f"Pointing direction: [{direction[0]:.2f}, "
-                      f"{direction[1]:.2f}, {direction[2]:.2f}]")
+                print(
+                    f"Pointing direction: [{direction[0]:.2f}, "
+                    f"{direction[1]:.2f}, {direction[2]:.2f}]"
+                )
                 print(f"From position: [{base[0]:.2f}, {base[1]:.2f}, {base[2]:.2f}]")
 
             if ENABLE_VISUALIZATION:
                 cv2.imshow("Finger Pointing", frame)
 
             # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
@@ -235,7 +252,7 @@ def example_integrated_scene_understanding():
             if camera_pos is None or R is None:
                 if ENABLE_VISUALIZATION:
                     cv2.imshow("Scene Understanding", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 continue
 
@@ -274,14 +291,16 @@ def example_integrated_scene_understanding():
                     # If pointing roughly towards the object (within 30 degrees)
                     if angle_deg < 30:
                         distance = np.linalg.norm(to_object)
-                        print(f"👉 Pointing at: {name} "
-                              f"(distance: {distance:.2f}m, confidence: {conf:.2f})")
+                        print(
+                            f"👉 Pointing at: {name} "
+                            f"(distance: {distance:.2f}m, confidence: {conf:.2f})"
+                        )
 
             if ENABLE_VISUALIZATION:
                 cv2.imshow("Scene Understanding", frame)
 
             # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
@@ -300,9 +319,9 @@ if __name__ == "__main__":
         "5": ("Integrated Scene Understanding", example_integrated_scene_understanding),
     }
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Robot Vision Module - Example Usage")
-    print("="*60)
+    print("=" * 60)
     print("\nAvailable examples:")
     for key, (name, _) in examples.items():
         print(f"  {key}. {name}")

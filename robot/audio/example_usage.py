@@ -20,6 +20,7 @@ from play import play_audio
 # Optional: Import config if you created one
 try:
     import config
+
     DEBUG_MODE = config.DEBUG_MODE
     LOG_RECOGNITION_RESULTS = config.LOG_RECOGNITION_RESULTS
     ENABLE_PLAYBACK = config.ENABLE_PLAYBACK
@@ -33,7 +34,7 @@ except ImportError:
 def example_wake_word_detection():
     """Example 1: Wake word detection only."""
     print("=== Example 1: Wake Word Detection ===")
-    print(f"Listening for wake word... (Press Ctrl+C to stop)")
+    print("Listening for wake word... (Press Ctrl+C to stop)")
     print("Say the wake word to trigger detection.\n")
 
     try:
@@ -61,7 +62,7 @@ def example_speech_recognition():
         while True:
             user_input = input("Press Enter to record (or 'q' to quit): ").strip()
 
-            if user_input.lower() == 'q':
+            if user_input.lower() == "q":
                 break
 
             print("🎤 Recording... (speak now, will auto-stop after silence)")
@@ -90,7 +91,7 @@ def example_text_to_speech():
         while True:
             text = input("Enter text: ").strip()
 
-            if text.lower() == 'q':
+            if text.lower() == "q":
                 break
 
             if not text:
@@ -112,7 +113,7 @@ def example_text_to_speech():
 def example_wake_word_and_recognition():
     """Example 4: Wake word detection followed by speech recognition."""
     print("=== Example 4: Wake Word + Speech Recognition ===")
-    print(f"Listening for wake word... (Press Ctrl+C to stop)")
+    print("Listening for wake word... (Press Ctrl+C to stop)")
     print("Say the wake word, then speak your command.\n")
 
     try:
@@ -148,7 +149,7 @@ def example_wake_word_and_recognition():
 def example_interactive_assistant():
     """Example 5: Interactive voice assistant with responses."""
     print("=== Example 5: Interactive Voice Assistant ===")
-    print(f"Listening for wake word... (Press Ctrl+C to stop)")
+    print("Listening for wake word... (Press Ctrl+C to stop)")
     print("Say the wake word, ask a question, and get a response.\n")
 
     # Simple response generator (replace with your LLM integration)
@@ -181,7 +182,7 @@ def example_interactive_assistant():
             keyword_index = porcupine.process(pcm)
 
             if keyword_index >= 0:
-                print(f"✓ Wake word detected!")
+                print("✓ Wake word detected!")
 
                 if ENABLE_PLAYBACK:
                     play_audio("Yes?")
@@ -234,7 +235,7 @@ def example_continuous_listening():
 
             # Only print non-empty transcriptions
             if transcription.strip():
-                timestamp = time.strftime('%H:%M:%S')
+                timestamp = time.strftime("%H:%M:%S")
                 print(f"[{timestamp}] {transcription}")
 
     except KeyboardInterrupt:
@@ -281,9 +282,9 @@ if __name__ == "__main__":
         "7": ("Audio Feedback", example_audio_feedback),
     }
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Robot Audio Module - Example Usage")
-    print("="*60)
+    print("=" * 60)
     print("\nAvailable examples:")
     for key, (name, _) in examples.items():
         print(f"  {key}. {name}")

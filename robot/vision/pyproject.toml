@@ -1,7 +1,6 @@
 [project]
 dependencies = [
   "eclipse-zenoh>=1.6.2",
-  "mediapipe>=0.10.14",
   "opencv-contrib-python>=4.12.0.88",
   "pillow>=12.0.0",
   "pupil-apriltags>=1.0.4.post11",
