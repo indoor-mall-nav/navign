@@ -110,7 +110,10 @@ pub async fn register_pg_handler(
         }
 
         // Check if email already exists
-        match collection.find_one(bson::doc! { "email": &request.email }).await {
+        match collection
+            .find_one(bson::doc! { "email": &request.email })
+            .await
+        {
             Ok(Some(_)) => {
                 return Ok((
                     StatusCode::CONFLICT,

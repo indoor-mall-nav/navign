@@ -322,7 +322,10 @@ pub async fn get_beacon_by_id(
                 let beacon = pg_beacon_to_beacon(pg_beacon);
                 Ok(Json(beacon))
             }
-            None => Err(ServerError::NotFound(format!("Beacon {} not found", beacon_id))),
+            None => Err(ServerError::NotFound(format!(
+                "Beacon {} not found",
+                beacon_id
+            ))),
         }
     } else {
         debug!("Using MongoDB for beacon lookup: {}", beacon_id);
@@ -546,9 +549,7 @@ pub async fn get_merchant_by_id(
 
         let merchant = Merchant::get_one_by_id(&state.db, &merchant_id)
             .await
-            .ok_or_else(|| {
-                ServerError::NotFound(format!("Merchant {} not found", merchant_id))
-            })?;
+            .ok_or_else(|| ServerError::NotFound(format!("Merchant {} not found", merchant_id)))?;
 
         Ok(Json(merchant))
     }

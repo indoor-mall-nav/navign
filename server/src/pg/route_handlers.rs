@@ -4,7 +4,7 @@
 //! for PostgreSQL, maintaining compatibility with the MongoDB implementation.
 
 use crate::error::{Result, ServerError};
-use crate::kernel::route::{route, ConnectivityLimits, RouteQuery};
+use crate::kernel::route::{ConnectivityLimits, RouteQuery, route};
 use crate::pg::adapters::*;
 use crate::pg::repository::*;
 use crate::schema::{Area, Connection, Entity, Merchant};
@@ -87,9 +87,7 @@ pub async fn find_route_pg(
         .bind(entity_uuid)
         .fetch_all(pg_pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch areas: {}", e))
-        })?;
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch areas: {}", e)))?;
 
         if pg_areas.is_empty() {
             return Ok((
@@ -109,9 +107,7 @@ pub async fn find_route_pg(
         .bind(entity_uuid)
         .fetch_all(pg_pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch connections: {}", e))
-        })?;
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch connections: {}", e)))?;
 
         if pg_connections.is_empty() {
             return Ok((
@@ -134,9 +130,7 @@ pub async fn find_route_pg(
         .bind(entity_uuid)
         .fetch_all(pg_pool.inner())
         .await
-        .map_err(|e| {
-            ServerError::DatabaseQuery(format!("Failed to fetch merchants: {}", e))
-        })?;
+        .map_err(|e| ServerError::DatabaseQuery(format!("Failed to fetch merchants: {}", e)))?;
 
         if pg_merchants.is_empty() {
             return Ok((

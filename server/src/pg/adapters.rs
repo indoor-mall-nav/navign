@@ -252,8 +252,8 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
         r#type: MerchantType::Other, // Would need mapping from string
         floor,
         location: (pg.location.x, pg.location.y),
-        business_hours: Vec::new(),  // Not in PostgreSQL schema
-        contact_info: Vec::new(),     // Not in PostgreSQL schema
+        business_hours: Vec::new(), // Not in PostgreSQL schema
+        contact_info: Vec::new(),   // Not in PostgreSQL schema
         created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
         updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
     }
