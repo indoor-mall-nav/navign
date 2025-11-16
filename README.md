@@ -21,20 +21,28 @@ This monorepo contains multiple interconnected components:
 navign/
 ├── server/              # Rust backend server with pathfinding & API
 ├── mobile/              # Vue + Tauri cross-platform mobile app
-├── beacon/              # ESP32-C3 BLE beacon firmware (Rust embedded)
+├── firmware/            # ESP32-C3 BLE beacon firmware (Rust embedded)
 ├── miniapp/             # WeChat Mini Program
-├── gesture_space/       # Computer vision gesture recognition (Python)
+├── robot/               # Robot upper layer (Rust + Python distributed system)
+│   ├── scheduler/       # Task coordination (Rust)
+│   ├── serial/          # UART bridge to STM32 (Rust)
+│   ├── network/         # Server communication (Rust)
+│   ├── vision/          # Computer vision (Python - YOLO, AprilTag, MediaPipe)
+│   ├── audio/           # Wake word & TTS (Python)
+│   ├── intelligence/    # AI/LLM scene description (Python)
+│   ├── lower/           # STM32F407 motor control (Rust Embassy)
+│   └── firmware/        # Raspberry Pi firmware (Rust)
 ├── animations/          # Manim animations for presentations (Python)
-├── presentation/        # Slidev presentation for GestureSpace project
+├── presentation/        # Slidev presentation
 ├── vision/              # Apple Vision Pro spatial computing app (Swift)
-├── robot/               # Robotics delivery system (empty/planned)
 ├── admin/
 │   ├── maintenance/     # ESP32-C3 key management CLI (Rust)
 │   ├── orchestrator/    # Robot task orchestration (Rust gRPC)
 │   ├── tower/           # Robot WebSocket server (Go)
 │   └── plot/            # Floor plan polygon extraction (Python)
-├── ts-schema/           # TypeScript schema generator (Rust NAPI)
+├── ts-schema/           # TypeScript schema generator (ts-rs)
 ├── shared/              # Shared Rust types (no_std compatible)
+│   └── pathfinding/     # A* and triangulation-based routing
 └── schematics/          # KiCad PCB designs for hardware
 ```
 
@@ -46,12 +54,12 @@ navign/
 
 High-performance Rust backend providing:
 
-- **Advanced Pathfinding**: Dijkstra-based algorithm with bump allocation for ultra-fast routing
+- **Advanced Pathfinding**: Dijkstra + A* with triangulation for non-Manhattan polygons
 - **Multi-floor Navigation**: Support for elevators, escalators, and stairs
 - **Beacon Authentication**: TOTP-based secure access control with P-256 ECDSA signatures
 - **RESTful API**: Full CRUD operations for entities, areas, merchants, beacons
 - **OAuth2 Integration**: GitHub, Google, WeChat authentication
-- **MongoDB Storage**: Document-based storage (planned PostgreSQL migration)
+- **Dual Database**: MongoDB (primary) + PostgreSQL (optional migration layer)
 
 **Tech Stack**: Axum, Tokio, MongoDB, JWT, P-256 ECDSA, TOTP, Bump allocation
 
@@ -68,7 +76,7 @@ Cross-platform indoor navigation app built with Vue.js and Tauri:
 
 **Tech Stack**: Vue 3, TypeScript, Tauri 2.0, Reka UI, Tailwind CSS 4, Pinia, MapLibre GL, Konva, SQLite
 
-#### 📡 **Beacon** (`beacon/`)
+#### 📡 **Firmware** (`firmware/`)
 
 Secure BLE beacon firmware for ESP32-C3 microcontrollers:
 
@@ -81,18 +89,19 @@ Secure BLE beacon firmware for ESP32-C3 microcontrollers:
 
 **Tech Stack**: Rust (embedded), ESP32-C3, BLE (bleps), P-256 ECDSA, DHT11
 
-#### 🖐️ **Gesture Space** (`gesture_space/`)
+#### 🤖 **Robot Upper Layer** (`robot/`)
 
-Advanced computer vision system for gesture-based control:
+Distributed control system for autonomous delivery robots:
 
-- **Hand Gesture Recognition**: MediaPipe-based finger tracking and gesture detection
-- **Object Detection**: YOLOv8 (Ultralytics) for environment understanding
-- **Voice Wake Word**: Porcupine wake word detection
-- **Speech Recognition**: Audio recording and recognition
-- **3D Localization**: Camera pose estimation and 3D point mapping
-- **AprilTag Detection**: Marker-based positioning and calibration
+- **Vision Service**: YOLOv12 object detection, AprilTag pose estimation, MediaPipe hand tracking
+- **Audio Service**: Porcupine wake word detection, Wav2Vec2 speech recognition, Edge TTS
+- **Intelligence Service**: Hybrid local (Qwen3-0.6B) + remote (GPT-4o/DeepSeek) LLM for accessibility
+- **Scheduler**: Task coordination and robot state management (Rust + Zenoh)
+- **Network Client**: HTTP client for server pathfinding API (Rust)
+- **Serial Bridge**: UART communication with STM32 lower controller (Rust + Postcard)
+- **Lower Controller**: STM32F407 motor control with Embassy async runtime
 
-**Tech Stack**: Python, MediaPipe, OpenCV, PyTorch, Ultralytics (YOLOv8), Porcupine, AprilTags
+**Tech Stack**: Rust (Tokio, Zenoh, Embassy), Python (MediaPipe, OpenCV, Transformers, OpenAI), Protocol Buffers
 
 #### 🎬 **Animations** (`animations/`)
 
@@ -146,23 +155,24 @@ ESP32-C3 key management and provisioning CLI:
 
 #### 🔄 **TypeScript Schema** (`ts-schema/`)
 
-Rust-to-TypeScript schema generator using N-API:
+Rust-to-TypeScript schema generator using ts-rs:
 
 - **Type Safety**: Automatic TypeScript definitions from Rust types
-- **Native Performance**: Rust-powered schema generation
-- **Cross-platform**: Supports macOS, Windows, Linux, WASM
+- **Compile-time Generation**: Types generated during Rust compilation
+- **Zero Runtime Cost**: Pure compile-time code generation
 
-**Tech Stack**: Rust, NAPI-RS, TypeScript
+**Tech Stack**: Rust, ts-rs, TypeScript
 
 #### 📚 **Shared** (`shared/`)
 
 Common types and utilities shared across Rust components:
 
 - **no_std Compatible**: Embedded-friendly with optional std support
-- **Feature Flags**: Configurable dependencies (heapless, serde, crypto, base64)
+- **Feature Flags**: Configurable dependencies (heapless, serde, crypto, mongodb, postgres, ts-rs)
 - **Cryptographic Primitives**: Shared crypto types for beacon/server communication
+- **Advanced Pathfinding**: A* inner-area routing, Dijkstra inter-area routing, triangulation for non-Manhattan polygons
 
-**Tech Stack**: Rust (no_std), Serde, P-256, HMAC, SHA-2
+**Tech Stack**: Rust (no_std), Serde, P-256, HMAC, SHA-2, Postcard
 
 #### 🤖 **Admin** (`admin/`)
 
@@ -246,19 +256,25 @@ pnpm tauri dev    # Tauri development with hot reload
 pnpm tauri build  # Production build
 ```
 
-#### Beacon (ESP32-C3)
+#### Firmware (ESP32-C3)
 
 ```bash
-cd beacon
+cd firmware
 cargo build --release
 # Flash to ESP32-C3 using espflash
 ```
 
-#### Gesture Space
+#### Robot (Vision/Audio/Intelligence Services)
 
 ```bash
-cd gesture_space
-uv run python main.py
+cd robot/vision
+uv run python service.py
+
+cd robot/audio
+uv run python service.py
+
+cd robot/intelligence
+uv run python service.py  # (Zenoh integration pending)
 ```
 
 #### Animations
@@ -302,12 +318,12 @@ cargo run -- fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
 
 ## 🗺️ Navigation Features
 
-- **Intelligent Pathfinding**: Optimized Dijkstra algorithm with bump allocation
+- **Advanced Pathfinding**: Dijkstra inter-area + A* inner-area with triangulation for non-Manhattan polygons
 - **Multi-floor Support**: Elevator, escalator, and stair routing
 - **Point-to-Point Navigation**: Coordinate-based and merchant-based routing
 - **Real-time Positioning**: BLE RSSI triangulation for <2m accuracy
 - **Area Connectivity Graph**: Dynamic graph generation for complex layouts
-- **Agent Instance Pattern**: Smart handling of single-entry areas
+- **Visibility Graph**: Optimal paths around irregular obstacles
 
 ## 🏪 Entity Management
 
@@ -332,18 +348,19 @@ Merchant types include:
 
 | Component        | Languages        | Key Technologies                     |
 |------------------|------------------|--------------------------------------|
-| Server           | Rust             | Axum, Tokio, MongoDB, JWT, P-256     |
+| Server           | Rust             | Axum, Tokio, MongoDB, PostgreSQL, JWT, P-256 |
 | Mobile           | TypeScript, Rust | Vue 3, Tauri 2.0, MapLibre GL, Konva |
-| Beacon           | Rust             | ESP32-C3, BLE, embedded-hal          |
+| Firmware         | Rust             | ESP32-C3, BLE, embedded-hal, P-256   |
+| Robot/Upper      | Rust, Python     | Tokio, Zenoh, Transformers, OpenAI, MediaPipe |
+| Robot/Lower      | Rust             | STM32F407, Embassy, defmt            |
 | Admin            | Rust, Go         | Tokio, Tonic, gRPC, Socket.IO, Protobuf |
-| Gesture Space    | Python           | MediaPipe, OpenCV, PyTorch, YOLOv8   |
 | Animations       | Python           | Manim, NumPy, SciPy                  |
 | Presentation     | Markdown, Vue    | Slidev, Mermaid                      |
 | Vision           | Swift            | SwiftUI, RealityKit, visionOS        |
 | Mini App         | TypeScript       | WeChat Mini Program SDK              |
 | Maintenance Tool | Rust             | Clap, P-256, esptool                 |
-| TS Schema        | Rust             | NAPI-RS                              |
-| Shared           | Rust             | no_std, Serde, P-256                 |
+| TS Schema        | Rust             | ts-rs                                |
+| Shared           | Rust             | no_std, Serde, P-256, Pathfinding    |
 | Docs             | Markdown         | VitePress                            |
 
 ## 📝 License
@@ -361,17 +378,22 @@ pull requests.
 
 For technical documentation, refer to individual component READMEs:
 
+- [CLAUDE.md - AI Assistant Development Guide](CLAUDE.md)
 - [Server Documentation](server/README.md)
 - [Mobile App Documentation](mobile/README.md)
-- [Beacon Documentation](beacon/README.md)
+- [Firmware Documentation](firmware/README.md)
+- [Robot Documentation](robot/README.md)
 - [TypeScript Schema Documentation](ts-schema/README.md)
-- [GestureSpace Presentation](presentation/README.md)
-- [Presentation Outline](PRESENTATION_OUTLINE.md)
+- [Presentation](presentation/README.md)
 
 ## 🎯 Roadmap
 
-- [ ] PostgreSQL migration (replace MongoDB)
-- [ ] Complete robot delivery system
+- [x] PostgreSQL migration layer (dual-database support)
+- [x] Robot upper layer components (Vision, Audio, Intelligence, Scheduler, Network, Serial)
+- [x] Advanced pathfinding with triangulation
+- [x] Intelligence service for accessibility (hybrid LLM)
+- [ ] Zenoh integration for robot components
+- [ ] Complete robot motor control logic
 - [ ] Enhanced gesture recognition models
 - [ ] Multi-language support expansion
 - [ ] Advanced analytics dashboard
