@@ -44,7 +44,8 @@ impl Scheduler {
     pub async fn new() -> Result<Self> {
         // Initialize Zenoh session
         info!("Initializing Zenoh session...");
-        let config = zenoh::Config::from_env().expect("Failed to load Zenoh config from environment");
+        let config =
+            zenoh::Config::from_env().expect("Failed to load Zenoh config from environment");
         let session = zenoh::open(config)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
