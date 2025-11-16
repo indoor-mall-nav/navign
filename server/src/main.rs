@@ -7,6 +7,7 @@ mod metrics;
 mod pg;
 mod schema;
 mod shared;
+mod state;
 
 use crate::error::{Result as ServerResult, ServerError};
 use crate::kernel::auth::{login_handler, register_handler};
@@ -21,6 +22,7 @@ use crate::schema::firmware::{
 };
 use crate::schema::service::OneInArea;
 use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
+use crate::state::AppState;
 use axum::extract::State;
 use axum::middleware;
 use axum::response::IntoResponse;
@@ -30,8 +32,6 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use bson::doc;
-use mongodb::Database;
-use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use std::sync::Arc;
@@ -59,15 +59,6 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
             (StatusCode::INTERNAL_SERVER_ERROR, "Unhealthy")
         }
     }
-}
-
-#[derive(Clone)]
-pub(crate) struct AppState {
-    db: Database,
-    #[allow(dead_code)] // PostgreSQL layer not yet integrated
-    pg_pool: Option<Arc<pg::PgPool>>,
-    private_key: SigningKey,
-    prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
 async fn cert(State(state): State<AppState>) -> Result<String, ServerError> {

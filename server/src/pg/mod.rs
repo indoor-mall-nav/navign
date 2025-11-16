@@ -1,3 +1,5 @@
+pub mod adapters;
+pub mod handlers;
 pub mod models;
 /// PostgreSQL migration layer
 ///
