@@ -16,17 +16,30 @@
 //!   MONGODB_DB_NAME   MongoDB database name (default: navign)
 //!   POSTGRES_URL      PostgreSQL connection string (required)
 
-use bson::oid::ObjectId;
 use bson::{Document, doc};
 use futures::TryStreamExt;
 use mongodb::Database as MongoDatabase;
-use navign_shared::schema::postgres::*;
 use navign_shared::*;
-use sqlx::postgres::PgPool;
 use sqlx::types::Uuid;
 use std::collections::HashMap;
 use std::env;
 use tracing::{error, info, warn};
+
+// Import from the library (lib.rs exports these modules)
+use navign_server::pg::adapters::*;
+use navign_server::pg::repository::*;
+use navign_server::pg::{PgPool, create_pool};
+
+/// Convert MerchantStyle enum to kebab-case string
+fn merchant_style_to_string(style: &MerchantStyle) -> String {
+    match style {
+        MerchantStyle::Store => "store".to_string(),
+        MerchantStyle::Kiosk => "kiosk".to_string(),
+        MerchantStyle::PopUp => "pop-up".to_string(),
+        MerchantStyle::FoodTruck => "food-truck".to_string(),
+        MerchantStyle::Room => "room".to_string(),
+    }
+}
 
 /// Migration statistics
 #[derive(Debug, Default)]
@@ -135,7 +148,7 @@ impl MigrationContext {
                 .bind(&entity.name)
                 .bind(&entity.nation)
                 .bind(&entity.city)
-                .fetch_optional(&self.pg_pool)
+                .fetch_optional(self.pg_pool.inner())
                 .await?;
 
                 if let Some((uuid,)) = existing {
@@ -145,33 +158,19 @@ impl MigrationContext {
                 }
             }
 
-            // Insert into PostgreSQL
-            let pg_id: Uuid = sqlx::query_scalar(
-                r#"
-                INSERT INTO entities (type, name, description, nation, region, city, address,
-                                     longitude_min, longitude_max, latitude_min, latitude_max, floors)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                RETURNING id
-                "#,
-            )
-            .bind(entity.r#type.to_string())
-            .bind(&entity.name)
-            .bind(&entity.description)
-            .bind(&entity.nation)
-            .bind(&entity.region)
-            .bind(&entity.city)
-            .bind(&entity.address)
-            .bind(entity.longitude_range.0)
-            .bind(entity.longitude_range.1)
-            .bind(entity.latitude_range.0)
-            .bind(entity.latitude_range.1)
-            .bind(sqlx::types::Json(&entity.floors))
-            .fetch_one(&self.pg_pool)
-            .await
-            .map_err(|e| {
+            // Convert MongoDB Entity to PostgreSQL Entity using adapter
+            let pg_entity = entity_to_pg_entity(entity.clone());
+
+            // Insert into PostgreSQL using repository
+            let repo = EntityRepository::new(self.pg_pool.clone());
+            let pg_id_str = repo.create(&pg_entity).await.map_err(|e| {
                 error!("Failed to insert entity '{}': {}", entity.name, e);
                 e
             })?;
+
+            // Parse UUID from string
+            let pg_id = Uuid::parse_str(&pg_id_str)
+                .map_err(|e| anyhow::anyhow!("Failed to parse UUID: {}", e))?;
 
             self.entity_id_map.insert(mongo_id, pg_id);
             stats.entities += 1;
@@ -202,7 +201,7 @@ impl MigrationContext {
                 let existing: Option<(Uuid,)> =
                     sqlx::query_as("SELECT id FROM users WHERE username = $1")
                         .bind(username)
-                        .fetch_optional(&self.pg_pool)
+                        .fetch_optional(self.pg_pool.inner())
                         .await?;
 
                 if let Some((uuid,)) = existing {
@@ -227,7 +226,7 @@ impl MigrationContext {
             .bind(doc.get_str("hashed_password")?)
             .bind(doc.get_bool("activated").unwrap_or(false))
             .bind(doc.get_bool("privileged").unwrap_or(false))
-            .fetch_one(&self.pg_pool)
+            .fetch_one(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert user '{}': {}", username, e);
@@ -250,7 +249,7 @@ impl MigrationContext {
 
         while let Some(area) = cursor.try_next().await? {
             let mongo_id = area.id.to_hex();
-            let entity_mongo_id = area.entity_id.to_hex();
+            let entity_mongo_id = area.entity.to_hex();
 
             // Get mapped entity UUID
             let entity_uuid = self
@@ -264,33 +263,20 @@ impl MigrationContext {
                 continue;
             }
 
-            // Calculate centroid from polygon
-            let centroid = if let Some(first_point) = area.polygon.first() {
-                format!("POINT({} {})", first_point.0, first_point.1)
-            } else {
-                "POINT(0 0)".to_string()
-            };
+            // Convert MongoDB Area to PostgreSQL Area using adapter
+            let pg_area = area_to_pg_area(area.clone(), *entity_uuid);
 
-            let pg_id: i32 = sqlx::query_scalar(
-                r#"
-                INSERT INTO areas (entity_id, name, description, floor, beacon_code, polygon, centroid)
-                VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromText($7, 4326))
-                RETURNING id
-                "#,
-            )
-            .bind(entity_uuid)
-            .bind(&area.name)
-            .bind(&area.description)
-            .bind(&area.floor.name)
-            .bind(&area.beacon_code)
-            .bind(sqlx::types::Json(&area.polygon))
-            .bind(&centroid)
-            .fetch_one(&self.pg_pool)
-            .await
-            .map_err(|e| {
+            // Insert into PostgreSQL using repository
+            let repo = AreaRepository::new(self.pg_pool.clone());
+            let pg_id_str = repo.create(&pg_area).await.map_err(|e| {
                 error!("Failed to insert area '{}': {}", area.name, e);
                 e
             })?;
+
+            // Parse i32 from string
+            let pg_id = pg_id_str
+                .parse::<i32>()
+                .map_err(|e| anyhow::anyhow!("Failed to parse area ID: {}", e))?;
 
             self.area_id_map.insert(mongo_id, pg_id);
             stats.areas += 1;
@@ -308,13 +294,13 @@ impl MigrationContext {
 
         while let Some(beacon) = cursor.try_next().await? {
             let mongo_id = beacon.id.to_hex();
-            let entity_uuid = self
+            let entity_uuid = *self
                 .entity_id_map
-                .get(&beacon.entity_id.to_hex())
+                .get(&beacon.entity.to_hex())
                 .ok_or_else(|| anyhow::anyhow!("Entity not found"))?;
-            let area_id = self
+            let area_id = *self
                 .area_id_map
-                .get(&beacon.area_id.to_hex())
+                .get(&beacon.area.to_hex())
                 .ok_or_else(|| anyhow::anyhow!("Area not found"))?;
 
             if self.dry_run {
@@ -325,43 +311,38 @@ impl MigrationContext {
 
             // Get merchant_id and connection_id if they exist
             let merchant_id = beacon
-                .merchant_id
+                .merchant
                 .as_ref()
                 .and_then(|oid| self.merchant_id_map.get(&oid.to_hex()).copied());
             let connection_id = beacon
-                .connection_id
+                .connection
                 .as_ref()
                 .and_then(|oid| self.connection_id_map.get(&oid.to_hex()).copied());
 
-            let location = format!("POINT({} {})", beacon.location.0, beacon.location.1);
+            // TODO: Get actual floor from area - for now use placeholder
+            let floor = "0".to_string();
 
-            let pg_id: i32 = sqlx::query_scalar(
-                r#"
-                INSERT INTO beacons (entity_id, area_id, merchant_id, connection_id, name, description,
-                                    type, device_id, floor, location, public_key, capabilities, unlock_method)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_GeomFromText($10, 4326), $11, $12, $13)
-                RETURNING id
-                "#,
-            )
-            .bind(entity_uuid)
-            .bind(area_id)
-            .bind(merchant_id)
-            .bind(connection_id)
-            .bind(&beacon.name)
-            .bind(&beacon.description)
-            .bind(beacon.r#type.to_string())
-            .bind(&beacon.device.device_id)
-            .bind(&beacon.floor)
-            .bind(&location)
-            .bind(&beacon.device.public_key)
-            .bind(sqlx::types::Json(&beacon.device.capabilities))
-            .bind(beacon.device.unlock_method.as_ref().map(|m| m.to_string()))
-            .fetch_one(&self.pg_pool)
-            .await
-            .map_err(|e| {
+            // Convert MongoDB Beacon to PostgreSQL Beacon using adapter
+            let pg_beacon = beacon_to_pg_beacon(
+                beacon.clone(),
+                entity_uuid,
+                area_id,
+                merchant_id,
+                connection_id,
+                floor,
+            );
+
+            // Insert into PostgreSQL using repository
+            let repo = BeaconRepository::new(self.pg_pool.clone());
+            let pg_id_str = repo.create(&pg_beacon).await.map_err(|e| {
                 error!("Failed to insert beacon '{}': {}", beacon.name, e);
                 e
             })?;
+
+            // Parse i32 from string
+            let pg_id = pg_id_str
+                .parse::<i32>()
+                .map_err(|e| anyhow::anyhow!("Failed to parse beacon ID: {}", e))?;
 
             self.beacon_id_map.insert(mongo_id, pg_id);
             stats.beacons += 1;
@@ -403,22 +384,22 @@ impl MigrationContext {
             let (type_str, merchant_style, food_type, food_cuisine, facility_type) =
                 match &merchant.r#type {
                     MerchantType::Food { cuisine, r#type } => (
-                        "Food",
-                        Some(merchant.style.to_string()),
+                        "Food".to_string(),
+                        Some(merchant_style_to_string(&merchant.style)),
                         Some(format!("{:?}", r#type)),
                         cuisine.as_ref().map(|c| format!("{:?}", c)),
                         None,
                     ),
                     MerchantType::Facility { r#type } => (
-                        "Facility",
-                        Some(merchant.style.to_string()),
+                        "Facility".to_string(),
+                        Some(merchant_style_to_string(&merchant.style)),
                         None,
                         None,
                         Some(format!("{:?}", r#type)),
                     ),
                     _ => (
-                        &merchant.r#type.to_string(),
-                        Some(merchant.style.to_string()),
+                        format!("{:?}", merchant.r#type),
+                        Some(merchant_style_to_string(&merchant.style)),
                         None,
                         None,
                         None,
@@ -453,7 +434,7 @@ impl MigrationContext {
             .bind(None::<f64>) // rating not in schema
             .bind(None::<i32>) // reviews not in schema
             .bind(sqlx::types::Json(&merchant.available_period))
-            .fetch_one(&self.pg_pool)
+            .fetch_one(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert merchant '{}': {}", merchant.name, e);
@@ -507,7 +488,7 @@ impl MigrationContext {
             .bind(&connection.description)
             .bind(connection.r#type.to_string())
             .bind(sqlx::types::Json(&connected_areas_pg))
-            .fetch_one(&self.pg_pool)
+            .fetch_one(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert connection '{}': {}", connection.name, e);
@@ -555,7 +536,7 @@ impl MigrationContext {
             )
             .bind(beacon_pg_id)
             .bind(private_key)
-            .execute(&self.pg_pool)
+            .execute(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert beacon secret for {}: {}", beacon_pg_id, e);
@@ -606,7 +587,7 @@ impl MigrationContext {
             .bind(public_key)
             .bind(device_id)
             .bind(device_name)
-            .execute(&self.pg_pool)
+            .execute(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert user public key for {}: {}", user_uuid, e);
@@ -640,7 +621,7 @@ impl MigrationContext {
                 let existing: Option<(i32,)> =
                     sqlx::query_as("SELECT id FROM firmwares WHERE version = $1")
                         .bind(version)
-                        .fetch_optional(&self.pg_pool)
+                        .fetch_optional(self.pg_pool.inner())
                         .await?;
 
                 if existing.is_some() {
@@ -663,7 +644,7 @@ impl MigrationContext {
             .bind(doc.get_str("checksum")?)
             .bind(doc.get_str("release_notes").ok())
             .bind(doc.get_bool("is_stable").unwrap_or(false))
-            .execute(&self.pg_pool)
+            .execute(self.pg_pool.inner())
             .await
             .map_err(|e| {
                 error!("Failed to insert firmware '{}': {}", version, e);
@@ -753,14 +734,14 @@ async fn main() -> anyhow::Result<()> {
         env::var("POSTGRES_URL").map_err(|_| anyhow::anyhow!("POSTGRES_URL not set"))?;
 
     info!("Connecting to PostgreSQL...");
-    let pg_pool = PgPool::connect(&postgres_url).await?;
+    let pg_pool = create_pool(&postgres_url).await?;
     info!("PostgreSQL connection successful");
 
     // Check if PostgreSQL schema exists
     let table_exists: bool = sqlx::query_scalar(
         "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'entities')",
     )
-    .fetch_one(&pg_pool)
+    .fetch_one(pg_pool.inner())
     .await?;
 
     if !table_exists {

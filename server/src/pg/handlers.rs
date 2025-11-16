@@ -7,18 +7,19 @@
 //! 1. PostgreSQL (if pg_pool is Some)
 //! 2. MongoDB (fallback)
 
-use crate::AppState;
 use crate::error::{Result, ServerError};
-use crate::pg::models::*;
+use crate::pg::adapters::*;
 use crate::pg::repository::*;
+use crate::schema::EntityServiceAddons;
 use crate::schema::service::Service;
+use crate::state::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json};
 use bson::oid::ObjectId;
 use futures::TryStreamExt;
 use navign_shared::*;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::types::Uuid;
 use std::str::FromStr;
 use tracing::{debug, info};
@@ -59,7 +60,7 @@ pub async fn get_entities(
     if let Some(pg_pool) = state.pg_pool.as_ref() {
         debug!("Using PostgreSQL for entity search");
         let repo = EntityRepository::new(pg_pool.as_ref().clone());
-        let entities = repo
+        let pg_entities = repo
             .search_by_fields(
                 query.nation.as_deref(),
                 query.region.as_deref(),
@@ -70,16 +71,12 @@ pub async fn get_entities(
             )
             .await?;
 
-        // Convert PgEntity to Entity for response
-        let response: Vec<Entity> = entities
-            .into_iter()
-            .map(|pg_entity| pg_entity.into())
-            .collect();
+        // Convert PgEntity to Entity using adapters
+        let entities: Vec<Entity> = pg_entities.into_iter().map(pg_entity_to_entity).collect();
 
-        Ok(Json(response))
+        Ok(Json(entities))
     } else {
         debug!("Using MongoDB for entity search");
-        // Fallback to MongoDB
         let entities = Entity::search_entity_by_fields(
             &state.db,
             query.nation,
@@ -107,19 +104,16 @@ pub async fn get_entity_by_id(
 
         match repo.get_by_id(&id).await? {
             Some(pg_entity) => {
-                let entity: Entity = pg_entity.into();
+                let entity = pg_entity_to_entity(pg_entity);
                 Ok(Json(entity))
             }
             None => Err(ServerError::NotFound(format!("Entity {} not found", id))),
         }
     } else {
         debug!("Using MongoDB for entity lookup: {}", id);
-        let oid = ObjectId::from_str(&id)
-            .map_err(|_| ServerError::InvalidInput("Invalid ObjectId".to_string()))?;
 
-        let entity = Entity::get_by_id(&state.db, &oid)
+        let entity = Entity::get_one_by_id(&state.db, &id)
             .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB query failed: {}", e)))?
             .ok_or_else(|| ServerError::NotFound(format!("Entity {} not found", id)))?;
 
         Ok(Json(entity))
@@ -129,21 +123,21 @@ pub async fn get_entity_by_id(
 /// Create entity
 pub async fn create_entity(
     State(state): State<AppState>,
-    Json(mut entity): Json<Entity>,
+    Json(entity): Json<Entity>,
 ) -> Result<impl IntoResponse> {
     if let Some(pg_pool) = state.pg_pool.as_ref() {
         info!("Creating entity in PostgreSQL: {}", entity.name);
         let repo = EntityRepository::new(pg_pool.as_ref().clone());
 
-        let pg_entity: PgEntity = entity.clone().into();
-        let id = repo.create(&pg_entity).await?;
+        let pg_entity = entity_to_pg_entity(entity.clone());
+        let _id = repo.create(&pg_entity).await?;
 
-        info!("Entity created with UUID: {}", id);
-        entity.id = ObjectId::new(); // Placeholder, will be replaced by frontend
+        info!("Entity created in PostgreSQL");
         Ok((StatusCode::CREATED, Json(entity)))
     } else {
         info!("Creating entity in MongoDB: {}", entity.name);
-        Entity::create(&state.db, &mut entity)
+        entity
+            .create(&state.db)
             .await
             .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB insert failed: {}", e)))?;
 
@@ -160,13 +154,14 @@ pub async fn update_entity(
         info!("Updating entity in PostgreSQL: {}", entity.name);
         let repo = EntityRepository::new(pg_pool.as_ref().clone());
 
-        let pg_entity: PgEntity = entity.into();
+        let pg_entity = entity_to_pg_entity(entity);
         repo.update(&pg_entity).await?;
 
         Ok(StatusCode::OK)
     } else {
         info!("Updating entity in MongoDB: {}", entity.name);
-        Entity::update(&state.db, &entity)
+        entity
+            .update(&state.db)
             .await
             .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB update failed: {}", e)))?;
 
@@ -187,10 +182,8 @@ pub async fn delete_entity(
         Ok(StatusCode::NO_CONTENT)
     } else {
         info!("Deleting entity from MongoDB: {}", id);
-        let oid = ObjectId::from_str(&id)
-            .map_err(|_| ServerError::InvalidInput("Invalid ObjectId".to_string()))?;
 
-        Entity::delete(&state.db, &oid)
+        Entity::delete_by_id(&state.db, &id)
             .await
             .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB delete failed: {}", e)))?;
 
@@ -214,12 +207,12 @@ pub async fn get_areas_by_entity(
         let uuid = Uuid::parse_str(&entity_id)
             .map_err(|_| ServerError::InvalidInput("Invalid UUID".to_string()))?;
 
-        let areas = repo
+        let pg_areas = repo
             .get_by_entity(uuid, pagination.offset, pagination.limit)
             .await?;
 
-        let response: Vec<Area> = areas.into_iter().map(|pg_area| pg_area.into()).collect();
-        Ok(Json(response))
+        let areas: Vec<Area> = pg_areas.into_iter().map(pg_area_to_area).collect();
+        Ok(Json(areas))
     } else {
         debug!("Using MongoDB for areas lookup");
         let oid = ObjectId::from_str(&entity_id)
@@ -227,7 +220,7 @@ pub async fn get_areas_by_entity(
 
         let collection = state.db.collection::<Area>("areas");
         let cursor = collection
-            .find(bson::doc! { "entity_id": oid })
+            .find(bson::doc! { "entity": oid })
             .limit(pagination.limit)
             .skip(pagination.offset as u64)
             .await
@@ -253,19 +246,16 @@ pub async fn get_area_by_id(
 
         match repo.get_by_id(&area_id).await? {
             Some(pg_area) => {
-                let area: Area = pg_area.into();
+                let area = pg_area_to_area(pg_area);
                 Ok(Json(area))
             }
             None => Err(ServerError::NotFound(format!("Area {} not found", area_id))),
         }
     } else {
         debug!("Using MongoDB for area lookup: {}", area_id);
-        let oid = ObjectId::from_str(&area_id)
-            .map_err(|_| ServerError::InvalidInput("Invalid ObjectId".to_string()))?;
 
-        let area = Area::get_by_id(&state.db, &oid)
+        let area = Area::get_one_by_id(&state.db, &area_id)
             .await
-            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB query failed: {}", e)))?
             .ok_or_else(|| ServerError::NotFound(format!("Area {} not found", area_id)))?;
 
         Ok(Json(area))
@@ -288,15 +278,12 @@ pub async fn get_beacons_by_entity(
         let uuid = Uuid::parse_str(&entity_id)
             .map_err(|_| ServerError::InvalidInput("Invalid UUID".to_string()))?;
 
-        let beacons = repo
+        let pg_beacons = repo
             .get_by_entity(uuid, pagination.offset, pagination.limit)
             .await?;
 
-        let response: Vec<Beacon> = beacons
-            .into_iter()
-            .map(|pg_beacon| pg_beacon.into())
-            .collect();
-        Ok(Json(response))
+        let beacons: Vec<Beacon> = pg_beacons.into_iter().map(pg_beacon_to_beacon).collect();
+        Ok(Json(beacons))
     } else {
         debug!("Using MongoDB for beacons lookup");
         let oid = ObjectId::from_str(&entity_id)
@@ -304,7 +291,7 @@ pub async fn get_beacons_by_entity(
 
         let collection = state.db.collection::<Beacon>("beacons");
         let cursor = collection
-            .find(bson::doc! { "entity_id": oid })
+            .find(bson::doc! { "entity": oid })
             .limit(pagination.limit)
             .skip(pagination.offset as u64)
             .await
@@ -316,92 +303,5 @@ pub async fn get_beacons_by_entity(
             .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB cursor failed: {}", e)))?;
 
         Ok(Json(beacons))
-    }
-}
-
-// ============================================================================
-// Conversion utilities (PgEntity <-> Entity, etc.)
-// ============================================================================
-
-// These conversions should ideally be in the shared crate,
-// but we'll implement them here for now
-
-impl From<PgEntity> for Entity {
-    fn from(pg: PgEntity) -> Self {
-        Entity {
-            id: ObjectId::new(), // Placeholder - frontend should use UUID
-            r#type: pg.r#type.parse().unwrap_or(EntityType::Mall),
-            name: pg.name,
-            description: pg.description,
-            nation: pg.nation,
-            region: pg.region,
-            city: pg.city,
-            address: pg.address,
-            longitude_range: (pg.longitude_min, pg.longitude_max),
-            latitude_range: (pg.latitude_min, pg.latitude_max),
-            floors: serde_json::from_value(pg.floors.0).unwrap_or_default(),
-        }
-    }
-}
-
-impl From<Entity> for PgEntity {
-    fn from(entity: Entity) -> Self {
-        PgEntity {
-            id: Uuid::new_v4(), // Will be generated by DB
-            r#type: entity.r#type.to_string(),
-            name: entity.name,
-            description: entity.description,
-            nation: entity.nation,
-            region: entity.region,
-            city: entity.city,
-            address: entity.address,
-            longitude_min: entity.longitude_range.0,
-            longitude_max: entity.longitude_range.1,
-            latitude_min: entity.latitude_range.0,
-            latitude_max: entity.latitude_range.1,
-            floors: sqlx::types::Json(serde_json::to_value(&entity.floors).unwrap()),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
-    }
-}
-
-impl From<PgArea> for Area {
-    fn from(pg: PgArea) -> Self {
-        Area {
-            id: ObjectId::new(),        // Placeholder
-            entity_id: ObjectId::new(), // Placeholder
-            name: pg.name,
-            description: pg.description,
-            floor: Floor {
-                name: pg.floor,
-                r#type: FloorType::Ground, // Default, should be stored in DB
-            },
-            beacon_code: pg.beacon_code,
-            polygon: serde_json::from_value(pg.polygon.0).unwrap_or_default(),
-        }
-    }
-}
-
-impl From<PgBeacon> for Beacon {
-    fn from(pg: PgBeacon) -> Self {
-        Beacon {
-            id: ObjectId::new(),        // Placeholder
-            entity_id: ObjectId::new(), // Placeholder
-            area_id: ObjectId::new(),   // Placeholder
-            merchant_id: None,
-            connection_id: None,
-            name: pg.name,
-            description: pg.description,
-            r#type: pg.r#type.parse().unwrap_or(BeaconType::Merchant),
-            device: BeaconDevice {
-                device_id: pg.device_id,
-                public_key: pg.public_key,
-                capabilities: serde_json::from_value(pg.capabilities.0).unwrap_or_default(),
-                unlock_method: pg.unlock_method.and_then(|s| s.parse().ok()),
-            },
-            floor: pg.floor,
-            location: (0.0, 0.0), // Need to parse from PostGIS POINT
-        }
     }
 }
