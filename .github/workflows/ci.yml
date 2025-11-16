@@ -195,7 +195,7 @@ jobs:
       - name: Install Robot dependencies
         if: matrix.component == 'robot'
         run: |
-          sudo apt-get install -y portaudio19-dev apt-file libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev libsmpeg-dev python-numpy subversion libportmidi-dev ffmpeg libswscale-dev libavformat-dev libavcodec-dev libfreetype6-dev
+          sudo apt-get install -y portaudio19-dev apt-file libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev libsmpeg-dev subversion libportmidi-dev ffmpeg libswscale-dev libavformat-dev libavcodec-dev libfreetype6-dev
 
       # Plot-specific setup
       - name: Setup Python
