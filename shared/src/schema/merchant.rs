@@ -56,9 +56,11 @@ pub struct Merchant {
     pub r#type: MerchantType,
     pub color: Option<String>,
     pub tags: Vec<String>,
+    /// Location point (centroid/entrance) - kept for backward compatibility and labeling
     pub location: (f64, f64),
     pub style: MerchantStyle,
-    pub polygon: Option<Vec<(f64, f64)>>,
+    /// Polygon boundary defining the merchant's physical space (required)
+    pub polygon: Vec<(f64, f64)>,
     pub available_period: Option<Vec<(i64, i64)>>,
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -319,8 +321,8 @@ pub mod mobile {
         /// Stored as WKT POINT string
         pub location: String,
         pub style: String,
-        /// Stored as WKT POLYGON string
-        pub polygon: Option<String>,
+        /// Stored as WKT POLYGON string (required)
+        pub polygon: String,
         pub available_period: Option<String>, // JSON array
         pub email: Option<String>,
         pub phone: Option<String>,
@@ -348,7 +350,7 @@ pub mod mobile {
                     tags TEXT NOT NULL,
                     location TEXT NOT NULL,
                     style TEXT NOT NULL,
-                    polygon TEXT,
+                    polygon TEXT NOT NULL,
                     available_period TEXT,
                     email TEXT,
                     phone TEXT,

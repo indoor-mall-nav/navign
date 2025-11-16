@@ -2,7 +2,8 @@ use crate::api::page_results::PaginationResponse;
 use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
 pub use navign_shared::{
-    Area, Beacon, BeaconType, ConnectionType, Merchant as SharedMerchant, MerchantMobile,
+    Area, Beacon, BeaconType, Connection, ConnectionType, Merchant as SharedMerchant,
+    MerchantMobile,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -19,6 +20,15 @@ pub struct MapArea {
     pub polygon: Vec<(f64, f64)>,
     pub beacons: Vec<MapBeacon>,
     pub merchants: Vec<MapMerchant>,
+    pub connections: Vec<MapConnection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapConnection {
+    pub id: String,
+    pub name: String,
+    pub r#type: ConnectionType,
+    pub positions: Vec<(String, f64, f64)>, // (area_id, x, y)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,12 +172,52 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
             id: m.id,
             name: m.name,
             location: m.location,
-            polygon: m.polygon.unwrap_or_default(),
+            polygon: m.polygon,
             tags: m.tags,
         })
         .collect();
 
     trace!("Mapped {} merchants", map_merchants.len());
+
+    // Fetch all connections for the entity
+    let connections_url = format!(
+        "{}api/entities/{}/connections?limit=1000",
+        BASE_URL, entity
+    );
+    trace!("Fetching connections from URL: {}", connections_url);
+    let connections_response: PaginationResponse<Connection> = client
+        .get(&connections_url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to fetch connections: {}", e))?
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to parse connections: {}", e))?;
+
+    trace!("Fetched {} connections", connections_response.data.len());
+
+    // Filter connections that involve this area
+    let map_connections: Vec<MapConnection> = connections_response
+        .data
+        .into_iter()
+        .filter(|c| {
+            c.connected_areas
+                .iter()
+                .any(|(aid, _, _, _)| aid == &area_response.id)
+        })
+        .map(|c| MapConnection {
+            id: c.id,
+            name: c.name,
+            r#type: c.r#type,
+            positions: c
+                .connected_areas
+                .into_iter()
+                .map(|(aid, x, y, _)| (aid, x, y))
+                .collect(),
+        })
+        .collect();
+
+    trace!("Mapped {} connections for area", map_connections.len());
 
     Ok(MapArea {
         id: area_response.id,
@@ -175,6 +225,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         polygon: area_response.polygon,
         beacons: map_beacons,
         merchants: map_merchants,
+        connections: map_connections,
     })
 }
 
@@ -289,17 +340,81 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
     let transform =
         |x: f64, y: f64| -> (f64, f64) { ((x - min_x) * scale + 10.0, (y - min_y) * scale + 10.0) };
 
-    // Draw area polygon
+    // Draw area polygon - light gray background
     svg.push_str(r#"<g id="area-boundary">"#);
     svg.push_str(r#"<polygon points=""#);
     for (x, y) in &map_data.polygon {
         let (tx, ty) = transform(*x, *y);
         svg.push_str(&format!("{},{} ", tx, ty));
     }
-    svg.push_str(r##"" fill="#f0f0f0" stroke="#333" stroke-width="2" style="cursor: pointer;"/>"##);
+    svg.push_str(r##"" fill="#fafafa" stroke="#616161" stroke-width="2.5" style="cursor: pointer;"/>"##);
     svg.push_str("</g>");
 
-    // Draw merchants
+    // Draw connections (lines between areas)
+    svg.push_str(r#"<g id="connections">"#);
+    for connection in &map_data.connections {
+        // Find positions in current area
+        let current_area_positions: Vec<_> = connection
+            .positions
+            .iter()
+            .filter(|(aid, _, _)| aid == &map_data.id)
+            .collect();
+
+        // Draw lines between connection points in current area
+        for i in 0..current_area_positions.len() {
+            for j in (i + 1)..current_area_positions.len() {
+                let (_, x1, y1) = current_area_positions[i];
+                let (_, x2, y2) = current_area_positions[j];
+                let (tx1, ty1) = transform(*x1, *y1);
+                let (tx2, ty2) = transform(*x2, *y2);
+
+                // Color based on connection type
+                let (color, dash) = match connection.r#type {
+                    ConnectionType::Gate => ("#9c27b0", "none"),          // Purple solid
+                    ConnectionType::Elevator => ("#2196f3", "5,5"),       // Blue dashed
+                    ConnectionType::Escalator => ("#ff9800", "8,4"),      // Orange dashed
+                    ConnectionType::Stairs => ("#4caf50", "4,4"),         // Green dashed
+                    ConnectionType::Rail => ("#795548", "10,5"),          // Brown dashed
+                    ConnectionType::Shuttle => ("#00bcd4", "12,3"),       // Cyan dashed
+                };
+
+                svg.push_str(&format!(
+                    r##"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="3" stroke-dasharray="{}" opacity="0.8" style="cursor: pointer;"/>"##,
+                    tx1, ty1, tx2, ty2, color, dash
+                ));
+
+                // Add connection label at midpoint
+                let mid_x = (tx1 + tx2) / 2.0;
+                let mid_y = (ty1 + ty2) / 2.0;
+                svg.push_str(&format!(
+                    r##"<text x="{}" y="{}" font-size="10" text-anchor="middle" fill="{}" font-weight="bold">{}</text>"##,
+                    mid_x, mid_y - 5.0, color, connection.name
+                ));
+            }
+        }
+
+        // Draw connection points (circles)
+        for (aid, x, y) in &connection.positions {
+            if aid == &map_data.id {
+                let (tx, ty) = transform(*x, *y);
+                let color = match connection.r#type {
+                    ConnectionType::Gate => "#9c27b0",
+                    ConnectionType::Elevator => "#2196f3",
+                    ConnectionType::Escalator => "#ff9800",
+                    ConnectionType::Stairs => "#4caf50",
+                    ConnectionType::Rail => "#795548",
+                    ConnectionType::Shuttle => "#00bcd4",
+                };
+                svg.push_str(&format!(
+                    r##"<circle cx="{}" cy="{}" r="6" fill="{}" stroke="#fff" stroke-width="2"/>"##,
+                    tx, ty, color
+                ));
+            }
+        }
+    }
+    svg.push_str("</g>");
+
+    // Draw merchants - light blue with darker border
     svg.push_str(r#"<g id="merchants">"#);
     for merchant in &map_data.merchants {
         svg.push_str(&format!(r#"<g id="merchant-{}">"#, merchant.id));
@@ -309,31 +424,31 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             svg.push_str(&format!("{},{} ", tx, ty));
         }
         svg.push_str(
-            r##"" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" style="cursor: pointer;"/>"##,
+            r##"" fill="#bbdefb" stroke="#1565c0" stroke-width="2" opacity="0.9" style="cursor: pointer;"/>"##,
         );
 
-        // Add merchant label
+        // Add merchant label with background
         let (tx, ty) = transform(merchant.location.0, merchant.location.1);
         svg.push_str(&format!(
-            r##"<text x="{}" y="{}" font-size="12" text-anchor="middle" fill="#000">{}</text>"##,
+            r##"<text x="{}" y="{}" font-size="11" font-weight="600" text-anchor="middle" fill="#01579b">{}</text>"##,
             tx, ty, merchant.name
         ));
         svg.push_str("</g>");
     }
     svg.push_str("</g>");
 
-    // Draw beacons
+    // Draw beacons - red/orange with white border
     svg.push_str(r#"<g id="beacons">"#);
     for beacon in &map_data.beacons {
         let (tx, ty) = transform(beacon.location.0, beacon.location.1);
         svg.push_str(&format!(
-            r##"<circle cx="{}" cy="{}" r="5" fill="#ff5722" stroke="#d32f2f" stroke-width="1.5"/>"##,
+            r##"<circle cx="{}" cy="{}" r="6" fill="#ff5722" stroke="#fff" stroke-width="2"/>"##,
             tx, ty
         ));
         svg.push_str(&format!(
-            r##"<text x="{}" y="{}" font-size="10" text-anchor="middle" fill="#666">{}</text>"##,
+            r##"<text x="{}" y="{}" font-size="9" text-anchor="middle" fill="#424242">{}</text>"##,
             tx,
-            ty + 15.0,
+            ty + 18.0,
             beacon.name
         ));
     }
@@ -869,6 +984,7 @@ mod tests {
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![],
             merchants: vec![],
+            connections: vec![],
         };
 
         let svg = generate_svg_map(&map_data, 800, 600);
@@ -903,6 +1019,7 @@ mod tests {
                 },
             ],
             merchants: vec![],
+            connections: vec![],
         };
 
         let svg = generate_svg_map(&map_data, 800, 600);
@@ -928,6 +1045,7 @@ mod tests {
                 polygon: vec![(20.0, 20.0), (30.0, 20.0), (30.0, 30.0), (20.0, 30.0)],
                 tags: vec!["food".to_string(), "restaurant".to_string()],
             }],
+            connections: vec![],
         };
 
         let svg = generate_svg_map(&map_data, 800, 600);
@@ -935,7 +1053,33 @@ mod tests {
         assert!(svg.contains("merchants"));
         assert!(svg.contains("Store A"));
         assert!(svg.contains("merchant-merchant1"));
-        assert!(svg.contains("#e3f2fd"));
-        assert!(svg.contains("#1976d2"));
+        assert!(svg.contains("#bbdefb"));
+        assert!(svg.contains("#1565c0"));
+    }
+
+    #[test]
+    fn test_generate_svg_map_with_connections() {
+        let map_data = MapArea {
+            id: "area1".to_string(),
+            name: "Test Area".to_string(),
+            polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
+            beacons: vec![],
+            merchants: vec![],
+            connections: vec![MapConnection {
+                id: "conn1".to_string(),
+                name: "Main Elevator".to_string(),
+                r#type: ConnectionType::Elevator,
+                positions: vec![
+                    ("area1".to_string(), 50.0, 50.0),
+                    ("area2".to_string(), 50.0, 150.0),
+                ],
+            }],
+        };
+
+        let svg = generate_svg_map(&map_data, 800, 600);
+
+        assert!(svg.contains("connections"));
+        assert!(svg.contains("Main Elevator"));
+        assert!(svg.contains("#2196f3")); // Elevator color
     }
 }
