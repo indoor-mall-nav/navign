@@ -180,10 +180,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     // Fetch all connections for the entity
-    let connections_url = format!(
-        "{}api/entities/{}/connections?limit=1000",
-        BASE_URL, entity
-    );
+    let connections_url = format!("{}api/entities/{}/connections?limit=1000", BASE_URL, entity);
     trace!("Fetching connections from URL: {}", connections_url);
     let connections_response: PaginationResponse<Connection> = client
         .get(&connections_url)
@@ -347,7 +344,9 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
         let (tx, ty) = transform(*x, *y);
         svg.push_str(&format!("{},{} ", tx, ty));
     }
-    svg.push_str(r##"" fill="#fafafa" stroke="#616161" stroke-width="2.5" style="cursor: pointer;"/>"##);
+    svg.push_str(
+        r##"" fill="#fafafa" stroke="#616161" stroke-width="2.5" style="cursor: pointer;"/>"##,
+    );
     svg.push_str("</g>");
 
     // Draw connections (lines between areas)
@@ -370,12 +369,12 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
 
                 // Color based on connection type
                 let (color, dash) = match connection.r#type {
-                    ConnectionType::Gate => ("#9c27b0", "none"),          // Purple solid
-                    ConnectionType::Elevator => ("#2196f3", "5,5"),       // Blue dashed
-                    ConnectionType::Escalator => ("#ff9800", "8,4"),      // Orange dashed
-                    ConnectionType::Stairs => ("#4caf50", "4,4"),         // Green dashed
-                    ConnectionType::Rail => ("#795548", "10,5"),          // Brown dashed
-                    ConnectionType::Shuttle => ("#00bcd4", "12,3"),       // Cyan dashed
+                    ConnectionType::Gate => ("#9c27b0", "none"), // Purple solid
+                    ConnectionType::Elevator => ("#2196f3", "5,5"), // Blue dashed
+                    ConnectionType::Escalator => ("#ff9800", "8,4"), // Orange dashed
+                    ConnectionType::Stairs => ("#4caf50", "4,4"), // Green dashed
+                    ConnectionType::Rail => ("#795548", "10,5"), // Brown dashed
+                    ConnectionType::Shuttle => ("#00bcd4", "12,3"), // Cyan dashed
                 };
 
                 svg.push_str(&format!(
