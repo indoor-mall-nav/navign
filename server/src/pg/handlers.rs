@@ -7,6 +7,8 @@
 //! 1. PostgreSQL (if pg_pool is Some)
 //! 2. MongoDB (fallback)
 
+#![allow(dead_code)] // Handlers will be integrated into main router
+
 use crate::error::{Result, ServerError};
 use crate::pg::adapters::*;
 use crate::pg::repository::*;

@@ -32,8 +32,6 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use bson::doc;
-use mongodb::Database;
-use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use std::sync::Arc;

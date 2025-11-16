@@ -91,6 +91,7 @@ struct MigrationContext {
     mongo_db: MongoDatabase,
     pg_pool: PgPool,
     dry_run: bool,
+    #[allow(dead_code)] // Reserved for future batch processing
     batch_size: usize,
     skip_existing: bool,
     // Maps MongoDB ObjectId to PostgreSQL UUID/Integer

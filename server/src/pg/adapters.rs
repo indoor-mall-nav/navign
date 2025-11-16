@@ -4,6 +4,8 @@
 //! the PostgreSQL models (PgEntity, PgArea, etc.) and the current navign_shared
 //! schema (Entity, Area, etc.).
 
+#![allow(dead_code)] // Functions used by migration binary and will be used by handlers
+
 use crate::pg::models::*;
 use bson::oid::ObjectId;
 use navign_shared::*;
@@ -179,8 +181,6 @@ pub fn beacon_to_pg_beacon(
     connection_id: Option<i32>,
     floor: String,
 ) -> PgBeacon {
-    use serde::Serialize;
-
     // Convert BeaconType to kebab-case string
     let beacon_type = match beacon.r#type {
         BeaconType::Navigation => "navigation",
