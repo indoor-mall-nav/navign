@@ -17,9 +17,15 @@ export type Merchant = {
   type: MerchantType
   color: string | null
   tags: Array<string>
+  /**
+   * Location point (centroid/entrance) - kept for backward compatibility and labeling
+   */
   location: [number, number]
   style: MerchantStyle
-  polygon: Array<[number, number]> | null
+  /**
+   * Polygon boundary defining the merchant's physical space (required)
+   */
+  polygon: Array<[number, number]>
   available_period: Array<[bigint, bigint]> | null
   email: string | null
   phone: string | null

@@ -61,6 +61,10 @@ pub struct Connection {
         all(feature = "mongodb", feature = "serde"),
         serde(serialize_with = "serialize_connected_areas",)
     )]
+    #[cfg_attr(
+        feature = "ts-rs",
+        ts(type = "Array<[string, number, number, boolean]>")
+    )]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,
