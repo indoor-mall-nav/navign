@@ -12,13 +12,32 @@ use navign_shared::*;
 use sqlx::types::Uuid;
 
 // ============================================================================
+// Helper Functions for ID Conversion
+// ============================================================================
+
+/// Convert PostgreSQL UUID to ObjectId
+/// Uses the UUID hex representation (first 24 chars) as ObjectId
+fn uuid_to_object_id(uuid: Uuid) -> ObjectId {
+    let id_str = uuid.to_string().replace("-", "");
+    ObjectId::parse_str(&id_str[..24]).unwrap_or_else(|_| ObjectId::new())
+}
+
+/// Convert PostgreSQL integer ID to ObjectId
+/// Pads the integer to 24 hex chars for ObjectId compatibility
+fn int_to_object_id(id: i32) -> ObjectId {
+    let id_str = format!("{:024x}", id as u64);
+    ObjectId::parse_str(&id_str).unwrap_or_else(|_| ObjectId::new())
+}
+
+// ============================================================================
 // Entity Conversions
 // ============================================================================
 
 /// Convert PostgreSQL Entity to shared Entity
+/// Uses UUID directly as a 24-char hex string for ObjectId
 pub fn pg_entity_to_entity(pg: PgEntity) -> Entity {
     Entity {
-        id: ObjectId::new(), // Placeholder - client should track UUIDs separately
+        id: uuid_to_object_id(pg.id),
         r#type: match pg.r#type.as_str() {
             "Mall" => EntityType::Mall,
             "Transportation" => EntityType::Transportation,
@@ -71,8 +90,8 @@ pub fn pg_area_to_area(pg: PgArea) -> Area {
     let floor = parse_floor_string(&pg.floor);
 
     Area {
-        id: ObjectId::new(),     // Placeholder
-        entity: ObjectId::new(), // Placeholder - client should track UUIDs
+        id: int_to_object_id(pg.id),
+        entity: uuid_to_object_id(pg.entity_id),
         name: pg.name,
         description: pg.description,
         beacon_code: pg.beacon_code,
@@ -155,11 +174,11 @@ pub fn pg_beacon_to_beacon(pg: PgBeacon) -> Beacon {
     let location = (0.0, 0.0);
 
     Beacon {
-        id: ObjectId::new(),     // Placeholder
-        entity: ObjectId::new(), // Placeholder
-        area: ObjectId::new(),   // Placeholder
-        merchant: None,
-        connection: None,
+        id: int_to_object_id(pg.id),
+        entity: uuid_to_object_id(pg.entity_id),
+        area: int_to_object_id(pg.area_id),
+        merchant: pg.merchant_id.map(int_to_object_id),
+        connection: pg.connection_id.map(int_to_object_id),
         name: pg.name,
         description: pg.description,
         r#type: beacon_type,
@@ -225,9 +244,9 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
     let floor = parse_floor_string(&pg.floor);
 
     Merchant {
-        id: ObjectId::new(),     // Placeholder
-        entity: ObjectId::new(), // Placeholder
-        area: ObjectId::new(),   // Placeholder
+        id: int_to_object_id(pg.id),
+        entity: uuid_to_object_id(pg.entity_id),
+        area: int_to_object_id(pg.area_id),
         name: pg.name,
         description: pg.description,
         r#type: MerchantType::Other, // Would need mapping from string
@@ -273,8 +292,8 @@ pub fn merchant_to_pg_merchant(merchant: Merchant, entity_id: Uuid, area_id: i32
 /// Convert PostgreSQL Connection to shared Connection
 pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
     Connection {
-        id: ObjectId::new(),     // Placeholder
-        entity: ObjectId::new(), // Placeholder
+        id: int_to_object_id(pg.id),
+        entity: uuid_to_object_id(pg.entity_id),
         name: pg.name,
         description: pg.description,
         r#type: match pg.r#type.as_str() {
@@ -333,7 +352,7 @@ pub fn connection_to_pg_connection(connection: Connection, entity_id: Uuid) -> P
 /// Convert PostgreSQL User to shared User
 pub fn pg_user_to_user(pg: PgUser) -> crate::schema::User {
     crate::schema::User {
-        id: ObjectId::new(), // Placeholder
+        id: uuid_to_object_id(pg.id),
         username: pg.username,
         email: pg.email,
         phone: pg.phone,
