@@ -85,8 +85,7 @@ pub fn pg_area_to_area(pg: PgArea) -> Area {
 
 /// Convert shared Area to PostgreSQL Area
 pub fn area_to_pg_area(area: Area) -> PgArea {
-    let entity_id = Uuid::parse_str(&area.entity)
-        .unwrap_or_else(|_| Uuid::new_v4());
+    let entity_id = Uuid::parse_str(&area.entity).unwrap_or_else(|_| Uuid::new_v4());
     // Convert Floor to string
     let floor_str = match area.floor {
         Some(f) => format!("{}", i32::from(f)),
@@ -175,8 +174,7 @@ pub fn pg_beacon_to_beacon(pg: PgBeacon) -> Beacon {
 
 /// Convert shared Beacon to PostgreSQL Beacon
 pub fn beacon_to_pg_beacon(beacon: Beacon) -> PgBeacon {
-    let entity_id = Uuid::parse_str(&beacon.entity)
-        .unwrap_or_else(|_| Uuid::new_v4());
+    let entity_id = Uuid::parse_str(&beacon.entity).unwrap_or_else(|_| Uuid::new_v4());
     let area_id = beacon.area.parse::<i32>().unwrap_or(0);
     let merchant_id = beacon.merchant.and_then(|m| m.parse::<i32>().ok());
     let connection_id = beacon.connection.and_then(|c| c.parse::<i32>().ok());
@@ -244,8 +242,7 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
 
 /// Convert shared Merchant to PostgreSQL Merchant
 pub fn merchant_to_pg_merchant(merchant: Merchant) -> PgMerchant {
-    let entity_id = Uuid::parse_str(&merchant.entity)
-        .unwrap_or_else(|_| Uuid::new_v4());
+    let entity_id = Uuid::parse_str(&merchant.entity).unwrap_or_else(|_| Uuid::new_v4());
     let area_id = merchant.area.parse::<i32>().unwrap_or(0);
     // Convert Floor to string
     let floor_str = match merchant.floor {
@@ -298,8 +295,7 @@ pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
 
 /// Convert shared Connection to PostgreSQL Connection
 pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
-    let entity_id = Uuid::parse_str(&connection.entity)
-        .unwrap_or_else(|_| Uuid::new_v4());
+    let entity_id = Uuid::parse_str(&connection.entity).unwrap_or_else(|_| Uuid::new_v4());
     // Convert Floors to strings
     let from_floor_str = match connection.from_floor {
         Some(f) => format!("{}", i32::from(f)),
