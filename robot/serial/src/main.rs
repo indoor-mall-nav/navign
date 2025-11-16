@@ -3,7 +3,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_serial::SerialPortBuilderExt;
 use tracing::{error, info};
-use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
