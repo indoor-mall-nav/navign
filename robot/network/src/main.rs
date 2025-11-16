@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::sync::Arc;
+use std::time::SystemTime;
 use tracing::{error, info};
-use zenoh::bytes::ZBytes;
 
 // Include generated protobuf code
 pub mod proto {
@@ -110,7 +110,10 @@ impl NetworkComponent {
                         r#type: ComponentType::Network as i32,
                         status: ComponentStatus::Ready as i32,
                         timestamp: Some(prost_types::Timestamp {
-                            seconds: chrono::Utc::now().timestamp(),
+                            seconds: SystemTime::now()
+                                .duration_since(SystemTime::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs() as i64,
                             nanos: 0,
                         }),
                         metadata: std::collections::HashMap::new(),
