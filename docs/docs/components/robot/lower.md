@@ -70,11 +70,11 @@ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
 ## Development Status
 
 **Current:**
--  Basic structure implemented
--  UART communication working
--  Embassy async runtime configured
-- =� Motor control logic in development
-- =� Sensor integration ongoing
+- ✅ Basic structure implemented
+- ✅ UART communication working
+- ✅ Embassy async runtime configured
+- 🚧 Motor control logic in development
+- 🚧 Sensor integration ongoing
 
 **Planned:**
 - PID motor control
