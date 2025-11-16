@@ -40,6 +40,7 @@ pub struct Connection {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     /// Reference to the Entity
     #[cfg(feature = "mongodb")]
@@ -50,6 +51,7 @@ pub struct Connection {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,

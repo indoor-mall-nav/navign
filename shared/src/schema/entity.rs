@@ -29,6 +29,7 @@ pub struct Entity {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     pub r#type: EntityType,
     pub name: String,
