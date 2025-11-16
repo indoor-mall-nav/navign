@@ -30,6 +30,7 @@ lint:
   cd shared && cargo clippy --features mongodb,serde,crypto
   cd shared && cargo clippy --features sql,serde,crypto
   cd shared && cargo clippy --features postgres,sql,serde,crypto
+  cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
   cd proc_macros && cargo clippy -- -D warnings
   cd firmware && cargo clippy -- -D warnings
   cd ts-schema && cargo clippy -- -D warnings
@@ -112,6 +113,7 @@ ci-shared:
   cd shared && cargo check --features mongodb,serde,crypto
   cd shared && cargo check --features sql,serde,crypto
   cd shared && cargo check --features postgres,sql,serde,crypto
+  cd shared && cargo check --features geo,alloc,serde
   cd shared && cargo fmt -- --check
   cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features
@@ -121,7 +123,10 @@ ci-shared:
   cd shared && cargo clippy --features mongodb,serde,crypto
   cd shared && cargo clippy --features sql,serde,crypto
   cd shared && cargo clippy --features postgres,sql,serde,crypto
+  cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
   cd shared && cargo test
+  cd shared && cargo test --features geo,alloc,serde
+  cd shared && cargo test --features postgres,sql,serde,crypto
 
 ci-proc-macros:
   cd proc_macros && cargo check
