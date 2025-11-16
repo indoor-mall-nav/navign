@@ -13,7 +13,7 @@ use bson::oid::ObjectId;
 use bson::serde_helpers::serialize_object_id_as_hex_string;
 
 #[cfg(all(feature = "mongodb", feature = "serde"))]
-use super::utils::{deserialize_connected_areas, serialize_connected_areas};
+use super::utils::serialize_connected_areas;
 
 use core::fmt::Display;
 
@@ -59,10 +59,7 @@ pub struct Connection {
     /// List of Area IDs that this connection links
     #[cfg_attr(
         all(feature = "mongodb", feature = "serde"),
-        serde(
-            serialize_with = "serialize_connected_areas",
-            deserialize_with = "deserialize_connected_areas"
-        )
+        serde(serialize_with = "serialize_connected_areas",)
     )]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock

@@ -75,7 +75,7 @@ CREATE TABLE beacons (
     area_id INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
     merchant_id INTEGER,
     connection_id INTEGER,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL,
     device_id VARCHAR(48) NOT NULL UNIQUE,
@@ -92,7 +92,6 @@ CREATE INDEX idx_beacons_entity ON beacons(entity_id);
 CREATE INDEX idx_beacons_area ON beacons(area_id);
 CREATE INDEX idx_beacons_merchant ON beacons(merchant_id);
 CREATE INDEX idx_beacons_device_id ON beacons(device_id);
-CREATE INDEX idx_beacons_name ON beacons(name);
 CREATE INDEX idx_beacons_floor ON beacons(floor);
 CREATE INDEX idx_beacons_location ON beacons USING GIST(location); -- Spatial index
 
