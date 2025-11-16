@@ -12,17 +12,34 @@ export default defineConfig({
       {
         text: 'Components',
         items: [
+          { text: 'Overview', link: '/components/' },
           { text: 'Admin', link: '/components/admin/' },
           { text: 'Beacon', link: '/components/beacon' },
-          { text: 'Mobile', link: '/components/mobile' },
-          { text: 'Miniapp', link: '/components/miniapp' },
-          { text: 'Robot', link: '/components/robot' },
-          { text: 'Server', link: '/components/server' },
+          { text: 'Mobile', link: '/components/mobile/' },
+          { text: 'Robot', link: '/components/robot/' },
+          { text: 'Server', link: '/components/server/' },
+          { text: 'Shared', link: '/components/shared' },
         ],
+      },
+      {
+        text: 'Pipelines',
+        link: '/pipelines/',
+      },
+      {
+        text: 'Testing',
+        link: '/testing/',
+      },
+      {
+        text: 'Development',
+        link: '/development/',
       },
     ],
     sidebar: {
       '/components/': [
+        {
+          text: 'Components Overview',
+          link: '/components/',
+        },
         {
           text: 'Admin',
           link: '/components/admin/',
@@ -67,7 +84,17 @@ export default defineConfig({
         },
         {
           text: 'Mobile',
-          link: '/components/mobile',
+          link: '/components/mobile/',
+          items: [
+            {
+              text: 'Admin Panel',
+              link: '/components/mobile/admin-panel',
+            },
+            {
+              text: 'gRPC-Web Integration',
+              link: '/components/mobile/grpc-web-integration',
+            },
+          ],
         },
         {
           text: 'Miniapp',
@@ -75,11 +102,11 @@ export default defineConfig({
         },
         {
           text: 'Robot',
-          link: '/components/robot',
+          link: '/components/robot/',
           items: [
             {
               text: 'Upper Layer',
-              link: '/components/robot/upper',
+              link: '/components/robot/upper/',
               items: [
                 {
                   text: 'Audio',
@@ -115,7 +142,75 @@ export default defineConfig({
         },
         {
           text: 'Server',
-          link: '/components/server',
+          link: '/components/server/',
+          items: [
+            {
+              text: 'PostgreSQL Migration',
+              link: '/components/server/postgres-migration',
+            },
+            {
+              text: 'Migration Summary',
+              link: '/components/server/postgres-migration-summary',
+            },
+          ],
+        },
+        {
+          text: 'Shared',
+          link: '/components/shared',
+        },
+      ],
+      '/pipelines/': [
+        {
+          text: 'Pipelines Overview',
+          link: '/pipelines/',
+        },
+        {
+          text: 'Navigation',
+          link: '/pipelines/navigation',
+        },
+        {
+          text: 'Localization',
+          link: '/pipelines/localization',
+        },
+        {
+          text: 'Access Control (Unlock)',
+          link: '/pipelines/unlock',
+        },
+        {
+          text: 'Robot Control',
+          link: '/pipelines/robot-control',
+        },
+        {
+          text: 'OTA Updates',
+          link: '/pipelines/ota',
+        },
+        {
+          text: 'Firmware OTA',
+          link: '/pipelines/firmware-ota',
+        },
+      ],
+      '/testing/': [
+        {
+          text: 'Testing Overview',
+          link: '/testing/',
+        },
+        {
+          text: 'Firmware Testing',
+          link: '/testing/firmware-testing',
+        },
+      ],
+      '/development/': [
+        {
+          text: 'Development Overview',
+          link: '/development/',
+        },
+        {
+          text: 'Critical TODOs',
+          link: '/development/critical-todos',
+        },
+        {
+          text: 'Refactoring Plan',
+          link: '/development/refactoring-plan',
         },
       ],
     },
