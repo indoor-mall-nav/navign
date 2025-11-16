@@ -6,6 +6,9 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "postgres")]
+use crate::schema::postgis::PgPoint;
+
 use core::fmt::Display;
 
 pub type ConnectedArea = (String, f64, f64, bool);
@@ -13,6 +16,7 @@ pub type ConnectedArea = (String, f64, f64, bool);
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
 #[cfg_attr(
     all(feature = "ts-rs", not(feature = "postgres")),
@@ -21,10 +25,10 @@ pub type ConnectedArea = (String, f64, f64, bool);
 pub struct Connection {
     pub id: i32,
     #[cfg(feature = "postgres")]
-    pub entity: sqlx::types::Uuid,
+    pub entity_id: sqlx::types::Uuid,
     #[cfg(not(feature = "postgres"))]
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: String,
+    pub entity_id: String,
     pub name: String,
     pub description: Option<String>,
     pub r#type: ConnectionType,
@@ -37,7 +41,11 @@ pub struct Connection {
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,
     pub tags: Vec<String>,
-    pub gnd: Option<(f64, f64)>, // Ground (x, y) coordinates if it connects to outside
+    /// Ground location if connection goes outside (optional)
+    #[cfg(feature = "postgres")]
+    pub gnd: Option<PgPoint>,
+    #[cfg(not(feature = "postgres"))]
+    pub gnd: Option<(f64, f64)>,
     #[cfg(feature = "postgres")]
     #[cfg_attr(
         all(feature = "serde", not(feature = "postgres")),
@@ -75,6 +83,11 @@ impl Connection {
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
+#[cfg_attr(feature = "sql", derive(sqlx::Type))]
+#[cfg_attr(
+    feature = "sql",
+    sqlx(type_name = "VARCHAR", rename_all = "kebab-case")
+)]
 pub enum ConnectionType {
     Gate,
     Escalator,
@@ -94,5 +107,163 @@ impl Display for ConnectionType {
             ConnectionType::Rail => write!(f, "rail"),
             ConnectionType::Shuttle => write!(f, "shuttle"),
         }
+    }
+}
+
+#[cfg(all(feature = "sql", feature = "postgres"))]
+#[async_trait::async_trait]
+impl crate::schema::repository::IntRepository for Connection {
+    async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        // Serialize connected_areas to JSON
+        let connected_areas_json = serde_json::to_value(&item.connected_areas)
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize available_period to JSON
+        let available_period_json = serde_json::to_value(&item.available_period)
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize tags to JSON
+        let tags_json =
+            serde_json::to_value(&item.tags).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        sqlx::query(
+            r#"INSERT INTO connections (entity_id, name, description, type, connected_areas,
+                                        available_period, tags, gnd)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
+        )
+        .bind(entity)
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(item.r#type)
+        .bind(connected_areas_json)
+        .bind(available_period_json)
+        .bind(tags_json)
+        .bind(item.gnd)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn get_by_id(
+        pool: &sqlx::PgPool,
+        id: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as::<_, Self>(
+            r#"SELECT id, entity_id, name, description, type, connected_areas,
+                      available_period, tags, gnd, created_at, updated_at
+               FROM connections WHERE id = $1 AND entity_id = $2"#,
+        )
+        .bind(id)
+        .bind(entity)
+        .fetch_optional(pool)
+        .await
+    }
+
+    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        // Serialize connected_areas to JSON
+        let connected_areas_json = serde_json::to_value(&item.connected_areas)
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize available_period to JSON
+        let available_period_json = serde_json::to_value(&item.available_period)
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize tags to JSON
+        let tags_json =
+            serde_json::to_value(&item.tags).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        sqlx::query(
+            r#"UPDATE connections
+               SET name = $3, description = $4, type = $5, connected_areas = $6,
+                   available_period = $7, tags = $8, gnd = $9
+               WHERE id = $1 AND entity_id = $2"#,
+        )
+        .bind(item.id)
+        .bind(entity)
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(item.r#type)
+        .bind(connected_areas_json)
+        .bind(available_period_json)
+        .bind(tags_json)
+        .bind(item.gnd)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn delete(pool: &sqlx::PgPool, id: i32, entity: uuid::Uuid) -> sqlx::Result<()> {
+        sqlx::query("DELETE FROM connections WHERE id = $1 AND entity_id = $2")
+            .bind(id)
+            .bind(entity)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn list(
+        pool: &sqlx::PgPool,
+        offset: i64,
+        limit: i64,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        sqlx::query_as::<_, Self>(
+            r#"SELECT id, entity_id, name, description, type, connected_areas,
+                      available_period, tags, gnd, created_at, updated_at
+               FROM connections WHERE entity_id = $1
+               ORDER BY created_at DESC
+               LIMIT $2 OFFSET $3"#,
+        )
+        .bind(entity)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await
+    }
+
+    async fn search(
+        pool: &sqlx::PgPool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2)
+                   ORDER BY {} {}
+                   LIMIT $3 OFFSET $4"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2)
+                   ORDER BY {} {}
+                   LIMIT $3 OFFSET $4"#,
+                order_by, direction
+            )
+        };
+
+        sqlx::query_as::<_, Self>(&sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await
     }
 }

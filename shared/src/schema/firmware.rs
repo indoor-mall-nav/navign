@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 /// Firmware artifact schema - represents a beacon firmware binary
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 pub struct Firmware {
     #[cfg(feature = "postgres")]
     pub id: sqlx::types::Uuid,
@@ -24,7 +25,7 @@ pub struct Firmware {
     /// File path or storage key for the firmware binary
     pub file_path: String,
     /// File size in bytes
-    pub file_size: u64,
+    pub file_size: i64,
     /// SHA-256 checksum of the firmware binary (hex string)
     pub checksum: String,
     /// Whether this is the latest version for this device
