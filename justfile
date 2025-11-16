@@ -5,7 +5,6 @@ init:
   corepack enable
   pnpm install
   cd animations && uv sync
-  cd gesture_space && uv sync
   cargo check
 
 fmt:
@@ -18,7 +17,6 @@ lint:
   taplo lint
   just check
   cd animations && uvx ruff check
-  cd gesture_space && uvx ruff check
   cd robot/vision && uvx ruff check
   cd robot/audio && uvx ruff check
   cd admin/plot && uvx ruff check
@@ -164,12 +162,6 @@ ci-maintenance:
   cd admin/maintenance && cargo clippy -- -D warnings
   cd admin/maintenance && cargo test
 
-ci-gesture-space:
-  cd gesture_space && uv sync
-  cd gesture_space && uvx ruff format --check
-  cd gesture_space && uvx ruff check
-  cd gesture_space && uv run pytest tests/
-
 ci-ts-schema:
   cd ts-schema && cargo check
   cd ts-schema && cargo fmt -- --check
@@ -196,6 +188,12 @@ ci-robot-vision:
   cd robot/vision && uvx ruff format --check
   # cd robot/vision && uv run pytest
 
+ci-robot-intelligence:
+  cd robot/intelligence && uv sync
+  cd robot/intelligence && uvx ruff check
+  cd robot/intelligence && uvx ruff format --check
+  # cd robot/intelligence && uv run pytest
+
 ci-robot-scheduler:
   cd robot/scheduler && cargo check
   cd robot/scheduler && cargo fmt -- --check
@@ -215,7 +213,7 @@ ci-robot-serial:
   cd robot/serial && cargo test
 
 ci-robot-lower: ci-robot-firmware
-ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial
+ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial ci-robot-intelligence
 
 ci-robot: ci-robot-lower ci-robot-upper
 

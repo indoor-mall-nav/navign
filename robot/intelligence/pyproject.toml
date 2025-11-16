@@ -1,0 +1,13 @@
+[project]
+dependencies = [
+  "eclipse-zenoh>=1.6.2",
+  "grpcio-tools>=1.76.0",
+  "openai>=2.8.0",
+  "protobuf>=6.33.1",
+  "transformers>=4.57.1",
+]
+description = "Add your description here"
+name = "intelligence"
+readme = "README.md"
+requires-python = ">=3.12"
+version = "0.1.0"
