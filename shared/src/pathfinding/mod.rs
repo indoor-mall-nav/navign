@@ -16,3 +16,6 @@ pub use inter_area::{
     find_path_between_areas,
 };
 pub use polygon::{BoundedBlock, Polygon};
+
+#[cfg(feature = "geo")]
+pub use polygon::{Triangle, TriangulationMesh};

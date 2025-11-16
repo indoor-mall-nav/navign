@@ -2386,6 +2386,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "earcutr"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afc28d89ac6cb489f679fcf51aaa62b4667bb0fb73a30f1d4d23949069707c07"
+dependencies = [
+ "itertools 0.14.0",
+ "num-traits",
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3894,7 +3904,7 @@ version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34f0e6e028c581e82e6822a68869514e94c25e7f8ea669a2d8595bdf7461ccc5"
 dependencies = [
- "earcutr",
+ "earcutr 0.4.3",
  "float_next_after",
  "geo-types",
  "geographiclib-rs",
@@ -6192,6 +6202,7 @@ dependencies = [
  "bson",
  "chrono",
  "defmt 1.0.1",
+ "earcutr 0.5.0",
  "geo",
  "geo-types",
  "heapless 0.9.1",
