@@ -12,32 +12,13 @@ use navign_shared::*;
 use sqlx::types::Uuid;
 
 // ============================================================================
-// Helper Functions for ID Conversion
-// ============================================================================
-
-/// Convert PostgreSQL UUID to ObjectId
-/// Uses the UUID hex representation (first 24 chars) as ObjectId
-fn uuid_to_object_id(uuid: Uuid) -> ObjectId {
-    let id_str = uuid.to_string().replace("-", "");
-    ObjectId::parse_str(&id_str[..24]).unwrap_or_else(|_| ObjectId::new())
-}
-
-/// Convert PostgreSQL integer ID to ObjectId
-/// Pads the integer to 24 hex chars for ObjectId compatibility
-fn int_to_object_id(id: i32) -> ObjectId {
-    let id_str = format!("{:024x}", id as u64);
-    ObjectId::parse_str(&id_str).unwrap_or_else(|_| ObjectId::new())
-}
-
-// ============================================================================
 // Entity Conversions
 // ============================================================================
 
 /// Convert PostgreSQL Entity to shared Entity
-/// Uses UUID directly as a 24-char hex string for ObjectId
 pub fn pg_entity_to_entity(pg: PgEntity) -> Entity {
     Entity {
-        id: uuid_to_object_id(pg.id),
+        id: pg.id.to_string(),
         r#type: match pg.r#type.as_str() {
             "Mall" => EntityType::Mall,
             "Transportation" => EntityType::Transportation,
@@ -90,8 +71,8 @@ pub fn pg_area_to_area(pg: PgArea) -> Area {
     let floor = parse_floor_string(&pg.floor);
 
     Area {
-        id: int_to_object_id(pg.id),
-        entity: uuid_to_object_id(pg.entity_id),
+        id: pg.id.to_string(),
+        entity: pg.entity_id.to_string(),
         name: pg.name,
         description: pg.description,
         beacon_code: pg.beacon_code,
@@ -103,7 +84,9 @@ pub fn pg_area_to_area(pg: PgArea) -> Area {
 }
 
 /// Convert shared Area to PostgreSQL Area
-pub fn area_to_pg_area(area: Area, entity_id: Uuid) -> PgArea {
+pub fn area_to_pg_area(area: Area) -> PgArea {
+    let entity_id = Uuid::parse_str(&area.entity)
+        .unwrap_or_else(|_| Uuid::new_v4());
     // Convert Floor to string
     let floor_str = match area.floor {
         Some(f) => format!("{}", i32::from(f)),
@@ -174,11 +157,11 @@ pub fn pg_beacon_to_beacon(pg: PgBeacon) -> Beacon {
     let location = (0.0, 0.0);
 
     Beacon {
-        id: int_to_object_id(pg.id),
-        entity: uuid_to_object_id(pg.entity_id),
-        area: int_to_object_id(pg.area_id),
-        merchant: pg.merchant_id.map(int_to_object_id),
-        connection: pg.connection_id.map(int_to_object_id),
+        id: pg.id.to_string(),
+        entity: pg.entity_id.to_string(),
+        area: pg.area_id.to_string(),
+        merchant: pg.merchant_id.map(|id| id.to_string()),
+        connection: pg.connection_id.map(|id| id.to_string()),
         name: pg.name,
         description: pg.description,
         r#type: beacon_type,
@@ -191,15 +174,15 @@ pub fn pg_beacon_to_beacon(pg: PgBeacon) -> Beacon {
 }
 
 /// Convert shared Beacon to PostgreSQL Beacon
-/// Note: This requires additional context (IDs, floor) that aren't in the Beacon struct
-pub fn beacon_to_pg_beacon(
-    beacon: Beacon,
-    entity_id: Uuid,
-    area_id: i32,
-    merchant_id: Option<i32>,
-    connection_id: Option<i32>,
-    floor: String,
-) -> PgBeacon {
+pub fn beacon_to_pg_beacon(beacon: Beacon) -> PgBeacon {
+    let entity_id = Uuid::parse_str(&beacon.entity)
+        .unwrap_or_else(|_| Uuid::new_v4());
+    let area_id = beacon.area.parse::<i32>().unwrap_or(0);
+    let merchant_id = beacon.merchant.and_then(|m| m.parse::<i32>().ok());
+    let connection_id = beacon.connection.and_then(|c| c.parse::<i32>().ok());
+
+    // Extract floor from area if needed (placeholder for now)
+    let floor = "0".to_string();
     // Convert BeaconType to kebab-case string
     let beacon_type = match beacon.r#type {
         BeaconType::Navigation => "navigation",
@@ -244,9 +227,9 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
     let floor = parse_floor_string(&pg.floor);
 
     Merchant {
-        id: int_to_object_id(pg.id),
-        entity: uuid_to_object_id(pg.entity_id),
-        area: int_to_object_id(pg.area_id),
+        id: pg.id.to_string(),
+        entity: pg.entity_id.to_string(),
+        area: pg.area_id.to_string(),
         name: pg.name,
         description: pg.description,
         r#type: MerchantType::Other, // Would need mapping from string
@@ -260,7 +243,10 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
 }
 
 /// Convert shared Merchant to PostgreSQL Merchant
-pub fn merchant_to_pg_merchant(merchant: Merchant, entity_id: Uuid, area_id: i32) -> PgMerchant {
+pub fn merchant_to_pg_merchant(merchant: Merchant) -> PgMerchant {
+    let entity_id = Uuid::parse_str(&merchant.entity)
+        .unwrap_or_else(|_| Uuid::new_v4());
+    let area_id = merchant.area.parse::<i32>().unwrap_or(0);
     // Convert Floor to string
     let floor_str = match merchant.floor {
         Some(f) => format!("{}", i32::from(f)),
@@ -292,8 +278,8 @@ pub fn merchant_to_pg_merchant(merchant: Merchant, entity_id: Uuid, area_id: i32
 /// Convert PostgreSQL Connection to shared Connection
 pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
     Connection {
-        id: int_to_object_id(pg.id),
-        entity: uuid_to_object_id(pg.entity_id),
+        id: pg.id.to_string(),
+        entity: pg.entity_id.to_string(),
         name: pg.name,
         description: pg.description,
         r#type: match pg.r#type.as_str() {
@@ -311,7 +297,9 @@ pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
 }
 
 /// Convert shared Connection to PostgreSQL Connection
-pub fn connection_to_pg_connection(connection: Connection, entity_id: Uuid) -> PgConnection {
+pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
+    let entity_id = Uuid::parse_str(&connection.entity)
+        .unwrap_or_else(|_| Uuid::new_v4());
     // Convert Floors to strings
     let from_floor_str = match connection.from_floor {
         Some(f) => format!("{}", i32::from(f)),
@@ -352,7 +340,7 @@ pub fn connection_to_pg_connection(connection: Connection, entity_id: Uuid) -> P
 /// Convert PostgreSQL User to shared User
 pub fn pg_user_to_user(pg: PgUser) -> crate::schema::User {
     crate::schema::User {
-        id: uuid_to_object_id(pg.id),
+        id: pg.id.to_string(),
         username: pg.username,
         email: pg.email,
         phone: pg.phone,

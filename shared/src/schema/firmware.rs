@@ -15,14 +15,6 @@ use bson::serde_helpers::serialize_object_id_as_hex_string;
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Firmware {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     /// Semantic version of the firmware (e.g., "1.0.0")
     pub version: String,

@@ -8,7 +8,7 @@ pub use navign_shared::{
 
 impl Service for Merchant {
     fn get_id(&self) -> String {
-        self.id.to_hex()
+        self.id.clone()
     }
 
     fn get_name(&self) -> String {

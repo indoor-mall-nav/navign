@@ -19,57 +19,15 @@ use super::utils::serialize_option_object_id_as_hex_string;
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Beacon {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
     #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     /// Reference to the Entity
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     /// Reference to the Area where the beacon is located
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub area: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "area"))]
     pub area: String,
     /// Optional reference to the Merchant associated with the beacon.
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_option_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string | null"))]
-    pub merchant: Option<ObjectId>,
-    #[cfg(not(feature = "mongodb"))]
     pub merchant: Option<String>,
     /// Optional reference to the Connection associated with the beacon.
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_option_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string | null"))]
-    pub connection: Option<ObjectId>,
-    #[cfg(not(feature = "mongodb"))]
     pub connection: Option<String>,
     /// The ssid of the beacon, typically used for display purposes in BLE scanning.
     pub name: String,

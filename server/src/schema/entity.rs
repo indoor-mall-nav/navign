@@ -25,7 +25,7 @@ pub struct EntityQuery {
 #[async_trait]
 impl Service for Entity {
     fn get_id(&self) -> String {
-        self.id.to_hex()
+        self.id.clone()
     }
 
     fn get_name(&self) -> String {

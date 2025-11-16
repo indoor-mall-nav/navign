@@ -8,14 +8,11 @@ use bson::oid::ObjectId;
 use alloc::string::String;
 
 /// Account schema representing a user account in the system
-/// Note: This schema is primarily for use with the mongodb feature.
-/// When mongodb feature is disabled, the id field is not available.
-#[cfg(all(feature = "alloc", feature = "serde", feature = "mongodb"))]
+#[cfg(all(feature = "alloc", feature = "serde"))]
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Account {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
+    pub id: String,
     pub username: String,
     pub email: String,
     pub hashed_password: String,

@@ -5,7 +5,7 @@ pub use navign_shared::{ConnectedArea, Connection, ConnectionType};
 
 impl Service for Connection {
     fn get_id(&self) -> String {
-        self.id.to_hex()
+        self.id.clone()
     }
 
     fn get_name(&self) -> String {

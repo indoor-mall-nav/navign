@@ -17,12 +17,7 @@ use super::utils::serialize_connected_areas;
 
 use core::fmt::Display;
 
-/// ConnectedArea type for MongoDB
-#[cfg(feature = "mongodb")]
-pub type ConnectedArea = (ObjectId, f64, f64, bool);
-
-/// ConnectedArea type for non-MongoDB (String-based IDs)
-#[cfg(not(feature = "mongodb"))]
+/// ConnectedArea type - (area_id, x, y, is_entrance)
 pub type ConnectedArea = (String, f64, f64, bool);
 
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
@@ -32,26 +27,9 @@ pub type ConnectedArea = (String, f64, f64, bool);
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Connection {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
     #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     /// Reference to the Entity
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,

@@ -21,25 +21,7 @@ use core::fmt::{Display, Formatter};
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Area {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,

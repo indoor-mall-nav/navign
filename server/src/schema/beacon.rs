@@ -15,7 +15,7 @@ pub use navign_shared::{Beacon, BeaconDevice, BeaconType};
 
 impl Service for Beacon {
     fn get_id(&self) -> String {
-        self.id.to_hex()
+        self.id.clone()
     }
 
     fn get_name(&self) -> String {

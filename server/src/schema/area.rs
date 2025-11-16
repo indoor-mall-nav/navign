@@ -7,7 +7,7 @@ pub use navign_shared::{Area, Floor, FloorType};
 #[async_trait]
 impl Service for Area {
     fn get_id(&self) -> String {
-        self.id.to_hex()
+        self.id.clone()
     }
 
     fn get_name(&self) -> String {
