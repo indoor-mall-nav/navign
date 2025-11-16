@@ -155,15 +155,15 @@ function formatChineseCuisine(chinese: {
  * Formats electronics merchant types with category details
  */
 function formatElectronicsType(electronics: {
-  is_mobile: boolean
-  is_computer: boolean
-  is_accessories: boolean
+  mobile: boolean
+  computer: boolean
+  accessories: boolean
 }): string {
   const categories: string[] = []
 
-  if (electronics.is_mobile) categories.push('Mobile Devices')
-  if (electronics.is_computer) categories.push('Computers')
-  if (electronics.is_accessories) categories.push('Accessories')
+  if (electronics.mobile) categories.push('Mobile Devices')
+  if (electronics.computer) categories.push('Computers')
+  if (electronics.accessories) categories.push('Accessories')
 
   if (categories.length === 0) {
     return 'Electronics Store'
@@ -180,15 +180,15 @@ function formatElectronicsType(electronics: {
  * Formats clothing merchant types with target demographic details
  */
 function formatClothingType(clothing: {
-  is_menswear: boolean
-  is_womenswear: boolean
-  is_childrenswear: boolean
+  menswear: boolean
+  womenswear: boolean
+  childrenswear: boolean
 }): string {
   const demographics: string[] = []
 
-  if (clothing.is_menswear) demographics.push("Men's")
-  if (clothing.is_womenswear) demographics.push("Women's")
-  if (clothing.is_childrenswear) demographics.push("Children's")
+  if (clothing.menswear) demographics.push("Men's")
+  if (clothing.womenswear) demographics.push("Women's")
+  if (clothing.childrenswear) demographics.push("Children's")
 
   if (demographics.length === 0) {
     return 'Clothing Store'
@@ -263,9 +263,9 @@ export function getMerchantTypeDetails(type: MerchantType): {
 
   if ('electronics' in type) {
     const details: string[] = []
-    if (type.electronics.is_mobile) details.push('Mobile Devices')
-    if (type.electronics.is_computer) details.push('Computers')
-    if (type.electronics.is_accessories) details.push('Accessories')
+    if (type.electronics.mobile) details.push('Mobile Devices')
+    if (type.electronics.computer) details.push('Computers')
+    if (type.electronics.accessories) details.push('Accessories')
 
     return {
       category: 'Electronics',
@@ -278,9 +278,9 @@ export function getMerchantTypeDetails(type: MerchantType): {
 
   if ('clothing' in type) {
     const details: string[] = []
-    if (type.clothing.is_menswear) details.push("Men's")
-    if (type.clothing.is_womenswear) details.push("Women's")
-    if (type.clothing.is_childrenswear) details.push("Children's")
+    if (type.clothing.menswear) details.push("Men's")
+    if (type.clothing.womenswear) details.push("Women's")
+    if (type.clothing.childrenswear) details.push("Children's")
 
     return {
       category: 'Fashion',

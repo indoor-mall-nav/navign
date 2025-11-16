@@ -26,7 +26,7 @@ const areas = ref<AreaDetails[]>([])
 const merchants = ref<Merchant[]>([])
 const beacons = ref<MapBeacon[]>([])
 
-const entityId = ref(session.entity?._id || '')
+const entityId = ref(session.entity?.id || '')
 const entityName = computed(() => session.entity?.name || 'Entity')
 
 onMounted(async () => {

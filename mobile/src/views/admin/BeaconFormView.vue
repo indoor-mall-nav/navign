@@ -216,7 +216,7 @@ function handleCancel() {
               required
             >
               <option value="" disabled>Select an area</option>
-              <option v-for="area in areas" :key="area._id" :value="area._id">
+              <option v-for="area in areas" :key="area.id" :value="area.id">
                 {{ area.name }}
               </option>
             </select>

@@ -27,6 +27,12 @@ export type Merchant = {
    */
   polygon: Array<[number, number]>
   available_period: Array<[bigint, bigint]> | null
+  /**
+   * Opening hours for each day of the week (Sunday=0 to Saturday=6)
+   * Each entry is (start_time_ms, end_time_ms) from midnight
+   * Empty vec means closed that day
+   */
+  opening_hours: Array<Array<[number, number]>> | null
   email: string | null
   phone: string | null
   website: string | null

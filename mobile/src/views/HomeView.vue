@@ -43,7 +43,7 @@ const geolocationError = ref('')
 const findingArea = ref(false)
 const areaFindingError = ref('')
 
-const entityId = ref(session.entity?._id || '')
+const entityId = ref(session.entity?.id || '')
 const areaId = ref(session.area?.id || '')
 
 session.$subscribe((mutation, state) => {
@@ -54,7 +54,7 @@ session.$subscribe((mutation, state) => {
       }, New Area: ${state.area ? state.area.name : 'None'}`,
   )
   areaId.value = state.area?.id || ''
-  entityId.value = state.entity?._id || ''
+  entityId.value = state.entity?.id || ''
 })
 
 onMounted(() => {
@@ -392,7 +392,7 @@ watch(
         <CardContent class="space-y-2">
           <Card
             v-for="entity in entities"
-            :key="entity._id"
+            :key="entity.id"
             class="p-4 cursor-pointer hover:bg-accent transition-colors"
             @click="selectEntity(entity)"
           >

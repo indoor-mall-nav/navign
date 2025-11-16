@@ -62,6 +62,10 @@ pub struct Merchant {
     /// Polygon boundary defining the merchant's physical space (required)
     pub polygon: Vec<(f64, f64)>,
     pub available_period: Option<Vec<(i64, i64)>>,
+    /// Opening hours for each day of the week (Sunday=0 to Saturday=6)
+    /// Each entry is (start_time_ms, end_time_ms) from midnight
+    /// Empty vec means closed that day
+    pub opening_hours: Option<Vec<Vec<(i32, i32)>>>,
     pub email: Option<String>,
     pub phone: Option<String>,
     pub website: Option<String>,
