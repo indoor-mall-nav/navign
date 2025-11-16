@@ -33,7 +33,6 @@ navign/
 │   ├── lower/           # STM32F407 motor control (Rust Embassy)
 │   └── firmware/        # Raspberry Pi firmware (Rust)
 ├── animations/          # Manim animations for presentations (Python)
-├── presentation/        # Slidev presentation
 ├── vision/              # Apple Vision Pro spatial computing app (Swift)
 ├── admin/
 │   ├── maintenance/     # ESP32-C3 key management CLI (Rust)
@@ -113,17 +112,6 @@ Professional presentation animations using Manim:
 
 **Tech Stack**: Python, Manim, NumPy, SciPy
 
-#### 📊 **Presentation** (`presentation/`)
-
-Interactive Slidev presentation for the GestureSpace project:
-
-- **4.5-minute presentation** covering market situation, GestureSpace techniques, Navign integration, and robot system
-- **Interactive slides** with code highlighting, diagrams, and animations
-- **Export capabilities**: PDF, PNG, or host as web application
-- **Responsive design** for presenting on any device
-
-**Tech Stack**: Slidev, Vue, Markdown, Mermaid
-
 #### 🥽 **Vision** (`vision/`)
 
 Apple Vision Pro spatial computing application:
@@ -199,7 +187,7 @@ KiCad PCB designs for custom beacon hardware:
 
 - **Rust** 1.86+ (for server, beacon, admin/maintenance, shared, ts-schema, admin/orchestrator)
 - **Node.js** 18+ with **pnpm** (for mobile, miniapp, ts-schema)
-- **Python** 3.12+ with **uv** (for gesture_space, animations)
+- **Python** 3.12+ with **uv** (for robot/vision, robot/audio, robot/intelligence, animations)
 - **Xcode** 16+ (for vision app, iOS/macOS builds)
 - **just** command runner
 - **ESP-IDF** (for beacon development)
@@ -284,15 +272,6 @@ cd animations
 uv run manim intro.py NavignIntro
 ```
 
-#### Presentation (Slidev)
-
-```bash
-cd presentation
-pnpm dev          # Start presentation in dev mode
-pnpm build        # Build for production
-pnpm export       # Export as PDF
-```
-
 #### Vision (Apple Vision Pro)
 
 ```bash
@@ -355,7 +334,6 @@ Merchant types include:
 | Robot/Lower      | Rust             | STM32F407, Embassy, defmt            |
 | Admin            | Rust, Go         | Tokio, Tonic, gRPC, Socket.IO, Protobuf |
 | Animations       | Python           | Manim, NumPy, SciPy                  |
-| Presentation     | Markdown, Vue    | Slidev, Mermaid                      |
 | Vision           | Swift            | SwiftUI, RealityKit, visionOS        |
 | Mini App         | TypeScript       | WeChat Mini Program SDK              |
 | Maintenance Tool | Rust             | Clap, P-256, esptool                 |
@@ -384,7 +362,6 @@ For technical documentation, refer to individual component READMEs:
 - [Firmware Documentation](firmware/README.md)
 - [Robot Documentation](robot/README.md)
 - [TypeScript Schema Documentation](ts-schema/README.md)
-- [Presentation](presentation/README.md)
 
 ## 🎯 Roadmap
 
