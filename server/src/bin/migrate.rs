@@ -17,6 +17,7 @@
 //!   POSTGRES_URL      PostgreSQL connection string (required)
 
 use bson::{Document, doc};
+use dotenv::dotenv;
 use futures::TryStreamExt;
 use mongodb::Database as MongoDatabase;
 use navign_shared::*;
@@ -24,7 +25,6 @@ use sqlx::types::Uuid;
 use std::collections::HashMap;
 use std::env;
 use tracing::{error, info, warn};
-use dotenv::dotenv;
 
 // Import from the library (lib.rs exports these modules)
 use navign_server::pg::adapters::*;
