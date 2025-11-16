@@ -22,6 +22,7 @@ pub struct Firmware {
     )]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     /// Semantic version of the firmware (e.g., "1.0.0")
     pub version: String,

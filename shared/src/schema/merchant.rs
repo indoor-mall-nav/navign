@@ -27,6 +27,7 @@ pub struct Merchant {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     pub name: String,
     pub description: Option<String>,
@@ -39,6 +40,7 @@ pub struct Merchant {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     pub beacon_code: String,
     #[cfg(feature = "mongodb")]
@@ -49,6 +51,7 @@ pub struct Merchant {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub area: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "area"))]
     pub area: String,
     pub r#type: MerchantType,
     pub color: Option<String>,

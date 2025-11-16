@@ -29,6 +29,7 @@ pub struct Area {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
     pub id: String,
     #[cfg(feature = "mongodb")]
     #[cfg_attr(
@@ -38,6 +39,7 @@ pub struct Area {
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub entity: ObjectId,
     #[cfg(not(feature = "mongodb"))]
+    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,
@@ -224,5 +226,34 @@ pub mod mobile {
                 .await?;
             Ok(())
         }
+    }
+}
+
+#[cfg(all(test, feature = "serde", not(feature = "mongodb")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_area_with_underscore_id() {
+        // Test that Area can deserialize from server response with _id field
+        let json = r#"{
+            "_id": "68a83067bdfa76608b934ae8",
+            "entity": "68a8301fbdfa76608b934ae1",
+            "name": "Base Area F1",
+            "description": "This is the base area",
+            "beacon_code": "01",
+            "floor": {"type": "floor", "name": 1},
+            "polygon": [[0.0, 70.0], [45.0, 70.0], [45.0, 72.0]],
+            "created_at": 1755851693226,
+            "updated_at": 1755851693226
+        }"#;
+
+        let area: Area = serde_json::from_str(json).expect("Failed to deserialize area");
+        assert_eq!(area.id, "68a83067bdfa76608b934ae8");
+        assert_eq!(area.entity, "68a8301fbdfa76608b934ae1");
+        assert_eq!(area.name, "Base Area F1");
+        assert_eq!(area.beacon_code, "01");
+        assert!(area.floor.is_some());
+        assert_eq!(area.polygon.len(), 3);
     }
 }
