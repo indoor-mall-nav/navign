@@ -84,9 +84,9 @@ jobs:
               robot/*)
                 run_robot=true
                 ;;
-              # Language config file changes
-              */Cargo.toml|Cargo.toml|Cargo.lock|rust-toolchain.toml)
-                # Rust config changes → Run all Rust CI
+              # Root-level language config file changes (workspace-wide)
+              Cargo.lock|rust-toolchain.toml)
+                # Workspace Rust config changes → Run all Rust CI
                 run_shared=true
                 run_server=true
                 run_firmware=true
@@ -95,17 +95,12 @@ jobs:
                 run_proc_macros=true
                 run_robot=true
                 ;;
-              */go.mod|*/go.sum|go.work|go.work.sum)
-                # Go config changes → Run admin (tower)
+              go.work|go.work.sum)
+                # Workspace Go config changes → Run admin (tower)
                 run_admin=true
                 ;;
-              */pyproject.toml|*/uv.lock)
-                # Python config changes → Run admin and robot
-                run_admin=true
-                run_robot=true
-                ;;
-              */package.json|pnpm-workspace.yaml|pnpm-lock.yaml|.node-version)
-                # Node config changes → Run mobile
+              pnpm-workspace.yaml|pnpm-lock.yaml|.node-version)
+                # Workspace Node config changes → Run mobile
                 run_mobile=true
                 ;;
               justfile|*.md|.github/*|deny.toml|.typos.toml)
