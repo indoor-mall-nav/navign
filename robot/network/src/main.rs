@@ -27,7 +27,7 @@ impl NetworkComponent {
     pub async fn new(server_url: String) -> Result<Self> {
         info!("Initializing Network component");
 
-        let config = zenoh::Config::default();
+        let config = zenoh::Config::from_env().expect("Failed to load Zenoh config from environment");
         let session = zenoh::open(config)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;

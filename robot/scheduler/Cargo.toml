@@ -1,7 +1,7 @@
 [package]
 edition.workspace = true
 license.workspace = true
-name              = "scheduler"
+name              = "navign-robot-scheduler"
 version.workspace = true
 
 [dependencies]
@@ -12,8 +12,8 @@ tokio = { version = "1.47", features = ["full"] }
 zenoh = { version = "1.6.2", features = ["default"] }
 
 # Protocol Buffers
-prost       = "0.13"
-prost-types = "0.13"
+prost       = "0.14.1"
+prost-types = "0.14.1"
 
 # Serialization
 serde      = { version = "1.0", features = ["derive"] }
@@ -34,4 +34,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = "0.4"
 
 [build-dependencies]
-prost-build = "0.13"
+prost-build = "0.14.1"

@@ -44,7 +44,7 @@ impl Scheduler {
     pub async fn new() -> Result<Self> {
         // Initialize Zenoh session
         info!("Initializing Zenoh session...");
-        let config = zenoh::Config::default();
+        let config = zenoh::Config::from_env().expect("Failed to load Zenoh config from environment");
         let session = zenoh::open(config)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
@@ -185,9 +185,9 @@ impl Scheduler {
 
     /// Publish scheduler status
     async fn publish_status(&self) -> Result<()> {
-        let zenoh_session = self.zenoh_session.clone();
-        let task_manager = self.task_manager.clone();
-        let robot_state = self.robot_state.clone();
+        let zenoh_session = Arc::clone(&self.zenoh_session);
+        let task_manager = Arc::clone(&self.task_manager);
+        let robot_state = Arc::clone(&self.robot_state);
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
