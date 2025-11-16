@@ -1,0 +1,90 @@
+# Scheduler
+
+The scheduler is the central coordinator for robot operations, managing task queues, component coordination, and navigation decisions.
+
+## Overview
+
+**Language:** Rust
+**Location:** `robot/scheduler/`
+**Runtime:** Tokio async
+**Messaging:** Zenoh pub/sub
+
+## Responsibilities
+
+- Task queue management with priority scheduling
+- Inter-component coordination via Zenoh
+- Robot state tracking and monitoring
+- Navigation decision-making
+- Task history persistence in database
+- Communication with admin tower (gRPC)
+
+## Architecture
+
+```
+      Tower (gRPC)
+          |
+          | TaskSubmission
+          v
+    +------------+
+    | Scheduler  |
+    | +--------+ |
+    | |  Task  | |
+    | |Manager | |
+    | +--------+ |
+    | +--------+ |
+    | |Database| |
+    | +--------+ |
+    +-----+------+
+          |
+          | Zenoh Topics
+          |
+          +-> robot/scheduler/status
+          +-> robot/scheduler/task/ack
+          +<- robot/network/pathfinding/response
+          +<- robot/serial/sensors
+          +<- robot/vision/updates
+          +<- robot/audio/events
+```
+
+## Key Features
+
+- Priority-based task queue
+- Real-time robot state tracking
+- Persistent task history (PostgreSQL)
+- Zenoh pub/sub for component coordination
+- gRPC client for tower communication
+
+## Zenoh Topics
+
+### Published
+
+- `robot/scheduler/status` - Robot state updates
+- `robot/scheduler/task/ack` - Task acknowledgments
+
+### Subscribed
+
+- `robot/scheduler/task/submit` - Incoming tasks from Tower
+- `robot/network/pathfinding/response` - Navigation paths
+- `robot/serial/sensors` - Sensor data from lower layer
+- `robot/vision/updates` - Vision detections
+- `robot/audio/events` - Wake word events
+
+## Running
+
+```bash
+cd robot/scheduler
+cargo run
+```
+
+## Environment Variables
+
+- `ZENOH_CONFIG` - Zenoh configuration file (optional)
+- `DATABASE_URL` - Task database connection string
+- `RUST_LOG` - Log level (debug, info, warn, error)
+
+## See Also
+
+- [Task Management](/robot/scheduler/src/task_manager.rs)
+- [Serial Communication](serial.md)
+- [Network Integration](navign.md)
+- [Protocol Buffers](/robot/proto/scheduler.proto)
