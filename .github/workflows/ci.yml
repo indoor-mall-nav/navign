@@ -84,7 +84,26 @@ jobs:
               robot/*)
                 run_robot=true
                 ;;
-              justfile|*.toml|*.md|.github/*|deny.toml|.typos.toml|package.json|pnpm-workspace.yaml|pnpm-lock.yaml)
+              # Root-level language config file changes (workspace-wide)
+              Cargo.lock|rust-toolchain.toml)
+                # Workspace Rust config changes → Run all Rust CI
+                run_shared=true
+                run_server=true
+                run_firmware=true
+                run_admin=true
+                run_mobile=true
+                run_proc_macros=true
+                run_robot=true
+                ;;
+              go.work|go.work.sum)
+                # Workspace Go config changes → Run admin (tower)
+                run_admin=true
+                ;;
+              pnpm-workspace.yaml|pnpm-lock.yaml|.node-version)
+                # Workspace Node config changes → Run mobile
+                run_mobile=true
+                ;;
+              justfile|*.md|.github/*|deny.toml|.typos.toml)
                 run_repo=true
                 ;;
               ts-schema/*)
