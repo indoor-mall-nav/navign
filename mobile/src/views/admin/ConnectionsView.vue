@@ -57,7 +57,7 @@ function navigateToEdit(connection: Connection) {
     name: 'admin-connections-form',
     query: {
       entity: entityId.value,
-      id: connection._id
+      id: connection.id
     }
   })
 }
@@ -76,7 +76,7 @@ async function confirmDelete() {
   try {
     const response = await deleteConnection(
       entityId.value,
-      connectionToDelete.value._id,
+      connectionToDelete.value.id,
       session.userToken || ''
     )
     if (response.status === 'success') {
@@ -144,7 +144,7 @@ function getTypeIcon(type: string): string {
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="connection in connections" :key="connection._id" class="hover:shadow-lg transition-shadow">
+      <Card v-for="connection in connections" :key="connection.id" class="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">

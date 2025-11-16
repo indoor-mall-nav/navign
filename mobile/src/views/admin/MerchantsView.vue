@@ -57,7 +57,7 @@ function navigateToEdit(merchant: Merchant) {
     name: 'admin-merchants-form',
     query: {
       entity: entityId.value,
-      id: merchant._id
+      id: merchant.id
     }
   })
 }
@@ -76,7 +76,7 @@ async function confirmDelete() {
   try {
     const response = await deleteMerchant(
       entityId.value,
-      merchantToDelete.value._id,
+      merchantToDelete.value.id,
       session.userToken || ''
     )
     if (response.status === 'success') {
@@ -139,7 +139,7 @@ function getStyleBadgeVariant(style: string) {
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="merchant in merchants" :key="merchant._id" class="hover:shadow-lg transition-shadow">
+      <Card v-for="merchant in merchants" :key="merchant.id" class="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">

@@ -1,7 +1,7 @@
 // Auto-generated from Rust schema: connection.rs
 
 export interface Connection {
-  _id: string
+  id: string
   /** Reference to the Entity */
   entity: string
   name: string

@@ -1,7 +1,7 @@
 // Auto-generated from Rust schema: merchant.rs
 
 export interface Merchant {
-  _id: string
+  id: string
   name: string
   description: string | null
   chain: string | null // Name of the chain if part of a chain store series
