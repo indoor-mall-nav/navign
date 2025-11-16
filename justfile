@@ -233,11 +233,19 @@ proto-tower:
 proto-plot:
   cd admin/plot && python -m grpc_tools.protoc --proto_path=../proto --python_out=proto --grpc_python_out=proto --pyi_out=proto ../proto/plot.proto
 
-proto: proto-tower proto-plot
+proto-robot-python:
+  cd robot/proto && ./generate_python.sh
+
+proto-robot: proto-robot-python
+  @echo "Robot Rust proto generation happens via build.rs during compilation"
+
+proto: proto-tower proto-plot proto-robot
 
 clean-proto:
   rm -f admin/tower/proto/*.pb.go
   rm -f admin/plot/proto/plot_pb2.py admin/plot/proto/plot_pb2_grpc.py admin/plot/proto/plot_pb2.pyi
+  rm -f robot/vision/*_pb2.py robot/vision/*_pb2.pyi
+  rm -f robot/audio/*_pb2.py robot/audio/*_pb2.pyi
 
 # Generate TypeScript type definitions from Rust schemas
 gen-ts-schema:
@@ -248,4 +256,4 @@ gen-ts-schema:
   cp ts-schema/bindings/generated/*.ts mobile/src/schema/generated/
   @echo "✓ TypeScript schemas generated successfully"
   @echo "  Output: mobile/src/schema/generated/"
-  @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:" 
+  @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:"

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package navign.robot.common;
+
+import "google/protobuf/timestamp.proto";
+
+// Location represents a 3D position with floor information
+message Location {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  string floor = 4;
+}
+
+// Pose represents position and orientation
+message Pose {
+  Location position = 1;
+  Quaternion orientation = 2;
+}
+
+// Quaternion for 3D rotation
+message Quaternion {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
+}
+
+// BoundingBox for object detection
+message BoundingBox {
+  float x_min = 1;
+  float y_min = 2;
+  float x_max = 3;
+  float y_max = 4;
+  float confidence = 5;
+}
+
+// Point3D for general 3D coordinates
+message Point3D {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+// ComponentStatus represents the health status of a component
+enum ComponentStatus {
+  COMPONENT_STATUS_UNSPECIFIED = 0;
+  COMPONENT_STATUS_INITIALIZING = 1;
+  COMPONENT_STATUS_READY = 2;
+  COMPONENT_STATUS_BUSY = 3;
+  COMPONENT_STATUS_ERROR = 4;
+  COMPONENT_STATUS_OFFLINE = 5;
+}
+
+// ComponentInfo for component registration and heartbeat
+message ComponentInfo {
+  string component_id = 1;
+  ComponentType type = 2;
+  ComponentStatus status = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> metadata = 5;
+}
+
+// ComponentType identifies different robot components
+enum ComponentType {
+  COMPONENT_TYPE_UNSPECIFIED = 0;
+  COMPONENT_TYPE_VISION = 1;
+  COMPONENT_TYPE_AUDIO = 2;
+  COMPONENT_TYPE_SCHEDULER = 3;
+  COMPONENT_TYPE_SERIAL = 4;
+  COMPONENT_TYPE_NETWORK = 5;
+  COMPONENT_TYPE_INTELLIGENCE = 6;
+}
+
+// ErrorInfo for standardized error reporting
+message ErrorInfo {
+  string code = 1;
+  string message = 2;
+  string component = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> details = 5;
+}
+
+// Response wrapper for RPC calls
+message Response {
+  bool success = 1;
+  string message = 2;
+  ErrorInfo error = 3;
+}

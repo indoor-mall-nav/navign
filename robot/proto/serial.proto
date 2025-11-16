@@ -1,0 +1,314 @@
+syntax = "proto3";
+
+package navign.robot.serial;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// SerialService handles UART communication with STM32F407 lower controller
+service SerialService {
+  // SendMotorCommand sends motor control commands
+  rpc SendMotorCommand(MotorCommand) returns (MotorCommandResponse);
+
+  // GetSensorData reads sensor data from lower controller
+  rpc GetSensorData(SensorRequest) returns (SensorDataResponse);
+
+  // StreamSensorData provides continuous sensor updates
+  rpc StreamSensorData(SensorStreamRequest) returns (stream SensorUpdate);
+
+  // SetRobotMode changes the robot operating mode
+  rpc SetRobotMode(ModeChangeRequest) returns (common.Response);
+
+  // EmergencyStop triggers immediate emergency stop
+  rpc EmergencyStop(EmergencyStopRequest) returns (common.Response);
+
+  // GetComponentStatus returns serial component health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+}
+
+// ============================================================================
+// Motor Control Messages
+// ============================================================================
+
+message MotorCommand {
+  MotorControlMode mode = 1;
+  VelocityCommand velocity = 2;
+  PositionCommand position = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  uint32 timeout_ms = 5;  // Command timeout
+}
+
+enum MotorControlMode {
+  MOTOR_CONTROL_MODE_UNSPECIFIED = 0;
+  MOTOR_CONTROL_MODE_VELOCITY = 1;  // Differential drive velocity
+  MOTOR_CONTROL_MODE_POSITION = 2;  // Position control (odometry-based)
+  MOTOR_CONTROL_MODE_STOP = 3;
+  MOTOR_CONTROL_MODE_BRAKE = 4;
+}
+
+message VelocityCommand {
+  float linear_x = 1;  // m/s forward/backward
+  float linear_y = 2;  // m/s left/right (for holonomic)
+  float angular_z = 3;  // rad/s rotation
+  AccelerationLimit acceleration = 4;
+}
+
+message PositionCommand {
+  float target_x = 1;  // meters
+  float target_y = 2;  // meters
+  float target_theta = 3;  // radians
+  float max_velocity = 4;  // m/s
+}
+
+message AccelerationLimit {
+  float linear_max = 1;  // m/s²
+  float angular_max = 2;  // rad/s²
+}
+
+message MotorCommandResponse {
+  bool accepted = 1;
+  string message = 2;
+  MotorStatus status = 3;
+  google.protobuf.Timestamp executed_at = 4;
+}
+
+enum MotorStatus {
+  MOTOR_STATUS_UNSPECIFIED = 0;
+  MOTOR_STATUS_OK = 1;
+  MOTOR_STATUS_EXECUTING = 2;
+  MOTOR_STATUS_STALLED = 3;
+  MOTOR_STATUS_OVERCURRENT = 4;
+  MOTOR_STATUS_OVERTEMPERATURE = 5;
+  MOTOR_STATUS_ERROR = 6;
+}
+
+// ============================================================================
+// Sensor Data Messages
+// ============================================================================
+
+message SensorRequest {
+  repeated SensorType sensors = 1;  // Empty = all sensors
+}
+
+enum SensorType {
+  SENSOR_TYPE_UNSPECIFIED = 0;
+  SENSOR_TYPE_ENCODERS = 1;
+  SENSOR_TYPE_IMU = 2;
+  SENSOR_TYPE_ULTRASONIC = 3;
+  SENSOR_TYPE_INFRARED = 4;
+  SENSOR_TYPE_BUMPER = 5;
+  SENSOR_TYPE_BATTERY = 6;
+  SENSOR_TYPE_TEMPERATURE = 7;
+}
+
+message SensorDataResponse {
+  google.protobuf.Timestamp timestamp = 1;
+  EncoderData encoders = 2;
+  IMUData imu = 3;
+  UltrasonicData ultrasonic = 4;
+  InfraredData infrared = 5;
+  BumperData bumper = 6;
+  BatteryData battery = 7;
+  TemperatureData temperature = 8;
+}
+
+message EncoderData {
+  int32 left_ticks = 1;
+  int32 right_ticks = 2;
+  float left_velocity = 3;  // rad/s
+  float right_velocity = 4;  // rad/s
+  float left_distance = 5;  // meters (cumulative)
+  float right_distance = 6;  // meters (cumulative)
+}
+
+message IMUData {
+  Acceleration acceleration = 1;
+  AngularVelocity gyro = 2;
+  MagneticField magnetometer = 3;
+  Orientation orientation = 4;
+  float temperature = 5;
+}
+
+message Acceleration {
+  float x = 1;  // m/s²
+  float y = 2;
+  float z = 3;
+}
+
+message AngularVelocity {
+  float x = 1;  // rad/s
+  float y = 2;
+  float z = 3;
+}
+
+message MagneticField {
+  float x = 1;  // μT (microtesla)
+  float y = 2;
+  float z = 3;
+}
+
+message Orientation {
+  float roll = 1;  // radians
+  float pitch = 2;
+  float yaw = 3;
+  common.Quaternion quaternion = 4;
+}
+
+message UltrasonicData {
+  repeated UltrasonicReading readings = 1;
+}
+
+message UltrasonicReading {
+  uint32 sensor_id = 1;
+  float distance_meters = 2;
+  bool valid = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message InfraredData {
+  repeated InfraredReading readings = 1;
+}
+
+message InfraredReading {
+  uint32 sensor_id = 1;
+  uint32 raw_value = 2;
+  float distance_meters = 3;
+  bool obstacle_detected = 4;
+}
+
+message BumperData {
+  bool front_left = 1;
+  bool front_right = 2;
+  bool rear_left = 3;
+  bool rear_right = 4;
+  bool any_triggered = 5;
+}
+
+message BatteryData {
+  float voltage = 1;  // Volts
+  float current = 2;  // Amperes
+  float charge_percent = 3;  // 0-100
+  float temperature = 4;  // Celsius
+  BatteryStatus status = 5;
+  uint32 remaining_minutes = 6;
+}
+
+enum BatteryStatus {
+  BATTERY_STATUS_UNSPECIFIED = 0;
+  BATTERY_STATUS_NORMAL = 1;
+  BATTERY_STATUS_LOW = 2;
+  BATTERY_STATUS_CRITICAL = 3;
+  BATTERY_STATUS_CHARGING = 4;
+  BATTERY_STATUS_FULL = 5;
+  BATTERY_STATUS_ERROR = 6;
+}
+
+message TemperatureData {
+  float cpu_temperature = 1;  // Celsius
+  float motor_left_temperature = 2;
+  float motor_right_temperature = 3;
+  float ambient_temperature = 4;
+}
+
+message SensorStreamRequest {
+  repeated SensorType sensors = 1;
+  uint32 frequency_hz = 2;  // Desired update rate
+}
+
+message SensorUpdate {
+  google.protobuf.Timestamp timestamp = 1;
+  SensorDataResponse data = 2;
+}
+
+// ============================================================================
+// Robot Mode Control Messages
+// ============================================================================
+
+message ModeChangeRequest {
+  LowerControllerMode mode = 1;
+  string reason = 2;
+}
+
+enum LowerControllerMode {
+  LOWER_CONTROLLER_MODE_UNSPECIFIED = 0;
+  LOWER_CONTROLLER_MODE_IDLE = 1;
+  LOWER_CONTROLLER_MODE_MANUAL = 2;
+  LOWER_CONTROLLER_MODE_AUTONOMOUS = 3;
+  LOWER_CONTROLLER_MODE_CALIBRATION = 4;
+  LOWER_CONTROLLER_MODE_EMERGENCY = 5;
+}
+
+message EmergencyStopRequest {
+  string reason = 1;
+  bool hardware_estop = 2;  // Physical button pressed vs software
+}
+
+// ============================================================================
+// Odometry Messages
+// ============================================================================
+
+message OdometryData {
+  google.protobuf.Timestamp timestamp = 1;
+  common.Pose pose = 2;
+  Twist velocity = 3;
+  Covariance pose_covariance = 4;
+  Covariance velocity_covariance = 5;
+}
+
+message Twist {
+  float linear_x = 1;
+  float linear_y = 2;
+  float linear_z = 3;
+  float angular_x = 4;
+  float angular_y = 5;
+  float angular_z = 6;
+}
+
+message Covariance {
+  repeated double elements = 1 [packed=true];  // 6x6 = 36 elements
+}
+
+// ============================================================================
+// Status Messages
+// ============================================================================
+
+message StatusRequest {
+  // Empty request
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  SerialMetrics metrics = 2;
+  LowerControllerStatus lower_status = 3;
+  SerialPortStatus port_status = 4;
+}
+
+message SerialMetrics {
+  uint64 messages_sent = 1;
+  uint64 messages_received = 2;
+  uint64 errors = 3;
+  uint64 timeouts = 4;
+  float average_latency_ms = 5;
+  uint64 bytes_sent = 6;
+  uint64 bytes_received = 7;
+  uint64 uptime_seconds = 8;
+}
+
+message LowerControllerStatus {
+  LowerControllerMode mode = 1;
+  string firmware_version = 2;
+  google.protobuf.Timestamp last_heartbeat = 3;
+  bool motors_enabled = 4;
+  bool emergency_stop_active = 5;
+  repeated string warnings = 6;
+  repeated string errors = 7;
+}
+
+message SerialPortStatus {
+  string port_name = 1;
+  uint32 baud_rate = 2;
+  bool connected = 3;
+  uint32 rx_buffer_size = 4;
+  uint32 tx_buffer_size = 5;
+  string error_message = 6;
+}

@@ -8,9 +8,11 @@ dependencies = [
   "torch>=2.9.0",
   "torchvision>=0.24.0",
   "ultralytics>=8.3.228",
+  "protobuf>=5.29.3",
+  "grpcio-tools>=1.70.1",
 ]
-description = "Add your description here"
+description = "Vision component for AprilTag and object detection"
 name = "vision"
 readme = "README.md"
-requires-python = "==3.12.7"
+requires-python = ">=3.12"
 version = "0.1.0"

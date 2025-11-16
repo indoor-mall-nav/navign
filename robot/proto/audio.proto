@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+package navign.robot.audio;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// AudioService provides wake word detection and text-to-speech
+service AudioService {
+  // StartWakeWordDetection begins listening for wake words
+  rpc StartWakeWordDetection(WakeWordConfig) returns (WakeWordResponse);
+
+  // StopWakeWordDetection stops wake word listening
+  rpc StopWakeWordDetection(StopRequest) returns (common.Response);
+
+  // Speak performs text-to-speech
+  rpc Speak(SpeakRequest) returns (SpeakResponse);
+
+  // StopSpeaking interrupts current speech
+  rpc StopSpeaking(StopRequest) returns (common.Response);
+
+  // StreamAudioEvents provides continuous audio events (wake word detections)
+  rpc StreamAudioEvents(AudioStreamRequest) returns (stream AudioEvent);
+
+  // GetComponentStatus returns audio component health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+}
+
+// ============================================================================
+// Wake Word Detection Messages
+// ============================================================================
+
+message WakeWordConfig {
+  string wake_word = 1;  // e.g., "hey robot", "jarvis"
+  float sensitivity = 2;  // 0.0-1.0 (higher = more sensitive)
+  WakeWordEngine engine = 3;
+  map<string, string> engine_config = 4;  // Engine-specific parameters
+}
+
+enum WakeWordEngine {
+  WAKE_WORD_ENGINE_UNSPECIFIED = 0;
+  WAKE_WORD_ENGINE_PORCUPINE = 1;  // Commercial (legacy)
+  WAKE_WORD_ENGINE_OPENWAKEWORD = 2;  // Open source (future)
+}
+
+message WakeWordResponse {
+  bool success = 1;
+  string message = 2;
+  string active_wake_word = 3;
+  WakeWordEngine engine = 4;
+}
+
+message WakeWordDetectedEvent {
+  string wake_word = 1;
+  float confidence = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  uint32 audio_frame_index = 4;
+}
+
+message StopRequest {
+  // Empty request
+}
+
+// ============================================================================
+// Text-to-Speech Messages
+// ============================================================================
+
+message SpeakRequest {
+  string text = 1;
+  TTSConfig config = 2;
+  Priority priority = 3;
+  bool interrupt_current = 4;  // Stop current speech if playing
+  string request_id = 5;  // For tracking
+}
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_LOW = 1;
+  PRIORITY_NORMAL = 2;
+  PRIORITY_HIGH = 3;
+  PRIORITY_URGENT = 4;
+}
+
+message TTSConfig {
+  string voice = 1;  // Voice identifier (e.g., "en-US-AriaNeural")
+  string language = 2;  // Language code (e.g., "en-US", "zh-CN")
+  float rate = 3;  // Speech rate (-100% to +100%)
+  float volume = 4;  // Volume (0.0-1.0)
+  float pitch = 5;  // Pitch adjustment (-100% to +100%)
+  TTSEngine engine = 6;
+}
+
+enum TTSEngine {
+  TTS_ENGINE_UNSPECIFIED = 0;
+  TTS_ENGINE_EDGE_TTS = 1;  // Microsoft Edge TTS
+  TTS_ENGINE_PYTTSX3 = 2;  // Offline TTS
+  TTS_ENGINE_ESPEAK = 3;  // eSpeak NG
+}
+
+message SpeakResponse {
+  bool success = 1;
+  string message = 2;
+  string request_id = 3;
+  uint32 estimated_duration_ms = 4;
+  TTSStatus status = 5;
+}
+
+enum TTSStatus {
+  TTS_STATUS_UNSPECIFIED = 0;
+  TTS_STATUS_QUEUED = 1;
+  TTS_STATUS_PLAYING = 2;
+  TTS_STATUS_COMPLETED = 3;
+  TTS_STATUS_INTERRUPTED = 4;
+  TTS_STATUS_ERROR = 5;
+}
+
+message SpeakCompletedEvent {
+  string request_id = 1;
+  TTSStatus status = 2;
+  uint32 actual_duration_ms = 3;
+  google.protobuf.Timestamp completed_at = 4;
+}
+
+// ============================================================================
+// Audio Streaming Messages
+// ============================================================================
+
+message AudioStreamRequest {
+  repeated AudioEventType event_types = 1;
+}
+
+enum AudioEventType {
+  AUDIO_EVENT_TYPE_UNSPECIFIED = 0;
+  AUDIO_EVENT_TYPE_WAKE_WORD = 1;
+  AUDIO_EVENT_TYPE_SPEECH_STARTED = 2;
+  AUDIO_EVENT_TYPE_SPEECH_COMPLETED = 3;
+  AUDIO_EVENT_TYPE_ERROR = 4;
+}
+
+message AudioEvent {
+  AudioEventType type = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  oneof event_data {
+    WakeWordDetectedEvent wake_word = 3;
+    SpeakCompletedEvent speech_completed = 4;
+    common.ErrorInfo error = 5;
+  }
+}
+
+// ============================================================================
+// Status Messages
+// ============================================================================
+
+message StatusRequest {
+  // Empty request
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  AudioMetrics metrics = 2;
+  AudioDeviceStatus devices = 3;
+  WakeWordStatus wake_word_status = 4;
+  TTSStatus tts_status = 5;
+}
+
+message AudioMetrics {
+  uint32 wake_words_detected = 1;
+  uint32 tts_requests_completed = 2;
+  uint32 tts_queue_size = 3;
+  float average_tts_duration_ms = 4;
+  uint64 uptime_seconds = 5;
+}
+
+message AudioDeviceStatus {
+  bool microphone_available = 1;
+  bool speaker_available = 2;
+  string microphone_name = 3;
+  string speaker_name = 4;
+  float current_volume = 5;
+  bool is_muted = 6;
+}
+
+message WakeWordStatus {
+  bool active = 1;
+  string wake_word = 2;
+  WakeWordEngine engine = 3;
+  float sensitivity = 4;
+}
