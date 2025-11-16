@@ -20,7 +20,7 @@ chrono = ["dep:chrono"]
 crypto = ["dep:sha2", "dep:hmac", "dep:p256"]
 default = ["std"]
 defmt = ["dep:defmt"]
-geo = ["dep:geo", "alloc"]
+geo = ["dep:geo", "dep:earcutr", "alloc"]
 heapless = ["dep:heapless", "postcard?/heapless"]
 mongodb = ["alloc", "serde", "dep:bson"]
 postcard = ["dep:postcard", "serde"]
@@ -69,6 +69,7 @@ bitflags = "2.10.0"
 bson = { version = "2.15.0", optional = true, features = ["serde_with"] }
 chrono = { version = "0.4.42", optional = true, default-features = false }
 defmt = { version = "1.0.1", optional = true }
+earcutr = { version = "0.5.0", optional = true }
 geo = { version = "0.29.3", optional = true, features = ["use-serde"] }
 geo-types = { version = "0.7", optional = true, features = ["serde"] }
 heapless = { version = "0.9.1", optional = true }
