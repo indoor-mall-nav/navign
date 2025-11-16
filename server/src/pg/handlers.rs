@@ -307,3 +307,470 @@ pub async fn get_beacons_by_entity(
         Ok(Json(beacons))
     }
 }
+
+/// Get beacon by ID
+pub async fn get_beacon_by_id(
+    State(state): State<AppState>,
+    Path((_entity_id, beacon_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        debug!("Using PostgreSQL for beacon lookup: {}", beacon_id);
+        let repo = BeaconRepository::new(pg_pool.as_ref().clone());
+
+        match repo.get_by_id(&beacon_id).await? {
+            Some(pg_beacon) => {
+                let beacon = pg_beacon_to_beacon(pg_beacon);
+                Ok(Json(beacon))
+            }
+            None => Err(ServerError::NotFound(format!("Beacon {} not found", beacon_id))),
+        }
+    } else {
+        debug!("Using MongoDB for beacon lookup: {}", beacon_id);
+
+        let beacon = Beacon::get_one_by_id(&state.db, &beacon_id)
+            .await
+            .ok_or_else(|| ServerError::NotFound(format!("Beacon {} not found", beacon_id)))?;
+
+        Ok(Json(beacon))
+    }
+}
+
+/// Create area
+pub async fn create_area(
+    State(state): State<AppState>,
+    Json(area): Json<Area>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Creating area in PostgreSQL: {}", area.name);
+        let repo = AreaRepository::new(pg_pool.as_ref().clone());
+
+        let pg_area = area_to_pg_area(area.clone());
+        let _id = repo.create(&pg_area).await?;
+
+        info!("Area created in PostgreSQL");
+        Ok((StatusCode::CREATED, Json(area)))
+    } else {
+        info!("Creating area in MongoDB: {}", area.name);
+        area.create(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB insert failed: {}", e)))?;
+
+        Ok((StatusCode::CREATED, Json(area)))
+    }
+}
+
+/// Update area
+pub async fn update_area(
+    State(state): State<AppState>,
+    Json(area): Json<Area>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Updating area in PostgreSQL: {}", area.name);
+        let repo = AreaRepository::new(pg_pool.as_ref().clone());
+
+        let pg_area = area_to_pg_area(area);
+        repo.update(&pg_area).await?;
+
+        Ok(StatusCode::OK)
+    } else {
+        info!("Updating area in MongoDB: {}", area.name);
+        area.update(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB update failed: {}", e)))?;
+
+        Ok(StatusCode::OK)
+    }
+}
+
+/// Delete area
+pub async fn delete_area(
+    State(state): State<AppState>,
+    Path((_entity_id, area_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Deleting area from PostgreSQL: {}", area_id);
+        let repo = AreaRepository::new(pg_pool.as_ref().clone());
+        repo.delete(&area_id).await?;
+
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        info!("Deleting area from MongoDB: {}", area_id);
+
+        Area::delete_by_id(&state.db, &area_id)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB delete failed: {}", e)))?;
+
+        Ok(StatusCode::NO_CONTENT)
+    }
+}
+
+/// Create beacon
+pub async fn create_beacon(
+    State(state): State<AppState>,
+    Json(beacon): Json<Beacon>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Creating beacon in PostgreSQL: {}", beacon.name);
+        let repo = BeaconRepository::new(pg_pool.as_ref().clone());
+
+        let pg_beacon = beacon_to_pg_beacon(beacon.clone());
+        let _id = repo.create(&pg_beacon).await?;
+
+        info!("Beacon created in PostgreSQL");
+        Ok((StatusCode::CREATED, Json(beacon)))
+    } else {
+        info!("Creating beacon in MongoDB: {}", beacon.name);
+        beacon
+            .create(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB insert failed: {}", e)))?;
+
+        Ok((StatusCode::CREATED, Json(beacon)))
+    }
+}
+
+/// Update beacon
+pub async fn update_beacon(
+    State(state): State<AppState>,
+    Json(beacon): Json<Beacon>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Updating beacon in PostgreSQL: {}", beacon.name);
+        let repo = BeaconRepository::new(pg_pool.as_ref().clone());
+
+        let pg_beacon = beacon_to_pg_beacon(beacon);
+        repo.update(&pg_beacon).await?;
+
+        Ok(StatusCode::OK)
+    } else {
+        info!("Updating beacon in MongoDB: {}", beacon.name);
+        beacon
+            .update(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB update failed: {}", e)))?;
+
+        Ok(StatusCode::OK)
+    }
+}
+
+/// Delete beacon
+pub async fn delete_beacon(
+    State(state): State<AppState>,
+    Path((_entity_id, beacon_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Deleting beacon from PostgreSQL: {}", beacon_id);
+        let repo = BeaconRepository::new(pg_pool.as_ref().clone());
+        repo.delete(&beacon_id).await?;
+
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        info!("Deleting beacon from MongoDB: {}", beacon_id);
+
+        Beacon::delete_by_id(&state.db, &beacon_id)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB delete failed: {}", e)))?;
+
+        Ok(StatusCode::NO_CONTENT)
+    }
+}
+
+// ============================================================================
+// Merchant Handlers
+// ============================================================================
+
+/// Get merchants by entity
+pub async fn get_merchants_by_entity(
+    State(state): State<AppState>,
+    Path(entity_id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        debug!("Using PostgreSQL for merchants lookup");
+        let repo = MerchantRepository::new(pg_pool.as_ref().clone());
+        let uuid = Uuid::parse_str(&entity_id)
+            .map_err(|_| ServerError::InvalidInput("Invalid UUID".to_string()))?;
+
+        let pg_merchants = repo
+            .get_by_entity(uuid, pagination.offset, pagination.limit)
+            .await?;
+
+        let merchants: Vec<Merchant> = pg_merchants
+            .into_iter()
+            .map(pg_merchant_to_merchant)
+            .collect();
+        Ok(Json(merchants))
+    } else {
+        debug!("Using MongoDB for merchants lookup");
+        let oid = ObjectId::from_str(&entity_id)
+            .map_err(|_| ServerError::InvalidInput("Invalid ObjectId".to_string()))?;
+
+        let collection = state.db.collection::<Merchant>("merchants");
+        let cursor = collection
+            .find(bson::doc! { "entity": oid })
+            .limit(pagination.limit)
+            .skip(pagination.offset as u64)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB query failed: {}", e)))?;
+
+        let merchants: Vec<Merchant> = cursor
+            .try_collect()
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB cursor failed: {}", e)))?;
+
+        Ok(Json(merchants))
+    }
+}
+
+/// Get merchant by ID
+pub async fn get_merchant_by_id(
+    State(state): State<AppState>,
+    Path((_entity_id, merchant_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        debug!("Using PostgreSQL for merchant lookup: {}", merchant_id);
+        let repo = MerchantRepository::new(pg_pool.as_ref().clone());
+
+        match repo.get_by_id(&merchant_id).await? {
+            Some(pg_merchant) => {
+                let merchant = pg_merchant_to_merchant(pg_merchant);
+                Ok(Json(merchant))
+            }
+            None => Err(ServerError::NotFound(format!(
+                "Merchant {} not found",
+                merchant_id
+            ))),
+        }
+    } else {
+        debug!("Using MongoDB for merchant lookup: {}", merchant_id);
+
+        let merchant = Merchant::get_one_by_id(&state.db, &merchant_id)
+            .await
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("Merchant {} not found", merchant_id))
+            })?;
+
+        Ok(Json(merchant))
+    }
+}
+
+/// Create merchant
+pub async fn create_merchant(
+    State(state): State<AppState>,
+    Json(merchant): Json<Merchant>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Creating merchant in PostgreSQL: {}", merchant.name);
+        let repo = MerchantRepository::new(pg_pool.as_ref().clone());
+
+        let pg_merchant = merchant_to_pg_merchant(merchant.clone());
+        let _id = repo.create(&pg_merchant).await?;
+
+        info!("Merchant created in PostgreSQL");
+        Ok((StatusCode::CREATED, Json(merchant)))
+    } else {
+        info!("Creating merchant in MongoDB: {}", merchant.name);
+        merchant
+            .create(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB insert failed: {}", e)))?;
+
+        Ok((StatusCode::CREATED, Json(merchant)))
+    }
+}
+
+/// Update merchant
+pub async fn update_merchant(
+    State(state): State<AppState>,
+    Json(merchant): Json<Merchant>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Updating merchant in PostgreSQL: {}", merchant.name);
+        let repo = MerchantRepository::new(pg_pool.as_ref().clone());
+
+        let pg_merchant = merchant_to_pg_merchant(merchant);
+        repo.update(&pg_merchant).await?;
+
+        Ok(StatusCode::OK)
+    } else {
+        info!("Updating merchant in MongoDB: {}", merchant.name);
+        merchant
+            .update(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB update failed: {}", e)))?;
+
+        Ok(StatusCode::OK)
+    }
+}
+
+/// Delete merchant
+pub async fn delete_merchant(
+    State(state): State<AppState>,
+    Path((_entity_id, merchant_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Deleting merchant from PostgreSQL: {}", merchant_id);
+        let repo = MerchantRepository::new(pg_pool.as_ref().clone());
+        repo.delete(&merchant_id).await?;
+
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        info!("Deleting merchant from MongoDB: {}", merchant_id);
+
+        Merchant::delete_by_id(&state.db, &merchant_id)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB delete failed: {}", e)))?;
+
+        Ok(StatusCode::NO_CONTENT)
+    }
+}
+
+// ============================================================================
+// Connection Handlers
+// ============================================================================
+
+/// Get connections by entity
+pub async fn get_connections_by_entity(
+    State(state): State<AppState>,
+    Path(entity_id): Path<String>,
+    Query(pagination): Query<PaginationQuery>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        debug!("Using PostgreSQL for connections lookup");
+        let repo = ConnectionRepository::new(pg_pool.as_ref().clone());
+        let uuid = Uuid::parse_str(&entity_id)
+            .map_err(|_| ServerError::InvalidInput("Invalid UUID".to_string()))?;
+
+        let pg_connections = repo
+            .get_by_entity(uuid, pagination.offset, pagination.limit)
+            .await?;
+
+        let connections: Vec<Connection> = pg_connections
+            .into_iter()
+            .map(pg_connection_to_connection)
+            .collect();
+        Ok(Json(connections))
+    } else {
+        debug!("Using MongoDB for connections lookup");
+        let oid = ObjectId::from_str(&entity_id)
+            .map_err(|_| ServerError::InvalidInput("Invalid ObjectId".to_string()))?;
+
+        let collection = state.db.collection::<Connection>("connections");
+        let cursor = collection
+            .find(bson::doc! { "entity": oid })
+            .limit(pagination.limit)
+            .skip(pagination.offset as u64)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB query failed: {}", e)))?;
+
+        let connections: Vec<Connection> = cursor
+            .try_collect()
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB cursor failed: {}", e)))?;
+
+        Ok(Json(connections))
+    }
+}
+
+/// Get connection by ID
+pub async fn get_connection_by_id(
+    State(state): State<AppState>,
+    Path((_entity_id, connection_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        debug!("Using PostgreSQL for connection lookup: {}", connection_id);
+        let repo = ConnectionRepository::new(pg_pool.as_ref().clone());
+
+        match repo.get_by_id(&connection_id).await? {
+            Some(pg_connection) => {
+                let connection = pg_connection_to_connection(pg_connection);
+                Ok(Json(connection))
+            }
+            None => Err(ServerError::NotFound(format!(
+                "Connection {} not found",
+                connection_id
+            ))),
+        }
+    } else {
+        debug!("Using MongoDB for connection lookup: {}", connection_id);
+
+        let connection = Connection::get_one_by_id(&state.db, &connection_id)
+            .await
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("Connection {} not found", connection_id))
+            })?;
+
+        Ok(Json(connection))
+    }
+}
+
+/// Create connection
+pub async fn create_connection(
+    State(state): State<AppState>,
+    Json(connection): Json<Connection>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Creating connection in PostgreSQL: {}", connection.name);
+        let repo = ConnectionRepository::new(pg_pool.as_ref().clone());
+
+        let pg_connection = connection_to_pg_connection(connection.clone());
+        let _id = repo.create(&pg_connection).await?;
+
+        info!("Connection created in PostgreSQL");
+        Ok((StatusCode::CREATED, Json(connection)))
+    } else {
+        info!("Creating connection in MongoDB: {}", connection.name);
+        connection
+            .create(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB insert failed: {}", e)))?;
+
+        Ok((StatusCode::CREATED, Json(connection)))
+    }
+}
+
+/// Update connection
+pub async fn update_connection(
+    State(state): State<AppState>,
+    Json(connection): Json<Connection>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Updating connection in PostgreSQL: {}", connection.name);
+        let repo = ConnectionRepository::new(pg_pool.as_ref().clone());
+
+        let pg_connection = connection_to_pg_connection(connection);
+        repo.update(&pg_connection).await?;
+
+        Ok(StatusCode::OK)
+    } else {
+        info!("Updating connection in MongoDB: {}", connection.name);
+        connection
+            .update(&state.db)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB update failed: {}", e)))?;
+
+        Ok(StatusCode::OK)
+    }
+}
+
+/// Delete connection
+pub async fn delete_connection(
+    State(state): State<AppState>,
+    Path((_entity_id, connection_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    if let Some(pg_pool) = state.pg_pool.as_ref() {
+        info!("Deleting connection from PostgreSQL: {}", connection_id);
+        let repo = ConnectionRepository::new(pg_pool.as_ref().clone());
+        repo.delete(&connection_id).await?;
+
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        info!("Deleting connection from MongoDB: {}", connection_id);
+
+        Connection::delete_by_id(&state.db, &connection_id)
+            .await
+            .map_err(|e| ServerError::DatabaseQuery(format!("MongoDB delete failed: {}", e)))?;
+
+        Ok(StatusCode::NO_CONTENT)
+    }
+}

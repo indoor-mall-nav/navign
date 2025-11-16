@@ -215,6 +215,155 @@ pub fn beacon_to_pg_beacon(
     }
 }
 
+// ============================================================================
+// Merchant Conversions
+// ============================================================================
+
+/// Convert PostgreSQL Merchant to shared Merchant
+pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
+    // Parse floor string to Floor struct
+    let floor = parse_floor_string(&pg.floor);
+
+    Merchant {
+        id: ObjectId::new(),     // Placeholder
+        entity: ObjectId::new(), // Placeholder
+        area: ObjectId::new(),   // Placeholder
+        name: pg.name,
+        description: pg.description,
+        r#type: MerchantType::Other, // Would need mapping from string
+        floor,
+        location: (pg.location.x, pg.location.y),
+        business_hours: Vec::new(),  // Not in PostgreSQL schema
+        contact_info: Vec::new(),     // Not in PostgreSQL schema
+        created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+        updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+    }
+}
+
+/// Convert shared Merchant to PostgreSQL Merchant
+pub fn merchant_to_pg_merchant(merchant: Merchant, entity_id: Uuid, area_id: i32) -> PgMerchant {
+    // Convert Floor to string
+    let floor_str = match merchant.floor {
+        Some(f) => format!("{}", i32::from(f)),
+        None => "0".to_string(),
+    };
+
+    let location = PgPoint::new(merchant.location.0, merchant.location.1);
+
+    PgMerchant {
+        id: 0, // Will be set by database
+        entity_id,
+        area_id,
+        name: merchant.name,
+        description: merchant.description,
+        r#type: "retail".to_string(), // Default type
+        floor: floor_str,
+        location,
+        business_hours: None,
+        contact_info: None,
+        created_at: Some(chrono::Utc::now()),
+        updated_at: Some(chrono::Utc::now()),
+    }
+}
+
+// ============================================================================
+// Connection Conversions
+// ============================================================================
+
+/// Convert PostgreSQL Connection to shared Connection
+pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
+    Connection {
+        id: ObjectId::new(),     // Placeholder
+        entity: ObjectId::new(), // Placeholder
+        name: pg.name,
+        description: pg.description,
+        r#type: match pg.r#type.as_str() {
+            "elevator" => ConnectionType::Elevator,
+            "stairs" => ConnectionType::Stairs,
+            "escalator" => ConnectionType::Escalator,
+            _ => ConnectionType::Elevator,
+        },
+        from_floor: parse_floor_string(&pg.from_floor),
+        to_floor: parse_floor_string(&pg.to_floor),
+        location: (pg.location.x, pg.location.y),
+        created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+        updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+    }
+}
+
+/// Convert shared Connection to PostgreSQL Connection
+pub fn connection_to_pg_connection(connection: Connection, entity_id: Uuid) -> PgConnection {
+    // Convert Floors to strings
+    let from_floor_str = match connection.from_floor {
+        Some(f) => format!("{}", i32::from(f)),
+        None => "0".to_string(),
+    };
+    let to_floor_str = match connection.to_floor {
+        Some(f) => format!("{}", i32::from(f)),
+        None => "0".to_string(),
+    };
+
+    let location = PgPoint::new(connection.location.0, connection.location.1);
+
+    let connection_type = match connection.r#type {
+        ConnectionType::Elevator => "elevator",
+        ConnectionType::Stairs => "stairs",
+        ConnectionType::Escalator => "escalator",
+    }
+    .to_string();
+
+    PgConnection {
+        id: 0, // Will be set by database
+        entity_id,
+        name: connection.name,
+        description: connection.description,
+        r#type: connection_type,
+        from_floor: from_floor_str,
+        to_floor: to_floor_str,
+        location,
+        created_at: Some(chrono::Utc::now()),
+        updated_at: Some(chrono::Utc::now()),
+    }
+}
+
+// ============================================================================
+// User Conversions
+// ============================================================================
+
+/// Convert PostgreSQL User to shared User
+pub fn pg_user_to_user(pg: PgUser) -> crate::schema::User {
+    crate::schema::User {
+        id: ObjectId::new(), // Placeholder
+        username: pg.username,
+        email: pg.email,
+        phone: pg.phone,
+        google: pg.google,
+        wechat: pg.wechat,
+        hashed_password: pg.hashed_password,
+        activated: pg.activated,
+        privileged: pg.privileged,
+        created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+        updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
+    }
+}
+
+/// Convert shared User to PostgreSQL User
+pub fn user_to_pg_user(user: crate::schema::User) -> PgUser {
+    PgUser {
+        id: Uuid::new_v4(), // Will be set by database
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        google: user.google,
+        wechat: user.wechat,
+        hashed_password: user.hashed_password,
+        activated: user.activated,
+        privileged: user.privileged,
+        created_at: Some(chrono::Utc::now()),
+        updated_at: Some(chrono::Utc::now()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
