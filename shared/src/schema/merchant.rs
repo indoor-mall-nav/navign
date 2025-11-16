@@ -31,7 +31,7 @@ pub struct Merchant {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    pub chain: Option<String>,
+    pub r#chain: Option<String>,
     #[cfg(feature = "mongodb")]
     #[cfg_attr(
         all(feature = "mongodb", feature = "serde"),
@@ -309,7 +309,7 @@ pub mod mobile {
         pub id: String,
         pub name: String,
         pub description: Option<String>,
-        pub chain: Option<String>,
+        pub r#chain: Option<String>,
         pub entity: String,
         pub beacon_code: String,
         pub area: String,
@@ -378,7 +378,7 @@ pub mod mobile {
             .bind(&self.id)
             .bind(&self.name)
             .bind(&self.description)
-            .bind(&self.chain)
+            .bind(&self.r#chain)
             .bind(&self.entity)
             .bind(&self.beacon_code)
             .bind(&self.area)

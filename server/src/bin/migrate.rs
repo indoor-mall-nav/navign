@@ -24,6 +24,7 @@ use sqlx::types::Uuid;
 use std::collections::HashMap;
 use std::env;
 use tracing::{error, info, warn};
+use dotenv::dotenv;
 
 // Import from the library (lib.rs exports these modules)
 use navign_server::pg::adapters::*;
@@ -420,7 +421,7 @@ impl MigrationContext {
             .bind(area_id)
             .bind(&merchant.name)
             .bind(&merchant.description)
-            .bind(&merchant.chain)
+            .bind(&merchant.r#chain)
             .bind(type_str)
             .bind(merchant.color.as_deref())
             .bind(sqlx::types::Json(&merchant.tags))
@@ -703,6 +704,11 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     info!("MongoDB to PostgreSQL Migration Tool");
+
+    match dotenv() {
+        Ok(_) => info!("Loaded .env file"),
+        Err(_) => info!(".env file not found, proceeding with environment variables"),
+    }
 
     // Parse command-line arguments
     let args: Vec<String> = env::args().collect();

@@ -61,7 +61,6 @@ pub struct Connection {
         all(feature = "mongodb", feature = "serde"),
         serde(
             serialize_with = "serialize_connected_areas",
-            deserialize_with = "deserialize_connected_areas"
         )
     )]
     pub connected_areas: Vec<ConnectedArea>,
