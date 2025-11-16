@@ -359,6 +359,16 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             .filter(|(aid, _, _)| aid == &map_data.id)
             .collect();
 
+        // Get color for this connection type
+        let color = match connection.r#type {
+            ConnectionType::Gate => "#9c27b0",
+            ConnectionType::Elevator => "#2196f3",
+            ConnectionType::Escalator => "#ff9800",
+            ConnectionType::Stairs => "#4caf50",
+            ConnectionType::Rail => "#795548",
+            ConnectionType::Shuttle => "#00bcd4",
+        };
+
         // Draw lines between connection points in current area
         for i in 0..current_area_positions.len() {
             for j in (i + 1)..current_area_positions.len() {
@@ -367,14 +377,14 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
                 let (tx1, ty1) = transform(*x1, *y1);
                 let (tx2, ty2) = transform(*x2, *y2);
 
-                // Color based on connection type
-                let (color, dash) = match connection.r#type {
-                    ConnectionType::Gate => ("#9c27b0", "none"), // Purple solid
-                    ConnectionType::Elevator => ("#2196f3", "5,5"), // Blue dashed
-                    ConnectionType::Escalator => ("#ff9800", "8,4"), // Orange dashed
-                    ConnectionType::Stairs => ("#4caf50", "4,4"), // Green dashed
-                    ConnectionType::Rail => ("#795548", "10,5"), // Brown dashed
-                    ConnectionType::Shuttle => ("#00bcd4", "12,3"), // Cyan dashed
+                // Dash pattern based on connection type
+                let dash = match connection.r#type {
+                    ConnectionType::Gate => "none",     // Purple solid
+                    ConnectionType::Elevator => "5,5",  // Blue dashed
+                    ConnectionType::Escalator => "8,4", // Orange dashed
+                    ConnectionType::Stairs => "4,4",    // Green dashed
+                    ConnectionType::Rail => "10,5",     // Brown dashed
+                    ConnectionType::Shuttle => "12,3",  // Cyan dashed
                 };
 
                 svg.push_str(&format!(
@@ -392,22 +402,22 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
             }
         }
 
-        // Draw connection points (circles)
-        for (aid, x, y) in &connection.positions {
+        // Draw connection points (circles) and label for single points
+        for (i, (aid, x, y)) in connection.positions.iter().enumerate() {
             if aid == &map_data.id {
                 let (tx, ty) = transform(*x, *y);
-                let color = match connection.r#type {
-                    ConnectionType::Gate => "#9c27b0",
-                    ConnectionType::Elevator => "#2196f3",
-                    ConnectionType::Escalator => "#ff9800",
-                    ConnectionType::Stairs => "#4caf50",
-                    ConnectionType::Rail => "#795548",
-                    ConnectionType::Shuttle => "#00bcd4",
-                };
                 svg.push_str(&format!(
                     r##"<circle cx="{}" cy="{}" r="6" fill="{}" stroke="#fff" stroke-width="2"/>"##,
                     tx, ty, color
                 ));
+
+                // Add label near the connection point (only once per connection)
+                if i == 0 && !current_area_positions.is_empty() {
+                    svg.push_str(&format!(
+                        r##"<text x="{}" y="{}" font-size="10" text-anchor="middle" fill="{}" font-weight="bold">{}</text>"##,
+                        tx, ty - 10.0, color, connection.name
+                    ));
+                }
             }
         }
     }
