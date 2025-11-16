@@ -160,6 +160,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **Network (Rust):** `robot/network/` - HTTP client for server communication
 - **Vision (Python):** `robot/vision/` - Computer vision (YOLO, AprilTag, MediaPipe)
 - **Audio (Python):** `robot/audio/` - Wake word, speech recognition, TTS
+- **Intelligence (Python):** `robot/intelligence/` - AI-powered natural language interaction with hybrid local/remote LLM
 - **Messaging:** Zenoh pub/sub for inter-component communication
 - **Protocol:** Protocol Buffers for message serialization
 - **Package Manager:** uv (Python), cargo (Rust)
@@ -182,6 +183,14 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
   - `geo`: Geographic/geometric types
   - `chrono`: Date and time handling
   - `ts-rs`: TypeScript type generation (compile-time)
+
+**Pathfinding Module:** `shared/src/pathfinding/`
+- **Inner-area Routing:** A* pathfinding within polygon areas
+- **Inter-area Routing:** Dijkstra pathfinding between connected areas
+- **Triangulation:** Visibility graph construction for non-Manhattan polygons
+- **Polygon Operations:** Point-in-polygon tests, boundary detection, obstacle handling
+- **No-std Compatible:** Works without arena allocation for embedded systems
+- **Use Cases:** Complex floor plans with irregular shapes, robot navigation
 
 **Critical:** Never enable both `heapless` and `alloc` features simultaneously.
 
@@ -296,9 +305,18 @@ navign/
 │   │   ├── play.py              # Text-to-speech
 │   │   ├── config.example.py    # Configuration template
 │   │   └── pyproject.toml       # uv dependencies
+│   ├── intelligence/            # Python AI/LLM system
+│   │   ├── local.py             # Local LLM inference (Qwen3)
+│   │   ├── remote.py            # Remote LLM fallback (GPT-4o/DeepSeek)
+│   │   ├── shared.py            # Shared prompts and configuration
+│   │   └── pyproject.toml       # uv dependencies
 │   ├── lower/                   # STM32F407 lower controller (Embassy async)
 │   │   ├── src/main.rs          # Motor control, sensors, actuators
 │   │   └── Cargo.toml           # Embassy + STM32 HAL dependencies
+│   ├── firmware/                # Upper controller firmware (Raspberry Pi)
+│   │   ├── src/main.rs          # Main firmware loop
+│   │   ├── build.rs             # Build script
+│   │   └── Cargo.toml           # Rust embedded dependencies
 │   └── README.md                # Robot architecture documentation
 │
 ├── shared/                      # Shared Rust library (no_std)
@@ -1171,6 +1189,69 @@ uv run python service.py
 - `PORCUPINE_ACCESS_KEY` - Required for wake word detection
 
 **See:** `robot/audio/README.md` for complete documentation
+
+#### Intelligence Service (`robot/intelligence/`)
+
+**Language:** Python
+**Purpose:** AI-powered natural language interaction for accessibility
+
+**Capabilities:**
+- **Local LLM Inference:** Qwen3-0.6B for fast, offline responses
+- **Remote LLM Fallback:** GPT-4o (OpenAI) or DeepSeek for complex queries
+- **Scene Description:** Converts 3D object coordinates into natural language descriptions for visually impaired users
+- **Hybrid Architecture:** Attempts local inference first, falls back to remote API if needed
+- **Geo-aware API Selection:** Automatically selects appropriate API based on geographic availability
+
+**Technologies:**
+- transformers (Hugging Face) for local LLM inference
+- OpenAI API for GPT-4o remote inference
+- DeepSeek API as fallback for restricted regions
+- Qwen3-0.6B as lightweight local model
+
+**Architecture:**
+```python
+# Local-first approach
+response = generate_local_response(scene_data, user_query)
+if response == "<remote>":
+    # Fallback to cloud LLM for complex queries
+    response = run_remote_response(scene_data, user_query)
+```
+
+**Use Case:**
+Robot describes surroundings to visually impaired users by:
+1. Vision service detects objects and provides 3D coordinates
+2. Intelligence service receives object list with coordinates
+3. Local LLM generates natural language description using spatial relationships
+4. If local model is uncertain, query is sent to remote API
+5. Description is sent to audio service for TTS output
+
+**Dependencies:**
+- `transformers>=4.57.1` - Hugging Face models
+- `openai>=2.8.0` - OpenAI API client
+- `eclipse-zenoh>=1.6.2` - Message bus integration
+- `protobuf>=6.33.1` - Protocol buffer support
+
+**Configuration:**
+```bash
+cd robot/intelligence
+cp config.example.py config.py
+# Add API keys:
+# OPENAI_KEY - for GPT-4o access
+# DEEPSEEK_KEY - for DeepSeek fallback
+```
+
+**Run:**
+```bash
+cd robot/intelligence
+uv sync
+uv run python service.py  # (service wrapper to be implemented)
+```
+
+**Environment Variables:**
+- `OPENAI_KEY` - Required for GPT-4o remote inference
+- `DEEPSEEK_KEY` - Required for DeepSeek fallback
+
+**See:** `robot/intelligence/README.md` for complete documentation
 
 #### Communication Flow Example
 
@@ -2341,7 +2422,10 @@ just ci-mobile     # Mobile CI tasks
 - **Robot Network:** `robot/network/src/main.rs`
 - **Robot Vision:** `robot/vision/service.py`
 - **Robot Audio:** `robot/audio/service.py`
+- **Robot Intelligence:** `robot/intelligence/local.py`, `robot/intelligence/remote.py`
 - **TypeScript Generator:** `ts-schema/src/lib.rs`
+- **PostgreSQL Migration:** `server/src/bin/migrate.rs`, `server/MIGRATION_GUIDE.md`
+- **Pathfinding (Shared):** `shared/src/pathfinding/polygon.rs`
 
 ---
 
@@ -2392,19 +2476,47 @@ For questions about this codebase, refer to:
 1. **PostgreSQL Migration Layer** - Full repository implementation with dual-database support
 2. **Robot/Lower Component** - STM32F407 + Embassy async runtime
 3. **Robot/Upper Layer Architecture** ⭐ **NEW** - Distributed control system with Zenoh messaging
-4. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
-5. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
-6. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
-7. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
-8. **Error Handling** - Migrated to thiserror for better error types
-9. **defmt Support** - Embedded debugging for firmware and robot/lower
-10. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
-11. **Deployment Guide** - Complete production deployment documentation
-12. **TypeScript Type Generation** ⭐ **NEW** - Automatic Rust→TS conversion with ts-rs
-13. **Comprehensive Testing** ⭐ **NEW** - 1,158+ lines of tests across all components
-14. **Structured Logging** ⭐ **NEW** - Migration from log to tracing
+4. **Intelligence Library** ⭐ **NEW** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
+5. **Advanced Pathfinding** ⭐ **NEW** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
+6. **PostgreSQL Migration Tooling** ⭐ **NEW** - Complete migration scripts and dual-database handlers (#86)
+7. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
+8. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
+9. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
+10. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
+11. **Error Handling** - Migrated to thiserror for better error types
+12. **defmt Support** - Embedded debugging for firmware and robot/lower
+13. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
+14. **Deployment Guide** - Complete production deployment documentation
+15. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
+16. **Comprehensive Testing** - 1,158+ lines of tests across all components
+17. **Structured Logging** - Migration from log to tracing
 
 ### 🎯 Latest Features (2025-11-16)
+
+#### Intelligence Library (#90)
+- **Hybrid LLM Architecture** - Local Qwen3-0.6B + remote GPT-4o/DeepSeek
+- **Scene Description** - Converts 3D coordinates to natural language for accessibility
+- **Geo-aware Routing** - Automatically selects OpenAI or DeepSeek based on region
+- **Local-first Strategy** - Fast offline inference with cloud fallback for complex queries
+- **Accessibility Focus** - Designed for assisting visually impaired users
+- **Dependencies:** transformers, openai, eclipse-zenoh, protobuf
+
+#### Advanced Pathfinding (#87)
+- **Triangulation-based Routing** - Support for non-Manhattan polygons
+- **Inner-area Pathfinding** - A* algorithm within polygon areas
+- **Visibility Graph** - Optimal paths around obstacles
+- **No-std Compatible** - Works without arena allocation
+- **Location:** `shared/src/pathfinding/polygon.rs` (471+ lines)
+- **Use Case:** Complex floor plans with irregular shapes
+
+#### PostgreSQL Migration Tooling (#86)
+- **Migration Scripts** - Automated MongoDB → PostgreSQL data transfer
+- **Dual-database Handlers** - API handlers supporting both databases
+- **Schema Adapters** - Convert between MongoDB and PostgreSQL models
+- **Migration Binary** - `cargo run --bin migrate` for data migration
+- **Shell Scripts** - Automated migration workflow
+- **Documentation:** `server/MIGRATION_GUIDE.md` (432 lines)
+- **Files Added:** 2,074+ lines of migration infrastructure
 
 #### Robot Upper Layer (#80)
 - **6 Protocol Buffer definitions** - Vision, Audio, Scheduler, Serial, Network, Common
@@ -2435,6 +2547,7 @@ For questions about this codebase, refer to:
 - **Structured events** - Key-value logging instead of string formatting
 
 ### 📋 In Progress
+- Intelligence service Zenoh integration
 - Robot motor control logic implementation
 - Additional firmware test coverage (BLE, eFuse)
 - PostgreSQL dual-write mode implementation
@@ -2442,16 +2555,16 @@ For questions about this codebase, refer to:
 - Zenoh deployment configuration for production
 
 ### 📅 Recent Commits Summary (Last 10)
+- `#90` - Feat: Add `intelligence` library for AI-powered scene description
+- `#89` - Chore: Update Rust dependencies
+- `#87` - Feat: Add triangulation-based pathfinding for non-Manhattan polygons
+- `#88` - CI: Fix the robot CI
+- `#86` - Feat: Add PostgreSQL migration tooling and dual-database handlers
+- `#85` - CI: Detect language config changes and trigger appropriate CI
+- `#84` - Chore: Update Rust, Go, Node, and Python
+- `#83` - Docs: Comprehensive documentation update for November 2025 changes
 - `#80` - Feat: Add robot protocol buffer architecture and component skeletons
 - `#81` - Test: Add comprehensive tests for all components
-- `#82` - Feat: Implement automatic TypeScript type generation
-- `#79` - Refactor: Move gesture_space logics to robot
-- `#78` - Refactor: Migrate from log to tracing
-- `#77` - Feat: Add placeholders for upper layer
-- `#76` - Fix: Replace local Merchant struct with MerchantMobile
-- `#75` - Docs: Update CLAUDE.md with recent project changes
-- `#74` - Fix: Revert manual dark-mode CSS
-- `#73` - Fix: Remove customized object ID
 
 ### 📊 Project Statistics (2025-11-16)
 - **Lines of Code (Latest):** +6,380 / -450

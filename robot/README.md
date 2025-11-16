@@ -7,26 +7,26 @@ This directory contains the high-level robot control system with modular compone
 Multi-component distributed system using **Zenoh** pub/sub messaging:
 
 ```
-┌─────────────┐  ┌─────────────┐
-│   Vision    │  │    Audio    │  (Python)
-│ (AprilTag,  │  │ (Wake Word, │
-│   YOLO)     │  │     TTS)    │
-└──────┬──────┘  └──────┬──────┘
-       │                │
-       └────────┬───────┘
-                │
-          [Zenoh Bus]
-                │
-       ┌────────┴────────┬────────┬────────┐
-       │                 │        │        │
-  ┌────▼────┐  ┌────────▼──┐  ┌──▼───┐ ┌──▼──────┐
-  │Scheduler│  │  Network  │  │Serial│ │  Tower  │
-  │  (Rust) │  │  (Rust)   │  │(Rust)│ │(Socket) │
-  └────┬────┘  └───────────┘  └──┬───┘ └─────────┘
-       │                          │
-       │                          ▼
-       │                    [Lower/STM32]
-       │                    (Motors, Sensors)
+┌─────────────┐  ┌─────────────┐  ┌──────────────┐
+│   Vision    │  │    Audio    │  │Intelligence  │  (Python)
+│ (AprilTag,  │  │ (Wake Word, │  │   (LLM +     │
+│   YOLO)     │  │     TTS)    │  │   GPT-4o)    │
+└──────┬──────┘  └──────┬──────┘  └──────┬───────┘
+       │                │                 │
+       └────────────────┴─────────────────┘
+                        │
+                  [Zenoh Bus]
+                        │
+       ┌────────────────┴────────┬────────┬────────┐
+       │                         │        │        │
+  ┌────▼────┐  ┌────────────────▼──┐  ┌──▼───┐ ┌──▼──────┐
+  │Scheduler│  │     Network       │  │Serial│ │  Tower  │
+  │  (Rust) │  │     (Rust)        │  │(Rust)│ │(Socket) │
+  └────┬────┘  └───────────────────┘  └──┬───┘ └─────────┘
+       │                                  │
+       │                                  ▼
+       │                            [Lower/STM32]
+       │                            (Motors, Sensors)
        ▼
   [Task Database]
 ```
@@ -103,6 +103,28 @@ just proto-robot         # All proto generation
 
 **Run:** `cd audio && uv run python service.py`
 
+### Intelligence (`intelligence/`)
+**Language:** Python
+**Purpose:** AI-powered natural language interaction
+
+**Features:**
+- **Hybrid LLM:** Local Qwen3-0.6B + remote GPT-4o/DeepSeek
+- **Scene Description:** Converts 3D coordinates to natural language
+- **Accessibility:** Describes surroundings for visually impaired users
+- **Geo-aware Routing:** Auto-selects OpenAI or DeepSeek by region
+- **Local-first:** Fast offline inference with cloud fallback
+
+**Technologies:**
+- Qwen3-0.6B for local inference
+- OpenAI GPT-4o for complex queries
+- DeepSeek API as regional fallback
+- Hugging Face transformers
+
+**Use Case:**
+Vision → Objects with 3D coords → Intelligence → Natural language → Audio → TTS
+
+**Run:** `cd intelligence && uv run python service.py` (to be implemented)
+
 ### Firmware (`firmware/`)
 **Language:** Rust (embedded)
 **Purpose:** Upper controller firmware (Raspberry Pi)
@@ -143,6 +165,7 @@ cd serial && cargo run &
 cd network && cargo run &
 cd vision && uv run python service.py &
 cd audio && uv run python service.py &
+cd intelligence && uv run python service.py &  # (to be implemented)
 ```
 
 ## Development
@@ -169,6 +192,10 @@ just ci-robot-upper
 
 **Audio:**
 - `PORCUPINE_ACCESS_KEY` - Required for wake word detection
+
+**Intelligence:**
+- `OPENAI_KEY` - Required for GPT-4o remote inference
+- `DEEPSEEK_KEY` - Required for DeepSeek fallback
 
 ## See Also
 - `CLAUDE.md` - Full project documentation
