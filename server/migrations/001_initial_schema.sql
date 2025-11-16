@@ -236,3 +236,5 @@ CREATE TRIGGER update_firmwares_updated_at BEFORE UPDATE ON firmwares
 -- Helper functions for creating PostGIS POINTs from x, y coordinates
 -- Usage: ST_SetSRID(ST_MakePoint(x, y), 4326)
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
+
+

@@ -6,22 +6,10 @@ mod key_management;
 mod metrics;
 mod pg;
 mod schema;
-mod shared;
 mod state;
 
 use crate::error::{Result as ServerResult, ServerError};
-use crate::kernel::auth::{login_handler, register_handler};
-use crate::kernel::route::find_route;
-use crate::kernel::unlocker::{
-    create_unlock_instance, record_unlock_result, update_unlock_instance,
-};
 use crate::key_management::load_or_generate_key;
-use crate::schema::firmware::{
-    delete_firmware_handler, download_firmware_handler, get_firmware_by_id_handler,
-    get_firmwares_handler, get_latest_firmware_handler, upload_firmware_handler,
-};
-use crate::schema::service::OneInArea;
-use crate::schema::{Area, Beacon, Connection, Entity, EntityServiceAddons, Merchant, Service};
 use crate::state::AppState;
 use axum::extract::State;
 use axum::middleware;
@@ -31,7 +19,6 @@ use axum::{
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
 };
-use bson::doc;
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
 use std::sync::Arc;
@@ -52,12 +39,15 @@ async fn root() -> impl IntoResponse {
 
 async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
     // Here you can add logic to check the health of your application, e.g., database connection
-    match state.db.run_command(doc! { "ping": 1 }).await {
-        Ok(_) => (StatusCode::OK, "Healthy"),
-        Err(e) => {
-            info!("Health check failed: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unhealthy")
-        }
+    match state
+        .pg_pool
+        .pool
+        .acquire()
+        .await
+        .map_err(|e| ServerError::DatabaseConnection(format!("PostgreSQL connection error: {}", e)))
+    {
+        Ok(_) => (StatusCode::OK, "Healthy").into_response(),
+        Err(_) => (StatusCode::SERVICE_UNAVAILABLE, "Unhealthy").into_response(),
     }
 }
 
@@ -164,10 +154,6 @@ async fn main() -> ServerResult<()> {
         }
     });
 
-    // Connect to MongoDB database
-    info!("Connecting to MongoDB...");
-    let db = database::connect_with_db().await?;
-
     // Optionally connect to PostgreSQL for migration
     let pg_pool = if let Ok(pg_url) = std::env::var("POSTGRES_URL") {
         info!("PostgreSQL URL found, connecting to PostgreSQL...");
@@ -185,7 +171,7 @@ async fn main() -> ServerResult<()> {
                     }
                 }
 
-                Some(Arc::new(pool))
+                Some(pool)
             }
             Err(e) => {
                 tracing::warn!(
@@ -200,6 +186,12 @@ async fn main() -> ServerResult<()> {
         None
     };
 
+    let Some(pg_pool) = pg_pool else {
+        return Err(ServerError::ConfigurationError(
+            "PostgreSQL connection is required but could not be established.".to_string(),
+        ));
+    };
+
     // Get server bind address from environment
     let bind_addr =
         std::env::var("SERVER_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
@@ -207,7 +199,6 @@ async fn main() -> ServerResult<()> {
     info!("Server will bind to: {}", bind_addr);
 
     let state = AppState {
-        db,
         pg_pool,
         private_key,
         prometheus_handle,
@@ -217,136 +208,136 @@ async fn main() -> ServerResult<()> {
         .route("/health", get(health_check))
         .route("/cert", get(cert))
         .route("/metrics", get(metrics::metrics_handler))
-        .route("/api/auth/register", post(register_handler))
-        .route("/api/auth/login", post(login_handler))
-        .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
-        .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}",
-            get(Beacon::get_one_handler),
-        )
-        .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker",
-            post(create_unlock_instance),
-        )
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/status",
-            put(update_unlock_instance),
-        )
-        .route(
-            "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome",
-            put(record_unlock_result),
-        )
-        .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
-        .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
-        .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))
-        .route(
-            "/api/entities/{eid}/beacons/{id}",
-            delete(Beacon::delete_handler),
-        )
-        .route("/api/entities/{eid}/areas", get(Area::get_handler))
-        .route("/api/entities/{eid}/areas/", get(Area::get_handler))
-        .route("/api/entities/{eid}/areas/{id}", get(Area::get_one_handler))
-        .route("/api/entities/{eid}/areas", post(Area::create_handler))
-        .route("/api/entities/{eid}/areas", put(Area::update_handler))
-        .route("/api/entities/{eid}/areas/", post(Area::create_handler))
-        .route("/api/entities/{eid}/areas/", put(Area::update_handler))
-        .route(
-            "/api/entities/{eid}/areas/{id}",
-            delete(Area::delete_handler),
-        )
-        .route(
-            "/api/entities/{eid}/areas/{aid}/beacons",
-            get(Beacon::get_all_in_area_handler),
-        )
-        .route(
-            "/api/entities/{eid}/areas/{aid}/merchants",
-            get(Merchant::get_all_in_area_handler),
-        )
-        .route("/api/entities", get(Entity::search_entity_handler))
-        .route("/api/entities/", get(Entity::search_entity_handler))
-        .route("/api/entities/{id}", get(Entity::get_one_handler))
-        .route("/api/entities/{id}/route", get(find_route))
-        .route("/api/entities/{id}/route/", get(find_route))
-        .route("/api/entities/{id}/route/point", get(find_route))
-        .route("/api/entities/{id}/route/point/", get(find_route))
-        .route("/api/entities", post(Entity::create_handler))
-        .route("/api/entities", put(Entity::update_handler))
-        .route("/api/entities/", post(Entity::create_handler))
-        .route("/api/entities/", put(Entity::update_handler))
-        .route("/api/entities/{id}", delete(Entity::delete_handler))
-        .route("/api/entities/{eid}/merchants", get(Merchant::get_handler))
-        .route("/api/entities/{eid}/merchants/", get(Merchant::get_handler))
-        .route(
-            "/api/entities/{eid}/merchants/{id}",
-            get(Merchant::get_one_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants",
-            post(Merchant::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants",
-            put(Merchant::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/",
-            post(Merchant::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/",
-            put(Merchant::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/merchants/{id}",
-            delete(Merchant::delete_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            get(Connection::get_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            get(Connection::get_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/{id}",
-            get(Connection::get_one_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            post(Connection::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections",
-            put(Connection::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            post(Connection::create_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/",
-            put(Connection::update_handler),
-        )
-        .route(
-            "/api/entities/{eid}/connections/{id}",
-            delete(Connection::delete_handler),
-        )
-        // Firmware management routes
-        .route("/api/firmwares", get(get_firmwares_handler))
-        .route("/api/firmwares/upload", post(upload_firmware_handler))
-        .route(
-            "/api/firmwares/latest/{device}",
-            get(get_latest_firmware_handler),
-        )
-        .route("/api/firmwares/{id}", get(get_firmware_by_id_handler))
-        .route(
-            "/api/firmwares/{id}/download",
-            get(download_firmware_handler),
-        )
-        .route("/api/firmwares/{id}", delete(delete_firmware_handler))
+        // .route("/api/auth/register", post(register_handler))
+        // .route("/api/auth/login", post(login_handler))
+        // .route("/api/entities/{eid}/beacons/", get(Beacon::get_handler))
+        // .route("/api/entities/{eid}/beacons", get(Beacon::get_handler))
+        // .route(
+        //     "/api/entities/{eid}/beacons/{id}",
+        //     get(Beacon::get_one_handler),
+        // )
+        // .route("/api/entities/{eid}/beacons", post(Beacon::create_handler))
+        // .route(
+        //     "/api/entities/{eid}/beacons/{id}/unlocker",
+        //     post(create_unlock_instance),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/status",
+        //     put(update_unlock_instance),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome",
+        //     put(record_unlock_result),
+        // )
+        // .route("/api/entities/{eid}/beacons", put(Beacon::update_handler))
+        // .route("/api/entities/{eid}/beacons/", post(Beacon::create_handler))
+        // .route("/api/entities/{eid}/beacons/", put(Beacon::update_handler))
+        // .route(
+        //     "/api/entities/{eid}/beacons/{id}",
+        //     delete(Beacon::delete_handler),
+        // )
+        // .route("/api/entities/{eid}/areas", get(Area::get_handler))
+        // .route("/api/entities/{eid}/areas/", get(Area::get_handler))
+        // .route("/api/entities/{eid}/areas/{id}", get(Area::get_one_handler))
+        // .route("/api/entities/{eid}/areas", post(Area::create_handler))
+        // .route("/api/entities/{eid}/areas", put(Area::update_handler))
+        // .route("/api/entities/{eid}/areas/", post(Area::create_handler))
+        // .route("/api/entities/{eid}/areas/", put(Area::update_handler))
+        // .route(
+        //     "/api/entities/{eid}/areas/{id}",
+        //     delete(Area::delete_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/areas/{aid}/beacons",
+        //     get(Beacon::get_all_in_area_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/areas/{aid}/merchants",
+        //     get(Merchant::get_all_in_area_handler),
+        // )
+        // .route("/api/entities", get(Entity::search_entity_handler))
+        // .route("/api/entities/", get(Entity::search_entity_handler))
+        // .route("/api/entities/{id}", get(Entity::get_one_handler))
+        // .route("/api/entities/{id}/route", get(find_route))
+        // .route("/api/entities/{id}/route/", get(find_route))
+        // .route("/api/entities/{id}/route/point", get(find_route))
+        // .route("/api/entities/{id}/route/point/", get(find_route))
+        // .route("/api/entities", post(Entity::create_handler))
+        // .route("/api/entities", put(Entity::update_handler))
+        // .route("/api/entities/", post(Entity::create_handler))
+        // .route("/api/entities/", put(Entity::update_handler))
+        // .route("/api/entities/{id}", delete(Entity::delete_handler))
+        // .route("/api/entities/{eid}/merchants", get(Merchant::get_handler))
+        // .route("/api/entities/{eid}/merchants/", get(Merchant::get_handler))
+        // .route(
+        //     "/api/entities/{eid}/merchants/{id}",
+        //     get(Merchant::get_one_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/merchants",
+        //     post(Merchant::create_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/merchants",
+        //     put(Merchant::update_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/merchants/",
+        //     post(Merchant::create_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/merchants/",
+        //     put(Merchant::update_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/merchants/{id}",
+        //     delete(Merchant::delete_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections",
+        //     get(Connection::get_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections/",
+        //     get(Connection::get_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections/{id}",
+        //     get(Connection::get_one_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections",
+        //     post(Connection::create_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections",
+        //     put(Connection::update_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections/",
+        //     post(Connection::create_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections/",
+        //     put(Connection::update_handler),
+        // )
+        // .route(
+        //     "/api/entities/{eid}/connections/{id}",
+        //     delete(Connection::delete_handler),
+        // )
+        // // Firmware management routes
+        // .route("/api/firmwares", get(get_firmwares_handler))
+        // .route("/api/firmwares/upload", post(upload_firmware_handler))
+        // .route(
+        //     "/api/firmwares/latest/{device}",
+        //     get(get_latest_firmware_handler),
+        // )
+        // .route("/api/firmwares/{id}", get(get_firmware_by_id_handler))
+        // .route(
+        //     "/api/firmwares/{id}/download",
+        //     get(download_firmware_handler),
+        // )
+        // .route("/api/firmwares/{id}", delete(delete_firmware_handler))
         .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)

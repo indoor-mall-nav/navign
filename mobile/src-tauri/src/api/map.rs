@@ -141,7 +141,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id,
+            id: b.id.to_string(),
             area: b.area,
             name: b.name,
             location: b.location,

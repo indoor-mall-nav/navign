@@ -1,28 +1,19 @@
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "alloc")]
 use core::str::FromStr;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::serialize_object_id_as_hex_string;
-
 /// Firmware artifact schema - represents a beacon firmware binary
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Firmware {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string",)
-    )]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
+    #[cfg(feature = "postgres")]
+    pub id: sqlx::types::Uuid,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
     pub id: String,
     /// Semantic version of the firmware (e.g., "1.0.0")
     pub version: String,
@@ -40,10 +31,30 @@ pub struct Firmware {
     pub is_latest: bool,
     /// Git commit hash if available
     pub git_commit: Option<String>,
-    /// Build timestamp
-    pub build_time: i64,
-    /// Upload timestamp
-    pub created_at: i64,
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<i64>, // Timestamp in milliseconds
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub build_time: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub build_time: Option<i64>, // Timestamp in milliseconds
     /// Optional release notes
     pub release_notes: Option<String>,
 }

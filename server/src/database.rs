@@ -1,7 +1,9 @@
 use crate::error::{Result, ServerError};
+use crate::pg;
 use mongodb::options::{ClientOptions, ServerAddress};
 use mongodb::{Client, Database};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
 
@@ -50,13 +52,8 @@ pub(crate) async fn connect_with_db() -> Result<Database> {
     let db = client.database(&db_name);
     db.run_command(bson::doc! { "ping": 1 })
         .await
-        .map_err(|e| {
-            ServerError::DatabaseConnection(format!(
-                "Failed to connect to MongoDB at '{}': {}. Please ensure MongoDB is running and accessible.",
-                mongodb_host, e
-            ))
-        })?;
+        .map_err(|e| ServerError::DatabaseConnection(format!("Failed to ping MongoDB: {}", e)))?;
 
-    info!("Successfully connected to MongoDB server");
+    info!("MongoDB connection established successfully");
     Ok(db)
 }

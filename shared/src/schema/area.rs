@@ -1,59 +1,72 @@
 #[cfg(feature = "alloc")]
 use alloc::string::String;
-#[cfg(feature = "alloc")]
+
+#[cfg(all(feature = "alloc", not(feature = "postgres")))]
 use alloc::vec::Vec;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "mongodb", feature = "serde"))]
-use bson::serde_helpers::serialize_object_id_as_hex_string;
-
+#[cfg(feature = "postgres")]
+use crate::schema::postgis::PgPolygon;
 use core::fmt::{Display, Formatter};
+#[cfg(feature = "sql")]
+use sqlx::FromRow;
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
+#[cfg_attr(feature = "sql", derive(FromRow))]
+#[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
+#[cfg_attr(
+    all(feature = "ts-rs", not(feature = "postgres")),
+    ts(export, export_to = "generated/")
+)]
 pub struct Area {
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(rename = "_id", serialize_with = "serialize_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub id: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "_id"))]
-    pub id: String,
-    #[cfg(feature = "mongodb")]
-    #[cfg_attr(
-        all(feature = "mongodb", feature = "serde"),
-        serde(serialize_with = "serialize_object_id_as_hex_string")
-    )]
-    #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: ObjectId,
-    #[cfg(not(feature = "mongodb"))]
-    #[cfg_attr(feature = "serde", serde(alias = "entity"))]
+    #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), ts(type = "string"))]
+    pub id: i32,
+    #[cfg(feature = "postgres")]
+    pub entity: sqlx::types::Uuid,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), ts(type = "string"))]
     pub entity: String,
     pub name: String,
     pub description: Option<String>,
     /// Unique identifier for the area for displaying in the beacon name.
     pub beacon_code: String,
-    pub floor: Option<Floor>,     // Floor number or name
-    pub polygon: Vec<(f64, f64)>, // List of (x, y) pairs of coordinates
-    pub created_at: i64,          // Timestamp in milliseconds
-    pub updated_at: i64,          // Timestamp in milliseconds
+    pub floor: Option<Floor>,
+    #[cfg(feature = "postgres")]
+    pub polygon: PgPolygon,
+    #[cfg(not(feature = "postgres"))]
+    pub polygon: Vec<(f64, f64)>,
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<i64>, // Timestamp in milliseconds
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub updated_at: Option<i64>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Floor {
@@ -74,14 +87,12 @@ impl From<Floor> for i32 {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-#[cfg_attr(feature = "mongodb", derive(Default))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum FloorType {
     /// European/UK style, e.g., "Ground," "First," "Second"
     Level,
     /// US style, e.g., "1st," "2nd," "3rd"
-    #[cfg_attr(feature = "mongodb", default)]
     Floor,
     /// Universal basement
     Basement,
@@ -104,156 +115,5 @@ impl Display for Floor {
             FloorType::Floor => write!(f, "{}F", self.name),
             FloorType::Basement => write!(f, "B{}", self.name),
         }
-    }
-}
-
-// Mobile-specific version for SQLite storage
-#[cfg(feature = "sql")]
-pub mod mobile {
-    use super::{Floor, FloorType};
-    #[cfg(feature = "alloc")]
-    use alloc::string::String;
-    #[cfg(feature = "alloc")]
-    use alloc::vec::Vec;
-    #[cfg(feature = "serde")]
-    use serde::{Deserialize, Serialize};
-    use sqlx::FromRow;
-
-    #[derive(Debug, Clone, FromRow)]
-    #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-    pub struct AreaMobile {
-        pub id: String,
-        pub entity: String,
-        pub name: String,
-        pub description: Option<String>,
-        pub beacon_code: String,
-        pub floor_type: Option<String>,
-        pub floor_name: Option<i32>,
-        /// Stored as WKT POLYGON string
-        pub polygon: String,
-        pub created_at: i64,
-        pub updated_at: i64,
-    }
-
-    impl AreaMobile {
-        pub fn floor(&self) -> Option<Floor> {
-            match (self.floor_type.as_ref(), self.floor_name) {
-                (Some(ft), Some(fn_)) => {
-                    let floor_type = match ft.as_str() {
-                        "level" | "Level" => FloorType::Level,
-                        "floor" | "Floor" => FloorType::Floor,
-                        "basement" | "Basement" => FloorType::Basement,
-                        _ => FloorType::Floor,
-                    };
-                    Some(Floor {
-                        r#type: floor_type,
-                        name: fn_ as u32,
-                    })
-                }
-                _ => None,
-            }
-        }
-
-        #[cfg(feature = "sql")]
-        pub async fn create_table(pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
-            sqlx::query(
-                r#"
-                CREATE TABLE IF NOT EXISTS areas (
-                    id VARCHAR(24) PRIMARY KEY,
-                    entity VARCHAR(24) NOT NULL,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    beacon_code TEXT NOT NULL,
-                    floor_type TEXT,
-                    floor_name INTEGER,
-                    polygon TEXT NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL
-                )
-                "#,
-            )
-            .execute(pool)
-            .await?;
-            Ok(())
-        }
-
-        #[cfg(feature = "sql")]
-        pub async fn insert(&self, pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
-            sqlx::query(
-                r#"
-                INSERT OR REPLACE INTO areas (id, entity, name, description, beacon_code, floor_type, floor_name, polygon, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                "#,
-            )
-            .bind(&self.id)
-            .bind(&self.entity)
-            .bind(&self.name)
-            .bind(&self.description)
-            .bind(&self.beacon_code)
-            .bind(&self.floor_type)
-            .bind(self.floor_name)
-            .bind(&self.polygon)
-            .bind(self.created_at)
-            .bind(self.updated_at)
-            .execute(pool)
-            .await?;
-            Ok(())
-        }
-
-        #[cfg(feature = "sql")]
-        pub async fn get_by_id(
-            pool: &sqlx::SqlitePool,
-            id: &str,
-        ) -> Result<Option<Self>, sqlx::Error> {
-            sqlx::query_as::<_, Self>("SELECT * FROM areas WHERE id = ?")
-                .bind(id)
-                .fetch_optional(pool)
-                .await
-        }
-
-        #[cfg(feature = "sql")]
-        pub async fn get_all(pool: &sqlx::SqlitePool) -> Result<Vec<Self>, sqlx::Error> {
-            sqlx::query_as::<_, Self>("SELECT * FROM areas")
-                .fetch_all(pool)
-                .await
-        }
-
-        #[cfg(feature = "sql")]
-        pub async fn delete(pool: &sqlx::SqlitePool, id: &str) -> Result<(), sqlx::Error> {
-            sqlx::query("DELETE FROM areas WHERE id = ?")
-                .bind(id)
-                .execute(pool)
-                .await?;
-            Ok(())
-        }
-    }
-}
-
-#[cfg(all(test, feature = "serde", not(feature = "mongodb")))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_deserialize_area_with_underscore_id() {
-        // Test that Area can deserialize from server response with _id field
-        let json = r#"{
-            "_id": "68a83067bdfa76608b934ae8",
-            "entity": "68a8301fbdfa76608b934ae1",
-            "name": "Base Area F1",
-            "description": "This is the base area",
-            "beacon_code": "01",
-            "floor": {"type": "floor", "name": 1},
-            "polygon": [[0.0, 70.0], [45.0, 70.0], [45.0, 72.0]],
-            "created_at": 1755851693226,
-            "updated_at": 1755851693226
-        }"#;
-
-        let area: Area = serde_json::from_str(json).expect("Failed to deserialize area");
-        assert_eq!(area.id, "68a83067bdfa76608b934ae8");
-        assert_eq!(area.entity, "68a8301fbdfa76608b934ae1");
-        assert_eq!(area.name, "Base Area F1");
-        assert_eq!(area.beacon_code, "01");
-        assert!(area.floor.is_some());
-        assert_eq!(area.polygon.len(), 3);
     }
 }
