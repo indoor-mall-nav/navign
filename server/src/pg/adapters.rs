@@ -221,8 +221,8 @@ pub fn beacon_to_pg_beacon(beacon: Beacon) -> PgBeacon {
 
 /// Convert PostgreSQL Merchant to shared Merchant
 pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
-    // Parse floor string to Floor struct
-    let floor = parse_floor_string(&pg.floor);
+    // Parse merchant type from string
+    let merchant_type = MerchantType::Other; // TODO: Proper type mapping from PostgreSQL fields
 
     Merchant {
         id: pg.id.to_string(),
@@ -230,11 +230,19 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
         area: pg.area_id.to_string(),
         name: pg.name,
         description: pg.description,
-        r#type: MerchantType::Other, // Would need mapping from string
-        floor,
-        location: (pg.location.x, pg.location.y),
-        business_hours: Vec::new(), // Not in PostgreSQL schema
-        contact_info: Vec::new(),   // Not in PostgreSQL schema
+        r#chain: pg.chain,
+        beacon_code: "".to_string(), // Not in PostgreSQL schema
+        r#type: merchant_type,
+        color: None, // Not in PostgreSQL schema
+        tags: Vec::new(), // Not in PostgreSQL schema
+        location: (pg.location.lon(), pg.location.lat()),
+        style: MerchantStyle::Chain, // Default, would need mapping from merchant_style
+        polygon: None, // Not in PostgreSQL schema
+        available_period: None, // Not in PostgreSQL schema
+        email: None, // Not in PostgreSQL schema
+        phone: None, // Not in PostgreSQL schema
+        website: None, // Not in PostgreSQL schema
+        social_media: serde_json::from_value(serde_json::Value::Array(pg.social_media.0)).ok(),
         created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
         updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
     }
@@ -244,12 +252,6 @@ pub fn pg_merchant_to_merchant(pg: PgMerchant) -> Merchant {
 pub fn merchant_to_pg_merchant(merchant: Merchant) -> PgMerchant {
     let entity_id = Uuid::parse_str(&merchant.entity).unwrap_or_else(|_| Uuid::new_v4());
     let area_id = merchant.area.parse::<i32>().unwrap_or(0);
-    // Convert Floor to string
-    let floor_str = match merchant.floor {
-        Some(f) => format!("{}", i32::from(f)),
-        None => "0".to_string(),
-    };
-
     let location = PgPoint::new(merchant.location.0, merchant.location.1);
 
     PgMerchant {
@@ -258,11 +260,26 @@ pub fn merchant_to_pg_merchant(merchant: Merchant) -> PgMerchant {
         area_id,
         name: merchant.name,
         description: merchant.description,
-        r#type: "retail".to_string(), // Default type
-        floor: floor_str,
+        chain: merchant.r#chain,
+        r#type: "other".to_string(), // TODO: Map from MerchantType enum
+        logo: None,
+        images: sqlx::types::Json(Vec::new()),
+        social_media: sqlx::types::Json(
+            merchant.social_media
+                .and_then(|sm| serde_json::to_value(sm).ok())
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default()
+        ),
+        floor: "0".to_string(), // Placeholder
         location,
-        business_hours: None,
-        contact_info: None,
+        merchant_style: Some(format!("{:?}", merchant.style).to_lowercase()),
+        food_type: None,
+        food_cuisine: None,
+        chinese_food_cuisine: None,
+        facility_type: None,
+        rating: None,
+        reviews: None,
+        opening_hours: None,
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
     }
@@ -274,20 +291,39 @@ pub fn merchant_to_pg_merchant(merchant: Merchant) -> PgMerchant {
 
 /// Convert PostgreSQL Connection to shared Connection
 pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
+    // Convert JSON array of connected areas to Vec<ConnectedArea>
+    let connected_areas: Vec<ConnectedArea> = if let Ok(arr) = serde_json::from_value::<Vec<serde_json::Value>>(serde_json::Value::Array(pg.connected_areas.0.clone())) {
+        arr.into_iter()
+            .filter_map(|v| {
+                if let Ok(tuple) = serde_json::from_value::<(String, f64, f64, bool)>(v) {
+                    Some(tuple)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
     Connection {
         id: pg.id.to_string(),
         entity: pg.entity_id.to_string(),
         name: pg.name,
         description: pg.description,
         r#type: match pg.r#type.as_str() {
+            "gate" => ConnectionType::Gate,
             "elevator" => ConnectionType::Elevator,
             "stairs" => ConnectionType::Stairs,
             "escalator" => ConnectionType::Escalator,
-            _ => ConnectionType::Elevator,
+            "rail" => ConnectionType::Rail,
+            "shuttle" => ConnectionType::Shuttle,
+            _ => ConnectionType::Escalator,
         },
-        from_floor: parse_floor_string(&pg.from_floor),
-        to_floor: parse_floor_string(&pg.to_floor),
-        location: (pg.location.x, pg.location.y),
+        connected_areas,
+        available_period: Vec::new(), // Not in PostgreSQL schema
+        tags: Vec::new(), // Not in PostgreSQL schema
+        gnd: None, // Not in PostgreSQL schema
         created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
         updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
     }
@@ -295,6 +331,7 @@ pub fn pg_connection_to_connection(pg: PgConnection) -> Connection {
 
 /// Convert shared Connection to PostgreSQL Connection
 pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
+<<<<<<< HEAD
     let entity_id = Uuid::parse_str(&connection.entity).unwrap_or_else(|_| Uuid::new_v4());
     // Convert Floors to strings
     let from_floor_str = match connection.from_floor {
@@ -307,13 +344,29 @@ pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
     };
 
     let location = PgPoint::new(connection.location.0, connection.location.1);
+=======
+    let entity_id = Uuid::parse_str(&connection.entity)
+        .unwrap_or_else(|_| Uuid::new_v4());
+>>>>>>> 7b2447b (fix(server): update PostgreSQL adapters and make User fields public)
 
     let connection_type = match connection.r#type {
+        ConnectionType::Gate => "gate",
         ConnectionType::Elevator => "elevator",
         ConnectionType::Stairs => "stairs",
         ConnectionType::Escalator => "escalator",
+        ConnectionType::Rail => "rail",
+        ConnectionType::Shuttle => "shuttle",
     }
     .to_string();
+
+    // Convert Vec<ConnectedArea> to JSON array
+    let connected_areas_json: Vec<serde_json::Value> = connection
+        .connected_areas
+        .into_iter()
+        .map(|(id, x, y, is_entrance)| {
+            serde_json::json!([id, x, y, is_entrance])
+        })
+        .collect();
 
     PgConnection {
         id: 0, // Will be set by database
@@ -321,9 +374,7 @@ pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
         name: connection.name,
         description: connection.description,
         r#type: connection_type,
-        from_floor: from_floor_str,
-        to_floor: to_floor_str,
-        location,
+        connected_areas: sqlx::types::Json(connected_areas_json),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
     }
@@ -335,8 +386,13 @@ pub fn connection_to_pg_connection(connection: Connection) -> PgConnection {
 
 /// Convert PostgreSQL User to shared User
 pub fn pg_user_to_user(pg: PgUser) -> crate::schema::User {
+    // Parse UUID string to ObjectId (use first 24 hex chars)
+    let id_str = pg.id.to_string().replace("-", "");
+    let object_id = ObjectId::parse_str(&id_str[..24.min(id_str.len())])
+        .unwrap_or_else(|_| ObjectId::new());
+
     crate::schema::User {
-        id: pg.id.to_string(),
+        id: object_id,
         username: pg.username,
         email: pg.email,
         phone: pg.phone,
@@ -345,8 +401,6 @@ pub fn pg_user_to_user(pg: PgUser) -> crate::schema::User {
         hashed_password: pg.hashed_password,
         activated: pg.activated,
         privileged: pg.privileged,
-        created_at: pg.created_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
-        updated_at: pg.updated_at.map(|dt| dt.timestamp_millis()).unwrap_or(0),
     }
 }
 

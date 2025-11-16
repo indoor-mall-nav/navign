@@ -5,7 +5,8 @@
 
 use crate::error::Result;
 use crate::kernel::auth::Token;
-use crate::pg::repository::UserRepository;
+use crate::pg::adapters::{pg_user_to_user, user_to_pg_user};
+use crate::pg::repository::{Repository, UserRepository};
 use crate::schema::User;
 use crate::state::AppState;
 use axum::extract::State;

@@ -10,12 +10,12 @@ pub struct User {
     pub id: ObjectId,
     pub username: String,
     pub email: String,
-    phone: Option<String>,
-    google: Option<String>,
-    wechat: Option<String>,
-    hashed_password: String,
+    pub phone: Option<String>,
+    pub google: Option<String>,
+    pub wechat: Option<String>,
+    pub hashed_password: String,
     pub activated: bool,
-    privileged: bool,
+    pub privileged: bool,
 }
 
 impl User {

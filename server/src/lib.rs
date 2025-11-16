@@ -3,6 +3,7 @@
 //! This library exposes server functionality for use by binaries (main server, migration tool, etc.)
 
 pub mod error;
+pub mod kernel;
 pub mod pg;
 pub mod schema;
 pub mod shared;

@@ -7,6 +7,7 @@ use crate::error::{Result, ServerError};
 use crate::kernel::route::{ConnectivityLimits, RouteQuery, route};
 use crate::pg::adapters::*;
 use crate::pg::repository::*;
+use crate::schema::service::Service;
 use crate::schema::{Area, Connection, Entity, Merchant};
 use crate::state::AppState;
 use axum::extract::{Path, Query, State};

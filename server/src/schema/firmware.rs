@@ -377,7 +377,7 @@ pub async fn upload_firmware_handler(
 
     // Create firmware document
     let firmware = Firmware {
-        id: ObjectId::new(),
+        id: ObjectId::new().to_hex(),
         version: version.clone(),
         device: device.clone(),
         description,
