@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/states/session'
 import { listBeacons, deleteBeacon } from '@/lib/api/client'
-import type { Beacon } from '@/schema/beacon'
+import type { Beacon } from '@/schema'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -18,7 +18,7 @@ const error = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const beaconToDelete = ref<Beacon | null>(null)
 
-const entityId = computed(() => route.query.entity as string || session.entity?._id || '')
+const entityId = computed(() => route.query.entity as string || session.entity?.id || '')
 
 onMounted(async () => {
   await loadBeacons()

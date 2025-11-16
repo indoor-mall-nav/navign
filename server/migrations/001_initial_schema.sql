@@ -108,7 +108,8 @@ CREATE TABLE merchants (
     images JSONB DEFAULT '[]'::jsonb,
     social_media JSONB DEFAULT '[]'::jsonb,
     floor VARCHAR(50) NOT NULL,
-    location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT with WGS84 SRID
+    location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT for centroid/entrance
+    polygon GEOMETRY(POLYGON, 4326) NOT NULL, -- PostGIS POLYGON for merchant boundary
     merchant_style VARCHAR(50),
     food_type VARCHAR(50),
     food_cuisine VARCHAR(50),
@@ -126,7 +127,8 @@ CREATE INDEX idx_merchants_area ON merchants(area_id);
 CREATE INDEX idx_merchants_name ON merchants(name);
 CREATE INDEX idx_merchants_type ON merchants(type);
 CREATE INDEX idx_merchants_floor ON merchants(floor);
-CREATE INDEX idx_merchants_location ON merchants USING GIST(location); -- Spatial index
+CREATE INDEX idx_merchants_location ON merchants USING GIST(location); -- Spatial index for centroid
+CREATE INDEX idx_merchants_polygon ON merchants USING GIST(polygon); -- Spatial index for boundary
 
 -- Connections table (INTEGER)
 CREATE TABLE connections (

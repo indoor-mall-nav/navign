@@ -1,98 +1,100 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useSessionStore } from '@/states/session'
-import { useRouter } from 'vue-router'
-import { getAllAreas, getAllMerchants, getAllBeacons } from '@/lib/api/tauri'
-import type { AreaDetails, MapBeacon } from '@/lib/api/tauri'
-import type { Merchant } from '@/schema'
+import { computed, onMounted, ref } from "vue";
+import { useSessionStore } from "@/states/session";
+import { useRouter } from "vue-router";
+import { getAllAreas, getAllMerchants, getAllBeacons } from "@/lib/api/tauri";
+import type { AreaDetails, MapBeacon } from "@/lib/api/tauri";
+import type { Merchant } from "@/schema";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Icon } from '@iconify/vue'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@iconify/vue";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const session = useSessionStore()
-const router = useRouter()
+const session = useSessionStore();
+const router = useRouter();
 
-const loading = ref(false)
-const error = ref('')
-const areas = ref<AreaDetails[]>([])
-const merchants = ref<Merchant[]>([])
-const beacons = ref<MapBeacon[]>([])
+const loading = ref(false);
+const error = ref("");
+const areas = ref<AreaDetails[]>([]);
+const merchants = ref<Merchant[]>([]);
+const beacons = ref<MapBeacon[]>([]);
 
-const entityId = ref(session.entity?._id || '')
-const entityName = computed(() => session.entity?.name || 'Entity')
+const entityId = ref(session.entity?.id || "");
+const entityName = computed(() => session.entity?.name || "Entity");
 
 onMounted(async () => {
   // Check if user is authenticated
   if (!session.isAuthenticated) {
-    router.push('/login')
-    return
+    router.push("/login");
+    return;
   }
 
-  await loadEntityDetails()
-})
+  await loadEntityDetails();
+});
 
 async function loadEntityDetails() {
   if (!entityId.value) {
-    error.value = 'No entity selected'
-    return
+    error.value = "No entity selected";
+    return;
   }
 
-  loading.value = true
-  error.value = ''
+  loading.value = true;
+  error.value = "";
 
   try {
     // Fetch all areas
-    const areasResponse = await getAllAreas(entityId.value)
-    if (areasResponse.status === 'success' && areasResponse.data) {
-      areas.value = areasResponse.data
+    const areasResponse = await getAllAreas(entityId.value);
+    if (areasResponse.status === "success" && areasResponse.data) {
+      areas.value = areasResponse.data;
     } else {
-      throw new Error(areasResponse.message || 'Failed to fetch areas')
+      throw new Error(areasResponse.message || "Failed to fetch areas");
     }
 
     // Fetch all merchants
-    const merchantsResponse = await getAllMerchants(entityId.value)
-    if (merchantsResponse.status === 'success' && merchantsResponse.data) {
-      merchants.value = merchantsResponse.data
+    const merchantsResponse = await getAllMerchants(entityId.value);
+    if (merchantsResponse.status === "success" && merchantsResponse.data) {
+      merchants.value = merchantsResponse.data;
     }
 
     // Fetch all beacons
-    const beaconsResponse = await getAllBeacons(entityId.value)
-    if (beaconsResponse.status === 'success' && beaconsResponse.data) {
-      beacons.value = beaconsResponse.data
+    const beaconsResponse = await getAllBeacons(entityId.value);
+    if (beaconsResponse.status === "success" && beaconsResponse.data) {
+      beacons.value = beaconsResponse.data;
     }
   } catch (err) {
     error.value =
-      err instanceof Error ? err.message : 'Failed to load entity details'
+      err instanceof Error ? err.message : "Failed to load entity details";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function navigateToArea(areaId: string) {
   // Update session area and navigate to home
-  const area = areas.value.find((a) => a.id === areaId)
+  const area = areas.value.find((a) => a.id === areaId);
   if (area) {
     session.area = {
-      ...area
-    }
-    router.push('/')
+      ...area,
+      created_at: BigInt(area.created_at),
+      updated_at: BigInt(area.updated_at),
+    };
+    router.push("/");
   }
 }
 
 function getMerchantsInArea(areaId: string): Merchant[] {
-  return merchants.value.filter((m) => m.area === areaId)
+  return merchants.value.filter((m) => m.area === areaId);
 }
 
 function getBeaconsInArea(areaId: string): MapBeacon[] {
-  return beacons.value.filter((b) => b.area === areaId)
+  return beacons.value.filter((b) => b.area === areaId);
 }
 </script>
 
@@ -189,7 +191,7 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
               </Badge>
             </CardTitle>
             <CardDescription>{{
-              area.description || 'No description'
+              area.description || "No description"
             }}</CardDescription>
           </CardHeader>
           <CardContent>

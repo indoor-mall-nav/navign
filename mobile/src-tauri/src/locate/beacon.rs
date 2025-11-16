@@ -153,7 +153,7 @@ mod tests {
             tags: "[]".to_string(),
             location: "POINT(0 0)".to_string(),
             style: "store".to_string(),
-            polygon: None,
+            polygon: "POLYGON((0 0,0 1,1 1,1 0,0 0))".to_string(),
             available_period: None,
             email: None,
             phone: None,

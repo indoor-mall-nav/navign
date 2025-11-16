@@ -425,6 +425,7 @@ watch([mapWidth, mapHeight], () => {
 
 <style scoped>
 .map-svg-container {
-  background: #f9fafb;
+  background: #ffffff;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
 }
 </style>

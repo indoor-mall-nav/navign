@@ -29,6 +29,10 @@ pub struct Connection {
     pub description: Option<String>,
     pub r#type: ConnectionType,
     /// List of Area IDs that this connection links
+    #[cfg_attr(
+        feature = "ts-rs",
+        ts(type = "Array<[string, number, number, boolean]>")
+    )]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
     pub available_period: Vec<(i32, i32)>,
