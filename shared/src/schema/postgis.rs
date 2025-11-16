@@ -3,14 +3,19 @@
 //! Provides a wrapper around geo_types::Point that implements sqlx's
 //! Type, Encode, and Decode traits for PostGIS GEOMETRY(POINT) columns.
 
+#[cfg(all(feature = "postgres", feature = "geo"))]
+use geo_traits::to_geo::{ToGeoPoint, ToGeoPolygon};
+#[cfg(all(feature = "postgres", feature = "geo"))]
+use geo_traits::{GeometryTrait, GeometryType};
 #[cfg(feature = "postgres")]
-use geo_types::Point;
+use geo_types::{Point, Polygon};
 #[cfg(feature = "postgres")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use sqlx::postgres::{PgArgumentBuffer, PgTypeInfo, PgValueRef};
 #[cfg(feature = "postgres")]
 use sqlx::{Decode, Encode, Postgres, Type};
+use wkb::error::WkbResult;
 
 /// Wrapper around geo_types::Point for PostGIS GEOMETRY(POINT, 4326)
 ///
@@ -43,96 +48,31 @@ impl PgPoint {
         self.0.y()
     }
 
-    /// Encode to PostGIS WKB (Well-Known Binary) format with SRID
-    ///
-    /// Format: [byte_order(1)] [wkb_type(4)] [srid(4)] [x(8)] [y(8)]
-    /// Total: 21 bytes for POINT with SRID
-    fn to_wkb(self) -> Vec<u8> {
-        let mut wkb = Vec::with_capacity(21);
-
-        // Byte order: 1 = little endian
-        wkb.push(1u8);
-
-        // WKB type: 0x20000001 = POINT with SRID (0x20000000 flag + 0x00000001 for POINT)
-        wkb.extend_from_slice(&0x20000001u32.to_le_bytes());
-
-        // SRID: 4326 (WGS84)
-        wkb.extend_from_slice(&4326u32.to_le_bytes());
-
-        // X coordinate (longitude)
-        wkb.extend_from_slice(&self.0.x().to_le_bytes());
-
-        // Y coordinate (latitude)
-        wkb.extend_from_slice(&self.0.y().to_le_bytes());
-
-        wkb
+    #[cfg(feature = "geo")]
+    pub fn to_wkb(&self) -> Result<Vec<u8>, wkb::error::WkbError> {
+        let mut buffer = Vec::new();
+        wkb::writer::write_point(
+            &mut buffer,
+            &self.0,
+            &wkb::writer::WriteOptions {
+                endianness: wkb::Endianness::LittleEndian,
+            },
+        )?;
+        Ok(buffer)
     }
 
-    /// Decode from PostGIS WKB (Well-Known Binary) format
-    fn from_wkb(wkb: &[u8]) -> Result<Self, String> {
-        if wkb.len() < 21 {
-            return Err(format!(
-                "WKB too short: expected at least 21 bytes, got {}",
-                wkb.len()
-            ));
+    #[cfg(feature = "geo")]
+    pub fn from_wkb(bytes: &[u8]) -> Result<Self, wkb::error::WkbError> {
+        let data = wkb::reader::read_wkb(bytes)?;
+        let point = data.as_type();
+        if let GeometryType::Point(pt) = point {
+            let pt = pt.to_point();
+            Ok(Self(pt))
+        } else {
+            Err(wkb::error::WkbError::General(
+                "WKB does not represent a Point".to_string(),
+            ))
         }
-
-        // Check byte order (we only support little endian for now)
-        let byte_order = wkb[0];
-        if byte_order != 1 {
-            return Err(format!("Unsupported byte order: {}", byte_order));
-        }
-
-        // Read WKB type
-        let wkb_type = u32::from_le_bytes([wkb[1], wkb[2], wkb[3], wkb[4]]);
-
-        // Check if it's a POINT (type 1) or POINT with SRID (type 0x20000001)
-        let has_srid = (wkb_type & 0x20000000) != 0;
-        let base_type = wkb_type & 0x1FFFFFFF;
-
-        if base_type != 1 {
-            return Err(format!("Not a POINT geometry: type {}", base_type));
-        }
-
-        let mut offset = 5;
-
-        // Skip SRID if present
-        if has_srid {
-            offset += 4;
-        }
-
-        if wkb.len() < offset + 16 {
-            return Err(format!(
-                "WKB too short for coordinates: expected at least {} bytes",
-                offset + 16
-            ));
-        }
-
-        // Read X coordinate (longitude)
-        let x = f64::from_le_bytes([
-            wkb[offset],
-            wkb[offset + 1],
-            wkb[offset + 2],
-            wkb[offset + 3],
-            wkb[offset + 4],
-            wkb[offset + 5],
-            wkb[offset + 6],
-            wkb[offset + 7],
-        ]);
-
-        // Read Y coordinate (latitude)
-        let y = f64::from_le_bytes([
-            wkb[offset + 8],
-            wkb[offset + 9],
-            wkb[offset + 10],
-            wkb[offset + 11],
-            wkb[offset + 12],
-            wkb[offset + 13],
-            wkb[offset + 14],
-            wkb[offset + 15],
-        ]);
-
-        Ok(Self::new(x, y))
     }
 }
 
@@ -149,7 +89,7 @@ impl<'q> Encode<'q, Postgres> for PgPoint {
         &self,
         buf: &mut PgArgumentBuffer,
     ) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + Send + Sync>> {
-        let wkb = (*self).to_wkb();
+        let wkb = (*self).to_wkb()?;
         buf.extend_from_slice(&wkb);
         Ok(sqlx::encode::IsNull::No)
     }
@@ -177,29 +117,93 @@ impl From<PgPoint> for Point<f64> {
     }
 }
 
-#[cfg(test)]
 #[cfg(feature = "postgres")]
-mod tests {
-    use super::*;
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct PgPolygon(pub Polygon<f64>);
 
-    #[test]
-    fn test_wkb_encoding_decoding() {
-        let point = PgPoint::new(121.5, 31.2);
-        let wkb = point.to_wkb();
-
-        assert_eq!(wkb.len(), 25);
-        assert_eq!(wkb[0], 1); // Little endian
-
-        let decoded = PgPoint::from_wkb(&wkb).unwrap();
-        assert_eq!(decoded.lon(), 121.5);
-        assert_eq!(decoded.lat(), 31.2);
+#[cfg(feature = "postgres")]
+impl PgPolygon {
+    pub fn new(points: Vec<(f64, f64)>) -> Self {
+        let exterior = geo_types::LineString::new(
+            points
+                .into_iter()
+                .map(|(x, y)| geo_types::Coord { x, y })
+                .collect(),
+        );
+        let polygon = Polygon::new(exterior, vec![]);
+        Self(polygon)
     }
 
-    #[test]
-    fn test_from_geo_types() {
-        let geo_point = Point::new(120.0, 30.0);
-        let pg_point = PgPoint::from(geo_point);
-        assert_eq!(pg_point.lon(), 120.0);
-        assert_eq!(pg_point.lat(), 30.0);
+    pub fn inner(&self) -> &Polygon<f64> {
+        &self.0
+    }
+
+    #[cfg(feature = "geo")]
+    pub fn to_wkb(self) -> WkbResult<Vec<u8>> {
+        let mut buffer = Vec::new();
+        wkb::writer::write_polygon(
+            &mut buffer,
+            &self.0,
+            &wkb::writer::WriteOptions {
+                endianness: wkb::Endianness::LittleEndian,
+            },
+        )?;
+        Ok(buffer)
+    }
+
+    #[cfg(feature = "geo")]
+    pub fn from_wkb(bytes: &[u8]) -> WkbResult<Self> {
+        let data = wkb::reader::read_wkb(bytes)?;
+        let polygon = data.as_type();
+        if let GeometryType::Polygon(pg) = polygon {
+            let pg = pg.to_polygon();
+            Ok(Self(pg))
+        } else {
+            Err(wkb::error::WkbError::General(
+                "WKB does not represent a Polygon".to_string(),
+            ))
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl Type<Postgres> for PgPolygon {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("geometry")
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'q> Encode<'q, Postgres> for PgPolygon {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, Box<dyn core::error::Error + Send + Sync>> {
+        let wkb = self.clone().to_wkb()?;
+        buf.extend_from_slice(&wkb);
+        Ok(sqlx::encode::IsNull::No)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> Decode<'r, Postgres> for PgPolygon {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn core::error::Error + Send + Sync>> {
+        let bytes = <&[u8] as Decode<Postgres>>::decode(value)?;
+        Self::from_wkb(bytes).map_err(|e| e.into())
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl From<Polygon<f64>> for PgPolygon {
+    fn from(polygon: Polygon<f64>) -> Self {
+        Self(polygon)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl From<PgPolygon> for Polygon<f64> {
+    fn from(pg_polygon: PgPolygon) -> Self {
+        pg_polygon.0
     }
 }

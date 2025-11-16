@@ -194,8 +194,8 @@ pub struct BluFiProvisioningResult {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg(feature = "alloc")]
 pub struct BeaconProvisioningStatus {
-    /// Beacon ID (MongoDB ObjectId)
-    pub beacon_id: String,
+    /// Beacon ID (hardware ID)
+    pub beacon_id: i32,
     /// Device ID (hardware ID)
     pub device_id: String,
     /// Current provisioning state

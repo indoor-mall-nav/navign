@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use crate::schema::Service;
 use bcrypt::hash;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -42,42 +41,10 @@ impl User {
     }
 
     pub fn verify_password(&self, password: &str) -> bool {
-        bcrypt::verify(password, &self.hashed_password).unwrap_or(false)
+        bcrypt::verify(password, self.hashed_password.as_str()).unwrap_or(false)
     }
 
     pub fn is_privileged(&self) -> bool {
         self.privileged
-    }
-}
-
-impl Service for User {
-    fn get_id(&self) -> String {
-        self.id.to_hex()
-    }
-
-    fn get_name(&self) -> String {
-        self.username.clone()
-    }
-
-    fn set_name(&mut self, name: String) {
-        self.username = name;
-    }
-
-    fn get_description(&self) -> Option<String> {
-        Some(self.email.clone())
-    }
-
-    fn set_description(&mut self, description: Option<String>) {
-        if let Some(email) = description {
-            self.email = email;
-        }
-    }
-
-    fn get_collection_name() -> &'static str {
-        "users"
-    }
-
-    fn require_unique_name() -> bool {
-        false
     }
 }

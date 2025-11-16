@@ -2,38 +2,13 @@
 //!
 //! This crate provides custom derive macros and attribute macros
 //! for use across the Navign indoor navigation system.
+//!
+extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
+use std::collections::HashMap;
 use syn::{DeriveInput, parse_macro_input};
-
-/// Example derive macro - replace with actual implementation
-///
-/// # Example
-///
-/// ```ignore
-/// use navign_proc_macros::ExampleDerive;
-///
-/// #[derive(ExampleDerive)]
-/// struct MyStruct {
-///     field: String,
-/// }
-/// ```
-#[proc_macro_derive(ExampleDerive)]
-pub fn example_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = &input.ident;
-
-    let expanded = quote! {
-        impl #name {
-            pub fn example_method(&self) {
-                println!("Example method called on {}", stringify!(#name));
-            }
-        }
-    };
-
-    TokenStream::from(expanded)
-}
 
 /// Example attribute macro - replace with actual implementation
 ///
@@ -48,9 +23,12 @@ pub fn example_derive(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn example_attribute(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn example_attribute(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Pass through unchanged for now
-    item
+    let attributes = syn::parse(attr).unwrap();
+    let structure = syn::parse(item).unwrap();
+
+    let type_map: HashMap<String, String> = HashMap::new(); // Placeholder for actual type mapping logic
 }
 
 /// Example function-like macro - replace with actual implementation

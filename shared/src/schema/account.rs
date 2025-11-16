@@ -1,26 +1,49 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mongodb")]
-use bson::oid::ObjectId;
-
-#[cfg(all(feature = "alloc", feature = "serde"))]
+#[cfg(feature = "alloc")]
 use alloc::string::String;
 
-/// Account schema representing a user account in the system
-/// Note: This schema is primarily for use with the mongodb feature.
-/// When mongodb feature is disabled, the id field is not available.
-#[cfg(all(feature = "alloc", feature = "serde", feature = "mongodb"))]
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    all(feature = "serde", not(feature = "postgres")),
+    derive(Serialize, Deserialize)
+)]
+#[cfg_attr(feature = "postgres", derive(sqlx::FromRow))]
 pub struct Account {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
+    #[cfg(feature = "postgres")]
+    pub id: sqlx::types::Uuid,
+    #[cfg(not(feature = "postgres"))]
+    pub id: String,
     pub username: String,
     pub email: String,
     pub hashed_password: String,
     pub activated: bool,
     pub privileged: bool,
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub created_at: Option<i64>, // Timestamp in milliseconds
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub updated_at: Option<i64>, // Timestamp in milliseconds
 }
 
 /// Request schema for user registration

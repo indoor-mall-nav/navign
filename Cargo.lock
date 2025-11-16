@@ -2974,19 +2974,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7f84e12ccf0a7ddc17a6c41c93326024c42920d7ee630d04950e6926645c0fe"
 
 [[package]]
-name = "env_logger"
-version = "0.11.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13c863f0904021b108aa8b2f55046443e6b1ebde8fd4a15c399893aae4fa069f"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "jiff",
- "log",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6182,7 +6169,6 @@ dependencies = [
  "bumpalo-herd",
  "chrono",
  "dotenv",
- "env_logger",
  "futures",
  "geo",
  "gravatar",
@@ -6208,7 +6194,6 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "totp-lite",
- "tower 0.5.2",
  "tower-http",
  "tower_governor",
  "tracing",
@@ -6229,6 +6214,7 @@ dependencies = [
  "defmt 1.0.1",
  "earcutr 0.5.0",
  "geo",
+ "geo-traits",
  "geo-types",
  "heapless 0.9.1",
  "hmac",
@@ -6242,6 +6228,8 @@ dependencies = [
  "sqlx",
  "ts-rs",
  "uuid",
+ "wkb",
+ "wkt",
 ]
 
 [[package]]
@@ -12537,6 +12525,18 @@ name = "wit-bindgen"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
+
+[[package]]
+name = "wkb"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "908e92c755a5f5ff8781c1c7ebcedb60ce5443879d20f4a0b6a1ee8fb3e6dfb6"
+dependencies = [
+ "byteorder",
+ "geo-traits",
+ "num_enum",
+ "thiserror 1.0.69",
+]
 
 [[package]]
 name = "wkt"

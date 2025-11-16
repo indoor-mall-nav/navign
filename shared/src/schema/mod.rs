@@ -4,8 +4,6 @@ pub mod read_query;
 #[cfg(all(feature = "serde", feature = "alloc"))]
 pub use read_query::ReadQuery;
 
-pub mod utils;
-
 // Core schema modules
 #[cfg(feature = "alloc")]
 pub mod account;
@@ -25,7 +23,7 @@ pub mod firmware;
 pub mod merchant;
 
 // Re-export core types
-#[cfg(all(feature = "alloc", feature = "serde", feature = "mongodb"))]
+#[cfg(all(feature = "alloc", feature = "serde"))]
 pub use account::Account;
 #[cfg(all(feature = "alloc", feature = "serde"))]
 pub use account::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
@@ -52,20 +50,13 @@ pub use merchant::{
     SocialMedia, SocialMediaPlatform,
 };
 
-// Mobile-specific exports
-#[cfg(feature = "sql")]
-pub use area::mobile::AreaMobile;
-#[cfg(feature = "sql")]
-pub use beacon::mobile::BeaconMobile;
-#[cfg(feature = "sql")]
-pub use connection::mobile::ConnectionMobile;
-#[cfg(feature = "sql")]
-pub use entity::mobile::EntityMobile;
-#[cfg(feature = "sql")]
-pub use merchant::mobile::MerchantMobile;
-
 // PostgreSQL-specific exports
 #[cfg(feature = "postgres")]
 pub mod postgis;
 #[cfg(feature = "postgres")]
 pub mod postgres;
+#[cfg(feature = "sql")]
+pub mod repository;
+
+#[cfg(feature = "sql")]
+pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};

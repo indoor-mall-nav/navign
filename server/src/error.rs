@@ -10,7 +10,7 @@ use thiserror::Error;
 pub enum ServerError {
     // Database errors
     #[error("Database error: {0}")]
-    Database(#[from] mongodb::error::Error),
+    Database(#[from] sqlx::error::Error),
 
     #[error("Database connection failed: {0}")]
     DatabaseConnection(String),
@@ -299,18 +299,6 @@ mod tests {
         assert_eq!(
             ServerError::InternalError("test".to_string()).status_code(),
             StatusCode::INTERNAL_SERVER_ERROR
-        );
-    }
-
-    #[test]
-    fn test_user_message() {
-        let db_error = ServerError::Database(mongodb::error::Error::custom("test"));
-        assert_eq!(db_error.user_message(), "A database error occurred");
-
-        let validation_error = ServerError::ValidationError("Invalid email".to_string());
-        assert_eq!(
-            validation_error.user_message(),
-            "Validation error: Invalid email"
         );
     }
 

@@ -5,7 +5,6 @@
 pub mod error;
 pub mod pg;
 pub mod schema;
-pub mod shared;
 pub mod state;
 
 // Re-export commonly used types
