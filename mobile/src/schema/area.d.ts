@@ -1,7 +1,7 @@
 // Auto-generated from Rust schema: area.rs
 
 export interface Area {
-  _id: string
+  id: string
   entity: string
   name: string
   description: string | null

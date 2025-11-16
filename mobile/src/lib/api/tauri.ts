@@ -247,7 +247,7 @@ export async function getRouteOffline(
 
 // Area Details API
 export interface AreaDetails {
-  _id: string
+  id: string
   entity: string
   name: string
   description: string | null

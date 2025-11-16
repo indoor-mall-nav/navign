@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useSessionStore } from '@/states/session'
 import { useRouter } from 'vue-router'
 import { locateDevice } from '@/lib/api/tauri'
@@ -43,8 +43,19 @@ const geolocationError = ref('')
 const findingArea = ref(false)
 const areaFindingError = ref('')
 
-const entityId = computed(() => session.entity?._id || '')
-const areaId = computed(() => session.area?._id || '')
+const entityId = ref(session.entity?._id || '')
+const areaId = ref(session.area?.id || '')
+
+session.$subscribe((mutation, state) => {
+  info(
+    `Session changed: ${mutation.storeId}, ` +
+      `Mutation: ${mutation.type}, New Entity: ${
+        state.entity ? state.entity.name : 'None'
+      }, New Area: ${state.area ? state.area.name : 'None'}`,
+  )
+  areaId.value = state.area?.id || ''
+  entityId.value = state.entity?._id || ''
+})
 
 onMounted(() => {
   // Check if user is authenticated
@@ -469,6 +480,7 @@ watch(
             <CardTitle>Current Location</CardTitle>
             <CardDescription v-if="session.area?.name">
               {{ session.area.name }}
+              ID: {{ session.area.id }}
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
@@ -515,9 +527,9 @@ watch(
           <CardContent class="space-y-2">
             <div
               v-for="merchant in session.nearestMerchants.slice(0, 5)"
-              :key="merchant._id"
+              :key="merchant.id"
               class="p-2 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              @click="handleMerchantClick(merchant._id)"
+              @click="handleMerchantClick(merchant.id)"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

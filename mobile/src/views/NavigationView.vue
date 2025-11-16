@@ -56,7 +56,7 @@ async function loadMapData() {
     if (merchants.status === 'success' && merchants.data) {
       merchantsData.value = merchants.data.map((x) => ({
         ...x,
-        id: x._id,
+        id: x.id,
       }))
     }
   } catch (err) {
@@ -371,11 +371,3 @@ onMounted(() => {
     />
   </div>
 </template>
-
-<style scoped>
-@media (max-width: 1024px) {
-  .navigation-view {
-    @apply relative;
-  }
-}
-</style>

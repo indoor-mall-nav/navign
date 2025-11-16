@@ -1,7 +1,7 @@
 // Auto-generated from Rust schema: beacon.rs
 
 export interface Beacon {
-  _id: string
+  id: string
   /** Reference to the Entity */
   entity: string
   /** Reference to the Area where the beacon is located */

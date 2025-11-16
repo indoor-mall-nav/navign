@@ -26,7 +26,7 @@ const areas = ref<AreaDetails[]>([])
 const merchants = ref<Merchant[]>([])
 const beacons = ref<MapBeacon[]>([])
 
-const entityId = computed(() => session.entity?._id || '')
+const entityId = ref(session.entity?._id || '')
 const entityName = computed(() => session.entity?.name || 'Entity')
 
 onMounted(async () => {
@@ -78,18 +78,10 @@ async function loadEntityDetails() {
 
 function navigateToArea(areaId: string) {
   // Update session area and navigate to home
-  const area = areas.value.find((a) => a._id === areaId)
+  const area = areas.value.find((a) => a.id === areaId)
   if (area) {
     session.area = {
-      _id: area._id,
-      entity: area.entity,
-      name: area.name,
-      description: area.description,
-      beacon_code: area.beacon_code,
-      floor: area.floor,
-      polygon: area.polygon,
-      created_at: area.created_at,
-      updated_at: area.updated_at,
+      ...area
     }
     router.push('/')
   }
@@ -185,9 +177,9 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card
           v-for="area in areas"
-          :key="area._id"
+          :key="area.id"
           class="hover:shadow-lg transition-shadow cursor-pointer"
-          @click="navigateToArea(area._id)"
+          @click="navigateToArea(area.id)"
         >
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
@@ -214,7 +206,7 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
               <div class="flex items-center gap-2 text-sm">
                 <Icon icon="mdi:store" class="h-4 w-4 text-muted-foreground" />
                 <span class="text-muted-foreground">Merchants:</span>
-                <Badge>{{ getMerchantsInArea(area._id).length }}</Badge>
+                <Badge>{{ getMerchantsInArea(area.id).length }}</Badge>
               </div>
 
               <div class="flex items-center gap-2 text-sm">
@@ -223,7 +215,7 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
                   class="h-4 w-4 text-muted-foreground"
                 />
                 <span class="text-muted-foreground">Beacons:</span>
-                <Badge>{{ getBeaconsInArea(area._id).length }}</Badge>
+                <Badge>{{ getBeaconsInArea(area.id).length }}</Badge>
               </div>
 
               <div class="flex items-center gap-2 text-sm">

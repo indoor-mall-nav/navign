@@ -22,7 +22,7 @@ const favorites = useFavoritesStore()
 const activeTab = ref<'details' | 'contact' | 'hours'>('details')
 
 const isFavorited = computed(() => {
-  const merchantId = props.merchant._id || ''
+  const merchantId = props.merchant.id || ''
   return favorites.isMerchantFavorited(merchantId)
 })
 
@@ -41,7 +41,7 @@ const merchantTypeLabel = computed(() => {
 })
 
 function toggleFavorite() {
-  const merchantId = props.merchant._id || ''
+  const merchantId = props.merchant.id || ''
   if (isFavorited.value) {
     favorites.removeMerchantFavorite(merchantId)
   } else {

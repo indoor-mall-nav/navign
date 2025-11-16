@@ -56,7 +56,7 @@ function navigateToEdit(beacon: Beacon) {
     name: 'admin-beacons-form',
     query: {
       entity: entityId.value,
-      id: beacon._id
+      id: beacon.id
     }
   })
 }
@@ -75,7 +75,7 @@ async function confirmDelete() {
   try {
     const response = await deleteBeacon(
       entityId.value,
-      beaconToDelete.value._id,
+      beaconToDelete.value.id,
       session.userToken || ''
     )
     if (response.status === 'success') {
@@ -123,7 +123,7 @@ function getBeaconTypeBadgeClass(type: string) {
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="beacon in beacons" :key="beacon._id" class="hover:shadow-lg transition-shadow">
+      <Card v-for="beacon in beacons" :key="beacon.id" class="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">
