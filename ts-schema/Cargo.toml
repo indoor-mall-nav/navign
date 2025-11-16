@@ -9,5 +9,10 @@ version.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
-navign-shared = { path = "../shared", features = ["std", "serde", "alloc", "ts-rs"] }
+navign-shared = { path = "../shared", features = [
+  "std",
+  "serde",
+  "alloc",
+  "ts-rs",
+] }
 ts-rs = "10.0.0"

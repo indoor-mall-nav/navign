@@ -9,7 +9,7 @@ init:
   cargo check
 
 fmt:
-  pnpm run --filter mobile format
+  pnpm oxfmt --ignore-path=.oxfmtignore
   cargo fmt
   uvx ruff format
   gofmt -w .
@@ -66,7 +66,7 @@ test-firmware-all:
 fmt-check:
   taplo format --diff
   cargo fmt -- --check
-  pnpm run --filter mobile format --check
+  pnpm oxfmt --ignore-path=.oxfmtignore --check
   uvx ruff format --check
   test -z "$(gofmt -l .)" || (echo "Go code is not formatted:" && gofmt -d . && exit 1)
 
@@ -262,3 +262,5 @@ gen-ts-schema:
   @echo "✓ TypeScript schemas generated successfully"
   @echo "  Output: mobile/src/schema/generated/"
   @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:"
+  rm -rf ts-schema/bindings/generated
+  just fmt

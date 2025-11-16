@@ -15,15 +15,15 @@ tokio-serial = "5.4"
 zenoh = { version = "1.6.2", features = ["default"] }
 
 # Protocol Buffers
-prost = "0.13"
+prost       = "0.13"
 prost-types = "0.13"
 
 # Error handling
-anyhow = "1.0"
+anyhow    = "1.0"
 thiserror = "1.0"
 
 # Logging
-tracing = "0.1"
+tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Time
