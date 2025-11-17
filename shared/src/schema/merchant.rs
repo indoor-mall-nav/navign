@@ -11,18 +11,19 @@ use serde::{Deserialize, Serialize};
 /// Merchant schema - represents a shop, store, or service location
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 pub struct Merchant {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
     pub r#chain: Option<String>,
     #[cfg(feature = "postgres")]
-    pub entity: sqlx::types::Uuid,
+    pub entity_id: sqlx::types::Uuid,
     #[cfg(not(feature = "postgres"))]
     #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-    pub entity: String,
+    pub entity_id: String,
     pub beacon_code: String,
-    pub area: i32,
+    pub area_id: i32,
     pub r#type: MerchantType,
     pub color: Option<String>,
     pub tags: Vec<String>,
@@ -262,10 +263,347 @@ pub enum SocialMediaPlatform {
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
+#[cfg_attr(feature = "sql", derive(sqlx::Type))]
+#[cfg_attr(
+    feature = "sql",
+    sqlx(type_name = "VARCHAR", rename_all = "kebab-case")
+)]
 pub enum MerchantStyle {
     Store,
     Kiosk,
     PopUp,
     FoodTruck,
     Room,
+}
+
+#[cfg(all(feature = "sql", feature = "postgres"))]
+fn merchant_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Merchant> {
+    use sqlx::Row;
+
+    let type_json: sqlx::types::Json<serde_json::Value> = row.try_get("type")?;
+    let r#type: MerchantType =
+        serde_json::from_value(type_json.0).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    let social_media_json: Option<sqlx::types::Json<serde_json::Value>> =
+        row.try_get("social_media")?;
+    let social_media = social_media_json
+        .map(|j| serde_json::from_value(j.0))
+        .transpose()
+        .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    let available_period_json: Option<sqlx::types::Json<serde_json::Value>> =
+        row.try_get("available_period")?;
+    let available_period = available_period_json
+        .map(|j| serde_json::from_value(j.0))
+        .transpose()
+        .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    let opening_hours_json: Option<sqlx::types::Json<serde_json::Value>> =
+        row.try_get("opening_hours")?;
+    let opening_hours = opening_hours_json
+        .map(|j| serde_json::from_value(j.0))
+        .transpose()
+        .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    Ok(Merchant {
+        id: row.try_get("id")?,
+        entity_id: row.try_get("entity_id")?,
+        area_id: row.try_get("area_id")?,
+        name: row.try_get("name")?,
+        description: row.try_get("description")?,
+        chain: row.try_get("chain")?,
+        beacon_code: row.try_get("beacon_code")?,
+        r#type,
+        color: row.try_get("color")?,
+        tags: row.try_get("tags")?,
+        location: row.try_get("location")?,
+        style: row.try_get("style")?,
+        polygon: row.try_get("polygon")?,
+        available_period,
+        opening_hours,
+        email: row.try_get("email")?,
+        phone: row.try_get("phone")?,
+        website: row.try_get("website")?,
+        social_media,
+        created_at: row.try_get("created_at")?,
+        updated_at: row.try_get("updated_at")?,
+    })
+}
+
+#[cfg(all(feature = "sql", feature = "postgres"))]
+#[async_trait::async_trait]
+impl crate::schema::repository::IntRepository for Merchant {
+    async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        // Serialize MerchantType to JSON (complex enum with nested data)
+        let type_json =
+            serde_json::to_value(&item.r#type).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize social_media to JSON if present
+        let social_media_json = item
+            .social_media
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize available_period to JSON if present
+        let available_period_json = item
+            .available_period
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize opening_hours to JSON if present
+        let opening_hours_json = item
+            .opening_hours
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        sqlx::query(
+            r#"INSERT INTO merchants (entity_id, area_id, name, description, chain, beacon_code,
+                                      type, color, tags, location, style, polygon, available_period,
+                                      opening_hours, email, phone, website, social_media)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"#
+        )
+        .bind(entity)
+        .bind(item.area_id)
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(&item.chain)
+        .bind(&item.beacon_code)
+        .bind(type_json)
+        .bind(&item.color)
+        .bind(&item.tags)
+        .bind(item.location)
+        .bind(item.style)
+        .bind(&item.polygon)
+        .bind(available_period_json)
+        .bind(opening_hours_json)
+        .bind(&item.email)
+        .bind(&item.phone)
+        .bind(&item.website)
+        .bind(social_media_json)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn get_by_id(
+        pool: &sqlx::PgPool,
+        id: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Option<Self>> {
+        let row = sqlx::query(
+            r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                      color, tags, location, style, polygon, available_period, opening_hours,
+                      email, phone, website, social_media, created_at, updated_at
+               FROM merchants WHERE id = $1 AND entity_id = $2"#,
+        )
+        .bind(id)
+        .bind(entity)
+        .fetch_optional(pool)
+        .await?;
+
+        row.map(|r| merchant_from_row(&r)).transpose()
+    }
+
+    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        // Serialize MerchantType to JSON
+        let type_json =
+            serde_json::to_value(&item.r#type).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize social_media to JSON if present
+        let social_media_json = item
+            .social_media
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize available_period to JSON if present
+        let available_period_json = item
+            .available_period
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        // Serialize opening_hours to JSON if present
+        let opening_hours_json = item
+            .opening_hours
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+
+        sqlx::query(
+            r#"UPDATE merchants
+               SET area_id = $3, name = $4, description = $5, chain = $6, beacon_code = $7,
+                   type = $8, color = $9, tags = $10, location = $11, style = $12, polygon = $13,
+                   available_period = $14, opening_hours = $15, email = $16, phone = $17,
+                   website = $18, social_media = $19
+               WHERE id = $1 AND entity_id = $2"#,
+        )
+        .bind(item.id)
+        .bind(entity)
+        .bind(item.area_id)
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(&item.chain)
+        .bind(&item.beacon_code)
+        .bind(type_json)
+        .bind(&item.color)
+        .bind(&item.tags)
+        .bind(item.location)
+        .bind(item.style)
+        .bind(&item.polygon)
+        .bind(available_period_json)
+        .bind(opening_hours_json)
+        .bind(&item.email)
+        .bind(&item.phone)
+        .bind(&item.website)
+        .bind(social_media_json)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn delete(pool: &sqlx::PgPool, id: i32, entity: uuid::Uuid) -> sqlx::Result<()> {
+        sqlx::query("DELETE FROM merchants WHERE id = $1 AND entity_id = $2")
+            .bind(id)
+            .bind(entity)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn list(
+        pool: &sqlx::PgPool,
+        offset: i64,
+        limit: i64,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let rows = sqlx::query(
+            r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                      color, tags, location, style, polygon, available_period, opening_hours,
+                      email, phone, website, social_media, created_at, updated_at
+               FROM merchants WHERE entity_id = $1
+               ORDER BY created_at DESC
+               LIMIT $2 OFFSET $3"#,
+        )
+        .bind(entity)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        rows.iter().map(merchant_from_row).collect()
+    }
+
+    async fn search(
+        pool: &sqlx::PgPool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                          color, tags, location, style, polygon, available_period, opening_hours,
+                          email, phone, website, social_media, created_at, updated_at
+                   FROM merchants
+                   WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR beacon_code ILIKE $2)
+                   ORDER BY {} {}
+                   LIMIT $3 OFFSET $4"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                          color, tags, location, style, polygon, available_period, opening_hours,
+                          email, phone, website, social_media, created_at, updated_at
+                   FROM merchants
+                   WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)
+                   ORDER BY {} {}
+                   LIMIT $3 OFFSET $4"#,
+                order_by, direction
+            )
+        };
+
+        let rows = sqlx::query(&sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        rows.iter().map(merchant_from_row).collect()
+    }
+}
+
+#[cfg(all(feature = "sql", feature = "postgres"))]
+#[async_trait::async_trait]
+impl crate::schema::repository::IntRepositoryInArea for Merchant {
+    async fn search_in_area(
+        pool: &sqlx::PgPool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        area: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                          color, tags, location, style, polygon, available_period, opening_hours,
+                          email, phone, website, social_media, created_at, updated_at
+                   FROM merchants
+                   WHERE entity_id = $1 AND area_id = $2 AND (name ILIKE $3 OR description ILIKE $3 OR beacon_code ILIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
+                          color, tags, location, style, polygon, available_period, opening_hours,
+                          email, phone, website, social_media, created_at, updated_at
+                   FROM merchants
+                   WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR beacon_code LIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        };
+
+        let rows = sqlx::query(&sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        rows.iter().map(merchant_from_row).collect()
+    }
 }

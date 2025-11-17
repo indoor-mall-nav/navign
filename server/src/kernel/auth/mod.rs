@@ -7,7 +7,6 @@ mod token;
 mod wechat;
 
 // pub use handlers::{login_handler, register_handler};
-pub use token::UserData;
 
 use anyhow::{Result, anyhow};
 use std::env;

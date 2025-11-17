@@ -12,6 +12,8 @@ pub mod area;
 #[cfg(feature = "alloc")]
 pub mod beacon;
 #[cfg(feature = "alloc")]
+pub mod beacon_secrets;
+#[cfg(feature = "alloc")]
 pub mod blufi;
 #[cfg(feature = "alloc")]
 pub mod connection;
@@ -21,6 +23,8 @@ pub mod entity;
 pub mod firmware;
 #[cfg(feature = "alloc")]
 pub mod merchant;
+#[cfg(feature = "alloc")]
+pub mod user_public_keys;
 
 // Re-export core types
 #[cfg(all(feature = "alloc", feature = "serde"))]
@@ -31,6 +35,8 @@ pub use account::{AuthResponse, LoginRequest, RegisterRequest, TokenClaims};
 pub use area::{Area, Floor, FloorType};
 #[cfg(feature = "alloc")]
 pub use beacon::{Beacon, BeaconDevice, BeaconType};
+#[cfg(feature = "alloc")]
+pub use beacon_secrets::BeaconSecrets;
 #[cfg(feature = "alloc")]
 pub use blufi::{
     BeaconLocation, BeaconProvisioningStatus, BluFiConfig, BluFiError, BluFiErrorType,
@@ -49,6 +55,8 @@ pub use merchant::{
     ChineseFoodCuisine, FacilityType, FoodCuisine, FoodType, Merchant, MerchantStyle, MerchantType,
     SocialMedia, SocialMediaPlatform,
 };
+#[cfg(feature = "alloc")]
+pub use user_public_keys::UserPublicKeys;
 
 // PostgreSQL-specific exports
 #[cfg(feature = "postgres")]

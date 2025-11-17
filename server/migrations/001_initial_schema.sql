@@ -12,23 +12,23 @@ CREATE TABLE entities (
     type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    point_min GEOMETRY(POINT, 4326) NOT NULL,
+    point_max GEOMETRY(POINT, 4326) NOT NULL,
+    altitude_min DOUBLE PRECISION,
+    altitude_max DOUBLE PRECISION,
     nation VARCHAR(100),
     region VARCHAR(100),
     city VARCHAR(100),
-    address TEXT,
-    longitude_min DOUBLE PRECISION NOT NULL,
-    longitude_max DOUBLE PRECISION NOT NULL,
-    latitude_min DOUBLE PRECISION NOT NULL,
-    latitude_max DOUBLE PRECISION NOT NULL,
-    floors JSONB NOT NULL DEFAULT '[]'::jsonb,
+    tags TEXT[] DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_entities_name ON entities(name);
 CREATE INDEX idx_entities_location ON entities(nation, region, city);
-CREATE INDEX idx_entities_longitude ON entities(longitude_min, longitude_max);
-CREATE INDEX idx_entities_latitude ON entities(latitude_min, latitude_max);
+CREATE INDEX idx_entities_point_min ON entities USING GIST(point_min);
+CREATE INDEX idx_entities_point_max ON entities USING GIST(point_max);
+CREATE INDEX idx_entities_tags ON entities USING GIN(tags);
 
 -- Users table (UUID)
 CREATE TABLE users (
@@ -54,19 +54,19 @@ CREATE TABLE areas (
     entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    floor VARCHAR(50) NOT NULL,
+    floor_type VARCHAR(50),
+    floor_name INTEGER,
     beacon_code VARCHAR(100) NOT NULL,
-    polygon JSONB NOT NULL,
-    centroid GEOMETRY(POINT, 4326), -- PostGIS POINT with WGS84 SRID
+    polygon GEOMETRY(POLYGON, 4326) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_areas_entity ON areas(entity_id);
-CREATE INDEX idx_areas_floor ON areas(floor);
+CREATE INDEX idx_areas_floor ON areas(floor_type, floor_name);
 CREATE INDEX idx_areas_beacon_code ON areas(beacon_code);
 CREATE INDEX idx_areas_name ON areas(name);
-CREATE INDEX idx_areas_centroid ON areas USING GIST(centroid); -- Spatial index
+CREATE INDEX idx_areas_polygon ON areas USING GIST(polygon);
 
 -- Beacons table (INTEGER) with PostGIS
 CREATE TABLE beacons (
@@ -78,12 +78,9 @@ CREATE TABLE beacons (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) NOT NULL,
-    device_id VARCHAR(48) NOT NULL UNIQUE,
-    floor VARCHAR(50) NOT NULL,
-    location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT with WGS84 SRID
-    public_key TEXT,
-    capabilities JSONB DEFAULT '[]'::jsonb,
-    unlock_method VARCHAR(50),
+    location GEOMETRY(POINT, 4326) NOT NULL,
+    device VARCHAR(50) NOT NULL,
+    mac VARCHAR(17) NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -91,9 +88,9 @@ CREATE TABLE beacons (
 CREATE INDEX idx_beacons_entity ON beacons(entity_id);
 CREATE INDEX idx_beacons_area ON beacons(area_id);
 CREATE INDEX idx_beacons_merchant ON beacons(merchant_id);
-CREATE INDEX idx_beacons_device_id ON beacons(device_id);
-CREATE INDEX idx_beacons_floor ON beacons(floor);
-CREATE INDEX idx_beacons_location ON beacons USING GIST(location); -- Spatial index
+CREATE INDEX idx_beacons_connection ON beacons(connection_id);
+CREATE INDEX idx_beacons_mac ON beacons(mac);
+CREATE INDEX idx_beacons_location ON beacons USING GIST(location);
 
 -- Merchants table (INTEGER) with PostGIS
 CREATE TABLE merchants (
@@ -103,21 +100,19 @@ CREATE TABLE merchants (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     chain VARCHAR(255),
-    type VARCHAR(50) NOT NULL,
-    logo TEXT,
-    images JSONB DEFAULT '[]'::jsonb,
-    social_media JSONB DEFAULT '[]'::jsonb,
-    floor VARCHAR(50) NOT NULL,
+    beacon_code VARCHAR(255) NOT NULL,
+    type JSONB NOT NULL,
+    color VARCHAR(50),
+    tags JSONB DEFAULT '[]'::jsonb,
     location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT for centroid/entrance
+    style VARCHAR(50),
     polygon GEOMETRY(POLYGON, 4326) NOT NULL, -- PostGIS POLYGON for merchant boundary
-    merchant_style VARCHAR(50),
-    food_type VARCHAR(50),
-    food_cuisine VARCHAR(50),
-    chinese_food_cuisine VARCHAR(50),
-    facility_type VARCHAR(50),
-    rating DOUBLE PRECISION,
-    reviews INTEGER DEFAULT 0,
+    available_period JSONB DEFAULT '[]'::jsonb,
     opening_hours JSONB,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    website TEXT,
+    social_media JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -125,10 +120,10 @@ CREATE TABLE merchants (
 CREATE INDEX idx_merchants_entity ON merchants(entity_id);
 CREATE INDEX idx_merchants_area ON merchants(area_id);
 CREATE INDEX idx_merchants_name ON merchants(name);
-CREATE INDEX idx_merchants_type ON merchants(type);
-CREATE INDEX idx_merchants_floor ON merchants(floor);
+CREATE INDEX idx_merchants_beacon_code ON merchants(beacon_code);
 CREATE INDEX idx_merchants_location ON merchants USING GIST(location); -- Spatial index for centroid
 CREATE INDEX idx_merchants_polygon ON merchants USING GIST(polygon); -- Spatial index for boundary
+CREATE INDEX idx_merchants_tags ON merchants USING GIN(tags);
 
 -- Connections table (INTEGER)
 CREATE TABLE connections (
@@ -138,6 +133,9 @@ CREATE TABLE connections (
     description TEXT,
     type VARCHAR(50) NOT NULL,
     connected_areas JSONB NOT NULL DEFAULT '[]'::jsonb,
+    available_period JSONB DEFAULT '[]'::jsonb,
+    tags JSONB DEFAULT '[]'::jsonb,
+    gnd GEOMETRY(POINT, 4326),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT unique_connection_name_per_entity UNIQUE(entity_id, name)
@@ -146,6 +144,8 @@ CREATE TABLE connections (
 CREATE INDEX idx_connections_entity ON connections(entity_id);
 CREATE INDEX idx_connections_name ON connections(name);
 CREATE INDEX idx_connections_type ON connections(type);
+CREATE INDEX idx_connections_tags ON connections USING GIN(tags);
+CREATE INDEX idx_connections_gnd ON connections USING GIST(gnd);
 
 -- Add foreign key for beacons.connection_id (deferred to avoid circular dependency)
 ALTER TABLE beacons ADD CONSTRAINT fk_beacons_connection
