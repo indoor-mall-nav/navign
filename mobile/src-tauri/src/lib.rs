@@ -45,6 +45,12 @@ pub fn run() {
                     sql: include_str!("navign_v2.sql"),
                     kind: MigrationKind::Up,
                 },
+                Migration {
+                    version: 3,
+                    description: "aligned with PostgreSQL schema using WKB and INTEGER ids",
+                    sql: include_str!("navign_v3.sql"),
+                    kind: MigrationKind::Up,
+                },
             ];
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_fs::init())?;

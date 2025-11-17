@@ -267,3 +267,311 @@ impl crate::schema::repository::IntRepository for Connection {
             .await
     }
 }
+
+// SQLite repository implementation for Connection
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+use crate::schema::postgis::{point_to_wkb, wkb_to_point};
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+use crate::schema::repository::IntRepository;
+
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[async_trait::async_trait]
+impl IntRepository for Connection {
+    async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        let gnd_wkb = item
+            .gnd
+            .map(point_to_wkb)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let connected_areas_json = serde_json::to_string(&item.connected_areas)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let available_period_json = serde_json::to_string(&item.available_period)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let tags_json = serde_json::to_string(&item.tags)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        sqlx::query(
+            r#"INSERT INTO connections (entity_id, name, description, type, connected_areas,
+                                        available_period, tags, gnd_wkb, created_at, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"#,
+        )
+        .bind(entity.to_string())
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(item.r#type.to_string())
+        .bind(connected_areas_json)
+        .bind(available_period_json)
+        .bind(tags_json)
+        .bind(gnd_wkb)
+        .bind(item.created_at.unwrap_or(now))
+        .bind(item.updated_at.unwrap_or(now))
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn get_by_id(
+        pool: &sqlx::SqlitePool,
+        id: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Option<Self>> {
+        use sqlx::Row;
+
+        let row = sqlx::query(
+            r#"SELECT id, entity_id, name, description, type, connected_areas,
+                      available_period, tags, gnd_wkb, created_at, updated_at
+               FROM connections WHERE id = ?1 AND entity_id = ?2"#,
+        )
+        .bind(id)
+        .bind(entity.to_string())
+        .fetch_optional(pool)
+        .await?;
+
+        match row {
+            Some(row) => {
+                let gnd = row
+                    .get::<Option<Vec<u8>>, _>("gnd_wkb")
+                    .map(|bytes| wkb_to_point(&bytes))
+                    .transpose()
+                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+                let connected_areas: Vec<ConnectedArea> =
+                    serde_json::from_str(&row.get::<String, _>("connected_areas"))
+                        .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+                let available_period: Vec<(i32, i32)> =
+                    serde_json::from_str(&row.get::<String, _>("available_period"))
+                        .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+                let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+                let connection_type = match row.get::<String, _>("type").as_str() {
+                    "gate" => ConnectionType::Gate,
+                    "escalator" => ConnectionType::Escalator,
+                    "elevator" => ConnectionType::Elevator,
+                    "stairs" => ConnectionType::Stairs,
+                    "rail" => ConnectionType::Rail,
+                    "shuttle" => ConnectionType::Shuttle,
+                    _ => ConnectionType::Gate,
+                };
+
+                Ok(Some(Connection {
+                    id: row.get("id"),
+                    entity_id: row.get("entity_id"),
+                    name: row.get("name"),
+                    description: row.get("description"),
+                    r#type: connection_type,
+                    connected_areas,
+                    available_period,
+                    tags,
+                    gnd,
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+        let gnd_wkb = item
+            .gnd
+            .map(point_to_wkb)
+            .transpose()
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let connected_areas_json = serde_json::to_string(&item.connected_areas)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let available_period_json = serde_json::to_string(&item.available_period)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let tags_json = serde_json::to_string(&item.tags)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        sqlx::query(
+            r#"UPDATE connections
+               SET name = ?3, description = ?4, type = ?5, connected_areas = ?6,
+                   available_period = ?7, tags = ?8, gnd_wkb = ?9, updated_at = ?10
+               WHERE id = ?1 AND entity_id = ?2"#,
+        )
+        .bind(item.id)
+        .bind(entity.to_string())
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(item.r#type.to_string())
+        .bind(connected_areas_json)
+        .bind(available_period_json)
+        .bind(tags_json)
+        .bind(gnd_wkb)
+        .bind(now)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn delete(pool: &sqlx::SqlitePool, id: i32, entity: uuid::Uuid) -> sqlx::Result<()> {
+        sqlx::query("DELETE FROM connections WHERE id = ?1 AND entity_id = ?2")
+            .bind(id)
+            .bind(entity.to_string())
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn list(
+        pool: &sqlx::SqlitePool,
+        offset: i64,
+        limit: i64,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        use sqlx::Row;
+
+        let rows = sqlx::query(
+            r#"SELECT id, entity_id, name, description, type, connected_areas,
+                      available_period, tags, gnd_wkb, created_at, updated_at
+               FROM connections WHERE entity_id = ?1
+               ORDER BY created_at DESC
+               LIMIT ?2 OFFSET ?3"#,
+        )
+        .bind(entity.to_string())
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        let mut connections = Vec::new();
+        for row in rows {
+            let gnd = row
+                .get::<Option<Vec<u8>>, _>("gnd_wkb")
+                .map(|bytes| wkb_to_point(&bytes))
+                .transpose()
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let connected_areas: Vec<ConnectedArea> =
+                serde_json::from_str(&row.get::<String, _>("connected_areas"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let available_period: Vec<(i32, i32)> =
+                serde_json::from_str(&row.get::<String, _>("available_period"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let connection_type = match row.get::<String, _>("type").as_str() {
+                "gate" => ConnectionType::Gate,
+                "escalator" => ConnectionType::Escalator,
+                "elevator" => ConnectionType::Elevator,
+                "stairs" => ConnectionType::Stairs,
+                "rail" => ConnectionType::Rail,
+                "shuttle" => ConnectionType::Shuttle,
+                _ => ConnectionType::Gate,
+            };
+
+            connections.push(Connection {
+                id: row.get("id"),
+                entity_id: row.get("entity_id"),
+                name: row.get("name"),
+                description: row.get("description"),
+                r#type: connection_type,
+                connected_areas,
+                available_period,
+                tags,
+                gnd,
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            });
+        }
+
+        Ok(connections)
+    }
+
+    async fn search(
+        pool: &sqlx::SqlitePool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        use sqlx::Row;
+
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd_wkb, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE)
+                   ORDER BY {} {}
+                   LIMIT ?3 OFFSET ?4"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd_wkb, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2)
+                   ORDER BY {} {}
+                   LIMIT ?3 OFFSET ?4"#,
+                order_by, direction
+            )
+        };
+
+        let rows = sqlx::query(&sql)
+            .bind(entity.to_string())
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        let mut connections = Vec::new();
+        for row in rows {
+            let gnd = row
+                .get::<Option<Vec<u8>>, _>("gnd_wkb")
+                .map(|bytes| wkb_to_point(&bytes))
+                .transpose()
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let connected_areas: Vec<ConnectedArea> =
+                serde_json::from_str(&row.get::<String, _>("connected_areas"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let available_period: Vec<(i32, i32)> =
+                serde_json::from_str(&row.get::<String, _>("available_period"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let connection_type = match row.get::<String, _>("type").as_str() {
+                "gate" => ConnectionType::Gate,
+                "escalator" => ConnectionType::Escalator,
+                "elevator" => ConnectionType::Elevator,
+                "stairs" => ConnectionType::Stairs,
+                "rail" => ConnectionType::Rail,
+                "shuttle" => ConnectionType::Shuttle,
+                _ => ConnectionType::Gate,
+            };
+
+            connections.push(Connection {
+                id: row.get("id"),
+                entity_id: row.get("entity_id"),
+                name: row.get("name"),
+                description: row.get("description"),
+                r#type: connection_type,
+                connected_areas,
+                available_period,
+                tags,
+                gnd,
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            });
+        }
+
+        Ok(connections)
+    }
+}

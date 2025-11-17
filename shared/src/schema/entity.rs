@@ -231,3 +231,283 @@ impl UuidRepository for Entity {
             .await
     }
 }
+// SQLite repository implementation for Entity
+// Separated file to keep entity.rs clean
+
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+use crate::schema::postgis::{point_to_wkb, wkb_to_point};
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+use crate::schema::repository::UuidRepository;
+
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[async_trait::async_trait]
+impl UuidRepository for Entity {
+    async fn create(pool: &sqlx::SqlitePool, item: &Self) -> sqlx::Result<()> {
+        let point_min_wkb = point_to_wkb(item.point_min)
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let point_max_wkb = point_to_wkb(item.point_max)
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let tags_json = serde_json::to_string(&item.tags)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        sqlx::query(
+            r#"INSERT INTO entities (id, type, name, description, point_min_wkb, point_max_wkb,
+                                    altitude_min, altitude_max, nation, region, city, tags,
+                                    created_at, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)"#,
+        )
+        .bind(&item.id)
+        .bind(item.r#type.to_string())
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(point_min_wkb)
+        .bind(point_max_wkb)
+        .bind(item.altitude_min)
+        .bind(item.altitude_max)
+        .bind(&item.nation)
+        .bind(&item.region)
+        .bind(&item.city)
+        .bind(tags_json)
+        .bind(item.created_at.unwrap_or(now))
+        .bind(item.updated_at.unwrap_or(now))
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn get_by_uuid(pool: &sqlx::SqlitePool, uuid: uuid::Uuid) -> sqlx::Result<Option<Self>> {
+        use sqlx::Row;
+
+        let row = sqlx::query(
+            r#"SELECT id, type, name, description, point_min_wkb, point_max_wkb,
+                      altitude_min, altitude_max, nation, region, city, tags,
+                      created_at, updated_at
+               FROM entities WHERE id = ?1"#,
+        )
+        .bind(uuid.to_string())
+        .fetch_optional(pool)
+        .await?;
+
+        match row {
+            Some(row) => {
+                let point_min = wkb_to_point(row.get::<Vec<u8>, _>("point_min_wkb").as_slice())
+                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+                let point_max = wkb_to_point(row.get::<Vec<u8>, _>("point_max_wkb").as_slice())
+                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+                let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+                let entity_type = match row.get::<String, _>("type").as_str() {
+                    "Mall" => EntityType::Mall,
+                    "Transportation" => EntityType::Transportation,
+                    "School" => EntityType::School,
+                    "Hospital" => EntityType::Hospital,
+                    _ => EntityType::Mall,
+                };
+
+                Ok(Some(Entity {
+                    id: row.get("id"),
+                    r#type: entity_type,
+                    name: row.get("name"),
+                    description: row.get("description"),
+                    point_min,
+                    point_max,
+                    altitude_min: row.get("altitude_min"),
+                    altitude_max: row.get("altitude_max"),
+                    nation: row.get("nation"),
+                    region: row.get("region"),
+                    city: row.get("city"),
+                    tags,
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    async fn update(pool: &sqlx::SqlitePool, item: &Self) -> sqlx::Result<()> {
+        let point_min_wkb = point_to_wkb(item.point_min)
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let point_max_wkb = point_to_wkb(item.point_max)
+            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+        let tags_json = serde_json::to_string(&item.tags)
+            .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        sqlx::query(
+            r#"UPDATE entities
+               SET type = ?2, name = ?3, description = ?4, point_min_wkb = ?5, point_max_wkb = ?6,
+                   altitude_min = ?7, altitude_max = ?8, nation = ?9, region = ?10, city = ?11,
+                   tags = ?12, updated_at = ?13
+               WHERE id = ?1"#,
+        )
+        .bind(&item.id)
+        .bind(item.r#type.to_string())
+        .bind(&item.name)
+        .bind(&item.description)
+        .bind(point_min_wkb)
+        .bind(point_max_wkb)
+        .bind(item.altitude_min)
+        .bind(item.altitude_max)
+        .bind(&item.nation)
+        .bind(&item.region)
+        .bind(&item.city)
+        .bind(tags_json)
+        .bind(now)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn delete(pool: &sqlx::SqlitePool, uuid: uuid::Uuid) -> sqlx::Result<()> {
+        sqlx::query("DELETE FROM entities WHERE id = ?1")
+            .bind(uuid.to_string())
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn list(pool: &sqlx::SqlitePool, offset: i64, limit: i64) -> sqlx::Result<Vec<Self>> {
+        use sqlx::Row;
+
+        let rows = sqlx::query(
+            r#"SELECT id, type, name, description, point_min_wkb, point_max_wkb,
+                      altitude_min, altitude_max, nation, region, city, tags,
+                      created_at, updated_at
+               FROM entities
+               ORDER BY created_at DESC
+               LIMIT ?1 OFFSET ?2"#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        let mut entities = Vec::new();
+        for row in rows {
+            let point_min = wkb_to_point(row.get::<Vec<u8>, _>("point_min_wkb").as_slice())
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let point_max = wkb_to_point(row.get::<Vec<u8>, _>("point_max_wkb").as_slice())
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let entity_type = match row.get::<String, _>("type").as_str() {
+                "Mall" => EntityType::Mall,
+                "Transportation" => EntityType::Transportation,
+                "School" => EntityType::School,
+                "Hospital" => EntityType::Hospital,
+                _ => EntityType::Mall,
+            };
+
+            entities.push(Entity {
+                id: row.get("id"),
+                r#type: entity_type,
+                name: row.get("name"),
+                description: row.get("description"),
+                point_min,
+                point_max,
+                altitude_min: row.get("altitude_min"),
+                altitude_max: row.get("altitude_max"),
+                nation: row.get("nation"),
+                region: row.get("region"),
+                city: row.get("city"),
+                tags,
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            });
+        }
+
+        Ok(entities)
+    }
+
+    async fn search(
+        pool: &sqlx::SqlitePool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+    ) -> sqlx::Result<Vec<Self>> {
+        use sqlx::Row;
+
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, type, name, description, point_min_wkb, point_max_wkb,
+                          altitude_min, altitude_max, nation, region, city, tags,
+                          created_at, updated_at
+                   FROM entities
+                   WHERE name LIKE ?1 COLLATE NOCASE OR description LIKE ?1 COLLATE NOCASE
+                   ORDER BY {} {}
+                   LIMIT ?2 OFFSET ?3"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, type, name, description, point_min_wkb, point_max_wkb,
+                          altitude_min, altitude_max, nation, region, city, tags,
+                          created_at, updated_at
+                   FROM entities
+                   WHERE name LIKE ?1 OR description LIKE ?1
+                   ORDER BY {} {}
+                   LIMIT ?2 OFFSET ?3"#,
+                order_by, direction
+            )
+        };
+
+        let rows = sqlx::query(&sql)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        let mut entities = Vec::new();
+        for row in rows {
+            let point_min = wkb_to_point(row.get::<Vec<u8>, _>("point_min_wkb").as_slice())
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let point_max = wkb_to_point(row.get::<Vec<u8>, _>("point_max_wkb").as_slice())
+                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
+            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
+                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
+            let entity_type = match row.get::<String, _>("type").as_str() {
+                "Mall" => EntityType::Mall,
+                "Transportation" => EntityType::Transportation,
+                "School" => EntityType::School,
+                "Hospital" => EntityType::Hospital,
+                _ => EntityType::Mall,
+            };
+
+            entities.push(Entity {
+                id: row.get("id"),
+                r#type: entity_type,
+                name: row.get("name"),
+                description: row.get("description"),
+                point_min,
+                point_max,
+                altitude_min: row.get("altitude_min"),
+                altitude_max: row.get("altitude_max"),
+                nation: row.get("nation"),
+                region: row.get("region"),
+                city: row.get("city"),
+                tags,
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            });
+        }
+
+        Ok(entities)
+    }
+}

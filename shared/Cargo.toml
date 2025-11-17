@@ -50,7 +50,7 @@ serde = [
   "serde_with?/macros",
   "geo?/serde",
 ]
-sql = ["std", "serde", "dep:sqlx", "dep:async-trait", "dep:uuid"]
+sql = ["std", "serde", "geo", "dep:sqlx", "dep:async-trait", "dep:uuid", "dep:serde_json"]
 std = [
   "serde?/std",
   "chrono?/std",
