@@ -1,13 +1,11 @@
-use crate::error::Result;
 use crate::error::ServerError;
 use crate::state::AppState;
-use async_trait::async_trait;
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use navign_shared::schema::repository::{IntRepository, IntRepositoryInArea, UuidRepository};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 macro_rules! extract_uuid {
     ($entity:ident) => {
@@ -18,13 +16,27 @@ macro_rules! extract_uuid {
     };
 }
 
+#[derive(Debug, Deserialize)]
 pub struct SearchParams {
+    #[serde(default)]
     pub query: String,
+    #[serde(default)]
     pub case_insensitive: bool,
+    #[serde(default)]
     pub offset: i64,
+    #[serde(default = "default_limit")]
     pub limit: i64,
     pub sort: Option<String>,
+    #[serde(default = "default_asc")]
     pub asc: bool,
+}
+
+fn default_limit() -> i64 {
+    50
+}
+
+fn default_asc() -> bool {
+    false
 }
 
 #[async_trait::async_trait]
@@ -181,13 +193,17 @@ pub trait UuidCrudRepository: UuidRepository + Serialize + Send + Sync {
 
     async fn crud_search(
         State(app): State<AppState>,
-        query: String,
-        case_insensitive: bool,
-        offset: i64,
-        limit: i64,
-        sort: Option<String>,
-        asc: bool,
+        Query(params): Query<SearchParams>,
     ) -> Response {
+        let SearchParams {
+            query,
+            case_insensitive,
+            offset,
+            limit,
+            sort,
+            asc,
+        } = params;
+
         match Self::search(
             app.pg_pool.inner(),
             query.as_str(),
