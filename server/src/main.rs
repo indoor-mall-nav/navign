@@ -1,5 +1,4 @@
 mod certification;
-mod database;
 mod error;
 mod kernel;
 mod key_management;

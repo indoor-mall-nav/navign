@@ -9,8 +9,12 @@ pub struct BeaconSecrets {
     pub id: i32,
     pub beacon_id: i32,
     /// The private key in bytes (typically 32 bytes for P-256)
+    #[cfg(feature = "alloc")]
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
-    pub private_key: Vec<u8>,
+    pub private_key: alloc::vec::Vec<u8>,
+    #[cfg(feature = "heapless")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub private_key: heapless::Vec<u8, 32>,
     #[cfg(feature = "postgres")]
     #[cfg_attr(
         all(feature = "serde", not(feature = "postgres")),
