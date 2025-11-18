@@ -120,11 +120,11 @@ endif()
 # Install
 install(TARGETS navign_vision DESTINATION bin)
 
-# Tests
-if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
+# Tests (disabled - not yet implemented)
+# if(BUILD_TESTS)
+#     enable_testing()
+#     add_subdirectory(tests)
+# endif()
 
 # Print configuration summary
 message(STATUS "==============================================")
