@@ -9,7 +9,6 @@
 namespace navign::robot::vision {
     class AprilTagDetector;
     class ObjectDetector;
-    class HandTracker;
     class CameraCalibration;
     class CoordinateTransform;
 }
@@ -64,9 +63,9 @@ private:
     // Components
     std::unique_ptr<AprilTagDetector> apriltag_detector_;
     std::unique_ptr<ObjectDetector> object_detector_;
-    std::unique_ptr<HandTracker> hand_tracker_;
     std::unique_ptr<CameraCalibration> camera_calibration_;
     std::unique_ptr<CoordinateTransform> coordinate_transform_;
+    // TODO: Add hand_tracker_ when MediaPipe C++ is implemented
 
     // State
     std::atomic<bool> running_{false};
