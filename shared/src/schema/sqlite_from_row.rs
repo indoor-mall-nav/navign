@@ -163,6 +163,7 @@ impl FromRow<'_, SqliteRow> for super::Merchant {
             phone: row.get("phone"),
             website: row.get("website"),
             social_media,
+            image_url: row.get("image_url"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
         })
