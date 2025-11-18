@@ -4,6 +4,8 @@ license.workspace = true
 name              = "navign-proc-macros"
 version.workspace = true
 
+[lib]
+proc-macro = true
 
 [dependencies]
 proc-macro2 = "1.0"

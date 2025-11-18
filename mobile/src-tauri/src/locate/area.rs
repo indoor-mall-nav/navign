@@ -38,11 +38,11 @@ fn coords_to_polygon(coords: &[(f64, f64)]) -> String {
 impl From<Area> for ActiveArea {
     fn from(area: Area) -> Self {
         Self {
-            id: area.id,
+            id: area.id.to_string(),
             name: area.name,
-            entity: area.entity,
+            entity: area.entity_id,
             polygon: coords_to_polygon(area.polygon.as_slice()),
-            updated_at: area.updated_at as u64,
+            updated_at: area.updated_at.unwrap_or(0) as u64,
             stored_at: chrono::Utc::now().timestamp() as u64,
         }
     }

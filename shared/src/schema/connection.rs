@@ -10,8 +10,6 @@ use serde::{Deserialize, Serialize};
 use crate::schema::postgis::PgPoint;
 
 use core::fmt::Display;
-#[cfg(all(feature = "postgres", feature = "sql"))]
-use sqlx::FromRow;
 
 pub type ConnectedArea = (String, f64, f64, bool);
 
