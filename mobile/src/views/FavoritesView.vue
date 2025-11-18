@@ -251,7 +251,7 @@ function confirmClearAll() {
                 </div>
                 <div class="flex items-center text-sm">
                   <Icon icon="mdi:floor-plan" class="w-4 h-4 mr-2" />
-                  Floor: {{ fav.area.floor?.name ?? 'Ground' }}
+                  Floor: {{ fav.area.floor_name ?? 'Ground' }}
                 </div>
                 <Separator />
                 <Button class="w-full" @click="navigateToArea(fav.areaId)">

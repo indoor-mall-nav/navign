@@ -76,7 +76,7 @@ async function confirmDelete() {
   try {
     const response = await deleteConnection(
       entityId.value,
-      connectionToDelete.value.id,
+      String(connectionToDelete.value.id),
       session.userToken || ''
     )
     if (response.status === 'success') {

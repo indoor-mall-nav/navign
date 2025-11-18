@@ -132,7 +132,7 @@ function clearFilters() {
 }
 
 function toggleFavorite(merchant: Merchant) {
-  const merchantId = merchant.id || ''
+  const merchantId = String(merchant.id)
   if (favorites.isMerchantFavorited(merchantId)) {
     favorites.removeMerchantFavorite(merchantId)
   } else {
@@ -286,10 +286,10 @@ function getMerchantTypeLabel(merchant: Merchant): string {
               variant="ghost"
               size="sm"
               @click="toggleFavorite(merchant)"
-              :class="favorites.isMerchantFavorited(merchant.id || '') ? 'text-red-500' : ''"
+              :class="favorites.isMerchantFavorited(String(merchant.id)) ? 'text-red-500' : ''"
             >
               <Icon
-                :icon="favorites.isMerchantFavorited(merchant.id || '') ? 'mdi:heart' : 'mdi:heart-outline'"
+                :icon="favorites.isMerchantFavorited(String(merchant.id)) ? 'mdi:heart' : 'mdi:heart-outline'"
                 class="w-5 h-5"
               />
             </Button>

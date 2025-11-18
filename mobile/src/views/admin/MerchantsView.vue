@@ -76,7 +76,7 @@ async function confirmDelete() {
   try {
     const response = await deleteMerchant(
       entityId.value,
-      merchantToDelete.value.id,
+      String(merchantToDelete.value.id),
       session.userToken || ''
     )
     if (response.status === 'success') {

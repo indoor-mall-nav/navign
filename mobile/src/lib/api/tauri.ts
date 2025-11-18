@@ -2,7 +2,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { info } from '@tauri-apps/plugin-log'
 import { Merchant } from '@/schema'
-import type { FloorType } from '@/schema'
 
 export interface ApiResponse<T = any> {
   status: 'success' | 'error'
@@ -248,14 +247,12 @@ export async function getRouteOffline(
 // Area Details API
 export interface AreaDetails {
   id: string
-  entity: string
+  entity_id: string
   name: string
   description: string | null
   beacon_code: string
-  floor: {
-    type: FloorType
-    name: number
-  } | null
+  floor_type: string | null
+  floor_name: number | null
   polygon: [number, number][]
   created_at: number
   updated_at: number
