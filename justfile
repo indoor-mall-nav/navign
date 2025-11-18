@@ -92,6 +92,7 @@ ci-firmware:
 ci-mobile:
   corepack enable
   pnpm install
+  just gen-ts-schema
   cd mobile && just check
   cd mobile && just fmt-check
   cd mobile && just lint
