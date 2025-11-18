@@ -278,4 +278,3 @@ gen-ts-schema:
   @echo "  Output: mobile/src/schema/generated/"
   @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:"
   rm -rf shared/bindings/generated
-  just fmt
