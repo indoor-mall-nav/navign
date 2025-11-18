@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(navign_vision_cpp VERSION 0.1.0 LANGUAGES CXX)
+project(navign_vision VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,8 +10,21 @@ option(BUILD_TESTS "Build tests" ON)
 option(USE_MEDIAPIPE "Enable MediaPipe hand tracking" ON)
 
 # Find required packages
-find_package(OpenCV REQUIRED)
-find_package(Protobuf REQUIRED)
+find_package(OpenCV QUIET)
+if(NOT OpenCV_FOUND)
+    message(FATAL_ERROR "OpenCV not found. Please install:\n"
+                        "  Ubuntu/Debian: sudo apt-get install libopencv-dev\n"
+                        "  macOS: brew install opencv\n"
+                        "  Or set OpenCV_DIR to your OpenCV installation")
+endif()
+
+find_package(Protobuf QUIET)
+if(NOT Protobuf_FOUND)
+    message(FATAL_ERROR "Protobuf not found. Please install:\n"
+                        "  Ubuntu/Debian: sudo apt-get install libprotobuf-dev protobuf-compiler\n"
+                        "  macOS: brew install protobuf")
+endif()
+
 find_package(Threads REQUIRED)
 
 # Zenoh C++ (header-only or find_package if installed)
@@ -22,8 +35,15 @@ if(NOT zenohcxx_FOUND)
 endif()
 
 # AprilTag library
-find_library(APRILTAG_LIB apriltag REQUIRED)
-find_path(APRILTAG_INCLUDE_DIR apriltag/apriltag.h REQUIRED)
+find_library(APRILTAG_LIB apriltag)
+find_path(APRILTAG_INCLUDE_DIR apriltag/apriltag.h)
+
+if(NOT APRILTAG_LIB OR NOT APRILTAG_INCLUDE_DIR)
+    message(FATAL_ERROR "AprilTag library not found. Please install:\n"
+                        "  Ubuntu/Debian: sudo apt-get install libapriltag-dev\n"
+                        "  macOS: brew install apriltag\n"
+                        "  Or build from source: https://github.com/AprilRobotics/apriltag")
+endif()
 
 # ONNX Runtime for YOLO (alternative to PyTorch)
 find_package(onnxruntime QUIET)
