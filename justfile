@@ -17,8 +17,6 @@ lint:
   taplo lint
   just check
   cd animations && uvx ruff check
-  cd robot/vision && uvx ruff check
-  cd robot/vision_cpp && cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cd build && cmake --build . --target clean
   cd robot/audio && uvx ruff check
   cd admin/plot && uvx ruff check
   cd shared && cargo clippy -- -D warnings
@@ -184,15 +182,9 @@ ci-robot-audio:
   # cd robot/audio && uv run pytest
 
 ci-robot-vision:
-  cd robot/vision && uv sync
-  cd robot/vision && uvx ruff check
-  cd robot/vision && uvx ruff format --check
-  # cd robot/vision && uv run pytest
-
-ci-robot-vision-cpp:
-  cd robot/vision_cpp && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-  cd robot/vision_cpp/build && cmake --build . -j$(nproc 2>/dev/null || echo 4)
-  # cd robot/vision_cpp/build && ctest --output-on-failure
+  cd robot/vision && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+  cd robot/vision/build && cmake --build . -j$(nproc 2>/dev/null || echo 4)
+  # cd robot/vision/build && ctest --output-on-failure
 
 ci-robot-intelligence:
   cd robot/intelligence && uv sync
@@ -219,21 +211,21 @@ ci-robot-serial:
   cd robot/serial && cargo test
 
 ci-robot-lower: ci-robot-firmware
-ci-robot-upper: ci-robot-vision ci-robot-vision-cpp ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial ci-robot-intelligence
+ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial ci-robot-intelligence
 
 ci-robot: ci-robot-lower ci-robot-upper
 
-# Build robot vision C++ service
-build-robot-vision-cpp:
-  cd robot/vision_cpp && ./scripts/build.sh
+# Build robot vision service
+build-robot-vision:
+  cd robot/vision && ./scripts/build.sh
 
-# Build robot vision C++ service with ONNX Runtime
-build-robot-vision-cpp-onnx:
-  cd robot/vision_cpp && ./scripts/build.sh --onnx
+# Build robot vision service with ONNX Runtime
+build-robot-vision-onnx:
+  cd robot/vision && ./scripts/build.sh --onnx
 
-# Clean robot vision C++ build
-clean-robot-vision-cpp:
-  rm -rf robot/vision_cpp/build
+# Clean robot vision build
+clean-robot-vision:
+  rm -rf robot/vision/build
 
 ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
 
