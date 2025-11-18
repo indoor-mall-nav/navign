@@ -174,7 +174,6 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
   - `std`: Standard library features
   - `serde`: Serialization support
   - `crypto`: Cryptographic primitives
-  - `mongodb`: MongoDB BSON integration
   - `sql`: SQL/SQLite integration
   - `postgres`: PostgreSQL integration (requires `std`, `serde`, `sql`)
   - `base64`: Base64 encoding
@@ -861,15 +860,20 @@ TOWER_ADDR=http://[::1]:8080
 **Feature Flags:**
 ```toml
 [features]
-default = ["std", "serde"]
+default = ["std"]
 heapless = []           # Embedded (Vec → heapless::Vec)
 alloc = []              # Heap allocation
 std = ["alloc"]         # Standard library
 serde = []              # Serialization
 crypto = []             # Cryptographic primitives
-mongodb = ["serde"]     # MongoDB BSON support
 sql = ["serde"]         # SQLite support
+postgres = ["serde"]    # PostgreSQL support
 base64 = []             # Base64 encoding
+postcard = ["serde"]    # Postcard binary serialization
+geo = ["alloc"]         # Geometric types
+chrono = []             # Date and time handling
+defmt = []              # Embedded debugging
+ts-rs = ["serde"]       # TypeScript type generation
 ```
 
 **Critical:** `heapless` and `alloc` are mutually exclusive.
@@ -893,7 +897,7 @@ pub struct RegisterRequest { /* ... */ }
 pub struct AuthResponse { /* ... */ }
 pub struct TokenClaims { /* ... */ }
 
-// Account (mongodb feature)
+// Account (serde + alloc)
 pub struct Account { /* ... */ }
 ```
 
@@ -1612,7 +1616,8 @@ just test
 ```bash
 cd server && cargo test
 cd mobile && just test
-cd shared && cargo test --features mongodb --features serde --features crypto
+cd shared && cargo test
+cd shared && cargo test --features postgres,sql,serde,crypto
 cd admin/maintenance && cargo test
 ```
 
@@ -1786,8 +1791,10 @@ cd shared
 cargo test
 cargo test --features heapless --no-default-features
 cargo test --features alloc --no-default-features
-cargo test --features crypto --features heapless --features serde --no-default-features
-cargo test --features mongodb --features serde --features crypto
+cargo test --features crypto,heapless,serde,postcard --no-default-features
+cargo test --features postgres,sql,serde,crypto
+cargo test --features geo,alloc,serde
+cargo test --features postcard,serde
 ```
 
 **Mobile:** `mobile/src/`
@@ -2117,8 +2124,9 @@ For server:
 navign-shared = { path = "../shared", default-features = false, features = [
   "std",
   "serde",
-  "mongodb",
-  "crypto",
+  "geo",
+  "postgres",
+  "sql"
 ] }
 ```
 

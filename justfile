@@ -106,24 +106,27 @@ ci-shared:
   cd shared && cargo check --features heapless --no-default-features
   cd shared && cargo check --features alloc --no-default-features
   cd shared && cargo check --features heapless,serde,crypto --no-default-features
+  cd shared && cargo check --features heapless,serde,crypto,postcard --no-default-features
   cd shared && cargo check --features base64,alloc,serde,crypto --no-default-features
-  cd shared && cargo check --features mongodb,serde,crypto
   cd shared && cargo check --features sql,serde,crypto
   cd shared && cargo check --features postgres,sql,serde,crypto
   cd shared && cargo check --features geo,alloc,serde
+  cd shared && cargo check --features postcard,serde
   cd shared && cargo fmt -- --check
   cd shared && cargo clippy -- -D warnings
   cd shared && cargo clippy --features heapless --no-default-features
   cd shared && cargo clippy --features alloc --no-default-features
   cd shared && cargo clippy --features heapless,serde,crypto --no-default-features
+  cd shared && cargo clippy --features heapless,serde,crypto,postcard --no-default-features
   cd shared && cargo clippy --features base64,alloc,serde,crypto --no-default-features
-  cd shared && cargo clippy --features mongodb,serde,crypto
   cd shared && cargo clippy --features sql,serde,crypto
   cd shared && cargo clippy --features postgres,sql,serde,crypto
   cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
+  cd shared && cargo clippy --features postcard,serde -- -D warnings
   cd shared && cargo test
   cd shared && cargo test --features geo,alloc,serde
   cd shared && cargo test --features postgres,sql,serde,crypto
+  cd shared && cargo test --features postcard,serde
 
 ci-proc-macros:
   cd proc_macros && cargo check

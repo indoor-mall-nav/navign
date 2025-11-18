@@ -32,7 +32,6 @@ mongodb = { version = "3.3.0" }
 navign-shared = { path = "../shared", default-features = false, features = [
   "std",
   "serde",
-  "mongodb",
   "geo",
   "postgres",
   "sql"
