@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub struct Firmware {
     #[cfg(feature = "postgres")]
     pub id: sqlx::types::Uuid,
@@ -63,6 +65,8 @@ pub struct Firmware {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export, export_to = "generated/"))]
 pub enum FirmwareDevice {
     Esp32,
     Esp32C3,

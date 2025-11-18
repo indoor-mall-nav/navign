@@ -7,7 +7,6 @@ members = [
   "mobile/src-tauri",
   "admin/maintenance",
   "shared",
-  "ts-schema",
   "admin/orchestrator",
   "proc_macros",
   "robot/firmware",
@@ -22,7 +21,6 @@ default-members = [
   "server",
   "admin/maintenance",
   "shared",
-  "ts-schema",
   "proc_macros",
 ]
 
@@ -46,9 +44,6 @@ debug-assertions = false
 incremental      = false
 opt-level        = 's'
 overflow-checks  = false
-
-[profile.release.package.ts-schema]
-strip = "symbols"
 
 [profile.release.package.navign-robot-firmware]
 debug = 2

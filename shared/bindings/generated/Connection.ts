@@ -5,8 +5,8 @@ import type { ConnectionType } from './ConnectionType'
  * Connection schema - represents connections between areas (gates, elevators, etc.)
  */
 export type Connection = {
-  id: string
-  entity: string
+  id: number
+  entity_id: string
   name: string
   description: string | null
   type: ConnectionType
@@ -20,6 +20,6 @@ export type Connection = {
   available_period: Array<[number, number]>
   tags: Array<string>
   gnd: [number, number] | null
-  created_at: bigint
-  updated_at: bigint
+  created_at: bigint | null
+  updated_at: bigint | null
 }

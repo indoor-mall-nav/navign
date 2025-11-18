@@ -9,13 +9,14 @@ export type Entity = {
   type: EntityType
   name: string
   description: string | null
-  longitude_range: [number, number]
-  latitude_range: [number, number]
-  altitude_range: [number, number] | null
+  point_min: [number, number]
+  point_max: [number, number]
+  altitude_min: number | null
+  altitude_max: number | null
   nation: string | null
   region: string | null
   city: string | null
   tags: Array<string>
-  created_at: bigint
-  updated_at: bigint
+  created_at: bigint | null
+  updated_at: bigint | null
 }

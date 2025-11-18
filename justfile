@@ -30,7 +30,6 @@ lint:
   cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
   cd proc_macros && cargo clippy -- -D warnings
   cd firmware && cargo clippy -- -D warnings
-  cd ts-schema && cargo clippy -- -D warnings
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
   cd server && cargo clippy --all-targets --all-features -- -D warnings
@@ -93,6 +92,7 @@ ci-firmware:
 ci-mobile:
   corepack enable
   pnpm install
+  just gen-ts-schema
   cd mobile && just check
   cd mobile && just fmt-check
   cd mobile && just lint
@@ -160,13 +160,6 @@ ci-maintenance:
   cd admin/maintenance && cargo fmt -- --check
   cd admin/maintenance && cargo clippy -- -D warnings
   cd admin/maintenance && cargo test
-
-ci-ts-schema:
-  cd ts-schema && cargo check
-  cd ts-schema && cargo fmt -- --check
-  cd ts-schema && cargo clippy -- -D warnings
-  # Note: ts-schema is a NAPI module (cdylib), tested via Node.js, not Rust unit tests
-  echo "ts-schema is a NAPI module - use Node.js tests for integration testing"
 
 ci-robot-firmware:
   cd robot/firmware && cargo check --release
@@ -277,12 +270,11 @@ clean-proto:
 # Generate TypeScript type definitions from Rust schemas
 gen-ts-schema:
   @echo "Generating TypeScript definitions from Rust schemas..."
-  cd shared && cargo test --features ts-rs --quiet
+  cd shared && cargo run --bin gen-ts-schema --features ts-rs --quiet
   @echo "Copying generated files to mobile/src/schema/generated/..."
   mkdir -p mobile/src/schema/generated
-  cp ts-schema/bindings/generated/*.ts mobile/src/schema/generated/
+  cp shared/bindings/generated/*.ts mobile/src/schema/generated/
   @echo "✓ TypeScript schemas generated successfully"
   @echo "  Output: mobile/src/schema/generated/"
   @ls mobile/src/schema/generated/ | wc -l | xargs echo "  Files:"
-  rm -rf ts-schema/bindings/generated
-  just fmt
+  rm -rf shared/bindings/generated

@@ -5938,14 +5938,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "navgin-ts-schema"
-version = "0.1.0"
-dependencies = [
- "navign-shared",
- "ts-rs",
-]
-
-[[package]]
 name = "navign-firmware"
 version = "0.1.0"
 dependencies = [
