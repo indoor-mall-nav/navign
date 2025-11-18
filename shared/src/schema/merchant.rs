@@ -48,6 +48,7 @@ pub struct Merchant {
     pub phone: Option<String>,
     pub website: Option<String>,
     pub social_media: Option<Vec<SocialMedia>>,
+    pub image_url: Option<String>,
     #[cfg(feature = "postgres")]
     #[cfg_attr(
         all(feature = "serde", not(feature = "postgres")),
@@ -339,6 +340,7 @@ fn merchant_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Merchant> {
         phone: row.try_get("phone")?,
         website: row.try_get("website")?,
         social_media,
+        image_url: row.try_get("image_url")?,
         created_at: row.try_get("created_at")?,
         updated_at: row.try_get("updated_at")?,
     })
@@ -379,8 +381,8 @@ impl crate::schema::repository::IntRepository for Merchant {
         sqlx::query(
             r#"INSERT INTO merchants (entity_id, area_id, name, description, chain, beacon_code,
                                       type, color, tags, location, style, polygon, available_period,
-                                      opening_hours, email, phone, website, social_media)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"#
+                                      opening_hours, email, phone, website, social_media, image_url)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)"#
         )
         .bind(entity)
         .bind(item.area_id)
@@ -400,6 +402,7 @@ impl crate::schema::repository::IntRepository for Merchant {
         .bind(&item.phone)
         .bind(&item.website)
         .bind(social_media_json)
+        .bind(&item.image_url)
         .execute(pool)
         .await?;
         Ok(())
@@ -413,7 +416,7 @@ impl crate::schema::repository::IntRepository for Merchant {
         let row = sqlx::query(
             r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                       color, tags, location, style, polygon, available_period, opening_hours,
-                      email, phone, website, social_media, created_at, updated_at
+                      email, phone, website, social_media, image_url, created_at, updated_at
                FROM merchants WHERE id = $1 AND entity_id = $2"#,
         )
         .bind(id)
@@ -458,7 +461,7 @@ impl crate::schema::repository::IntRepository for Merchant {
                SET area_id = $3, name = $4, description = $5, chain = $6, beacon_code = $7,
                    type = $8, color = $9, tags = $10, location = $11, style = $12, polygon = $13,
                    available_period = $14, opening_hours = $15, email = $16, phone = $17,
-                   website = $18, social_media = $19
+                   website = $18, social_media = $19, image_url = $20
                WHERE id = $1 AND entity_id = $2"#,
         )
         .bind(item.id)
@@ -480,6 +483,7 @@ impl crate::schema::repository::IntRepository for Merchant {
         .bind(&item.phone)
         .bind(&item.website)
         .bind(social_media_json)
+        .bind(&item.image_url)
         .execute(pool)
         .await?;
         Ok(())
@@ -503,7 +507,7 @@ impl crate::schema::repository::IntRepository for Merchant {
         let rows = sqlx::query(
             r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                       color, tags, location, style, polygon, available_period, opening_hours,
-                      email, phone, website, social_media, created_at, updated_at
+                      email, phone, website, social_media, image_url, created_at, updated_at
                FROM merchants WHERE entity_id = $1
                ORDER BY created_at DESC
                LIMIT $2 OFFSET $3"#,
@@ -535,7 +539,7 @@ impl crate::schema::repository::IntRepository for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location, style, polygon, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR beacon_code ILIKE $2)
                    ORDER BY {} {}
@@ -546,7 +550,7 @@ impl crate::schema::repository::IntRepository for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location, style, polygon, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)
                    ORDER BY {} {}
@@ -589,7 +593,7 @@ impl crate::schema::repository::IntRepositoryInArea for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location, style, polygon, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = $1 AND area_id = $2 AND (name ILIKE $3 OR description ILIKE $3 OR beacon_code ILIKE $3)
                    ORDER BY {} {}
@@ -600,7 +604,7 @@ impl crate::schema::repository::IntRepositoryInArea for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location, style, polygon, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR beacon_code LIKE $3)
                    ORDER BY {} {}
@@ -654,8 +658,8 @@ impl IntRepository for Merchant {
         sqlx::query(
             r#"INSERT INTO merchants (entity_id, area_id, name, description, chain, beacon_code,
                                      type, color, tags, location_wkb, style, polygon_wkb, available_period,
-                                     opening_hours, email, phone, website, social_media, created_at, updated_at)
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)"#,
+                                     opening_hours, email, phone, website, social_media, image_url, created_at, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)"#,
         )
         .bind(entity.to_string())
         .bind(item.area_id)
@@ -675,6 +679,7 @@ impl IntRepository for Merchant {
         .bind(&item.phone)
         .bind(&item.website)
         .bind(social_media_json)
+        .bind(&item.image_url)
         .bind(item.created_at.unwrap_or(now))
         .bind(item.updated_at.unwrap_or(now))
         .execute(pool)
@@ -690,7 +695,7 @@ impl IntRepository for Merchant {
         sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                       color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                      email, phone, website, social_media, created_at, updated_at
+                      email, phone, website, social_media, image_url, created_at, updated_at
                FROM merchants WHERE id = ?1 AND entity_id = ?2"#,
         )
         .bind(id)
@@ -724,7 +729,7 @@ impl IntRepository for Merchant {
                SET area_id = ?3, name = ?4, description = ?5, chain = ?6, beacon_code = ?7,
                    type = ?8, color = ?9, tags = ?10, location_wkb = ?11, style = ?12, polygon_wkb = ?13,
                    available_period = ?14, opening_hours = ?15, email = ?16, phone = ?17,
-                   website = ?18, social_media = ?19, updated_at = ?20
+                   website = ?18, social_media = ?19, image_url = ?20, updated_at = ?21
                WHERE id = ?1 AND entity_id = ?2"#,
         )
         .bind(item.id)
@@ -746,6 +751,7 @@ impl IntRepository for Merchant {
         .bind(&item.phone)
         .bind(&item.website)
         .bind(social_media_json)
+        .bind(&item.image_url)
         .bind(now)
         .execute(pool)
         .await?;
@@ -770,7 +776,7 @@ impl IntRepository for Merchant {
         sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                       color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                      email, phone, website, social_media, created_at, updated_at
+                      email, phone, website, social_media, image_url, created_at, updated_at
                FROM merchants WHERE entity_id = ?1
                ORDER BY created_at DESC
                LIMIT ?2 OFFSET ?3"#,
@@ -800,7 +806,7 @@ impl IntRepository for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE OR beacon_code LIKE ?2 COLLATE NOCASE)
                    ORDER BY {} {}
@@ -811,7 +817,7 @@ impl IntRepository for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2 OR beacon_code LIKE ?2)
                    ORDER BY {} {}
@@ -852,7 +858,7 @@ impl IntRepositoryInArea for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE OR beacon_code LIKE ?3 COLLATE NOCASE)
                    ORDER BY {} {}
@@ -863,7 +869,7 @@ impl IntRepositoryInArea for Merchant {
             format!(
                 r#"SELECT id, entity_id, area_id, name, description, chain, beacon_code, type,
                           color, tags, location_wkb, style, polygon_wkb, available_period, opening_hours,
-                          email, phone, website, social_media, created_at, updated_at
+                          email, phone, website, social_media, image_url, created_at, updated_at
                    FROM merchants
                    WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 OR description LIKE ?3 OR beacon_code LIKE ?3)
                    ORDER BY {} {}
