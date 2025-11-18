@@ -43,5 +43,8 @@ fn main() {
     Connection::export_all().expect("Failed to export Connection");
     ConnectionType::export_all().expect("Failed to export ConnectionType");
 
+    Firmware::export_all().expect("Failed to export Firmware");
+    FirmwareDevice::export_all().expect("Failed to export FirmwareDevice");
+
     println!("✓ Generated all TypeScript definitions");
 }
