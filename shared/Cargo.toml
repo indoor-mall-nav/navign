@@ -4,6 +4,11 @@ license.workspace = true
 name              = "navign-shared"
 version.workspace = true
 
+[[bin]]
+name = "gen-ts-schema"
+path = "src/bin/gen_ts_schema.rs"
+required-features = ["ts-rs"]
+
 [features]
 alloc = [
   "serde?/alloc",

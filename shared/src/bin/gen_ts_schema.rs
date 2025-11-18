@@ -2,29 +2,22 @@
 
 //! TypeScript schema generator for Navign
 //!
-//! This crate generates TypeScript type definitions from Rust types in the shared crate.
+//! This binary generates TypeScript type definitions from Rust types in the shared crate.
 //! It uses ts-rs to automatically generate .d.ts files.
 //!
 //! ## Usage
 //!
-//! Run the generation by building or testing this crate:
+//! Run the generation by executing:
 //! ```bash
-//! cd ts-schema
-//! cargo test
+//! cargo run --bin gen-ts-schema --features ts-rs
 //! ```
 //!
-//! This will generate TypeScript definitions in `../mobile/src/schema/generated/`
+//! This will generate TypeScript definitions in `./bindings/generated/`
 
-// Re-export types from shared crate with TS generation
-pub use navign_shared::schema::*;
+use navign_shared::schema::*;
+use ts_rs::TS;
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use ts_rs::TS;
-
-  #[test]
-  fn generate_all_types() {
+fn main() {
     // Generate all types - export_to paths are set in the type definitions
     Entity::export_all().expect("Failed to export Entity");
     EntityType::export_all().expect("Failed to export EntityType");
@@ -51,5 +44,4 @@ mod tests {
     ConnectionType::export_all().expect("Failed to export ConnectionType");
 
     println!("✓ Generated all TypeScript definitions");
-  }
 }
