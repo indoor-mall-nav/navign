@@ -17,7 +17,6 @@ lint:
   taplo lint
   just check
   cd animations && uvx ruff check
-  cd robot/vision && uvx ruff check
   cd robot/audio && uvx ruff check
   cd admin/plot && uvx ruff check
   cd shared && cargo clippy -- -D warnings
@@ -183,10 +182,23 @@ ci-robot-audio:
   # cd robot/audio && uv run pytest
 
 ci-robot-vision:
-  cd robot/vision && uv sync
-  cd robot/vision && uvx ruff check
-  cd robot/vision && uvx ruff format --check
-  # cd robot/vision && uv run pytest
+  #!/usr/bin/env bash
+  set -e
+  # Vision service requires C++ dependencies (OpenCV, AprilTag, Protobuf)
+  # Skip if dependencies are not installed
+  echo "Checking robot/vision C++ dependencies..."
+  if pkg-config --exists opencv4 2>/dev/null || pkg-config --exists opencv 2>/dev/null; then
+    echo "OpenCV found, building vision service..."
+    cd robot/vision
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cd build
+    cmake --build . -j$(nproc 2>/dev/null || echo 4)
+  else
+    echo "⚠️  OpenCV not found - skipping robot/vision build"
+    echo "To build vision service, install dependencies:"
+    echo "  Ubuntu/Debian: sudo apt-get install libopencv-dev libapriltag-dev libprotobuf-dev"
+    echo "  macOS: brew install opencv apriltag protobuf"
+  fi
 
 ci-robot-intelligence:
   cd robot/intelligence && uv sync
@@ -216,6 +228,18 @@ ci-robot-lower: ci-robot-firmware
 ci-robot-upper: ci-robot-vision ci-robot-audio ci-robot-scheduler ci-robot-network ci-robot-serial ci-robot-intelligence
 
 ci-robot: ci-robot-lower ci-robot-upper
+
+# Build robot vision service
+build-robot-vision:
+  cd robot/vision && ./scripts/build.sh
+
+# Build robot vision service with ONNX Runtime
+build-robot-vision-onnx:
+  cd robot/vision && ./scripts/build.sh --onnx
+
+# Clean robot vision build
+clean-robot-vision:
+  rm -rf robot/vision/build
 
 ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
 
