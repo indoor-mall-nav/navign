@@ -183,13 +183,16 @@ ci-robot-audio:
 
 ci-robot-vision:
   #!/usr/bin/env bash
+  set -e
   # Vision service requires C++ dependencies (OpenCV, AprilTag, Protobuf)
   # Skip if dependencies are not installed
   echo "Checking robot/vision C++ dependencies..."
   if pkg-config --exists opencv4 2>/dev/null || pkg-config --exists opencv 2>/dev/null; then
     echo "OpenCV found, building vision service..."
-    cd robot/vision && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-    cd robot/vision/build && cmake --build . -j$(nproc 2>/dev/null || echo 4)
+    cd robot/vision
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cd build
+    cmake --build . -j$(nproc 2>/dev/null || echo 4)
   else
     echo "⚠️  OpenCV not found - skipping robot/vision build"
     echo "To build vision service, install dependencies:"
