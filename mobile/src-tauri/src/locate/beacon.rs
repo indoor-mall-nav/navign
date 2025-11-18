@@ -125,7 +125,6 @@ impl BeaconInfo {
 mod tests {
     use super::*;
     use crate::locate::area::ActiveArea;
-    use navign_shared::MerchantMobile;
     use sqlx::SqlitePool;
 
     #[tokio::test]
@@ -138,30 +137,19 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        // Execute `navign.sql` to create necessary tables
 
-        let merchant = MerchantMobile {
-            id: "merchant1".to_string(),
-            name: "Test Merchant".to_string(),
-            description: None,
-            chain: None,
-            entity: "entity1".to_string(),
-            beacon_code: "beacon1".to_string(),
-            area: "area1".to_string(),
-            r#type: serde_json::to_string(&navign_shared::MerchantType::Other).unwrap(),
-            color: None,
-            tags: "[]".to_string(),
-            location: "POINT(0 0)".to_string(),
-            style: "store".to_string(),
-            polygon: "POLYGON((0 0,0 1,1 1,1 0,0 0))".to_string(),
-            available_period: None,
-            email: None,
-            phone: None,
-            website: None,
-            social_media: None,
-            created_at: chrono::Utc::now().timestamp_millis(),
-            updated_at: chrono::Utc::now().timestamp_millis(),
-        };
+        // Create test merchant directly with SQL
+        sqlx::query(
+            "INSERT INTO merchants (id, name, entity_id, beacon_code, area_id, type, tags, location, style, polygon, created_at, updated_at)
+             VALUES ('merchant1', 'Test Merchant', 'entity1', 'beacon1', 'area1', 'Other', '[]', 'POINT(0 0)', 'store', 'POLYGON((0 0,0 1,1 1,1 0,0 0))', ?, ?)"
+        )
+        .bind(chrono::Utc::now().timestamp_millis())
+        .bind(chrono::Utc::now().timestamp_millis())
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Create test area
         let area = ActiveArea {
             id: "area1".to_string(),
             name: "Test Area".to_string(),
@@ -170,7 +158,6 @@ mod tests {
             updated_at: chrono::Utc::now().timestamp() as u64,
             stored_at: chrono::Utc::now().timestamp() as u64,
         };
-        merchant.insert(&pool).await.unwrap();
         area.insert(&pool).await.unwrap();
 
         let beacon = BeaconInfo::new(

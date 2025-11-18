@@ -58,13 +58,17 @@ pub use merchant::{
 #[cfg(feature = "alloc")]
 pub use user_public_keys::UserPublicKeys;
 
-// PostgreSQL-specific exports
-#[cfg(feature = "postgres")]
+// PostgreSQL-specific exports (postgis also has WKB utilities used by SQLite)
+#[cfg(feature = "geo")]
 pub mod postgis;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 #[cfg(feature = "sql")]
 pub mod repository;
+
+// SQLite-specific FromRow implementations
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+mod sqlite_from_row;
 
 #[cfg(feature = "sql")]
 pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};

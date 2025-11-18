@@ -3,7 +3,6 @@ use crate::shared::BASE_URL;
 // Re-export shared types for use in this module
 pub use navign_shared::{
     Area, Beacon, BeaconType, Connection, ConnectionType, Merchant as SharedMerchant,
-    MerchantMobile,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -142,7 +141,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .into_iter()
         .map(|b| MapBeacon {
             id: b.id.to_string(),
-            area: b.area,
+            area: b.area_id.to_string(),
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -169,7 +168,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id,
+            id: m.id.to_string(),
             name: m.name,
             location: m.location,
             polygon: m.polygon,
@@ -200,10 +199,10 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .filter(|c| {
             c.connected_areas
                 .iter()
-                .any(|(aid, _, _, _)| aid == &area_response.id)
+                .any(|(aid, _, _, _)| aid == &area_response.id.to_string())
         })
         .map(|c| MapConnection {
-            id: c.id,
+            id: c.id.to_string(),
             name: c.name,
             r#type: c.r#type,
             positions: c
@@ -217,7 +216,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} connections for area", map_connections.len());
 
     Ok(MapArea {
-        id: area_response.id,
+        id: area_response.id.to_string(),
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
@@ -595,8 +594,8 @@ pub async fn search_merchants_handler(
         }
     };
 
-    let merchants = sqlx::query_as::<_, MerchantMobile>(
-        "SELECT * FROM merchants WHERE entity = ? AND name LIKE ? LIMIT 20",
+    let merchants = sqlx::query_as::<_, SharedMerchant>(
+        "SELECT * FROM merchants WHERE entity_id = ? AND name LIKE ? LIMIT 20",
     )
     .bind(&entity)
     .bind(format!("%{}%", query))
@@ -764,19 +763,18 @@ pub async fn compute_route_offline(
     use navign_shared::pathfinding::{
         AreaData, ConnectionData, Polygon, find_path_between_areas, find_path_in_area,
     };
-    use navign_shared::{AreaMobile, ConnectionMobile};
 
     let pool = SqlitePool::connect("sqlite:navign.db").await?;
 
     // Load areas from database
-    let areas_db: Vec<AreaMobile> = sqlx::query_as("SELECT * FROM areas WHERE entity = ?")
+    let areas_db: Vec<Area> = sqlx::query_as("SELECT * FROM areas WHERE entity_id = ?")
         .bind(entity)
         .fetch_all(&pool)
         .await?;
 
     // Load connections from database
-    let connections_db: Vec<ConnectionMobile> =
-        sqlx::query_as("SELECT * FROM connections WHERE entity = ?")
+    let connections_db: Vec<Connection> =
+        sqlx::query_as("SELECT * FROM connections WHERE entity_id = ?")
             .bind(entity)
             .fetch_all(&pool)
             .await?;
@@ -785,44 +783,27 @@ pub async fn compute_route_offline(
     let mut area_data_vec = Vec::new();
 
     for area_row in areas_db {
-        let polygon = Polygon::from_wkt(&area_row.polygon)
-            .map_err(|e| anyhow::anyhow!("Invalid polygon WKT: {}", e))?;
+        let polygon = Polygon::new(area_row.polygon.clone());
 
         // Find connections for this area
         let mut area_connections = Vec::new();
         for conn in &connections_db {
-            // Parse connected_areas JSON
-            let connected_areas: Vec<serde_json::Value> =
-                serde_json::from_str(&conn.connected_areas)?;
-
-            let mut conn_areas = Vec::new();
-            for ca in connected_areas {
-                let area_id = ca["area"]
-                    .as_str()
-                    .ok_or_else(|| anyhow::anyhow!("Missing area in connection"))?
-                    .to_string();
-                let x = ca["x"]
-                    .as_f64()
-                    .ok_or_else(|| anyhow::anyhow!("Missing x in connection"))?;
-                let y = ca["y"]
-                    .as_f64()
-                    .ok_or_else(|| anyhow::anyhow!("Missing y in connection"))?;
-                let enabled = ca["enabled"].as_bool().unwrap_or(true);
-                conn_areas.push((area_id, x, y, enabled));
-            }
-
             // Check if this connection involves the current area
-            if conn_areas.iter().any(|(aid, _, _, _)| aid == &area_row.id) {
+            if conn
+                .connected_areas
+                .iter()
+                .any(|(aid, _, _, _)| aid == &area_row.id.to_string())
+            {
                 area_connections.push(ConnectionData {
-                    id: conn.id.clone(),
-                    conn_type: conn.connection_type(),
-                    connected_areas: conn_areas,
+                    id: conn.id.to_string(),
+                    conn_type: conn.r#type,
+                    connected_areas: conn.connected_areas.clone(),
                 });
             }
         }
 
         area_data_vec.push(AreaData {
-            id: area_row.id.clone(),
+            id: area_row.id.to_string(),
             polygon,
             connections: area_connections,
         });

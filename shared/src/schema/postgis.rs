@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgArgumentBuffer, PgTypeInfo, PgValueRef};
 #[cfg(feature = "postgres")]
 use sqlx::{Decode, Encode, Postgres, Type};
-use wkb::error::WkbResult;
 
 /// Wrapper around geo_types::Point for PostGIS GEOMETRY(POINT, 4326)
 ///
@@ -140,7 +139,7 @@ impl PgPolygon {
     }
 
     #[cfg(feature = "geo")]
-    pub fn to_wkb(self) -> WkbResult<Vec<u8>> {
+    pub fn to_wkb(self) -> Result<Vec<u8>, wkb::error::WkbError> {
         let mut buffer = Vec::new();
         wkb::writer::write_polygon(
             &mut buffer,
@@ -153,7 +152,7 @@ impl PgPolygon {
     }
 
     #[cfg(feature = "geo")]
-    pub fn from_wkb(bytes: &[u8]) -> WkbResult<Self> {
+    pub fn from_wkb(bytes: &[u8]) -> Result<Self, wkb::error::WkbError> {
         let data = wkb::reader::read_wkb(bytes)?;
         let polygon = data.as_type();
         if let GeometryType::Polygon(pg) = polygon {
@@ -205,5 +204,84 @@ impl From<Polygon<f64>> for PgPolygon {
 impl From<PgPolygon> for Polygon<f64> {
     fn from(pg_polygon: PgPolygon) -> Self {
         pg_polygon.0
+    }
+}
+
+// Helper functions for SQLite WKB conversion (works with raw tuples)
+#[cfg(feature = "geo")]
+pub fn point_to_wkb(point: (f64, f64)) -> Result<Vec<u8>, wkb::error::WkbError> {
+    let geo_point = geo_types::Point::new(point.0, point.1);
+    let mut buffer = Vec::new();
+    wkb::writer::write_point(
+        &mut buffer,
+        &geo_point,
+        &wkb::writer::WriteOptions {
+            endianness: wkb::Endianness::LittleEndian,
+        },
+    )?;
+    Ok(buffer)
+}
+
+#[cfg(feature = "geo")]
+pub fn wkb_to_point(bytes: &[u8]) -> Result<(f64, f64), wkb::error::WkbError> {
+    use geo_traits::to_geo::ToGeoPoint;
+    use geo_traits::{GeometryTrait, GeometryType};
+
+    let data = wkb::reader::read_wkb(bytes)?;
+    let geom = data.as_type();
+    if let GeometryType::Point(pt) = geom {
+        let point = pt.to_point();
+        Ok((point.x(), point.y()))
+    } else {
+        Err(wkb::error::WkbError::General(
+            "WKB does not represent a Point".to_string(),
+        ))
+    }
+}
+
+#[cfg(feature = "geo")]
+pub fn polygon_to_wkb(points: &[(f64, f64)]) -> Result<Vec<u8>, wkb::error::WkbError> {
+    use geo_types::Coord;
+
+    if points.is_empty() {
+        return Err(wkb::error::WkbError::General("Empty polygon".to_string()));
+    }
+
+    let coords: Vec<Coord<f64>> = points.iter().map(|(x, y)| Coord { x: *x, y: *y }).collect();
+
+    let line_string = geo_types::LineString::new(coords);
+    let polygon = geo_types::Polygon::new(line_string, vec![]);
+
+    let mut buffer = Vec::new();
+    wkb::writer::write_polygon(
+        &mut buffer,
+        &polygon,
+        &wkb::writer::WriteOptions {
+            endianness: wkb::Endianness::LittleEndian,
+        },
+    )?;
+    Ok(buffer)
+}
+
+#[cfg(feature = "geo")]
+pub fn wkb_to_polygon(bytes: &[u8]) -> Result<Vec<(f64, f64)>, wkb::error::WkbError> {
+    use geo_traits::to_geo::ToGeoPolygon;
+    use geo_traits::{GeometryTrait, GeometryType};
+
+    let data = wkb::reader::read_wkb(bytes)?;
+    let geom = data.as_type();
+    if let GeometryType::Polygon(pg) = geom {
+        let polygon = pg.to_polygon();
+        let coords: Vec<(f64, f64)> = polygon
+            .exterior()
+            .0
+            .iter()
+            .map(|coord| (coord.x, coord.y))
+            .collect();
+        Ok(coords)
+    } else {
+        Err(wkb::error::WkbError::General(
+            "WKB does not represent a Polygon".to_string(),
+        ))
     }
 }
