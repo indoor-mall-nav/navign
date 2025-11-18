@@ -57,18 +57,18 @@ async function loadAreaDetails() {
   }
 }
 
-function formatFloor(floor: { type: string; name: number } | null): string {
-  if (!floor) return 'N/A'
+function formatFloor(floor_type: string | null, floor_name: number | null): string {
+  if (!floor_type || floor_name === null) return 'N/A'
 
-  switch (floor.type) {
+  switch (floor_type) {
     case 'level':
-      return `Level ${floor.name}`
+      return `Level ${floor_name}`
     case 'floor':
-      return `Floor ${floor.name}`
+      return `Floor ${floor_name}`
     case 'basement':
-      return `Basement ${floor.name}`
+      return `Basement ${floor_name}`
     default:
-      return `Floor ${floor.name}`
+      return `Floor ${floor_name}`
   }
 }
 </script>
@@ -116,7 +116,7 @@ function formatFloor(floor: { type: string; name: number } | null): string {
         </Card>
 
         <!-- Floor Information -->
-        <Card v-if="areaDetails.floor">
+        <Card v-if="areaDetails.floor_type">
           <CardContent class="pt-6">
             <div class="flex items-center gap-3">
               <Icon
@@ -126,7 +126,7 @@ function formatFloor(floor: { type: string; name: number } | null): string {
               <div>
                 <h3 class="font-semibold mb-1">Floor</h3>
                 <p class="text-sm text-muted-foreground">
-                  {{ formatFloor(areaDetails.floor) }}
+                  {{ formatFloor(areaDetails.floor_type, areaDetails.floor_name) }}
                 </p>
               </div>
             </div>
@@ -178,7 +178,7 @@ function formatFloor(floor: { type: string; name: number } | null): string {
               <div class="flex-1 overflow-hidden">
                 <h3 class="font-semibold mb-1">Entity ID</h3>
                 <p class="text-xs text-muted-foreground font-mono truncate">
-                  {{ areaDetails.entity }}
+                  {{ areaDetails.entity_id }}
                 </p>
               </div>
             </div>

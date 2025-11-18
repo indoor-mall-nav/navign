@@ -529,7 +529,7 @@ watch(
               v-for="merchant in session.nearestMerchants.slice(0, 5)"
               :key="merchant.id"
               class="p-2 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              @click="handleMerchantClick(merchant.id)"
+              @click="handleMerchantClick(String(merchant.id))"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

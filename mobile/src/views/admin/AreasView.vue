@@ -93,9 +93,9 @@ async function confirmDelete() {
   }
 }
 
-function formatFloor(floor: Area['floor']) {
-  if (!floor) return 'No floor'
-  return `${floor.type} ${floor.name}`
+function formatFloor(floor_type: string | null, floor_name: number | null) {
+  if (!floor_type || floor_name === null) return 'No floor'
+  return `${floor_type} ${floor_name}`
 }
 
 function getFloorBadgeVariant(floorType: string | undefined) {
@@ -147,8 +147,8 @@ function getFloorBadgeVariant(floorType: string | undefined) {
                 {{ area.description }}
               </CardDescription>
             </div>
-            <Badge :variant="getFloorBadgeVariant(area.floor?.type)">
-              {{ formatFloor(area.floor) }}
+            <Badge :variant="getFloorBadgeVariant(area.floor_type ?? undefined)">
+              {{ formatFloor(area.floor_type, area.floor_name) }}
             </Badge>
           </div>
         </CardHeader>

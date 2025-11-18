@@ -7,24 +7,18 @@ import type { SocialMedia } from './SocialMedia'
  * Merchant schema - represents a shop, store, or service location
  */
 export type Merchant = {
-  id: string
+  id: number
   name: string
   description: string | null
   chain: string | null
-  entity: string
+  entity_id: string
   beacon_code: string
-  area: string
+  area_id: number
   type: MerchantType
   color: string | null
   tags: Array<string>
-  /**
-   * Location point (centroid/entrance) - kept for backward compatibility and labeling
-   */
   location: [number, number]
   style: MerchantStyle
-  /**
-   * Polygon boundary defining the merchant's physical space (required)
-   */
   polygon: Array<[number, number]>
   available_period: Array<[bigint, bigint]> | null
   /**
@@ -37,6 +31,6 @@ export type Merchant = {
   phone: string | null
   website: string | null
   social_media: Array<SocialMedia> | null
-  created_at: bigint
-  updated_at: bigint
+  created_at: bigint | null
+  updated_at: bigint | null
 }

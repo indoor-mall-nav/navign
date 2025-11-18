@@ -75,7 +75,7 @@ async function confirmDelete() {
   try {
     const response = await deleteBeacon(
       entityId.value,
-      beaconToDelete.value.id,
+      String(beaconToDelete.value.id),
       session.userToken || ''
     )
     if (response.status === 'success') {

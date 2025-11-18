@@ -82,19 +82,19 @@ function navigateToArea(areaId: string) {
   if (area) {
     session.area = {
       ...area,
-      created_at: BigInt(area.created_at),
-      updated_at: BigInt(area.updated_at),
+      created_at: area.created_at ? BigInt(area.created_at) : null,
+      updated_at: area.updated_at ? BigInt(area.updated_at) : null,
     };
     router.push("/");
   }
 }
 
 function getMerchantsInArea(areaId: string): Merchant[] {
-  return merchants.value.filter((m) => m.area === areaId);
+  return merchants.value.filter((m) => String(m.area_id) === areaId);
 }
 
 function getBeaconsInArea(areaId: string): MapBeacon[] {
-  return beacons.value.filter((b) => b.area === areaId);
+  return beacons.value.filter((b) => String(b.area) === areaId);
 }
 </script>
 
@@ -186,8 +186,8 @@ function getBeaconsInArea(areaId: string): MapBeacon[] {
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
               <span>{{ area.name }}</span>
-              <Badge v-if="area.floor" variant="secondary">
-                {{ area.floor.type }} {{ area.floor.name }}
+              <Badge v-if="area.floor_type" variant="secondary">
+                {{ area.floor_type }} {{ area.floor_name }}
               </Badge>
             </CardTitle>
             <CardDescription>{{

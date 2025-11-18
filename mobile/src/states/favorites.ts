@@ -36,7 +36,7 @@ export const useFavoritesStore = defineStore('favorites', {
   },
   actions: {
     addMerchantFavorite(merchant: Merchant, notes?: string) {
-      const merchantId = merchant.id || ''
+      const merchantId = String(merchant.id)
       if (!merchantId || this.isMerchantFavorited(merchantId)) {
         return
       }
@@ -61,7 +61,7 @@ export const useFavoritesStore = defineStore('favorites', {
       }
     },
     addAreaFavorite(area: Area, label?: string) {
-      const areaId = area.id || ''
+      const areaId = String(area.id)
       if (!areaId || this.isAreaFavorited(areaId)) {
         return
       }

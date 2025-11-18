@@ -2465,33 +2465,60 @@ For questions about this codebase, refer to:
 
 ---
 
-*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-16*
+*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-18*
 
 ---
 
 ## Recent Major Updates (Since 2025-11-07)
 
-### ✅ Completed (Updated 2025-11-16)
+### ✅ Completed (Updated 2025-11-18)
 
-1. **PostgreSQL Migration Layer** - Full repository implementation with dual-database support
-2. **Robot/Lower Component** - STM32F407 + Embassy async runtime
-3. **Robot/Upper Layer Architecture** ⭐ **NEW** - Distributed control system with Zenoh messaging
-4. **Intelligence Library** ⭐ **NEW** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
-5. **Advanced Pathfinding** ⭐ **NEW** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
-6. **PostgreSQL Migration Tooling** ⭐ **NEW** - Complete migration scripts and dual-database handlers (#86)
-7. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
-8. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
-9. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
-10. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
-11. **Error Handling** - Migrated to thiserror for better error types
-12. **defmt Support** - Embedded debugging for firmware and robot/lower
-13. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
-14. **Deployment Guide** - Complete production deployment documentation
-15. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
-16. **Comprehensive Testing** - 1,158+ lines of tests across all components
-17. **Structured Logging** - Migration from log to tracing
+1. **Mobile TypeScript Schema Migration** ⭐ **LATEST** - Aligned mobile schemas with PostgreSQL migration (#103)
+   - Migrated TypeScript generation from `ts-schema/` to `shared/src/bin/gen-ts-schema.rs`
+   - Fixed breaking schema changes: `Area.floor` → `floor_type`/`floor_name`, `Area.entity` → `entity_id`, `Merchant.area` → `area_id`
+   - Updated all Vue components to use new schema structure
+   - Moved documentation files to `docs/` folder
+   - All TypeScript errors resolved, mobile app type-safe
+2. **PostgreSQL Migration Layer** - Full repository implementation with dual-database support
+3. **Robot/Lower Component** - STM32F407 + Embassy async runtime
+4. **Robot/Upper Layer Architecture** ⭐ **NEW** - Distributed control system with Zenoh messaging
+5. **Intelligence Library** ⭐ **NEW** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
+6. **Advanced Pathfinding** ⭐ **NEW** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
+7. **PostgreSQL Migration Tooling** ⭐ **NEW** - Complete migration scripts and dual-database handlers (#86)
+8. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
+9. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
+10. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
+11. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
+12. **Error Handling** - Migrated to thiserror for better error types
+13. **defmt Support** - Embedded debugging for firmware and robot/lower
+14. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
+15. **Deployment Guide** - Complete production deployment documentation
+16. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
+17. **Comprehensive Testing** - 1,158+ lines of tests across all components
+18. **Structured Logging** - Migration from log to tracing
 
-### 🎯 Latest Features (2025-11-16)
+### 🎯 Latest Features (2025-11-18)
+
+#### Mobile TypeScript Schema Migration (#103)
+- **TypeScript Generation Consolidation** - Moved from separate `ts-schema/` crate (4,838 lines removed) to integrated `shared/src/bin/gen-ts-schema.rs` (113 lines added)
+- **Breaking Schema Changes:**
+  - `Area.floor` → `Area.floor_type` (string) + `Area.floor_name` (number)
+  - `Area.entity` → `Area.entity_id`
+  - `Merchant.area` → `Merchant.area_id` (now number instead of string)
+  - `Merchant.id` type changed from `string` to `number`
+  - All coordinate types now use tuple format `[number, number]`
+- **Files Updated:** 15+ Vue components and TypeScript files
+  - `MerchantDetailsEnhanced.vue`, `MerchantSearch.vue`, `EntityDetailsView.vue`
+  - `FavoritesView.vue`, `HomeView.vue`, `AreasView.vue`
+  - `BeaconsView.vue`, `ConnectionsView.vue`, `MerchantsView.vue`
+  - `AreaDetailsDialog.vue`, `favorites.ts`, `tauri.ts`
+- **ID Type Conversions:** Added `String()` conversions for all merchant/beacon/connection IDs
+- **Documentation Reorganization:** Moved 4 MD files to `docs/` folder
+  - `server/MIGRATION_GUIDE.md` → `docs/docs/components/server/`
+  - `robot/vision/SUMMARY.md`, `DEPENDENCIES.md`, `MIGRATION.md` → `docs/docs/components/robot/vision/`
+- **Command:** `cargo run --bin gen-ts-schema --features ts-rs` (run from `shared/`)
+- **Output:** 21 TypeScript definitions in `mobile/src/schema/generated/`
+- **Result:** ✅ Zero TypeScript compilation errors, all type-safe
 
 #### Intelligence Library (#90)
 - **Hybrid LLM Architecture** - Local Qwen3-0.6B + remote GPT-4o/DeepSeek
