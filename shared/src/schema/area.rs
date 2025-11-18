@@ -10,13 +10,11 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use crate::schema::postgis::PgPolygon;
 use core::fmt::{Display, Formatter};
-#[cfg(feature = "sql")]
-use sqlx::FromRow;
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "sql", derive(FromRow))]
+#[cfg_attr(all(feature = "postgres", feature = "sql"), derive(FromRow))]
 #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
 #[cfg_attr(
     all(feature = "ts-rs", not(feature = "postgres")),
@@ -254,8 +252,7 @@ impl IntRepository for Area {
 
 // SQLite repository implementation for Area
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::postgis::{polygon_to_wkb, wkb_to_polygon};
+use crate::schema::postgis::polygon_to_wkb;
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::repository::IntRepository;
 
@@ -264,7 +261,7 @@ use crate::schema::repository::IntRepository;
 impl IntRepository for Area {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let polygon_wkb = polygon_to_wkb(&item.polygon)
-            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+            .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -294,9 +291,7 @@ impl IntRepository for Area {
         id: i32,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Option<Self>> {
-        use sqlx::Row;
-
-        let row = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, name, description, floor_type, floor_name, beacon_code, polygon_wkb,
                       created_at, updated_at
                FROM areas WHERE id = ?1 AND entity_id = ?2"#,
@@ -304,33 +299,12 @@ impl IntRepository for Area {
         .bind(id)
         .bind(entity.to_string())
         .fetch_optional(pool)
-        .await?;
-
-        match row {
-            Some(row) => {
-                let polygon = wkb_to_polygon(row.get::<Vec<u8>, _>("polygon_wkb").as_slice())
-                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-
-                Ok(Some(Area {
-                    id: row.get("id"),
-                    entity_id: row.get("entity_id"),
-                    name: row.get("name"),
-                    description: row.get("description"),
-                    beacon_code: row.get("beacon_code"),
-                    floor_type: row.get("floor_type"),
-                    floor_name: row.get("floor_name"),
-                    polygon,
-                    created_at: row.get("created_at"),
-                    updated_at: row.get("updated_at"),
-                }))
-            }
-            None => Ok(None),
-        }
+        .await
     }
 
     async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let polygon_wkb = polygon_to_wkb(&item.polygon)
-            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+            .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -371,9 +345,7 @@ impl IntRepository for Area {
         limit: i64,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
-        let rows = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, name, description, floor_type, floor_name, beacon_code, polygon_wkb,
                       created_at, updated_at
                FROM areas WHERE entity_id = ?1
@@ -384,28 +356,7 @@ impl IntRepository for Area {
         .bind(limit)
         .bind(offset)
         .fetch_all(pool)
-        .await?;
-
-        let mut areas = Vec::new();
-        for row in rows {
-            let polygon = wkb_to_polygon(row.get::<Vec<u8>, _>("polygon_wkb").as_slice())
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-
-            areas.push(Area {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                beacon_code: row.get("beacon_code"),
-                floor_type: row.get("floor_type"),
-                floor_name: row.get("floor_name"),
-                polygon,
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(areas)
+        .await
     }
 
     async fn search(
@@ -418,8 +369,6 @@ impl IntRepository for Area {
         asc: bool,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
         let like_pattern = format!("%{}%", query);
         let order_by = sort.unwrap_or("created_at");
         let direction = if asc { "ASC" } else { "DESC" };
@@ -446,33 +395,12 @@ impl IntRepository for Area {
             )
         };
 
-        let rows = sqlx::query(&sql)
+        sqlx::query_as::<_, Self>(&sql)
             .bind(entity.to_string())
             .bind(&like_pattern)
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
-            .await?;
-
-        let mut areas = Vec::new();
-        for row in rows {
-            let polygon = wkb_to_polygon(row.get::<Vec<u8>, _>("polygon_wkb").as_slice())
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-
-            areas.push(Area {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                beacon_code: row.get("beacon_code"),
-                floor_type: row.get("floor_type"),
-                floor_name: row.get("floor_name"),
-                polygon,
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(areas)
+            .await
     }
 }

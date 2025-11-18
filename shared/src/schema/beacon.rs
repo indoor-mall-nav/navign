@@ -10,7 +10,7 @@ use crate::schema::postgis::PgPoint;
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[cfg_attr(all(feature = "postgres", feature = "sql"), derive(sqlx::FromRow))]
 #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
 #[cfg_attr(
     all(feature = "ts-rs", not(feature = "postgres")),
@@ -276,8 +276,7 @@ impl IntRepository for Beacon {
 
 // SQLite repository implementation for Beacon
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::postgis::{point_to_wkb, wkb_to_point};
+use crate::schema::postgis::point_to_wkb;
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::repository::IntRepository;
 
@@ -286,7 +285,7 @@ use crate::schema::repository::IntRepository;
 impl IntRepository for Beacon {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
-            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+            .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -319,9 +318,7 @@ impl IntRepository for Beacon {
         id: i32,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Option<Self>> {
-        use sqlx::Row;
-
-        let row = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description,
                       type, location_wkb, device, mac, created_at, updated_at
                FROM beacons WHERE id = ?1 AND entity_id = ?2"#,
@@ -329,52 +326,12 @@ impl IntRepository for Beacon {
         .bind(id)
         .bind(entity.to_string())
         .fetch_optional(pool)
-        .await?;
-
-        match row {
-            Some(row) => {
-                let location = wkb_to_point(row.get::<Vec<u8>, _>("location_wkb").as_slice())
-                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-                let beacon_type = match row.get::<String, _>("type").as_str() {
-                    "navigation" => BeaconType::Navigation,
-                    "marketing" => BeaconType::Marketing,
-                    "tracking" => BeaconType::Tracking,
-                    "environmental" => BeaconType::Environmental,
-                    "security" => BeaconType::Security,
-                    _ => BeaconType::Other,
-                };
-                let device = match row.get::<String, _>("device").as_str() {
-                    "esp32" => BeaconDevice::Esp32,
-                    "esp32c3" => BeaconDevice::Esp32C3,
-                    "esp32c5" => BeaconDevice::Esp32C5,
-                    "esp32c6" => BeaconDevice::Esp32C6,
-                    "esp32s3" => BeaconDevice::Esp32S3,
-                    _ => BeaconDevice::Esp32C3,
-                };
-
-                Ok(Some(Beacon {
-                    id: row.get("id"),
-                    entity_id: row.get("entity_id"),
-                    area_id: row.get("area_id"),
-                    merchant_id: row.get("merchant_id"),
-                    connection_id: row.get("connection_id"),
-                    name: row.get("name"),
-                    description: row.get("description"),
-                    r#type: beacon_type,
-                    location,
-                    device,
-                    mac: row.get("mac"),
-                    created_at: row.get("created_at"),
-                    updated_at: row.get("updated_at"),
-                }))
-            }
-            None => Ok(None),
-        }
+        .await
     }
 
     async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
-            .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
+            .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -418,9 +375,7 @@ impl IntRepository for Beacon {
         limit: i64,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
-        let rows = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description,
                       type, location_wkb, device, mac, created_at, updated_at
                FROM beacons WHERE entity_id = ?1
@@ -431,47 +386,7 @@ impl IntRepository for Beacon {
         .bind(limit)
         .bind(offset)
         .fetch_all(pool)
-        .await?;
-
-        let mut beacons = Vec::new();
-        for row in rows {
-            let location = wkb_to_point(row.get::<Vec<u8>, _>("location_wkb").as_slice())
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-            let beacon_type = match row.get::<String, _>("type").as_str() {
-                "navigation" => BeaconType::Navigation,
-                "marketing" => BeaconType::Marketing,
-                "tracking" => BeaconType::Tracking,
-                "environmental" => BeaconType::Environmental,
-                "security" => BeaconType::Security,
-                _ => BeaconType::Other,
-            };
-            let device = match row.get::<String, _>("device").as_str() {
-                "esp32" => BeaconDevice::Esp32,
-                "esp32c3" => BeaconDevice::Esp32C3,
-                "esp32c5" => BeaconDevice::Esp32C5,
-                "esp32c6" => BeaconDevice::Esp32C6,
-                "esp32s3" => BeaconDevice::Esp32S3,
-                _ => BeaconDevice::Esp32C3,
-            };
-
-            beacons.push(Beacon {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                area_id: row.get("area_id"),
-                merchant_id: row.get("merchant_id"),
-                connection_id: row.get("connection_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                r#type: beacon_type,
-                location,
-                device,
-                mac: row.get("mac"),
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(beacons)
+        .await
     }
 
     async fn search(
@@ -484,8 +399,6 @@ impl IntRepository for Beacon {
         asc: bool,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
         let like_pattern = format!("%{}%", query);
         let order_by = sort.unwrap_or("created_at");
         let direction = if asc { "ASC" } else { "DESC" };
@@ -512,52 +425,12 @@ impl IntRepository for Beacon {
             )
         };
 
-        let rows = sqlx::query(&sql)
+        sqlx::query_as::<_, Self>(&sql)
             .bind(entity.to_string())
             .bind(&like_pattern)
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
-            .await?;
-
-        let mut beacons = Vec::new();
-        for row in rows {
-            let location = wkb_to_point(row.get::<Vec<u8>, _>("location_wkb").as_slice())
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-            let beacon_type = match row.get::<String, _>("type").as_str() {
-                "navigation" => BeaconType::Navigation,
-                "marketing" => BeaconType::Marketing,
-                "tracking" => BeaconType::Tracking,
-                "environmental" => BeaconType::Environmental,
-                "security" => BeaconType::Security,
-                _ => BeaconType::Other,
-            };
-            let device = match row.get::<String, _>("device").as_str() {
-                "esp32" => BeaconDevice::Esp32,
-                "esp32c3" => BeaconDevice::Esp32C3,
-                "esp32c5" => BeaconDevice::Esp32C5,
-                "esp32c6" => BeaconDevice::Esp32C6,
-                "esp32s3" => BeaconDevice::Esp32S3,
-                _ => BeaconDevice::Esp32C3,
-            };
-
-            beacons.push(Beacon {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                area_id: row.get("area_id"),
-                merchant_id: row.get("merchant_id"),
-                connection_id: row.get("connection_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                r#type: beacon_type,
-                location,
-                device,
-                mac: row.get("mac"),
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(beacons)
+            .await
     }
 }

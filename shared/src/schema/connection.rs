@@ -16,7 +16,7 @@ pub type ConnectedArea = (String, f64, f64, bool);
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[cfg_attr(all(feature = "postgres", feature = "sql"), derive(sqlx::FromRow))]
 #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
 #[cfg_attr(
     all(feature = "ts-rs", not(feature = "postgres")),
@@ -270,8 +270,7 @@ impl crate::schema::repository::IntRepository for Connection {
 
 // SQLite repository implementation for Connection
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::postgis::{point_to_wkb, wkb_to_point};
+use crate::schema::postgis::point_to_wkb;
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::repository::IntRepository;
 
@@ -320,9 +319,7 @@ impl IntRepository for Connection {
         id: i32,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Option<Self>> {
-        use sqlx::Row;
-
-        let row = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, name, description, type, connected_areas,
                       available_period, tags, gnd_wkb, created_at, updated_at
                FROM connections WHERE id = ?1 AND entity_id = ?2"#,
@@ -330,49 +327,7 @@ impl IntRepository for Connection {
         .bind(id)
         .bind(entity.to_string())
         .fetch_optional(pool)
-        .await?;
-
-        match row {
-            Some(row) => {
-                let gnd = row
-                    .get::<Option<Vec<u8>>, _>("gnd_wkb")
-                    .map(|bytes| wkb_to_point(&bytes))
-                    .transpose()
-                    .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-                let connected_areas: Vec<ConnectedArea> =
-                    serde_json::from_str(&row.get::<String, _>("connected_areas"))
-                        .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-                let available_period: Vec<(i32, i32)> =
-                    serde_json::from_str(&row.get::<String, _>("available_period"))
-                        .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-                let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
-                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-                let connection_type = match row.get::<String, _>("type").as_str() {
-                    "gate" => ConnectionType::Gate,
-                    "escalator" => ConnectionType::Escalator,
-                    "elevator" => ConnectionType::Elevator,
-                    "stairs" => ConnectionType::Stairs,
-                    "rail" => ConnectionType::Rail,
-                    "shuttle" => ConnectionType::Shuttle,
-                    _ => ConnectionType::Gate,
-                };
-
-                Ok(Some(Connection {
-                    id: row.get("id"),
-                    entity_id: row.get("entity_id"),
-                    name: row.get("name"),
-                    description: row.get("description"),
-                    r#type: connection_type,
-                    connected_areas,
-                    available_period,
-                    tags,
-                    gnd,
-                    created_at: row.get("created_at"),
-                    updated_at: row.get("updated_at"),
-                }))
-            }
-            None => Ok(None),
-        }
+        .await
     }
 
     async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
@@ -428,9 +383,7 @@ impl IntRepository for Connection {
         limit: i64,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
-        let rows = sqlx::query(
+        sqlx::query_as::<_, Self>(
             r#"SELECT id, entity_id, name, description, type, connected_areas,
                       available_period, tags, gnd_wkb, created_at, updated_at
                FROM connections WHERE entity_id = ?1
@@ -441,49 +394,7 @@ impl IntRepository for Connection {
         .bind(limit)
         .bind(offset)
         .fetch_all(pool)
-        .await?;
-
-        let mut connections = Vec::new();
-        for row in rows {
-            let gnd = row
-                .get::<Option<Vec<u8>>, _>("gnd_wkb")
-                .map(|bytes| wkb_to_point(&bytes))
-                .transpose()
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-            let connected_areas: Vec<ConnectedArea> =
-                serde_json::from_str(&row.get::<String, _>("connected_areas"))
-                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let available_period: Vec<(i32, i32)> =
-                serde_json::from_str(&row.get::<String, _>("available_period"))
-                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
-                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let connection_type = match row.get::<String, _>("type").as_str() {
-                "gate" => ConnectionType::Gate,
-                "escalator" => ConnectionType::Escalator,
-                "elevator" => ConnectionType::Elevator,
-                "stairs" => ConnectionType::Stairs,
-                "rail" => ConnectionType::Rail,
-                "shuttle" => ConnectionType::Shuttle,
-                _ => ConnectionType::Gate,
-            };
-
-            connections.push(Connection {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                r#type: connection_type,
-                connected_areas,
-                available_period,
-                tags,
-                gnd,
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(connections)
+        .await
     }
 
     async fn search(
@@ -496,8 +407,6 @@ impl IntRepository for Connection {
         asc: bool,
         entity: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
-        use sqlx::Row;
-
         let like_pattern = format!("%{}%", query);
         let order_by = sort.unwrap_or("created_at");
         let direction = if asc { "ASC" } else { "DESC" };
@@ -524,54 +433,12 @@ impl IntRepository for Connection {
             )
         };
 
-        let rows = sqlx::query(&sql)
+        sqlx::query_as::<_, Self>(&sql)
             .bind(entity.to_string())
             .bind(&like_pattern)
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
-            .await?;
-
-        let mut connections = Vec::new();
-        for row in rows {
-            let gnd = row
-                .get::<Option<Vec<u8>>, _>("gnd_wkb")
-                .map(|bytes| wkb_to_point(&bytes))
-                .transpose()
-                .map_err(|e| sqlx::Error::Decode(format!("WKB decode: {}", e).into()))?;
-            let connected_areas: Vec<ConnectedArea> =
-                serde_json::from_str(&row.get::<String, _>("connected_areas"))
-                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let available_period: Vec<(i32, i32)> =
-                serde_json::from_str(&row.get::<String, _>("available_period"))
-                    .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let tags: Vec<String> = serde_json::from_str(&row.get::<String, _>("tags"))
-                .map_err(|e| sqlx::Error::Decode(format!("JSON decode: {}", e).into()))?;
-            let connection_type = match row.get::<String, _>("type").as_str() {
-                "gate" => ConnectionType::Gate,
-                "escalator" => ConnectionType::Escalator,
-                "elevator" => ConnectionType::Elevator,
-                "stairs" => ConnectionType::Stairs,
-                "rail" => ConnectionType::Rail,
-                "shuttle" => ConnectionType::Shuttle,
-                _ => ConnectionType::Gate,
-            };
-
-            connections.push(Connection {
-                id: row.get("id"),
-                entity_id: row.get("entity_id"),
-                name: row.get("name"),
-                description: row.get("description"),
-                r#type: connection_type,
-                connected_areas,
-                available_period,
-                tags,
-                gnd,
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            });
-        }
-
-        Ok(connections)
+            .await
     }
 }

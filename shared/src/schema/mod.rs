@@ -66,5 +66,9 @@ pub mod postgres;
 #[cfg(feature = "sql")]
 pub mod repository;
 
+// SQLite-specific FromRow implementations
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+mod sqlite_from_row;
+
 #[cfg(feature = "sql")]
 pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};
