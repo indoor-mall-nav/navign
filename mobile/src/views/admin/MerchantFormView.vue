@@ -38,6 +38,7 @@ const formData = ref({
   website: '',
   phone: '',
   email: '',
+  imageUrl: '',
 })
 
 onMounted(async () => {
@@ -85,6 +86,7 @@ async function loadMerchant() {
         website: merchant.website || '',
         phone: merchant.phone || '',
         email: merchant.email || '',
+        imageUrl: merchant.image_url || '',
       }
     } else {
       error.value = response.message || 'Failed to load merchant'
@@ -159,6 +161,7 @@ async function handleSubmit() {
         website: formData.value.website || null,
         phone: formData.value.phone || undefined,
         email: formData.value.email || null,
+        image_url: formData.value.imageUrl || null,
       }
       const response = await updateMerchant(entityId.value, updateData, session.userToken || '')
       if (response.status === 'success') {
@@ -182,6 +185,7 @@ async function handleSubmit() {
         website: formData.value.website || null,
         phone: formData.value.phone || undefined,
         email: formData.value.email || null,
+        image_url: formData.value.imageUrl || null,
       }
       const response = await createMerchant(entityId.value, createData, session.userToken || '')
       if (response.status === 'success') {
@@ -199,6 +203,58 @@ async function handleSubmit() {
 
 function handleCancel() {
   router.push({ name: 'admin-merchants', query: { entity: entityId.value } })
+}
+
+// Real-time validation
+const nameError = ref<string | null>(null)
+const beaconCodeError = ref<string | null>(null)
+const emailError = ref<string | null>(null)
+const websiteError = ref<string | null>(null)
+
+function validateName() {
+  if (!formData.value.name || formData.value.name.trim().length === 0) {
+    nameError.value = 'Name is required'
+  } else if (formData.value.name.length < 2) {
+    nameError.value = 'Name must be at least 2 characters'
+  } else {
+    nameError.value = null
+  }
+}
+
+function validateBeaconCode() {
+  if (!formData.value.beacon_code || formData.value.beacon_code.trim().length === 0) {
+    beaconCodeError.value = 'Beacon code is required'
+  } else if (!/^[A-Z0-9-]+$/.test(formData.value.beacon_code)) {
+    beaconCodeError.value = 'Beacon code must contain only uppercase letters, numbers, and hyphens'
+  } else {
+    beaconCodeError.value = null
+  }
+}
+
+function validateEmail() {
+  if (formData.value.email && formData.value.email.length > 0) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.value.email)) {
+      emailError.value = 'Invalid email format'
+    } else {
+      emailError.value = null
+    }
+  } else {
+    emailError.value = null
+  }
+}
+
+function validateWebsite() {
+  if (formData.value.website && formData.value.website.length > 0) {
+    try {
+      new URL(formData.value.website)
+      websiteError.value = null
+    } catch {
+      websiteError.value = 'Invalid URL format (must include https://)'
+    }
+  } else {
+    websiteError.value = null
+  }
 }
 </script>
 
@@ -221,9 +277,13 @@ function handleCancel() {
             <Input
               id="name"
               v-model="formData.name"
+              @blur="validateName"
+              @input="validateName"
               placeholder="Merchant name"
               required
+              :class="nameError ? 'border-red-500' : ''"
             />
+            <p v-if="nameError" class="text-xs text-red-600">{{ nameError }}</p>
           </div>
 
           <div class="space-y-2">
@@ -264,9 +324,13 @@ function handleCancel() {
             <Input
               id="beacon_code"
               v-model="formData.beacon_code"
+              @blur="validateBeaconCode"
+              @input="validateBeaconCode"
               placeholder="Unique identifier (e.g., M001)"
               required
+              :class="beaconCodeError ? 'border-red-500' : ''"
             />
+            <p v-if="beaconCodeError" class="text-xs text-red-600">{{ beaconCodeError }}</p>
           </div>
 
           <div class="space-y-2">
@@ -331,22 +395,46 @@ function handleCancel() {
 
           <div class="grid grid-cols-1 gap-4">
             <div class="space-y-2">
+              <Label for="image-url">Merchant Image URL</Label>
+              <Input
+                id="image-url"
+                v-model="formData.imageUrl"
+                type="url"
+                placeholder="https://example.com/image.jpg"
+              />
+              <div v-if="formData.imageUrl" class="mt-2">
+                <img
+                  :src="formData.imageUrl"
+                  alt="Merchant preview"
+                  class="w-full max-w-xs h-48 object-cover rounded-md border"
+                  @error="() => formData.imageUrl = ''"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-2">
               <Label for="website">Website</Label>
               <Input
                 id="website"
                 v-model="formData.website"
+                @blur="validateWebsite"
                 type="url"
                 placeholder="https://example.com"
+                :class="websiteError ? 'border-red-500' : ''"
               />
+              <p v-if="websiteError" class="text-xs text-red-600">{{ websiteError }}</p>
             </div>
             <div class="space-y-2">
               <Label for="email">Email</Label>
               <Input
                 id="email"
                 v-model="formData.email"
+                @blur="validateEmail"
                 type="email"
                 placeholder="contact@example.com"
+                :class="emailError ? 'border-red-500' : ''"
               />
+              <p v-if="emailError" class="text-xs text-red-600">{{ emailError }}</p>
             </div>
             <div class="space-y-2">
               <Label for="phone">Phone</Label>

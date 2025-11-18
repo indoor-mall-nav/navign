@@ -111,6 +111,66 @@ function getStyleBadgeVariant(style: string) {
   }
   return variants[style] || 'outline'
 }
+
+function exportToCSV() {
+  if (merchants.value.length === 0) {
+    error.value = 'No merchants to export'
+    return
+  }
+
+  // Define CSV headers
+  const headers = [
+    'ID',
+    'Name',
+    'Description',
+    'Chain',
+    'Beacon Code',
+    'Area ID',
+    'Type',
+    'Style',
+    'Tags',
+    'Email',
+    'Phone',
+    'Website',
+    'Image URL',
+    'Location X',
+    'Location Y',
+  ]
+
+  // Convert merchants to CSV rows
+  const rows = merchants.value.map(merchant => [
+    merchant.id,
+    `"${(merchant.name || '').replace(/"/g, '""')}"`,
+    `"${(merchant.description || '').replace(/"/g, '""')}"`,
+    `"${(merchant.chain || '').replace(/"/g, '""')}"`,
+    merchant.beacon_code,
+    merchant.area_id,
+    getMerchantTypeLabel(merchant.type),
+    merchant.style,
+    `"${merchant.tags.join(', ')}"`,
+    merchant.email || '',
+    merchant.phone || '',
+    merchant.website || '',
+    merchant.image_url || '',
+    merchant.location[0],
+    merchant.location[1],
+  ])
+
+  // Combine headers and rows
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n')
+
+  // Create download link
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `merchants-${entityId.value}-${new Date().toISOString().split('T')[0]}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -120,9 +180,14 @@ function getStyleBadgeVariant(style: string) {
         <h1 class="text-3xl font-bold">Merchants</h1>
         <p class="text-gray-600 mt-1">Manage stores, restaurants, and other merchants</p>
       </div>
-      <Button @click="navigateToCreate">
-        Create Merchant
-      </Button>
+      <div class="flex gap-2">
+        <Button @click="exportToCSV" variant="outline" :disabled="merchants.length === 0">
+          Export CSV
+        </Button>
+        <Button @click="navigateToCreate">
+          Create Merchant
+        </Button>
+      </div>
     </div>
 
     <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
@@ -140,6 +205,13 @@ function getStyleBadgeVariant(style: string) {
 
     <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card v-for="merchant in merchants" :key="merchant.id" class="hover:shadow-lg transition-shadow">
+        <div v-if="merchant.image_url" class="w-full h-48 overflow-hidden rounded-t-lg">
+          <img
+            :src="merchant.image_url"
+            :alt="merchant.name"
+            class="w-full h-full object-cover"
+          />
+        </div>
         <CardHeader>
           <div class="flex items-start justify-between">
             <div class="flex-1">
