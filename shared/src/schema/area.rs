@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use crate::schema::postgis::PgPolygon;
 use core::fmt::{Display, Formatter};
+#[cfg(all(feature = "postgres", feature = "sql"))]
+use sqlx::FromRow;
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]

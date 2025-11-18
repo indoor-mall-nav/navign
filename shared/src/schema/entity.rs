@@ -7,6 +7,8 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use core::fmt::Display;
+#[cfg(all(feature = "postgres", feature = "sql"))]
+use sqlx::FromRow;
 
 #[cfg(feature = "postgres")]
 use crate::schema::postgres::PgPoint;

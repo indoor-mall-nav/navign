@@ -139,7 +139,7 @@ impl PgPolygon {
     }
 
     #[cfg(feature = "geo")]
-    pub fn to_wkb(self) -> WkbResult<Vec<u8>> {
+    pub fn to_wkb(self) -> Result<Vec<u8>, wkb::error::WkbError> {
         let mut buffer = Vec::new();
         wkb::writer::write_polygon(
             &mut buffer,
@@ -152,7 +152,7 @@ impl PgPolygon {
     }
 
     #[cfg(feature = "geo")]
-    pub fn from_wkb(bytes: &[u8]) -> WkbResult<Self> {
+    pub fn from_wkb(bytes: &[u8]) -> Result<Self, wkb::error::WkbError> {
         let data = wkb::reader::read_wkb(bytes)?;
         let polygon = data.as_type();
         if let GeometryType::Polygon(pg) = polygon {
