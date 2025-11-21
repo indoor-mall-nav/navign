@@ -2,7 +2,7 @@ use crate::shared::BleError;
 use crate::shared::constants::*;
 use esp_println::println;
 use heapless::Vec;
-use navign_shared::{BleMessage, Depacketize, Packetize, Proof};
+use navign_shared::{BleMessage, Depacketize, Packetize};
 
 #[derive(Debug)]
 pub struct BleProtocolHandler {
@@ -96,10 +96,11 @@ impl BleProtocolHandler {
 
         println!("The buffer is {:?}", buffer);
 
-        let result = message.packetize().as_slice();
+        let msg = message.packetize();
+        let result = msg.as_slice();
 
         let mut output = [0u8; MAX_PACKET_SIZE];
-        output[..buffer.len()].copy_from_slice(buffer);
+        output[..buffer.len()].copy_from_slice(result);
         println!("The buffer is {:?}", output);
         Ok(output)
     }
@@ -121,7 +122,7 @@ impl BleProtocolHandler {
         }
 
         let result =
-            BleMessage::depacketize(&self.receive_buffer.as_slice()).ok_or(BleError::ParseError)?;
+            BleMessage::depacketize(self.receive_buffer.as_slice()).ok_or(BleError::ParseError)?;
 
         self.clear_receive_buffer();
 
