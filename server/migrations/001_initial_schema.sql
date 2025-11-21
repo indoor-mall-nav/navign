@@ -179,6 +179,28 @@ CREATE TABLE user_public_keys (
 CREATE INDEX idx_user_public_keys_user ON user_public_keys(user_id);
 CREATE INDEX idx_user_public_keys_device ON user_public_keys(device_id);
 
+-- Unlock instances table (INTEGER)
+CREATE TABLE unlock_instances (
+    id SERIAL PRIMARY KEY,
+    beacon_id INTEGER NOT NULL REFERENCES beacons(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) NOT NULL,
+    timestamp BIGINT NOT NULL,
+    beacon_nonce TEXT NOT NULL,
+    challenge_nonce TEXT NOT NULL,
+    stage VARCHAR(50) NOT NULL,
+    outcome TEXT NOT NULL DEFAULT '',
+    type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_unlock_instances_beacon ON unlock_instances(beacon_id);
+CREATE INDEX idx_unlock_instances_user ON unlock_instances(user_id);
+CREATE INDEX idx_unlock_instances_device ON unlock_instances(device_id);
+CREATE INDEX idx_unlock_instances_stage ON unlock_instances(stage);
+CREATE INDEX idx_unlock_instances_created_at ON unlock_instances(created_at);
+
 -- Firmware table (INTEGER)
 CREATE TABLE firmwares (
     id SERIAL PRIMARY KEY,
@@ -228,6 +250,9 @@ CREATE TRIGGER update_beacon_secrets_updated_at BEFORE UPDATE ON beacon_secrets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_public_keys_updated_at BEFORE UPDATE ON user_public_keys
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_unlock_instances_updated_at BEFORE UPDATE ON unlock_instances
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_firmwares_updated_at BEFORE UPDATE ON firmwares

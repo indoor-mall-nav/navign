@@ -348,6 +348,20 @@ fn merchant_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Merchant> {
     })
 }
 
+impl Merchant {
+    /// Get location as (x, y) coordinates
+    pub fn location(&self) -> (f64, f64) {
+        #[cfg(feature = "postgres")]
+        {
+            (self.location.lon(), self.location.lat())
+        }
+        #[cfg(not(feature = "postgres"))]
+        {
+            self.location
+        }
+    }
+}
+
 #[cfg(all(feature = "sql", feature = "postgres"))]
 #[async_trait::async_trait]
 impl IntRepository<sqlx::Postgres> for Merchant {

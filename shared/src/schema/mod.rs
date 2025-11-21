@@ -24,6 +24,8 @@ pub mod firmware;
 #[cfg(feature = "alloc")]
 pub mod merchant;
 #[cfg(feature = "alloc")]
+pub mod unlock_instance;
+#[cfg(feature = "alloc")]
 pub mod user_public_keys;
 
 // Re-export core types
@@ -43,7 +45,7 @@ pub use blufi::{
     BluFiProvisioningResult, BluFiState, WiFiNetwork, WiFiSecurityMode,
 };
 #[cfg(feature = "alloc")]
-pub use connection::{ConnectedArea, Connection, ConnectionType};
+pub use connection::{ConnectedArea, ConnectedAreaData, Connection, ConnectionType};
 #[cfg(feature = "alloc")]
 pub use entity::{Entity, EntityType};
 #[cfg(feature = "alloc")]
@@ -55,6 +57,8 @@ pub use merchant::{
     ChineseFoodCuisine, FacilityType, FoodCuisine, FoodType, Merchant, MerchantStyle, MerchantType,
     SocialMedia, SocialMediaPlatform,
 };
+#[cfg(feature = "alloc")]
+pub use unlock_instance::{AuthenticationType, UnlockInstance, UnlockStage};
 #[cfg(feature = "alloc")]
 pub use user_public_keys::UserPublicKeys;
 

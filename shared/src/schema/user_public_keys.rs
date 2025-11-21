@@ -44,3 +44,21 @@ pub struct UserPublicKeys {
     )]
     pub updated_at: Option<i64>, // Timestamp in milliseconds
 }
+
+impl UserPublicKeys {
+    /// Get user public key by device_id
+    #[cfg(all(feature = "postgres", feature = "sql"))]
+    pub async fn get_by_device_id(
+        pool: &sqlx::PgPool,
+        device_id: &str,
+    ) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as::<_, UserPublicKeys>(
+            "SELECT id, user_id, public_key, device_id, device_name, created_at, updated_at
+             FROM user_public_keys
+             WHERE device_id = $1",
+        )
+        .bind(device_id)
+        .fetch_optional(pool)
+        .await
+    }
+}

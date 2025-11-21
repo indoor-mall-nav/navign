@@ -13,6 +13,22 @@ use crate::schema::postgis::PgPoint;
 use crate::schema::IntRepository;
 use core::fmt::Display;
 
+/// Connected area data: (area_id, x, y, enabled)
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct ConnectedAreaData {
+    pub area_id: i32,
+    pub x: f64,
+    pub y: f64,
+    pub enabled: bool,
+}
+
+impl ConnectedAreaData {
+    pub fn location(&self) -> (f64, f64) {
+        (self.x, self.y)
+    }
+}
+
 pub type ConnectedArea = (String, f64, f64, bool);
 
 /// Connection schema - represents connections between areas (gates, elevators, etc.)
@@ -77,6 +93,24 @@ pub struct Connection {
 impl Connection {
     pub fn get_connected_areas(&self) -> &Vec<ConnectedArea> {
         &self.connected_areas
+    }
+
+    /// Convert connected areas to ConnectedAreaData
+    pub fn get_connected_areas_data(&self) -> Vec<ConnectedAreaData> {
+        self.connected_areas
+            .iter()
+            .filter_map(|(area_id_str, x, y, enabled)| {
+                area_id_str
+                    .parse::<i32>()
+                    .ok()
+                    .map(|area_id| ConnectedAreaData {
+                        area_id,
+                        x: *x,
+                        y: *y,
+                        enabled: *enabled,
+                    })
+            })
+            .collect()
     }
 }
 
