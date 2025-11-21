@@ -1,0 +1,309 @@
+syntax = "proto3";
+
+package navign.robot.intelligence;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+import "vision.proto";
+
+// =============================================================================
+// Intelligence Service - AI-powered natural language interaction
+// =============================================================================
+//
+// Pipeline Overview:
+// 1. Vision service detects objects with 3D world coordinates
+// 2. Audio service detects wake word and transcribes user speech
+// 3. Intelligence service receives scene + query, generates response
+// 4. Response is sent to audio service for TTS playback
+//
+// Zenoh Topics:
+//   Subscribe:
+//     - robot/vision/objects          : ObjectDetectionResponse (scene data)
+//     - robot/audio/transcription     : TranscriptionResult (user query)
+//     - robot/intelligence/request    : IntelligenceRequest (direct requests)
+//   Publish:
+//     - robot/intelligence/response   : IntelligenceResponse (generated text)
+//     - robot/intelligence/status     : ComponentInfo (health status)
+//
+// =============================================================================
+
+// IntelligenceService provides AI-powered scene description and Q&A
+service IntelligenceService {
+  // DescribeScene generates a natural language description of detected objects
+  rpc DescribeScene(SceneDescriptionRequest) returns (SceneDescriptionResponse);
+
+  // AnswerQuery responds to user questions about the environment
+  rpc AnswerQuery(QueryRequest) returns (QueryResponse);
+
+  // StreamResponses provides continuous response streaming for real-time interaction
+  rpc StreamResponses(IntelligenceStreamRequest) returns (stream IntelligenceEvent);
+
+  // GetComponentStatus returns intelligence component health status
+  rpc GetComponentStatus(StatusRequest) returns (StatusResponse);
+
+  // SetModelConfig updates the LLM configuration at runtime
+  rpc SetModelConfig(ModelConfigRequest) returns (common.Response);
+}
+
+// =============================================================================
+// Scene Description Messages
+// =============================================================================
+
+message SceneDescriptionRequest {
+  repeated SceneObject objects = 1;           // Objects detected by vision
+  common.Pose robot_pose = 2;                 // Robot's current position/orientation
+  string context = 3;                         // Additional context (e.g., "indoor mall")
+  DescriptionStyle style = 4;                 // Output style preference
+  string language = 5;                        // Output language (e.g., "en", "zh")
+  google.protobuf.Timestamp timestamp = 6;
+  string request_id = 7;
+}
+
+// SceneObject represents a detected object with spatial information
+message SceneObject {
+  string class_name = 1;                      // Object class (e.g., "chair", "person")
+  common.Point3D position = 2;                // 3D position in world coordinates
+  float confidence = 3;                       // Detection confidence (0.0-1.0)
+  float distance_meters = 4;                  // Distance from robot/user
+  SpatialRelation spatial_relation = 5;       // Relative position (left, right, ahead)
+  map<string, string> attributes = 6;         // Additional attributes (color, size)
+  uint32 object_id = 7;                       // Tracking ID from vision
+}
+
+enum SpatialRelation {
+  SPATIAL_RELATION_UNSPECIFIED = 0;
+  SPATIAL_RELATION_AHEAD = 1;
+  SPATIAL_RELATION_BEHIND = 2;
+  SPATIAL_RELATION_LEFT = 3;
+  SPATIAL_RELATION_RIGHT = 4;
+  SPATIAL_RELATION_ABOVE = 5;
+  SPATIAL_RELATION_BELOW = 6;
+  SPATIAL_RELATION_NEARBY = 7;
+  SPATIAL_RELATION_FAR = 8;
+}
+
+enum DescriptionStyle {
+  DESCRIPTION_STYLE_UNSPECIFIED = 0;
+  DESCRIPTION_STYLE_CONCISE = 1;              // Brief summary
+  DESCRIPTION_STYLE_DETAILED = 2;             // Full description
+  DESCRIPTION_STYLE_NAVIGATIONAL = 3;         // Focus on obstacles and paths
+  DESCRIPTION_STYLE_ACCESSIBILITY = 4;        // Optimized for visually impaired
+}
+
+message SceneDescriptionResponse {
+  string description = 1;                     // Generated natural language description
+  string request_id = 2;
+  InferenceSource source = 3;                 // Which model generated this
+  uint32 token_count = 4;                     // Tokens used
+  uint32 latency_ms = 5;                      // Processing time
+  google.protobuf.Timestamp timestamp = 6;
+  common.Response status = 7;
+}
+
+enum InferenceSource {
+  INFERENCE_SOURCE_UNSPECIFIED = 0;
+  INFERENCE_SOURCE_LOCAL = 1;                 // Local LLM (Qwen3-0.6B)
+  INFERENCE_SOURCE_REMOTE_OPENAI = 2;         // OpenAI GPT-4o
+  INFERENCE_SOURCE_REMOTE_DEEPSEEK = 3;       // DeepSeek
+  INFERENCE_SOURCE_CACHED = 4;                // Cached response
+}
+
+// =============================================================================
+// Query/Answer Messages
+// =============================================================================
+
+message QueryRequest {
+  string query = 1;                           // User's question (transcribed speech)
+  repeated SceneObject scene_context = 2;     // Current scene for context
+  repeated ConversationTurn history = 3;      // Previous conversation turns
+  string language = 4;                        // Preferred response language
+  QueryType query_type = 5;                   // Hint about query intent
+  google.protobuf.Timestamp timestamp = 6;
+  string request_id = 7;
+}
+
+message ConversationTurn {
+  string role = 1;                            // "user" or "assistant"
+  string content = 2;                         // Message content
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+enum QueryType {
+  QUERY_TYPE_UNSPECIFIED = 0;
+  QUERY_TYPE_SCENE_DESCRIPTION = 1;           // "What's around me?"
+  QUERY_TYPE_OBJECT_LOCATION = 2;             // "Where is the door?"
+  QUERY_TYPE_NAVIGATION = 3;                  // "How do I get to...?"
+  QUERY_TYPE_OBJECT_IDENTIFICATION = 4;       // "What is that thing?"
+  QUERY_TYPE_GENERAL = 5;                     // General questions
+}
+
+message QueryResponse {
+  string response = 1;                        // Generated response text
+  string request_id = 2;
+  InferenceSource source = 3;
+  QueryType detected_type = 4;                // Detected query intent
+  float confidence = 5;                       // Response confidence
+  uint32 token_count = 6;
+  uint32 latency_ms = 7;
+  repeated ReferencedObject referenced_objects = 8;  // Objects mentioned in response
+  google.protobuf.Timestamp timestamp = 9;
+  common.Response status = 10;
+}
+
+message ReferencedObject {
+  uint32 object_id = 1;                       // ID from SceneObject
+  string class_name = 2;
+  string mention = 3;                         // How it was mentioned ("the chair to your left")
+}
+
+// =============================================================================
+// Streaming Messages
+// =============================================================================
+
+message IntelligenceStreamRequest {
+  repeated IntelligenceEventType event_types = 1;
+  bool include_partial_responses = 2;         // Stream tokens as they're generated
+}
+
+enum IntelligenceEventType {
+  INTELLIGENCE_EVENT_TYPE_UNSPECIFIED = 0;
+  INTELLIGENCE_EVENT_TYPE_SCENE_DESCRIPTION = 1;
+  INTELLIGENCE_EVENT_TYPE_QUERY_RESPONSE = 2;
+  INTELLIGENCE_EVENT_TYPE_MODEL_SWITCH = 3;   // Local -> Remote fallback
+  INTELLIGENCE_EVENT_TYPE_ERROR = 4;
+}
+
+message IntelligenceEvent {
+  IntelligenceEventType type = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  oneof event_data {
+    SceneDescriptionResponse scene = 3;
+    QueryResponse query = 4;
+    ModelSwitchEvent model_switch = 5;
+    common.ErrorInfo error = 6;
+    PartialResponse partial = 7;              // For streaming tokens
+  }
+}
+
+message PartialResponse {
+  string request_id = 1;
+  string token = 2;                           // Single token or chunk
+  uint32 token_index = 3;
+  bool is_final = 4;                          // Last chunk of response
+}
+
+message ModelSwitchEvent {
+  InferenceSource from_source = 1;
+  InferenceSource to_source = 2;
+  string reason = 3;                          // e.g., "local model returned <remote>"
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// =============================================================================
+// Configuration Messages
+// =============================================================================
+
+message ModelConfigRequest {
+  ModelConfig config = 1;
+}
+
+message ModelConfig {
+  LocalModelConfig local = 1;
+  RemoteModelConfig remote = 2;
+  bool prefer_local = 3;                      // Try local first (default: true)
+  uint32 local_timeout_ms = 4;                // Timeout before falling back
+  float local_confidence_threshold = 5;       // Min confidence to accept local
+}
+
+message LocalModelConfig {
+  string model_name = 1;                      // e.g., "Qwen/Qwen3-0.6B"
+  uint32 max_tokens = 2;                      // Max tokens to generate
+  float temperature = 3;                      // Sampling temperature
+  bool enable_thinking = 4;                   // Enable chain-of-thought
+  string device = 5;                          // "auto", "cpu", "cuda:0"
+}
+
+message RemoteModelConfig {
+  RemoteProvider provider = 1;
+  string model_name = 2;                      // e.g., "gpt-4o", "deepseek-chat"
+  uint32 max_tokens = 3;
+  float temperature = 4;
+  bool auto_select_region = 5;                // Auto-detect available API
+}
+
+enum RemoteProvider {
+  REMOTE_PROVIDER_UNSPECIFIED = 0;
+  REMOTE_PROVIDER_OPENAI = 1;
+  REMOTE_PROVIDER_DEEPSEEK = 2;
+  REMOTE_PROVIDER_AUTO = 3;                   // Auto-select based on region
+}
+
+// =============================================================================
+// Status Messages
+// =============================================================================
+
+message StatusRequest {
+  // Empty request
+}
+
+message StatusResponse {
+  common.ComponentInfo component = 1;
+  IntelligenceMetrics metrics = 2;
+  ModelStatus local_model = 3;
+  ModelStatus remote_model = 4;
+  ActiveConfig active_config = 5;
+}
+
+message IntelligenceMetrics {
+  uint32 requests_processed = 1;
+  uint32 local_inferences = 2;
+  uint32 remote_inferences = 3;
+  uint32 fallbacks_to_remote = 4;             // Times local returned <remote>
+  float average_local_latency_ms = 5;
+  float average_remote_latency_ms = 6;
+  uint64 total_tokens_generated = 7;
+  uint64 uptime_seconds = 8;
+}
+
+message ModelStatus {
+  bool loaded = 1;
+  string model_name = 2;
+  InferenceSource source = 3;
+  bool available = 4;                         // API reachable / model loaded
+  string error_message = 5;
+  float memory_usage_mb = 6;                  // For local model
+}
+
+message ActiveConfig {
+  bool prefer_local = 1;
+  string local_model = 2;
+  RemoteProvider remote_provider = 3;
+  string remote_model = 4;
+}
+
+// =============================================================================
+// Zenoh Message Wrappers (for pub/sub serialization)
+// =============================================================================
+
+// IntelligenceRequest is published to robot/intelligence/request
+message IntelligenceRequest {
+  string request_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  oneof request {
+    SceneDescriptionRequest scene_request = 3;
+    QueryRequest query_request = 4;
+  }
+}
+
+// IntelligenceResponse is published to robot/intelligence/response
+message IntelligenceResponse {
+  string request_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  oneof response {
+    SceneDescriptionResponse scene_response = 3;
+    QueryResponse query_response = 4;
+  }
+  // For audio service to know what to speak
+  string text_to_speak = 5;
+  string language = 6;
+}
