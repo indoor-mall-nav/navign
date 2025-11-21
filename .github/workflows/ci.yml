@@ -50,7 +50,6 @@ jobs:
           run_firmware=false
           run_mobile=false
           run_admin=false
-          run_proc_macros=false
           run_repo=false
           run_robot=false
 
@@ -78,9 +77,6 @@ jobs:
                 # Proto files affect all admin components
                 run_admin=true
                 ;;
-              proc_macros/*)
-                run_proc_macros=true
-                ;;
               robot/*)
                 run_robot=true
                 ;;
@@ -92,7 +88,6 @@ jobs:
                 run_firmware=true
                 run_admin=true
                 run_mobile=true
-                run_proc_macros=true
                 run_robot=true
                 ;;
               go.work|go.work.sum)
@@ -119,7 +114,6 @@ jobs:
           [ "$run_firmware" = true ] && components+=("firmware")
           [ "$run_mobile" = true ] && components+=("mobile")
           [ "$run_admin" = true ] && components+=("admin")
-          [ "$run_proc_macros" = true ] && components+=("proc-macros")
           [ "$run_robot" = true ] && components+=("robot")
 
           if [ ${#components[@]} -eq 0 ]; then

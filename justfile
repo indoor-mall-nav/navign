@@ -28,7 +28,6 @@ lint:
   cd shared && cargo clippy --features sql,serde,crypto
   cd shared && cargo clippy --features postgres,sql,serde,crypto
   cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
-  cd proc_macros && cargo clippy -- -D warnings
   cd firmware && cargo clippy -- -D warnings
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
@@ -127,12 +126,6 @@ ci-shared:
   cd shared && cargo test --features geo,alloc,serde
   cd shared && cargo test --features postgres,sql,serde,crypto
   cd shared && cargo test --features postcard,serde
-
-ci-proc-macros:
-  cd proc_macros && cargo check
-  cd proc_macros && cargo fmt -- --check
-  cd proc_macros && cargo clippy -- -D warnings
-  cd proc_macros && cargo test
 
 ci-repo:
   taplo format --diff
