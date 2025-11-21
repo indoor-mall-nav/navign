@@ -113,11 +113,7 @@ pub struct UnlockInstance {
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
 impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance {
-    async fn create(
-        pool: &sqlx::PgPool,
-        item: &Self,
-        _entity: uuid::Uuid,
-    ) -> sqlx::Result<()> {
+    async fn create(pool: &sqlx::PgPool, item: &Self, _entity: uuid::Uuid) -> sqlx::Result<()> {
         sqlx::query(
             "INSERT INTO unlock_instances (beacon_id, user_id, device_id, timestamp, beacon_nonce, challenge_nonce, stage, outcome, type, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())"
@@ -128,9 +124,9 @@ impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance
         .bind(item.timestamp)
         .bind(&item.beacon_nonce)
         .bind(&item.challenge_nonce)
-        .bind(&item.stage.to_string())
+        .bind(item.stage.to_string())
         .bind(&item.outcome)
-        .bind(&item.r#type.to_string())
+        .bind(item.r#type.to_string())
         .execute(pool)
         .await?;
         Ok(())
@@ -155,9 +151,9 @@ impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance
         sqlx::query(
             "UPDATE unlock_instances
              SET stage = $1, outcome = $2, updated_at = NOW()
-             WHERE id = $3"
+             WHERE id = $3",
         )
-        .bind(&item.stage.to_string())
+        .bind(item.stage.to_string())
         .bind(&item.outcome)
         .bind(item.id)
         .execute(pool)
@@ -206,13 +202,13 @@ impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance
              FROM unlock_instances
              WHERE "
         );
-        
+
         if case_insensitive {
             sql.push_str("LOWER(device_id) LIKE LOWER($1)");
         } else {
             sql.push_str("device_id LIKE $1");
         }
-        
+
         if let Some(sort_field) = sort {
             sql.push_str(&format!(
                 " ORDER BY {} {}",
@@ -222,7 +218,7 @@ impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance
         } else {
             sql.push_str(" ORDER BY created_at DESC");
         }
-        
+
         sql.push_str(" OFFSET $2 LIMIT $3");
 
         let pattern = format!("%{}%", query);
@@ -249,18 +245,18 @@ impl UnlockInstance {
         if let Some(o) = outcome {
             self.outcome = o;
         }
-        
+
         sqlx::query(
             "UPDATE unlock_instances
              SET stage = $1, outcome = $2, updated_at = NOW()
-             WHERE id = $3"
+             WHERE id = $3",
         )
-        .bind(&self.stage.to_string())
+        .bind(self.stage.to_string())
         .bind(&self.outcome)
         .bind(self.id)
         .execute(pool)
         .await?;
-        
+
         Ok(())
     }
 }

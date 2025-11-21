@@ -50,7 +50,7 @@ impl BeaconSecrets {
         sqlx::query_as::<_, BeaconSecrets>(
             "SELECT id, beacon_id, private_key, created_at, updated_at
              FROM beacon_secrets
-             WHERE beacon_id = $1"
+             WHERE beacon_id = $1",
         )
         .bind(beacon_id)
         .fetch_optional(pool)

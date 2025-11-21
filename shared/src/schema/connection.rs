@@ -94,18 +94,21 @@ impl Connection {
     pub fn get_connected_areas(&self) -> &Vec<ConnectedArea> {
         &self.connected_areas
     }
-    
+
     /// Convert connected areas to ConnectedAreaData
     pub fn get_connected_areas_data(&self) -> Vec<ConnectedAreaData> {
         self.connected_areas
             .iter()
             .filter_map(|(area_id_str, x, y, enabled)| {
-                area_id_str.parse::<i32>().ok().map(|area_id| ConnectedAreaData {
-                    area_id,
-                    x: *x,
-                    y: *y,
-                    enabled: *enabled,
-                })
+                area_id_str
+                    .parse::<i32>()
+                    .ok()
+                    .map(|area_id| ConnectedAreaData {
+                        area_id,
+                        x: *x,
+                        y: *y,
+                        enabled: *enabled,
+                    })
             })
             .collect()
     }

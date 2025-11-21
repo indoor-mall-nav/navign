@@ -296,6 +296,19 @@ async fn main() -> ServerResult<()> {
             "/api/entities/{entity}/route",
             get(kernel::route::find_route),
         )
+        // Unlocker endpoints (placeholder for now)
+        .route(
+            "/api/entities/{entity}/beacons/{beacon}/unlocker",
+            post(kernel::unlocker::create_unlock_instance),
+        )
+        .route(
+            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}",
+            put(kernel::unlocker::update_unlock_instance),
+        )
+        .route(
+            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}/result",
+            post(kernel::unlocker::record_unlock_result),
+        )
         .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
