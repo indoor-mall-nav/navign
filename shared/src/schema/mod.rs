@@ -24,6 +24,8 @@ pub mod firmware;
 #[cfg(feature = "alloc")]
 pub mod merchant;
 #[cfg(feature = "alloc")]
+pub mod unlock_instance;
+#[cfg(feature = "alloc")]
 pub mod user_public_keys;
 
 // Re-export core types
@@ -55,6 +57,8 @@ pub use merchant::{
     ChineseFoodCuisine, FacilityType, FoodCuisine, FoodType, Merchant, MerchantStyle, MerchantType,
     SocialMedia, SocialMediaPlatform,
 };
+#[cfg(feature = "alloc")]
+pub use unlock_instance::{AuthenticationType, UnlockInstance, UnlockStage};
 #[cfg(feature = "alloc")]
 pub use user_public_keys::UserPublicKeys;
 

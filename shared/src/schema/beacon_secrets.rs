@@ -43,6 +43,21 @@ pub struct BeaconSecrets {
     pub updated_at: Option<i64>, // Timestamp in milliseconds
 }
 
+impl BeaconSecrets {
+    /// Get beacon secrets by beacon_id
+    #[cfg(all(feature = "postgres", feature = "sql"))]
+    pub async fn get_by_beacon_id(pool: &PgPool, beacon_id: i32) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as::<_, BeaconSecrets>(
+            "SELECT id, beacon_id, private_key, created_at, updated_at
+             FROM beacon_secrets
+             WHERE beacon_id = $1"
+        )
+        .bind(beacon_id)
+        .fetch_optional(pool)
+        .await
+    }
+}
+
 #[cfg(feature = "postgres")]
 #[async_trait::async_trait]
 impl UuidRepository<sqlx::Postgres> for BeaconSecrets {

@@ -9,3 +9,9 @@ mod user_public;
 pub use beacon_secrets::BeaconSecrets;
 pub use user::User;
 pub use user_public::UserPublicKeys;
+
+// Re-export commonly used types from shared
+pub use navign_shared::schema::{
+    Area, Beacon, BeaconDevice, BeaconType, Connection, ConnectionType, Entity, EntityType,
+    Floor, FloorType, Merchant, UnlockInstance, UnlockStage, AuthenticationType,
+};

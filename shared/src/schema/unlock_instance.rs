@@ -9,6 +9,11 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "sql", derive(sqlx::Type))]
+#[cfg_attr(
+    feature = "sql",
+    sqlx(type_name = "VARCHAR", rename_all = "kebab-case")
+)]
 pub enum AuthenticationType {
     /// Bluetooth Low Energy, the pipeline implemented in this project
     Ble,
