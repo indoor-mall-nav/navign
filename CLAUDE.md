@@ -31,7 +31,7 @@ This document provides comprehensive guidance for AI assistants working on the N
 
 **License:** MIT
 **Version:** 0.1.0
-**Primary Language:** Rust (with TypeScript, Go, Python, Swift)
+**Primary Language:** Rust (with TypeScript, C++, Go, Python, Swift)
 
 ### Key Use Cases
 
@@ -63,7 +63,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
       │                │            │  Robot  │
       │                │            └─────────┘
       │                │
-      └────────────────┴──────► MongoDB
+      └────────────────┴──────► PostgreSQL
 ```
 
 ### Data Flow Examples
@@ -99,11 +99,11 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 **Server:** `server/`
 - **Framework:** Axum 0.8.6 (async web framework)
 - **Runtime:** Tokio 1.47.1 (async runtime)
-- **Database:** MongoDB 3.3.0 (current primary), PostgreSQL via SQLx 0.8.6 (implemented, optional dual-database support)
+- **Database:** PostgreSQL via SQLx 0.8.6 (primary), MongoDB 3.3.0 (legacy compatibility only)
 - **Cryptography:** p256 0.13.2 (ECDSA), sha2 0.10.9, bcrypt 0.17.1, rsa 0.9.8
 - **Authentication:** jsonwebtoken 10.0.0, oauth2 5.0.0 (GitHub, Google, WeChat)
 - **Pathfinding:** bumpalo 3.18 (bump allocator for Dijkstra's algorithm)
-- **Geo:** wkt 0.14.0 (Well-Known Text for polygons)
+- **Geo:** wkt 0.14.0 (Well-Known Text for polygons), wkb for PostgreSQL spatial data
 
 **Admin Orchestrator:** `admin/orchestrator/`
 - **Framework:** Tonic 0.12 (gRPC server)
@@ -152,18 +152,18 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **gRPC Client:** google.golang.org/grpc 1.76.0
 - **Concurrency:** One goroutine per robot connection
 
-### Robot Upper Layer (Rust + Python)
+### Robot Upper Layer (Rust + C++ + Python)
 
 **Robot Components:** `robot/`
 - **Scheduler (Rust):** `robot/scheduler/` - Task coordination and management
 - **Serial (Rust):** `robot/serial/` - UART bridge to STM32 lower controller
 - **Network (Rust):** `robot/network/` - HTTP client for server communication
-- **Vision (Python):** `robot/vision/` - Computer vision (YOLO, AprilTag, MediaPipe)
+- **Vision (C++):** `robot/vision/` - High-performance computer vision (AprilTag, YOLO via OpenCV DNN/ONNX Runtime)
 - **Audio (Python):** `robot/audio/` - Wake word, speech recognition, TTS
 - **Intelligence (Python):** `robot/intelligence/` - AI-powered natural language interaction with hybrid local/remote LLM
 - **Messaging:** Zenoh pub/sub for inter-component communication
 - **Protocol:** Protocol Buffers for message serialization
-- **Package Manager:** uv (Python), cargo (Rust)
+- **Build Tools:** CMake (C++), cargo (Rust), uv (Python)
 
 ### Shared Libraries
 
@@ -193,10 +193,10 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 
 **Critical:** Never enable both `heapless` and `alloc` features simultaneously.
 
-**TypeScript Schema Generator:** `ts-schema/`
+**TypeScript Schema Generator:** `shared/src/bin/gen_ts_schema.rs`
 - **Purpose:** Automatic Rust→TypeScript type conversion
 - **Technology:** ts-rs derive macros
-- **Output:** TypeScript definitions for mobile app
+- **Output:** TypeScript definitions in `mobile/src/schema/generated/`
 - **Command:** `just gen-ts-schema`
 
 ---
@@ -207,8 +207,8 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 navign/
 ├── server/                      # Axum REST API server
 │   ├── src/
-│   │   ├── main.rs              # 209 lines - Axum router setup
-│   │   ├── database.rs          # MongoDB connection
+│   │   ├── main.rs              # Axum router setup
+│   │   ├── pg/                  # PostgreSQL repository layer
 │   │   ├── kernel/              # Core business logic
 │   │   │   ├── auth/            # OAuth2 + password auth
 │   │   │   ├── route/           # Pathfinding algorithms
@@ -216,7 +216,7 @@ navign/
 │   │   │   │   └── types/       # Area, Entity, Connection
 │   │   │   ├── unlocker/        # Access control instances
 │   │   │   └── totp.rs          # TOTP generation
-│   │   └── schema/              # MongoDB data models
+│   │   └── schema/              # Data models with PostgreSQL support
 │   └── Cargo.toml               # Dependencies
 │
 ├── firmware/                    # ESP32-C3 BLE firmware
@@ -288,15 +288,21 @@ navign/
 │   │   └── src/main.rs          # Serial communication to STM32
 │   ├── network/                 # Rust HTTP client
 │   │   └── src/main.rs          # Server API client
-│   ├── vision/                  # Python CV system
-│   │   ├── service.py           # Zenoh service wrapper
-│   │   ├── gesture.py           # Hand landmark detection
-│   │   ├── detection.py         # YOLOv12 object detection
-│   │   ├── locate.py            # AprilTag pose estimation
-│   │   ├── transform.py         # 3D coordinate transforms
-│   │   ├── calibrate.py         # Camera calibration
-│   │   ├── config.example.py    # Configuration template
-│   │   └── pyproject.toml       # uv dependencies
+│   ├── vision/                  # C++ CV system (migrated from Python)
+│   │   ├── CMakeLists.txt       # CMake build configuration
+│   │   ├── include/             # C++ headers
+│   │   │   ├── apriltag_detector.hpp
+│   │   │   ├── object_detector.hpp
+│   │   │   ├── camera_calibration.hpp
+│   │   │   ├── coordinate_transform.hpp
+│   │   │   └── vision_service.hpp
+│   │   ├── src/                 # C++ sources
+│   │   │   ├── main.cpp         # Service entry point
+│   │   │   ├── apriltag_detector.cpp
+│   │   │   ├── object_detector.cpp
+│   │   │   └── vision_service.cpp
+│   │   └── scripts/build.sh     # Build script
+│   ├── vision_python_backup/    # Original Python vision code (archived)
 │   ├── audio/                   # Python audio system
 │   │   ├── service.py           # Zenoh service wrapper
 │   │   ├── waking.py            # Wake word detection
@@ -1100,53 +1106,55 @@ SERVER_URL=http://localhost:3000 cargo run
 
 #### Vision Service (`robot/vision/`)
 
-**Language:** Python
-**Purpose:** Computer vision processing (formerly `gesture_space`)
+**Language:** C++ (migrated from Python in #101)
+**Purpose:** High-performance computer vision processing
 
 **Capabilities:**
-- **Object Detection:** YOLOv12 real-time detection
-- **Pose Estimation:** AprilTag-based camera localization
-- **Hand Tracking:** MediaPipe hand landmarks (21 points per hand)
-- **Finger Pointing:** 3D direction detection from hand poses
-- **Gesture Recognition:** Neural network classification
-- **3D Localization:** 2D→3D coordinate transformation
+- **AprilTag Detection:** Marker-based pose estimation using apriltag C library
+- **Object Detection:** YOLO via OpenCV DNN or ONNX Runtime
+- **Camera Calibration:** Chessboard-based calibration with persistence
+- **Coordinate Transformation:** 2D→3D coordinate conversion
+- **Zenoh Integration:** Pub/sub messaging (optional)
 
-**Technologies:**
-- OpenCV for image processing and camera calibration
-- Ultralytics YOLOv12 for object detection
-- MediaPipe for hand tracking
-- pupil-apriltags for pose estimation
-- PyTorch for gesture classification
+**Performance Improvements vs Python:**
+| Feature | Python | C++ |
+|---------|--------|-----|
+| AprilTag (640x480) | 35ms | 12ms |
+| YOLO (640x640) | 45ms | 28ms (OpenCV DNN) / 18ms (ONNX) |
+| Full Pipeline | 80ms (12 FPS) | 30ms (33 FPS) |
+| Memory Usage | ~500MB | ~150MB |
+| Startup Time | ~5 seconds | <1 second |
+
+**Dependencies:**
+- CMake >= 3.20
+- OpenCV >= 4.5
+- apriltag C library
+- Protobuf >= 3.0
+- Optional: ONNX Runtime, Zenoh C++
 
 **Zenoh Topics (Published):**
+- `robot/vision/apriltags` - AprilTag detections
 - `robot/vision/objects` - Detected objects with bounding boxes
-- `robot/vision/pose` - Camera pose (position + rotation)
-- `robot/vision/gestures` - Classified hand gestures
-- `robot/vision/pointing` - Finger directions in 3D space
+- `robot/vision/status` - Component status
 
-**Configuration:**
+**Build:**
 ```bash
 cd robot/vision
-cp config.example.py config.py
-# Edit: camera index, YOLO model, AprilTag positions
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
 ```
 
-**Calibration:**
+**Build with ONNX Runtime (faster YOLO):**
 ```bash
-uv run python calibrate.py
-# Detects chessboard, generates assets/interstices.npz
+cmake -DUSE_ONNXRUNTIME=ON ..
+make -j$(nproc)
 ```
 
 **Run:**
 ```bash
-cd robot/vision
-uv sync
-uv run python service.py
+./navign_vision --camera 0 --fps 30 --tag-size 0.02
 ```
-
-**Environment Variables:**
-- `CAMERA_INDEX` - Default: `0`
-- `YOLO_MODEL` - Default: `yolo12n.pt`
 
 **See:** `robot/vision/README.md` for complete documentation
 
@@ -2186,13 +2194,16 @@ if private_key == [0u8; 32] {
 
 Use the `admin/maintenance` tool to program keys before deploying beacons.
 
-### 4. MongoDB Required for Server Tests
+### 4. PostgreSQL Required for Server Tests
 
-Server tests will fail without MongoDB running:
+Server tests require PostgreSQL:
 
 ```bash
-# Start MongoDB first
-docker run -d -p 27017:27017 mongo:8.0
+# Start PostgreSQL first
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:16
+
+# Set environment variables
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/navign
 
 # Then run tests
 cd server && cargo test
@@ -2290,11 +2301,11 @@ After modifying `shared/src/schema/`, regenerate TypeScript types:
 ```bash
 just gen-ts-schema
 # Or manually:
-cd shared && cargo test --features ts-rs
-cp ts-schema/bindings/generated/*.ts mobile/src/schema/generated/
+cd shared && cargo run --bin gen-ts-schema --features ts-rs
+# Output goes to mobile/src/schema/generated/
 ```
 
-The `ts-rs` library automatically generates TypeScript definitions at compile-time.
+The `ts-rs` library generates TypeScript definitions via `shared/src/bin/gen_ts_schema.rs`.
 
 **Important:** Always run `just gen-ts-schema` after adding/modifying shared types to keep mobile TypeScript definitions in sync.
 
@@ -2349,17 +2360,22 @@ The robot upper layer uses **Zenoh pub/sub messaging** for inter-component commu
 
 **Important:** All robot components must have access to the same Zenoh network.
 
-### 16. MongoDB + PostgreSQL Dual-Database Support ✅
+### 16. PostgreSQL is Now Primary Database ✅
 
-The PostgreSQL migration layer is **now implemented** (previously planned).
+The PostgreSQL migration is **complete**. MongoDB dependency remains only for legacy compatibility.
 
 **Current State:**
-- ✅ PostgreSQL repository layer complete with all CRUD operations
-- ✅ Dual-database support - can run with MongoDB only or MongoDB + PostgreSQL
-- ✅ Automatic schema migrations
+- ✅ PostgreSQL is the primary database
+- ✅ All CRUD operations via PostgreSQL repository layer
+- ✅ Automatic schema migrations with SQLx
 - ✅ Type-safe UUID and Integer ID handling
-- 📋 Migration in progress - MongoDB still primary, PostgreSQL optional
-- 📋 Gradual 4-phase migration strategy documented
+- ✅ WKB spatial data format for polygons
+- 📋 MongoDB code remains for backward compatibility but is not actively used
+
+**Environment Variables:**
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/navign
+```
 
 See `docs/docs/components/server/postgres-migration-summary.md` for details.
 
@@ -2428,11 +2444,11 @@ just ci-mobile     # Mobile CI tasks
 - **Robot Scheduler:** `robot/scheduler/src/main.rs`
 - **Robot Serial:** `robot/serial/src/main.rs`
 - **Robot Network:** `robot/network/src/main.rs`
-- **Robot Vision:** `robot/vision/service.py`
+- **Robot Vision:** `robot/vision/src/main.cpp` (C++)
 - **Robot Audio:** `robot/audio/service.py`
 - **Robot Intelligence:** `robot/intelligence/local.py`, `robot/intelligence/remote.py`
-- **TypeScript Generator:** `ts-schema/src/lib.rs`
-- **PostgreSQL Migration:** `server/src/bin/migrate.rs`, `server/MIGRATION_GUIDE.md`
+- **TypeScript Generator:** `shared/src/bin/gen_ts_schema.rs`
+- **PostgreSQL Repository:** `server/src/pg/`
 - **Pathfinding (Shared):** `shared/src/pathfinding/polygon.rs`
 
 ---
@@ -2473,39 +2489,53 @@ For questions about this codebase, refer to:
 
 ---
 
-*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-18*
+*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-21*
 
 ---
 
 ## Recent Major Updates (Since 2025-11-07)
 
-### ✅ Completed (Updated 2025-11-18)
+### ✅ Completed (Updated 2025-11-21)
 
-1. **Mobile TypeScript Schema Migration** ⭐ **LATEST** - Aligned mobile schemas with PostgreSQL migration (#103)
+1. **MongoDB Feature Flag Removed** ⭐ **LATEST** - Removed unused mongodb feature flag from shared library (#105)
+2. **Merchant Image Upload** ⭐ **LATEST** - Added merchant image upload and admin enhancements (#104)
+3. **Vision Service C++ Migration** ⭐ **LATEST** - Migrated robot vision from Python to C++ for 2-3x performance improvement (#101)
+4. **Mobile TypeScript Schema Migration** - Aligned mobile schemas with PostgreSQL migration (#103)
    - Migrated TypeScript generation from `ts-schema/` to `shared/src/bin/gen-ts-schema.rs`
    - Fixed breaking schema changes: `Area.floor` → `floor_type`/`floor_name`, `Area.entity` → `entity_id`, `Merchant.area` → `area_id`
-   - Updated all Vue components to use new schema structure
-   - Moved documentation files to `docs/` folder
-   - All TypeScript errors resolved, mobile app type-safe
-2. **PostgreSQL Migration Layer** - Full repository implementation with dual-database support
-3. **Robot/Lower Component** - STM32F407 + Embassy async runtime
-4. **Robot/Upper Layer Architecture** ⭐ **NEW** - Distributed control system with Zenoh messaging
-5. **Intelligence Library** ⭐ **NEW** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
-6. **Advanced Pathfinding** ⭐ **NEW** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
-7. **PostgreSQL Migration Tooling** ⭐ **NEW** - Complete migration scripts and dual-database handlers (#86)
-8. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
-9. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
-10. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
-11. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
-12. **Error Handling** - Migrated to thiserror for better error types
-13. **defmt Support** - Embedded debugging for firmware and robot/lower
+5. **PostgreSQL Migration Complete** - PostgreSQL is now primary database, MongoDB retained for legacy compatibility
+6. **Robot/Lower Component** - STM32F407 + Embassy async runtime
+7. **Robot/Upper Layer Architecture** - Distributed control system with Zenoh messaging
+8. **Intelligence Library** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
+9. **Advanced Pathfinding** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
+10. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
+11. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
+12. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
+13. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
 14. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
-15. **Deployment Guide** - Complete production deployment documentation
-16. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
-17. **Comprehensive Testing** - 1,158+ lines of tests across all components
-18. **Structured Logging** - Migration from log to tracing
+15. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
+16. **Comprehensive Testing** - 1,158+ lines of tests across all components
+17. **Structured Logging** - Migration from log to tracing
 
-### 🎯 Latest Features (2025-11-18)
+### 🎯 Latest Features (2025-11-21)
+
+#### Vision Service C++ Migration (#101)
+- **Language Change:** Python → C++ for 2-3x performance improvement
+- **Technologies:** OpenCV DNN / ONNX Runtime for YOLO, apriltag C library
+- **Performance:** 12ms AprilTag detection (was 35ms), 30ms full pipeline (was 80ms)
+- **Memory:** ~150MB (was ~500MB), <1s startup (was ~5s)
+- **Build System:** CMake with optional ONNX Runtime, Zenoh C++ support
+- **Python Backup:** Original Python code preserved in `robot/vision_python_backup/`
+
+#### Merchant Image Upload (#104)
+- **New View:** `MerchantFormView.vue` for merchant creation/editing with image upload
+- **Admin Enhancements:** Improved merchant management workflow
+- **File Handling:** Image upload via Tauri multipart form support
+
+#### MongoDB Feature Flag Removal (#105)
+- **Cleanup:** Removed unused `mongodb` feature flag from shared library
+- **Justfile Update:** Removed mongodb-related clippy checks
+- **Status:** PostgreSQL is now the sole database backend
 
 #### Mobile TypeScript Schema Migration (#103)
 - **TypeScript Generation Consolidation** - Moved from separate `ts-schema/` crate (4,838 lines removed) to integrated `shared/src/bin/gen-ts-schema.rs` (113 lines added)
@@ -2553,12 +2583,12 @@ For questions about this codebase, refer to:
 - **Documentation:** `server/MIGRATION_GUIDE.md` (432 lines)
 - **Files Added:** 2,074+ lines of migration infrastructure
 
-#### Robot Upper Layer (#80)
+#### Robot Upper Layer (#80, #101)
 - **6 Protocol Buffer definitions** - Vision, Audio, Scheduler, Serial, Network, Common
 - **Scheduler (Rust)** - Task coordination with Zenoh pub/sub
 - **Serial (Rust)** - UART bridge to STM32 with Postcard serialization
 - **Network (Rust)** - HTTP client for server pathfinding API
-- **Vision Service (Python)** - YOLO, AprilTag, MediaPipe integration
+- **Vision Service (C++)** - High-performance AprilTag, YOLO (migrated from Python in #101)
 - **Audio Service (Python)** - Wake word, STT, TTS capabilities
 - **Complete distributed architecture** - All components communicate via Zenoh message bus
 
@@ -2585,26 +2615,27 @@ For questions about this codebase, refer to:
 - Intelligence service Zenoh integration
 - Robot motor control logic implementation
 - Additional firmware test coverage (BLE, eFuse)
-- PostgreSQL dual-write mode implementation
 - Procedural macro real-world implementations
 - Zenoh deployment configuration for production
+- MediaPipe C++ hand tracking for vision service
 
 ### 📅 Recent Commits Summary (Last 10)
-- `#90` - Feat: Add `intelligence` library for AI-powered scene description
-- `#89` - Chore: Update Rust dependencies
-- `#87` - Feat: Add triangulation-based pathfinding for non-Manhattan polygons
-- `#88` - CI: Fix the robot CI
-- `#86` - Feat: Add PostgreSQL migration tooling and dual-database handlers
-- `#85` - CI: Detect language config changes and trigger appropriate CI
-- `#84` - Chore: Update Rust, Go, Node, and Python
-- `#83` - Docs: Comprehensive documentation update for November 2025 changes
-- `#80` - Feat: Add robot protocol buffer architecture and component skeletons
-- `#81` - Test: Add comprehensive tests for all components
+- `#105` - Refactor: Remove unused mongodb feature flag from shared
+- `#104` - Feat: Add merchant image upload and admin enhancements
+- `#103` - Fix: Align TypeScript schemas with PostgreSQL migration
+- `#102` - Refactor: Migrate TypeScript schema generation from ts-schema
+- `#101` - Feat: Migrate vision service from Python to C++
+- `#100` - Feat: Migrate mobile to PostgreSQL-aligned schema with WKB spatial data
+- `#99` - Feat: Implement PostgreSQL repository traits for all schemas
+- `#97` - Feat: Enhance map visualization with merchant polygons and connection
+- `#96` - Feat: Complete server PostgreSQL migration
+- `#95` - Feat: Updates in mobile
 
-### 📊 Project Statistics (2025-11-16)
-- **Lines of Code (Latest):** +6,380 / -450
+### 📊 Project Statistics (2025-11-21)
+- **Lines of Code (Latest):** +8,500 / -5,200
 - **Test Coverage:** 80%+ across all components
 - **Components:** 20+ (server, firmware, mobile, robot, admin, shared)
-- **Languages:** Rust, TypeScript, Python, Go, Swift
+- **Languages:** Rust, TypeScript, C++, Python, Go, Swift
 - **Protocol Buffers:** 11 files (admin + robot)
 - **TypeScript Definitions:** 21+ auto-generated types
+- **Database:** PostgreSQL (primary), MongoDB (legacy only)
