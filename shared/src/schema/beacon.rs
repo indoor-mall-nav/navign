@@ -145,7 +145,7 @@ impl Beacon {
     pub fn location(&self) -> (f64, f64) {
         #[cfg(feature = "postgres")]
         {
-            (self.location.0, self.location.1)
+            (self.location.0.0.x, self.location.0.0.y)
         }
         #[cfg(not(feature = "postgres"))]
         {
@@ -182,9 +182,6 @@ fn beacon_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Beacon> {
         updated_at: row.try_get("updated_at")?,
     })
 }
-
-#[cfg(all(feature = "postgres", feature = "sql"))]
-use crate::schema::repository::IntRepository;
 
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
