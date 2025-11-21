@@ -32,26 +32,12 @@ pub(crate) mod utils;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let migrations = vec![
-                Migration {
-                    version: 1,
-                    description: "initialize",
-                    sql: include_str!("navign.sql"),
-                    kind: MigrationKind::Up,
-                },
-                Migration {
-                    version: 2,
-                    description: "comprehensive schema with WKT support",
-                    sql: include_str!("navign_v2.sql"),
-                    kind: MigrationKind::Up,
-                },
-                Migration {
-                    version: 3,
-                    description: "aligned with PostgreSQL schema using WKB and INTEGER ids",
-                    sql: include_str!("navign_v3.sql"),
-                    kind: MigrationKind::Up,
-                },
-            ];
+            let migrations = vec![Migration {
+                version: 1,
+                description: "aligned with PostgreSQL schema using WKB and INTEGER ids",
+                sql: include_str!("../migrations/01_navign.sql"),
+                kind: MigrationKind::Up,
+            }];
             app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_fs::init())?;
             app.handle().plugin(tauri_plugin_http::init())?;

@@ -1,52 +1,22 @@
 #![allow(async_fn_in_trait)]
 #![allow(clippy::too_many_arguments)]
 
-#[cfg(feature = "postgres")]
-use sqlx::PgPool;
 #[cfg(feature = "sql")]
 use sqlx::Result;
-#[cfg(not(feature = "postgres"))]
-use sqlx::SqlitePool;
+use sqlx::{Database, Pool};
 #[cfg(feature = "sql")]
 use uuid::Uuid;
 
 #[cfg(feature = "sql")]
 #[async_trait::async_trait]
-pub trait IntRepository: Sized {
-    #[cfg(feature = "postgres")]
-    async fn create(pool: &PgPool, item: &Self, entity: Uuid) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn create(pool: &SqlitePool, item: &Self, entity: Uuid) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn get_by_id(pool: &PgPool, id: i32, entity: Uuid) -> Result<Option<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn get_by_id(pool: &SqlitePool, id: i32, entity: Uuid) -> Result<Option<Self>>;
-    #[cfg(feature = "postgres")]
-    async fn update(pool: &PgPool, item: &Self, entity: Uuid) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn update(pool: &SqlitePool, item: &Self, entity: Uuid) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn delete(pool: &PgPool, id: i32, entity: Uuid) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn delete(pool: &SqlitePool, id: i32, entity: Uuid) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn list(pool: &PgPool, offset: i64, limit: i64, entity: Uuid) -> Result<Vec<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn list(pool: &SqlitePool, offset: i64, limit: i64, entity: Uuid) -> Result<Vec<Self>>;
-    #[cfg(feature = "postgres")]
+pub trait IntRepository<T: Database>: Sized {
+    async fn create(pool: &Pool<T>, item: &Self, entity: Uuid) -> Result<()>;
+    async fn get_by_id(pool: &Pool<T>, id: i32, entity: Uuid) -> Result<Option<Self>>;
+    async fn update(pool: &Pool<T>, item: &Self, entity: Uuid) -> Result<()>;
+    async fn delete(pool: &Pool<T>, id: i32, entity: Uuid) -> Result<()>;
+    async fn list(pool: &Pool<T>, offset: i64, limit: i64, entity: Uuid) -> Result<Vec<Self>>;
     async fn search(
-        pool: &PgPool,
-        query: &str,
-        case_insensitive: bool,
-        offset: i64,
-        limit: i64,
-        sort: Option<&str>,
-        asc: bool,
-        entity: Uuid,
-    ) -> Result<Vec<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn search(
-        pool: &SqlitePool,
+        pool: &Pool<T>,
         query: &str,
         case_insensitive: bool,
         offset: i64,
@@ -59,22 +29,9 @@ pub trait IntRepository: Sized {
 
 #[cfg(feature = "sql")]
 #[async_trait::async_trait]
-pub trait IntRepositoryInArea: IntRepository {
-    #[cfg(feature = "postgres")]
+pub trait IntRepositoryInArea<T: Database>: IntRepository<T> {
     async fn search_in_area(
-        pool: &PgPool,
-        query: &str,
-        case_insensitive: bool,
-        offset: i64,
-        limit: i64,
-        sort: Option<&str>,
-        asc: bool,
-        area: i32,
-        entity: Uuid,
-    ) -> Result<Vec<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn search_in_area(
-        pool: &SqlitePool,
+        pool: &Pool<T>,
         query: &str,
         case_insensitive: bool,
         offset: i64,
@@ -88,40 +45,14 @@ pub trait IntRepositoryInArea: IntRepository {
 
 #[cfg(feature = "sql")]
 #[async_trait::async_trait]
-pub trait UuidRepository: Sized {
-    #[cfg(feature = "postgres")]
-    async fn create(pool: &PgPool, item: &Self) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn create(pool: &SqlitePool, item: &Self) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn get_by_uuid(pool: &PgPool, uuid: Uuid) -> Result<Option<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn get_by_uuid(pool: &SqlitePool, uuid: Uuid) -> Result<Option<Self>>;
-    #[cfg(feature = "postgres")]
-    async fn update(pool: &PgPool, item: &Self) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn update(pool: &SqlitePool, item: &Self) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn delete(pool: &PgPool, uuid: Uuid) -> Result<()>;
-    #[cfg(not(feature = "postgres"))]
-    async fn delete(pool: &SqlitePool, uuid: Uuid) -> Result<()>;
-    #[cfg(feature = "postgres")]
-    async fn list(pool: &PgPool, offset: i64, limit: i64) -> Result<Vec<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn list(pool: &SqlitePool, offset: i64, limit: i64) -> Result<Vec<Self>>;
-    #[cfg(feature = "postgres")]
+pub trait UuidRepository<T: Database>: Sized {
+    async fn create(pool: &Pool<T>, item: &Self) -> Result<()>;
+    async fn get_by_uuid(pool: &Pool<T>, uuid: Uuid) -> Result<Option<Self>>;
+    async fn update(pool: &Pool<T>, item: &Self) -> Result<()>;
+    async fn delete(pool: &Pool<T>, uuid: Uuid) -> Result<()>;
+    async fn list(pool: &Pool<T>, offset: i64, limit: i64) -> Result<Vec<Self>>;
     async fn search(
-        pool: &PgPool,
-        query: &str,
-        case_insensitive: bool,
-        offset: i64,
-        limit: i64,
-        sort: Option<&str>,
-        asc: bool,
-    ) -> Result<Vec<Self>>;
-    #[cfg(not(feature = "postgres"))]
-    async fn search(
-        pool: &SqlitePool,
+        pool: &Pool<T>,
         query: &str,
         case_insensitive: bool,
         offset: i64,

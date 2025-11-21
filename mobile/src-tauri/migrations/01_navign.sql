@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS entities (
     type TEXT NOT NULL,  -- EntityType as string
     name TEXT NOT NULL,
     description TEXT,
-    point_min_wkb BLOB NOT NULL,  -- WKB POINT (longitude_min, latitude_min)
-    point_max_wkb BLOB NOT NULL,  -- WKB POINT (longitude_max, latitude_max)
+    point_min BLOB NOT NULL,  -- WKB POINT (longitude_min, latitude_min)
+    point_max BLOB NOT NULL,  -- WKB POINT (longitude_max, latitude_max)
     altitude_min REAL,
     altitude_max REAL,
     nation TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS areas (
     floor_type TEXT,  -- FloorType: "Level", "Floor", or "Basement"
     floor_name INTEGER,
     beacon_code TEXT NOT NULL,
-    polygon_wkb BLOB NOT NULL,  -- WKB POLYGON
+    polygon BLOB NOT NULL,  -- WKB POLYGON
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS beacons (
     name TEXT NOT NULL,
     description TEXT,
     type TEXT NOT NULL,  -- BeaconType as string
-    location_wkb BLOB NOT NULL,  -- WKB POINT
+    location BLOB NOT NULL,  -- WKB POINT
     device TEXT NOT NULL,  -- BeaconDevice as string
     mac TEXT NOT NULL UNIQUE,
     created_at INTEGER NOT NULL,
@@ -79,9 +79,9 @@ CREATE TABLE IF NOT EXISTS merchants (
     type TEXT NOT NULL,  -- JSON serialized MerchantType
     color TEXT,
     tags TEXT NOT NULL,  -- JSON array
-    location_wkb BLOB NOT NULL,  -- WKB POINT (centroid/entrance)
+    location BLOB NOT NULL,  -- WKB POINT (centroid/entrance)
     style TEXT NOT NULL,  -- MerchantStyle as string
-    polygon_wkb BLOB NOT NULL,  -- WKB POLYGON (merchant boundary)
+    polygon BLOB NOT NULL,  -- WKB POLYGON (merchant boundary)
     available_period TEXT,  -- JSON array [[start, end], ...]
     opening_hours TEXT,  -- JSON array of arrays (7 days)
     email TEXT,
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS connections (
     connected_areas TEXT NOT NULL,  -- JSON array: [[area_id, x, y, enabled], ...]
     available_period TEXT NOT NULL,  -- JSON array: [[start, end], ...]
     tags TEXT NOT NULL,  -- JSON array
-    gnd_wkb BLOB,  -- WKB POINT (ground coordinates, optional)
+    gnd BLOB,  -- WKB POINT (ground coordinates, optional)
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     UNIQUE(entity_id, name)

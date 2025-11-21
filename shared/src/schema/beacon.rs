@@ -1,11 +1,18 @@
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "postgres")]
 use crate::schema::postgis::PgPoint;
+#[cfg(feature = "sql")]
+use crate::schema::{IntRepository, IntRepositoryInArea};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "postgres")]
+use sqlx::PgPool;
+#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+use sqlx::SqlitePool;
+#[cfg(feature = "postgres")]
+use uuid::Uuid;
 
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
@@ -134,12 +141,54 @@ impl core::fmt::Display for BeaconType {
     }
 }
 
+impl Beacon {
+    pub fn location(&self) -> (f64, f64) {
+        #[cfg(feature = "postgres")]
+        {
+            (self.location.0, self.location.1)
+        }
+        #[cfg(not(feature = "postgres"))]
+        {
+            self.location
+        }
+    }
+}
+
+#[cfg(all(feature = "sql", feature = "postgres"))]
+fn beacon_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Beacon> {
+    use sqlx::Row;
+
+    let type_json: sqlx::types::Json<serde_json::Value> = row.try_get("type")?;
+    let r#type: BeaconType =
+        serde_json::from_value(type_json.0).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    let device_json: sqlx::types::Json<serde_json::Value> = row.try_get("device")?;
+    let device: BeaconDevice =
+        serde_json::from_value(device_json.0).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+    Ok(Beacon {
+        id: row.try_get("id")?,
+        entity_id: row.try_get("entity_id")?,
+        area_id: row.try_get("area_id")?,
+        merchant_id: row.try_get("merchant_id")?,
+        connection_id: row.try_get("connection_id")?,
+        name: row.try_get("name")?,
+        description: row.try_get("description")?,
+        r#type,
+        location: row.try_get("location")?,
+        device,
+        mac: row.try_get("mac")?,
+        created_at: row.try_get("created_at")?,
+        updated_at: row.try_get("updated_at")?,
+    })
+}
+
 #[cfg(all(feature = "postgres", feature = "sql"))]
 use crate::schema::repository::IntRepository;
 
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
-impl IntRepository for Beacon {
+impl IntRepository<sqlx::Postgres> for Beacon {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         sqlx::query(
             r#"INSERT INTO beacons (entity_id, area_id, merchant_id, connection_id, name, description, type, location, device, mac)
@@ -274,15 +323,66 @@ impl IntRepository for Beacon {
     }
 }
 
-// SQLite repository implementation for Beacon
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::postgis::point_to_wkb;
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::repository::IntRepository;
-
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
-impl IntRepository for Beacon {
+impl IntRepositoryInArea<sqlx::Postgres> for Beacon {
+    async fn search_in_area(
+        pool: &PgPool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        area: i32,
+        entity: Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description, type, location, device, mac,
+                          created_at, updated_at
+                   FROM beacons
+                   WHERE entity_id = $1 AND area_id = $2 AND (name ILIKE $3 OR description ILIKE $3 OR mac ILIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description, type, location, device, mac,
+                          created_at, updated_at
+                   FROM beacons
+                   WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR mac LIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        };
+
+        let rows = sqlx::query(&sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
+
+        rows.iter().map(beacon_from_row).collect()
+    }
+}
+
+// SQLite repository implementation for Beacon
+#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+use crate::schema::postgis::point_to_wkb;
+
+#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[async_trait::async_trait]
+impl IntRepository<sqlx::Sqlite> for Beacon {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
@@ -427,6 +527,57 @@ impl IntRepository for Beacon {
 
         sqlx::query_as::<_, Self>(&sql)
             .bind(entity.to_string())
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await
+    }
+}
+
+#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[async_trait::async_trait]
+impl IntRepositoryInArea<sqlx::Sqlite> for Beacon {
+    async fn search_in_area(
+        pool: &SqlitePool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        area: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description,
+                          type, location_wkb, device, mac, created_at, updated_at
+                   FROM beacons
+                   WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE OR mac LIKE ?3 COLLATE NOCASE)
+                   ORDER BY {} {}
+                   LIMIT ?4 OFFSET ?5"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, area_id, merchant_id, connection_id, name, description,
+                          type, location_wkb, device, mac, created_at, updated_at
+                   FROM beacons
+                   WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 OR description LIKE ?3 OR mac LIKE ?3)
+                   ORDER BY {} {}
+                   LIMIT ?4 OFFSET ?5"#,
+                order_by, direction
+            )
+        };
+
+        sqlx::query_as::<_, Self>(&sql)
+            .bind(entity.to_string())
+            .bind(area)
             .bind(&like_pattern)
             .bind(limit)
             .bind(offset)

@@ -8,8 +8,6 @@
 //! The module is designed to work in a Tauri application environment, leveraging stronghold for secure key storage.
 mod challenge;
 mod pipeline;
-mod proof;
-mod utils;
 
 // Re-export constants from navign-shared
 pub mod constants {
@@ -17,7 +15,6 @@ pub mod constants {
 }
 
 pub use pipeline::unlock_handler;
-pub use utils::BleMessage;
 
 use anyhow::Result;
 use nanoid::nanoid;

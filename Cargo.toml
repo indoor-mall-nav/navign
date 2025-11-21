@@ -8,7 +8,6 @@ members = [
   "admin/maintenance",
   "shared",
   "admin/orchestrator",
-  "proc_macros",
   "robot/firmware",
   "robot/scheduler",
   "robot/network",
@@ -21,7 +20,6 @@ default-members = [
   "server",
   "admin/maintenance",
   "shared",
-  "proc_macros",
 ]
 
   [workspace.package]

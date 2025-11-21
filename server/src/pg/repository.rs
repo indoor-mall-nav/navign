@@ -6,6 +6,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use navign_shared::schema::repository::{IntRepository, IntRepositoryInArea, UuidRepository};
 use serde::{Deserialize, Serialize};
+use sqlx::Postgres;
 
 macro_rules! extract_uuid {
     ($entity:ident) => {
@@ -40,7 +41,7 @@ fn default_asc() -> bool {
 }
 
 #[async_trait::async_trait]
-pub trait IntCrudRepository: IntRepository + Serialize + Send + Sync {
+pub trait IntCrudRepository: IntRepository<Postgres> + Serialize + Send + Sync {
     async fn crud_read_one(
         State(app): State<AppState>,
         Path((entity, id)): Path<(String, String)>,
@@ -141,7 +142,7 @@ pub trait IntCrudRepository: IntRepository + Serialize + Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait IntCrudRepositoryInArea: IntRepositoryInArea + Serialize + Send + Sync {
+pub trait IntCrudRepositoryInArea: IntRepositoryInArea<Postgres> + Serialize + Send + Sync {
     async fn crud_search_in_area(
         State(app): State<AppState>,
         Path((entity, area)): Path<(String, i32)>,
@@ -178,7 +179,7 @@ pub trait IntCrudRepositoryInArea: IntRepositoryInArea + Serialize + Send + Sync
 }
 
 #[async_trait::async_trait]
-pub trait UuidCrudRepository: UuidRepository + Serialize + Send + Sync {
+pub trait UuidCrudRepository: UuidRepository<Postgres> + Serialize + Send + Sync {
     async fn crud_read_one(State(app): State<AppState>, Path(uuid): Path<String>) -> Response {
         let item_uuid = extract_uuid!(uuid);
 

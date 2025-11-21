@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use crate::schema::postgis::PgPoint;
 
+#[cfg(feature = "sql")]
+use crate::schema::IntRepository;
 use core::fmt::Display;
 
 pub type ConnectedArea = (String, f64, f64, bool);
@@ -112,7 +114,7 @@ impl Display for ConnectionType {
 
 #[cfg(all(feature = "sql", feature = "postgres"))]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepository for Connection {
+impl IntRepository<sqlx::Postgres> for Connection {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         // Serialize connected_areas to JSON
         let connected_areas_json = serde_json::to_value(&item.connected_areas)
@@ -271,12 +273,10 @@ impl crate::schema::repository::IntRepository for Connection {
 // SQLite repository implementation for Connection
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::postgis::point_to_wkb;
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::repository::IntRepository;
 
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 #[async_trait::async_trait]
-impl IntRepository for Connection {
+impl IntRepository<sqlx::Sqlite> for Connection {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let gnd_wkb = item
             .gnd

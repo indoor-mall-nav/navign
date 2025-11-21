@@ -157,7 +157,7 @@ fn main() -> ! {
     let esp_wifi_ctrl =
         init().expect("Failed to initialize ESP WiFi/BLE radio - check hardware configuration");
 
-    let device_id = b"68a84b6ebdfa76608b934b0a";
+    let device_id = 0;
     println!("Device ID: {:?}", device_id);
     let device_type = DeviceTypes::MERCHANT;
     let capabilities = DeviceCapabilities::UNLOCK_GATE;
@@ -311,13 +311,11 @@ fn main() -> ! {
                 println!("Handling message");
                 instance.borrow_mut().buffer.processing = true;
                 let response: Option<BleMessage> = match message {
-                    Some(BleMessage::DeviceRequest) => {
-                        Some(BleMessage::DeviceResponse(device_type, capabilities, {
-                            let mut id = [0u8; 24];
-                            id.copy_from_slice(device_id.as_ref());
-                            id
-                        }))
-                    }
+                    Some(BleMessage::DeviceRequest) => Some(BleMessage::DeviceResponse(
+                        device_type,
+                        capabilities,
+                        device_id,
+                    )),
                     Some(BleMessage::NonceRequest) => {
                         let nonce = instance.borrow_mut().generate_nonce(&mut rng);
                         let mut identifier = [0u8; 8];

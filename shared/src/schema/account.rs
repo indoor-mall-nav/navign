@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "postgres")]
+use sqlx::Postgres;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
@@ -91,7 +93,7 @@ use crate::schema::repository::UuidRepository;
 
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
-impl UuidRepository for Account {
+impl UuidRepository<Postgres> for Account {
     async fn create(pool: &sqlx::PgPool, item: &Self) -> sqlx::Result<()> {
         // Note: SQL schema has phone, google, wechat fields not in Account struct
         // Setting them to NULL for now

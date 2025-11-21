@@ -21,7 +21,7 @@ pub const IDENTIFIER_LENGTH: usize = 1;
 pub const NONCE_LENGTH: usize = 16;
 pub const SIGNATURE_TAIL_LENGTH: usize = 8;
 /// ObjectId as used in MongoDB, 24 bytes
-pub const DEVICE_ID_LENGTH: usize = 24;
+pub const DEVICE_ID_LENGTH: usize = 4;
 pub const DEVICE_TYPE_LENGTH: usize = 1;
 pub const DEVICE_CAPABILITY_LENGTH: usize = 1;
 pub const SERVER_SIGNATURE_LENGTH: usize = 64;

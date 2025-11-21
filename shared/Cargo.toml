@@ -42,6 +42,20 @@ postgres = [
   "dep:serde_json",
   "chrono",
 ]
+sqlite = [
+  "std",
+  "serde",
+  "geo",
+  "dep:sqlx",
+  "dep:async-trait",
+  "sqlx?/sqlite",
+  "sqlx?/uuid",
+  "sqlx?/chrono",
+  "sqlx?/json",
+  "dep:uuid",
+  "dep:serde_json",
+  "chrono",
+]
 serde = [
   "dep:serde",
   "serde/derive",
@@ -54,7 +68,7 @@ serde = [
   "serde_with?/macros",
   "geo?/serde",
 ]
-sql = ["std", "serde", "geo", "dep:sqlx", "dep:async-trait", "dep:uuid", "dep:serde_json"]
+sql = ["std", "serde", "geo", "dep:sqlx", "dep:uuid", "dep:async-trait", "dep:uuid", "dep:serde_json"]
 std = [
   "serde?/std",
   "chrono?/std",

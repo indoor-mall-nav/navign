@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BleMessage {
     DeviceRequest,
-    DeviceResponse(DeviceTypes, DeviceCapabilities, [u8; 24]), // 24-byte MongoDB ObjectId segment
+    DeviceResponse(DeviceTypes, DeviceCapabilities, i32), // 24-byte MongoDB ObjectId segment
     NonceRequest,
     NonceResponse([u8; 16], [u8; 8]),
     UnlockRequest(Proof),
@@ -28,8 +28,8 @@ impl TryFrom<u8> for BleMessage {
     }
 }
 
-impl From<(DeviceTypes, DeviceCapabilities, [u8; 24])> for BleMessage {
-    fn from(value: (DeviceTypes, DeviceCapabilities, [u8; 24])) -> Self {
+impl From<(DeviceTypes, DeviceCapabilities, i32)> for BleMessage {
+    fn from(value: (DeviceTypes, DeviceCapabilities, i32)) -> Self {
         BleMessage::DeviceResponse(value.0, value.1, value.2)
     }
 }
@@ -67,16 +67,16 @@ impl Packetize<128> for BleMessage {
     }
 }
 
-#[cfg(all(feature = "alloc", feature = "postcard"))]
-impl Packetize for BleMessage {
-    fn packetize(&self) -> alloc::vec::Vec<u8> {
-        postcard::to_allocvec(self).unwrap()
-    }
-}
-
 #[cfg(feature = "postcard")]
 impl crate::Depacketize for BleMessage {
     fn depacketize(data: &[u8]) -> Option<Self> {
         postcard::from_bytes(data).ok()
+    }
+}
+
+#[cfg(all(feature = "alloc", feature = "postcard"))]
+impl Packetize for BleMessage {
+    fn packetize(&self) -> alloc::vec::Vec<u8> {
+        postcard::to_allocvec(self).unwrap()
     }
 }

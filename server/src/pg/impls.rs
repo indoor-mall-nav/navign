@@ -12,6 +12,7 @@ impl IntCrudRepository for Area {}
 
 // Beacon uses IntCrudRepository
 impl IntCrudRepository for Beacon {}
+impl IntCrudRepositoryInArea for Beacon {}
 
 // Merchant uses both IntCrudRepository and IntCrudRepositoryInArea
 impl IntCrudRepository for Merchant {}

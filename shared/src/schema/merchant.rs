@@ -5,6 +5,8 @@ use alloc::vec::Vec;
 
 #[cfg(feature = "postgres")]
 use super::postgis::{PgPoint, PgPolygon};
+#[cfg(feature = "sql")]
+use crate::schema::{IntRepository, IntRepositoryInArea};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -348,7 +350,7 @@ fn merchant_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Merchant> {
 
 #[cfg(all(feature = "sql", feature = "postgres"))]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepository for Merchant {
+impl IntRepository<sqlx::Postgres> for Merchant {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         // Serialize MerchantType to JSON (complex enum with nested data)
         let type_json =
@@ -573,7 +575,7 @@ impl crate::schema::repository::IntRepository for Merchant {
 
 #[cfg(all(feature = "sql", feature = "postgres"))]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepositoryInArea for Merchant {
+impl IntRepositoryInArea<sqlx::Postgres> for Merchant {
     async fn search_in_area(
         pool: &sqlx::PgPool,
         query: &str,
@@ -629,12 +631,10 @@ impl crate::schema::repository::IntRepositoryInArea for Merchant {
 // SQLite repository implementation for Merchant
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::postgis::{point_to_wkb, polygon_to_wkb};
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::repository::{IntRepository, IntRepositoryInArea};
 
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 #[async_trait::async_trait]
-impl IntRepository for Merchant {
+impl IntRepository<sqlx::Sqlite> for Merchant {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
             .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
@@ -838,7 +838,7 @@ impl IntRepository for Merchant {
 
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 #[async_trait::async_trait]
-impl IntRepositoryInArea for Merchant {
+impl IntRepositoryInArea<sqlx::Sqlite> for Merchant {
     async fn search_in_area(
         pool: &sqlx::SqlitePool,
         query: &str,

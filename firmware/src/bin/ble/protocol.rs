@@ -2,7 +2,7 @@ use crate::shared::BleError;
 use crate::shared::constants::*;
 use esp_println::println;
 use heapless::Vec;
-use navign_shared::{BleMessage, Depacketize, Proof};
+use navign_shared::{BleMessage, Depacketize, Packetize, Proof};
 
 #[derive(Debug)]
 pub struct BleProtocolHandler {
@@ -96,66 +96,7 @@ impl BleProtocolHandler {
 
         println!("The buffer is {:?}", buffer);
 
-        match message {
-            BleMessage::DeviceResponse(device_type, capabilities, object_id) => {
-                buffer
-                    .push(DEVICE_RESPONSE)
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .push(device_type.bits())
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .push(capabilities.bits())
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .extend_from_slice(object_id)
-                    .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer_length = DEVICE_RESPONSE_LENGTH;
-                println!("The buffer is {:?} for device response.", buffer);
-            }
-
-            BleMessage::NonceResponse(nonce, signature) => {
-                buffer
-                    .push(NONCE_RESPONSE)
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .extend_from_slice(nonce)
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .extend_from_slice(signature)
-                    .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer_length = NONCE_RESPONSE_LENGTH;
-            }
-
-            BleMessage::UnlockResponse(success, error) => {
-                buffer
-                    .push(UNLOCK_RESPONSE)
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .push(if *success {
-                        UNLOCK_SUCCESS
-                    } else {
-                        UNLOCK_FAILURE
-                    })
-                    .map_err(|_| BleError::BufferFull)?;
-                buffer
-                    .push(if *success { 0x00 } else { (*error).into() })
-                    .map_err(|_| BleError::BufferFull)?;
-                self.send_buffer_length = UNLOCK_RESPONSE_LENGTH;
-            }
-
-            // Debug functionality not supported in shared BleMessage enum
-            // BleMessage::DebugResponse(debug_data) => {
-            //     buffer
-            //         .push(DEBUG_RESPONSE)
-            //         .map_err(|_| BleError::BufferFull)?;
-            //     buffer
-            //         .extend_from_slice(&debug_data[..16])
-            //         .map_err(|_| BleError::BufferFull)?;
-            //     self.send_buffer_length = IDENTIFIER_LENGTH + debug_data.len();
-            // }
-            _ => unreachable!("Cannot serialize this message type"),
-        }
+        let result = message.packetize().as_slice();
 
         let mut output = [0u8; MAX_PACKET_SIZE];
         output[..buffer.len()].copy_from_slice(buffer);
@@ -179,25 +120,11 @@ impl BleProtocolHandler {
             return Err(BleError::ParseError);
         }
 
-        let result = match self.receive_buffer[0] {
-            DEVICE_REQUEST => Ok(BleMessage::DeviceRequest),
+        let result =
+            BleMessage::depacketize(&self.receive_buffer.as_slice()).ok_or(BleError::ParseError)?;
 
-            NONCE_REQUEST => Ok(BleMessage::NonceRequest),
-
-            UNLOCK_REQUEST => {
-                if self.receive_buffer.len() != UNLOCK_REQUEST_LENGTH {
-                    return Err(BleError::ParseError);
-                }
-                let proof =
-                    Proof::depacketize(&self.receive_buffer[1..]).ok_or(BleError::ParseError)?;
-                Ok(BleMessage::UnlockRequest(proof))
-            }
-
-            // Debug functionality not supported in shared BleMessage enum
-            // DEBUG_REQUEST => Ok(BleMessage::DebugRequest(())),
-            _ => Err(BleError::ParseError),
-        };
         self.clear_receive_buffer();
-        result
+
+        Ok(result)
     }
 }

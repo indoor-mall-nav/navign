@@ -265,6 +265,11 @@ async fn main() -> ServerResult<()> {
             "/api/entities/{entity}/areas/{area}/merchants",
             get(Merchant::crud_search_in_area),
         )
+        // Beacon area-scoped search
+        .route(
+            "/api/entities/{entity}/areas/{area}/beacons",
+            get(Beacon::crud_search_in_area),
+        )
         // Connection endpoints (Int-based, entity-scoped)
         .route(
             "/api/entities/{entity}/connections",

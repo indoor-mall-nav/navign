@@ -92,6 +92,7 @@ ci-mobile:
   corepack enable
   pnpm install
   just gen-ts-schema
+  pnpm oxfmt --ignore-path=.oxfmtignore
   cd mobile && just check
   cd mobile && just fmt-check
   cd mobile && just lint

@@ -72,3 +72,10 @@ mod sqlite_from_row;
 
 #[cfg(feature = "sql")]
 pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};
+
+#[macro_export]
+macro_rules! make_uuid {
+    ($var:ident) => {
+        Uuid::parse_str($var).unwrap_or(Uuid::nil())
+    };
+}

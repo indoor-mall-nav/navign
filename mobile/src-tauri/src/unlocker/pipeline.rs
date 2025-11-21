@@ -1,13 +1,13 @@
-use crate::locate::beacon::BeaconInfo;
 use crate::locate::fetch_device;
 use crate::locate::scan::{scan_devices, stop_scan};
 use crate::shared::BASE_URL;
 use crate::unlocker::Unlocker;
 use crate::unlocker::challenge::ServerChallenge;
 use crate::unlocker::constants::{UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID};
-use crate::unlocker::proof::Proof;
-use crate::unlocker::utils::{BleMessage, DeviceCapability};
 use base64::Engine;
+use navign_shared::Beacon;
+use navign_shared::schema::IntRepository;
+use navign_shared::{BleMessage, Depacketize, DeviceCapabilities, Packetize, Proof};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -43,6 +43,11 @@ pub async fn unlock_pipeline(
     target: String,
     state: State<'_, Arc<Mutex<Unlocker>>>,
 ) -> anyhow::Result<String> {
+    let entity = uuid::Uuid::parse_str(entity.as_str())
+        .map_err(|_| anyhow::anyhow!("Invalid entity UUID"))?;
+    let target: i32 = target
+        .parse()
+        .map_err(|_| anyhow::anyhow!("Invalid target ID"))?;
     info!(
         "Starting unlock pipeline for target: {} in {}",
         target, entity
@@ -80,22 +85,22 @@ pub async fn unlock_pipeline(
         .map_err(|e| anyhow::anyhow!("Failed to stop scan: {}", e))?;
     let mut result_address = None;
     for device in devices.iter() {
-        let device_id = fetch_device(&conn, device.address.as_str(), entity.as_str()).await?;
-        let device_info = BeaconInfo::get_from_id(&conn, device_id.as_str())
+        let device_id = fetch_device(&conn, device.address.as_str(), entity).await?;
+        let device_info = Beacon::get_by_id(&conn, device_id, entity)
             .await
             .map_err(|e| anyhow::anyhow!("Database error: {}", e))?
             .ok_or_else(|| anyhow::anyhow!("Beacon info not found for device"))?;
         info!(
             "Scanned device: {} ({}) - Merchant: {}",
-            device_info.id.as_str(),
+            device_info.id,
             device.address.as_str(),
-            device_info.merchant.as_str()
+            device_info.merchant_id.unwrap_or(-1)
         );
         // FIXME merchant not loaded properly from DB?
-        if device_info.merchant == target || device_info.merchant == "unknown" {
+        if device_info.merchant_id.is_none() || device_info.merchant_id.unwrap_or(-1) == target {
             info!(
                 "Found target device: {} ({})",
-                device_info.id.as_str(),
+                device_info.id,
                 device.address.as_str()
             );
             result_address = Some(device.address.clone());
@@ -145,25 +150,16 @@ pub async fn unlock_pipeline(
     let depacketized = BleMessage::depacketize(received.as_slice())
         .ok_or_else(|| anyhow::anyhow!("Failed to depacketize device response"))?;
 
-    let BleMessage::DeviceResponse(d_type, d_capabilities, obj_id) = depacketized else {
+    let BleMessage::DeviceResponse(d_type, d_capabilities, beacon_id) = depacketized else {
         return Err(anyhow::anyhow!("Failed to extract device response"));
     };
 
-    let object_id = String::from_utf8(obj_id.as_slice().to_vec())
-        .map_err(|_| anyhow::anyhow!("Invalid object ID encoding"))?;
-
-    info!("Object ID: {}", object_id);
-
-    if object_id.len() != 24 {
-        return Err(anyhow::anyhow!("Invalid object ID length"));
-    }
-
     info!(
         "Device Type: {:?}, Capabilities: {:?}, Object ID: {}",
-        d_type, d_capabilities, object_id
+        d_type, d_capabilities, beacon_id
     );
 
-    if !d_capabilities.contains(&DeviceCapability::UnlockGate) {
+    if !d_capabilities.contains(DeviceCapabilities::UNLOCK_GATE) {
         return Err(anyhow::anyhow!("Device does not support unlocking"));
     }
 
@@ -197,14 +193,9 @@ pub async fn unlock_pipeline(
 
     let client = reqwest::Client::new();
     let instance = client
-        .post(
-            BASE_URL.to_string()
-                + "api/entities/"
-                + entity.as_str()
-                + "/beacons/"
-                + object_id.as_str()
-                + "/unlocker",
-        )
+        .post(format!(
+            "{BASE_URL}api/entities/{entity}/beacons/{beacon_id}/unlocker"
+        ))
         .bearer_auth(app_state.user_id.as_str())
         .header("Content-Type", "application/json")
         .body(json!({ "payload": encoded }).to_string())
@@ -252,16 +243,10 @@ pub async fn unlock_pipeline(
     info!("Challenge Packet: {}", challenge_packet);
 
     let client_response = client
-        .put(
-            BASE_URL.to_string()
-                + "api/entities/"
-                + entity.as_str()
-                + "/beacons/"
-                + object_id.as_str()
-                + "/unlocker/"
-                + instance.instance_id.as_str()
-                + "/status",
-        )
+        .put(format!(
+            "{BASE_URL}api/entities/{entity}/beacons/{beacon_id}/unlocker/{}/status",
+            instance.instance_id.as_str(),
+        ))
         .bearer_auth(app_state.user_id.as_str())
         .header("Content-Type", "application/json")
         .body(json!({ "payload": challenge_packet }).to_string())
@@ -328,16 +313,10 @@ pub async fn unlock_pipeline(
     info!("Unlock Result: {:?}", result);
 
     let eventual = client
-        .put(
-            BASE_URL.to_string()
-                + "api/entities/"
-                + entity.as_str()
-                + "/beacons/"
-                + object_id.as_str()
-                + "/unlocker/"
-                + instance.instance_id.as_str()
-                + "/outcome",
-        )
+        .put(format!(
+            "{BASE_URL}api/entities/{entity}/{entity}/beacons/{beacon_id}/unlocker/{}/outcome",
+            instance.instance_id.as_str()
+        ))
         .bearer_auth(app_state.user_id.as_str())
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&result)?)

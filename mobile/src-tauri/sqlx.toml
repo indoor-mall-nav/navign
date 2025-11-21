@@ -1,0 +1,3 @@
+[drivers.sqlite]
+load-extensions = ["uuid", "vsv", "mod_spatialite"]
+unsafe-load-extensions = true

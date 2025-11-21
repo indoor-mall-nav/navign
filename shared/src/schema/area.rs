@@ -124,7 +124,7 @@ use crate::schema::repository::IntRepository;
 
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
-impl IntRepository for Area {
+impl IntRepository<sqlx::Postgres> for Area {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         sqlx::query(
             r#"INSERT INTO areas (entity_id, name, description, floor_type, floor_name, beacon_code, polygon)
@@ -258,9 +258,9 @@ use crate::schema::postgis::polygon_to_wkb;
 #[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
 use crate::schema::repository::IntRepository;
 
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
 #[async_trait::async_trait]
-impl IntRepository for Area {
+impl IntRepository<sqlx::Sqlite> for Area {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let polygon_wkb = polygon_to_wkb(&item.polygon)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;

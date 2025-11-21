@@ -1,9 +1,11 @@
-use crate::locate::beacon::BeaconInfo;
 use itertools::Itertools;
+use navign_shared::Beacon;
+use navign_shared::schema::IntRepository;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri_plugin_blec::models::BleDevice;
 use tauri_plugin_log::log::trace;
+use uuid::Uuid;
 
 type Locator = (f64, f64, f64); // (x, y, rssi)
 
@@ -12,7 +14,7 @@ pub enum LocateResult {
     Success(f64, f64),
     Forward,
     NoBeacons,
-    AreaChanged(String),
+    AreaChanged(i32),
     Error(String),
     Reserved,
 }
@@ -27,13 +29,15 @@ fn count_effective_beacons(beacons: &[Locator]) -> usize {
 pub async fn handle_devices(
     devices: Vec<BleDevice>,
     pool: &SqlitePool,
-    base: &str,
+    base: i32,
+    entity: Uuid,
 ) -> LocateResult {
     trace!("Handling {} devices", devices.len());
     let mut info = Vec::with_capacity(devices.len());
     for device in devices.iter() {
         trace!("Processing device: {:?}", device);
-        if let Some(beacon_info) = BeaconInfo::get_from_id(pool, &device.address)
+        let target_id: i32 = device.address.parse().unwrap_or_default();
+        if let Some(beacon_info) = Beacon::get_by_id(pool, target_id, entity)
             .await
             .ok()
             .flatten()
@@ -46,7 +50,7 @@ pub async fn handle_devices(
         }
     }
     trace!("Collected beacon info: {:?}", info);
-    let groups = info.iter().zip(devices).chunk_by(|(i, _)| i.area.as_str());
+    let groups = info.iter().zip(devices).chunk_by(|(i, _)| i.area_id);
     groups
         .into_iter()
         .map(|(id, group)| {
@@ -56,8 +60,8 @@ pub async fn handle_devices(
                 group
                     .filter_map(|(i, d)| {
                         let rssi = d.rssi? as f64;
-                        let point = i.location()?;
-                        Some((point.coord()?.x, point.coord()?.y, rssi))
+                        let point = i.location();
+                        Some((point.0, point.1, rssi))
                     })
                     .collect::<Vec<Locator>>(),
             )
@@ -75,7 +79,7 @@ pub async fn handle_devices(
             }
             if area != base {
                 trace!("Area changed from {} to {}", base, area);
-                return LocateResult::AreaChanged(area.to_string());
+                return LocateResult::AreaChanged(area);
             }
             match locate_via_beacons(&beacons) {
                 Some((x, y)) => LocateResult::Success(x, y),

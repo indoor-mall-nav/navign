@@ -1,18 +1,15 @@
-pub mod area;
-pub mod beacon;
 mod locator;
 mod migration;
 pub(crate) mod scan;
 
-use crate::api::map::Area;
+use crate::api::map::{Area, Beacon};
 use crate::api::page_results::PaginationResponse;
-use crate::locate::area::ActiveArea;
-use crate::locate::beacon::BeaconInfo;
 use crate::locate::locator::LocateResult;
 use crate::locate::scan::stop_scan;
 use crate::shared::BASE_URL;
-use crate::unlocker::BleMessage;
 use crate::unlocker::constants::{UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID};
+use navign_shared::schema::IntRepository;
+use navign_shared::{BleMessage, Depacketize, Packetize};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{SqlitePool, migrate};
@@ -26,16 +23,12 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LocateState {
-    pub area: String,
+    pub area: i32,
     pub x: f64,
     pub y: f64,
 }
 
-pub async fn locate_device(
-    dbpath: String,
-    area: String,
-    entity: String,
-) -> anyhow::Result<LocateState> {
+pub async fn locate_device(dbpath: String, area: i32, entity: Uuid) -> anyhow::Result<LocateState> {
     info!("Locating device in area: {}, entity: {}", area, entity);
     info!("Connecting to database at: {}", dbpath);
     let options = SqliteConnectOptions::new()
@@ -64,9 +57,9 @@ pub async fn locate_device(
     }
     for device in devices.iter_mut() {
         info!("Fetching info for unknown device: {}", device.address);
-        match fetch_device(&conn, device.address.as_str(), entity.as_str()).await {
+        match fetch_device(&conn, device.address.as_str(), entity).await {
             Ok(object_id) => {
-                device.address = object_id;
+                device.address = object_id.to_string();
                 info!("Updated device address to object ID: {}", device.address);
             }
             Err(e) => {
@@ -81,15 +74,15 @@ pub async fn locate_device(
         .into_iter()
         .filter(|d| d.address != "NAVIGN-BEACON")
         .collect();
-    let result = locator::handle_devices(devices.clone(), &conn, area.as_str()).await;
+    let result = locator::handle_devices(devices.clone(), &conn, area, entity).await;
     match result {
         LocateResult::Success(x, y) => Ok(LocateState { area, x, y }),
         LocateResult::Error(err) => Err(anyhow::anyhow!("Locate error: {}", err)),
         LocateResult::NoBeacons => Err(anyhow::anyhow!("No beacons found")),
         LocateResult::AreaChanged(new_area) => {
             info!("Area changed, updating area info...");
-            update_area(&conn, new_area.as_str(), entity.as_str()).await?;
-            match locator::handle_devices(devices, &conn, new_area.as_str()).await {
+            update_area(&conn, new_area, entity).await?;
+            match locator::handle_devices(devices, &conn, new_area, entity).await {
                 LocateResult::Success(x, y) => Ok(LocateState {
                     area: new_area,
                     x,
@@ -104,33 +97,18 @@ pub async fn locate_device(
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct Beacon {
-    #[serde(rename = "_id")]
-    pub id: String,
-    pub entity: String,
-    pub area: String,
-    #[serde(default)]
-    pub merchant: Option<String>,
-    #[serde(default)]
-    pub connection: Option<String>,
-    pub name: String,
-    #[serde(default)]
-    pub description: Option<String>,
-    pub r#type: String,
-    pub location: (f64, f64),
-    pub device: String,
-    pub mac: String,
-}
-
-pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow::Result<String> {
+pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: Uuid) -> anyhow::Result<i32> {
     // It might be updated, so we need to check it in local database first.
-    if let Some(addr) = BeaconInfo::get_from_mac(conn, mac)
+    let addr = Beacon::search(conn, mac, false, 0, 1, None, false, entity)
         .await
-        .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
-    {
-        info!("Beacon with MAC {} already exists in the database.", mac);
-        return Ok(addr.id);
+        .map_err(|e| anyhow::anyhow!("DB error: {}", e))?;
+
+    if addr.len() == 1 {
+        info!(
+            "Device with MAC {} found in local database with ID {}.",
+            mac, addr[0].id
+        );
+        return Ok(addr[0].id);
     }
 
     info!("Connecting to device with MAC: {}", mac);
@@ -178,19 +156,10 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             return Err(anyhow::anyhow!("Failed to extract device response"));
         };
 
-        let object_id = String::from_utf8(Vec::from(obj_id))
-            .map_err(|e| anyhow::anyhow!("Invalid object ID format: {}", e))?;
-
-        info!("Extracted object ID: {}", object_id);
-
-        if object_id.len() != 24 {
-            return Err(anyhow::anyhow!("Invalid object ID length"));
-        }
-
-        object_id
+        obj_id
     };
 
-    if let Some(beacon) = BeaconInfo::get_from_id(conn, &object_id)
+    if let Some(beacon) = Beacon::get_by_id(conn, object_id, entity)
         .await
         .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
     {
@@ -198,12 +167,12 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             "Beacon with ID {} already exists in the database.",
             object_id
         );
-        if ActiveArea::get_by_id(conn, &beacon.area)
+        if Area::get_by_id(conn, beacon.area_id, entity)
             .await
             .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
             .is_none()
         {
-            update_area(conn, &beacon.area, entity).await?;
+            update_area(conn, beacon.area_id, entity).await?;
         }
     } else {
         info!("Fetched object ID: {} for MAC: {}", object_id, mac);
@@ -221,30 +190,22 @@ pub async fn fetch_device(conn: &SqlitePool, mac: &str, entity: &str) -> anyhow:
             .await
             .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
 
-        if ActiveArea::get_by_id(conn, &res.area)
+        if Area::get_by_id(conn, res.area_id, entity)
             .await
             .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
             .is_some()
         {
-            let beacon_info = BeaconInfo::new(
-                res.id.to_string(),
-                res.mac,
-                res.location,
-                "unknown".to_string(),
-                res.area.to_string(),
-                entity.to_string(),
-            );
-            beacon_info.insert(conn).await?;
+            Beacon::create(conn, &res, entity).await?;
             info!("Beacon {} inserted/updated in the database.", res.id);
         } else {
-            update_area(conn, &res.area, entity).await?;
+            update_area(conn, res.area_id, entity).await?;
         }
     };
 
     Ok(object_id)
 }
 
-async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Result<()> {
+async fn update_area(conn: &SqlitePool, area: i32, entity: Uuid) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let url = format!("{BASE_URL}api/entities/{entity}/areas/{area}");
     info!("Fetching area info from URL: {}", url);
@@ -259,13 +220,12 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
 
     info!("Fetched area id: {}", res.id);
 
-    if ActiveArea::get_by_id(conn, area)
+    if Area::get_by_id(conn, area, entity)
         .await
         .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
         .is_none()
     {
-        let active = ActiveArea::from(res);
-        active.insert(conn).await?;
+        Area::create(conn, &res, entity).await?;
         info!("Area {} inserted into the database.", area);
     }
 
@@ -286,15 +246,7 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
 
         for beacon in beacons.data.iter() {
             info!("Processing beacon ID: {}, MAC: {}", beacon.id, beacon.mac);
-            let beacon_info = BeaconInfo::new(
-                beacon.id.to_string(),
-                beacon.mac.clone(),
-                beacon.location,
-                "unknown".to_string(),
-                beacon.area.to_string(),
-                entity.to_string(),
-            );
-            if BeaconInfo::get_from_id(conn, &beacon.id.to_string())
+            if Beacon::get_by_id(conn, beacon.id, entity)
                 .await
                 .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
                 .is_some()
@@ -303,13 +255,13 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
                     "Beacon with ID {} already exists in the database.",
                     beacon.id
                 );
-                beacon_info.update(conn).await?;
+                Beacon::update(conn, beacon, entity).await?;
             } else {
                 info!(
                     "Inserting new beacon with ID {} into the database.",
                     beacon.id
                 );
-                beacon_info.insert(conn).await?;
+                Beacon::create(conn, beacon, entity).await?;
             }
             info!("Beacon {} inserted/updated in the database.", beacon.id);
         }
@@ -323,6 +275,12 @@ async fn update_area(conn: &SqlitePool, area: &str, entity: &str) -> anyhow::Res
 
 #[tauri::command]
 pub async fn locate_handler(app: AppHandle, area: String, entity: String) -> Result<String, ()> {
+    let area: i32 = area.parse().map_err(|e| {
+        error!("Invalid area parameter: {}", e);
+    })?;
+    let entity: Uuid = Uuid::parse_str(&entity).map_err(|e| {
+        error!("Invalid entity parameter: {}", e);
+    })?;
     let dbpath = app
         .path()
         .app_local_data_dir()
@@ -355,303 +313,5 @@ pub async fn locate_handler(app: AppHandle, area: String, entity: String) -> Res
             });
             Ok(result.to_string())
         }
-    }
-}
-
-// Comprehensive unit tests for location services
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::api::login::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
-
-    #[test]
-    fn test_locate_state_creation() {
-        let state = LocateState {
-            area: "area_123".to_string(),
-            x: 45.5,
-            y: 67.8,
-        };
-
-        assert_eq!(state.area, "area_123");
-        assert_eq!(state.x, 45.5);
-        assert_eq!(state.y, 67.8);
-    }
-
-    #[test]
-    fn test_locate_state_serialization() {
-        let state = LocateState {
-            area: "test_area".to_string(),
-            x: 100.0,
-            y: 200.0,
-        };
-
-        let json = serde_json::to_string(&state).unwrap();
-        let deserialized: LocateState = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(deserialized.area, state.area);
-        assert_eq!(deserialized.x, state.x);
-        assert_eq!(deserialized.y, state.y);
-    }
-
-    #[test]
-    fn test_beacon_serialization() {
-        let beacon = Beacon {
-            id: "507f1f77bcf86cd799439011".to_string(),
-            entity: "507f1f77bcf86cd799439012".to_string(),
-            area: "507f1f77bcf86cd799439013".to_string(),
-            merchant: None,
-            connection: None,
-            name: "Beacon 1".to_string(),
-            description: Some("Test beacon".to_string()),
-            r#type: "navigation".to_string(),
-            location: (50.0, 50.0),
-            device: "esp32".to_string(),
-            mac: "AA:BB:CC:DD:EE:FF".to_string(),
-        };
-
-        let json = serde_json::to_string(&beacon).unwrap();
-        assert!(json.contains("Beacon 1"));
-        assert!(json.contains("AA:BB:CC:DD:EE:FF"));
-    }
-
-    #[test]
-    fn test_beacon_with_merchant() {
-        let beacon = Beacon {
-            id: "507f1f77bcf86cd799439011".to_string(),
-            entity: "507f1f77bcf86cd799439012".to_string(),
-            area: "507f1f77bcf86cd799439013".to_string(),
-            merchant: Some("507f1f77bcf86cd799439014".to_string()),
-            connection: None,
-            name: "Store Beacon".to_string(),
-            description: Some("Beacon at store entrance".to_string()),
-            r#type: "marketing".to_string(),
-            location: (25.0, 75.0),
-            device: "esp32c3".to_string(),
-            mac: "11:22:33:44:55:66".to_string(),
-        };
-
-        assert!(beacon.merchant.is_some());
-        assert_eq!(beacon.r#type, "marketing");
-    }
-
-    #[test]
-    fn test_beacon_location_coordinates() {
-        let beacon = Beacon {
-            id: "507f1f77bcf86cd799439011".to_string(),
-            entity: "507f1f77bcf86cd799439012".to_string(),
-            area: "507f1f77bcf86cd799439013".to_string(),
-            merchant: None,
-            connection: None,
-            name: "Location Test".to_string(),
-            description: None,
-            r#type: "navigation".to_string(),
-            location: (123.456, 789.012),
-            device: "esp32s3".to_string(),
-            mac: "AA:BB:CC:DD:EE:FF".to_string(),
-        };
-
-        let (x, y) = beacon.location;
-        assert_eq!(x, 123.456);
-        assert_eq!(y, 789.012);
-    }
-
-    #[test]
-    fn test_beacon_device_types() {
-        let devices = vec!["esp32", "esp32c3", "esp32s3", "esp32c6"];
-
-        for device in devices {
-            let beacon = Beacon {
-                id: "507f1f77bcf86cd799439011".to_string(),
-                entity: "507f1f77bcf86cd799439012".to_string(),
-                area: "507f1f77bcf86cd799439013".to_string(),
-                merchant: None,
-                connection: None,
-                name: "Test".to_string(),
-                description: None,
-                r#type: "navigation".to_string(),
-                location: (0.0, 0.0),
-                device: device.to_string(),
-                mac: "00:00:00:00:00:00".to_string(),
-            };
-
-            assert_eq!(beacon.device, device);
-        }
-    }
-
-    #[test]
-    fn test_locate_state_coordinates_precision() {
-        let state = LocateState {
-            area: "precise_area".to_string(),
-            x: 123.456789,
-            y: 987.654321,
-        };
-
-        // Test that coordinates maintain precision
-        assert!((state.x - 123.456789).abs() < 1e-6);
-        assert!((state.y - 987.654321).abs() < 1e-6);
-    }
-
-    #[test]
-    fn test_beacon_mac_address_format() {
-        let beacon = Beacon {
-            id: "507f1f77bcf86cd799439011".to_string(),
-            entity: "507f1f77bcf86cd799439012".to_string(),
-            area: "507f1f77bcf86cd799439013".to_string(),
-            merchant: None,
-            connection: None,
-            name: "MAC Test".to_string(),
-            description: None,
-            r#type: "navigation".to_string(),
-            location: (0.0, 0.0),
-            device: "esp32".to_string(),
-            mac: "AA:BB:CC:DD:EE:FF".to_string(),
-        };
-
-        // Verify MAC address format
-        assert_eq!(beacon.mac.len(), 17); // Standard MAC length with colons
-        assert_eq!(beacon.mac.matches(':').count(), 5);
-    }
-
-    #[tokio::test]
-    async fn test_login_request_serialization() {
-        let request = LoginRequest {
-            email: "test@example.com".to_string(),
-            password: "password123".to_string(),
-        };
-
-        let json = serde_json::to_string(&request).unwrap();
-        assert!(json.contains("test@example.com"));
-        assert!(json.contains("password123"));
-    }
-
-    #[tokio::test]
-    async fn test_login_response_success() {
-        let response = LoginResponse {
-            success: true,
-            token: Some("jwt_token_123".to_string()),
-            user_id: Some("user_456".to_string()),
-            message: "Login successful".to_string(),
-        };
-
-        assert!(response.success);
-        assert!(response.token.is_some());
-        assert_eq!(response.token.unwrap(), "jwt_token_123");
-    }
-
-    #[tokio::test]
-    async fn test_login_response_failure() {
-        let response = LoginResponse {
-            success: false,
-            token: None,
-            user_id: None,
-            message: "Invalid credentials".to_string(),
-        };
-
-        assert!(!response.success);
-        assert!(response.token.is_none());
-        assert_eq!(response.message, "Invalid credentials");
-    }
-
-    #[tokio::test]
-    async fn test_register_request_validation() {
-        let request = RegisterRequest {
-            email: "newuser@example.com".to_string(),
-            username: "newuser".to_string(),
-            password: "securepass123".to_string(),
-        };
-
-        assert_eq!(request.email, "newuser@example.com");
-        assert_eq!(request.username, "newuser");
-        assert!(!request.password.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_register_response_success() {
-        let response = RegisterResponse {
-            success: true,
-            user_id: Some("new_user_789".to_string()),
-            message: "Registration successful".to_string(),
-        };
-
-        assert!(response.success);
-        assert!(response.user_id.is_some());
-    }
-
-    #[test]
-    fn test_email_format() {
-        let request = LoginRequest {
-            email: "valid@email.com".to_string(),
-            password: "pass".to_string(),
-        };
-
-        assert!(request.email.contains("@"));
-        assert!(request.email.contains("."));
-    }
-
-    #[test]
-    fn test_password_not_empty() {
-        let request = LoginRequest {
-            email: "user@test.com".to_string(),
-            password: "mypassword".to_string(),
-        };
-
-        assert!(!request.password.is_empty());
-        assert!(request.password.len() >= 5);
-    }
-
-    #[test]
-    fn test_login_response_serialization() {
-        let response = LoginResponse {
-            success: true,
-            token: Some("token".to_string()),
-            user_id: Some("user".to_string()),
-            message: "OK".to_string(),
-        };
-
-        let json = serde_json::to_string(&response).unwrap();
-        let deserialized: LoginResponse = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(deserialized.success, response.success);
-        assert_eq!(deserialized.message, response.message);
-    }
-
-    #[test]
-    fn test_register_request_serialization() {
-        let request = RegisterRequest {
-            email: "test@test.com".to_string(),
-            username: "testuser".to_string(),
-            password: "testpass".to_string(),
-        };
-
-        let json = serde_json::to_string(&request).unwrap();
-        assert!(json.contains("test@test.com"));
-        assert!(json.contains("testuser"));
-    }
-
-    #[test]
-    fn test_register_response_error() {
-        let response = RegisterResponse {
-            success: false,
-            user_id: None,
-            message: "Email already exists".to_string(),
-        };
-
-        assert!(!response.success);
-        assert!(response.user_id.is_none());
-        assert!(response.message.contains("Email already exists"));
-    }
-
-    #[test]
-    fn test_serialize_beacon_info() {
-        let info = r#"{"_id":"68a84b6ebdfa76608b934b0a","entity":"68a8301fbdfa76608b934ae1","area":"68a83067bdfa76608b934aea","merchant":"68a848c6bdfa76608b934b01","connection":null,"name":"NAVIGN-BEACON","description":"Beacon in A.I. Lab","type":"security","location":[66.0,8.0],"device":"esp32c3","mac":"48:F6:EE:21:B0:7C"}"#;
-        let beacon: Beacon = serde_json::from_slice(info.as_bytes()).unwrap();
-        assert_eq!(beacon.id, "68a84b6ebdfa76608b934b0a");
-        assert_eq!(beacon.entity, "68a8301fbdfa76608b934ae1");
-        assert_eq!(beacon.area, "68a83067bdfa76608b934aea");
-        assert_eq!(
-            beacon.merchant.as_ref().unwrap(),
-            "68a848c6bdfa76608b934b01"
-        );
-        assert_eq!(beacon.connection, None);
     }
 }

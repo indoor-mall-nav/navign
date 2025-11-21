@@ -23,7 +23,7 @@ pub mod errors;
 #[cfg(feature = "std")]
 pub mod pathfinding;
 
-mod ble;
+pub mod ble;
 mod crypto;
 pub mod schema;
 mod traits;

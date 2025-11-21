@@ -7,7 +7,7 @@
 use geo_traits::to_geo::{ToGeoPoint, ToGeoPolygon};
 #[cfg(all(feature = "postgres", feature = "geo"))]
 use geo_traits::{GeometryTrait, GeometryType};
-#[cfg(feature = "postgres")]
+#[cfg(feature = "geo")]
 use geo_types::{Point, Polygon};
 #[cfg(feature = "postgres")]
 use serde::{Deserialize, Serialize};
@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgArgumentBuffer, PgTypeInfo, PgValueRef};
 #[cfg(feature = "postgres")]
 use sqlx::{Decode, Encode, Postgres, Type};
+use wkt::TryFromWkt;
 
 /// Wrapper around geo_types::Point for PostGIS GEOMETRY(POINT, 4326)
 ///
@@ -284,4 +285,33 @@ pub fn wkb_to_polygon(bytes: &[u8]) -> Result<Vec<(f64, f64)>, wkb::error::WkbEr
             "WKB does not represent a Polygon".to_string(),
         ))
     }
+}
+
+#[cfg(feature = "geo")]
+pub fn wkt_to_point(wkt_str: &str) -> Result<(f64, f64), wkt::geo_types_from_wkt::Error> {
+    Point::<f64>::try_from_wkt_str(wkt_str).map(|pt| (pt.x(), pt.y()))
+}
+
+#[cfg(feature = "geo")]
+pub fn point_to_wkt(point: (f64, f64)) -> String {
+    let pt = Point::new(point.0, point.1);
+    format!("POINT({} {})", pt.x(), pt.y())
+}
+
+#[cfg(feature = "geo")]
+pub fn wkt_to_polygon(wkt_str: &str) -> Result<Vec<(f64, f64)>, wkt::geo_types_from_wkt::Error> {
+    let polygon = Polygon::<f64>::try_from_wkt_str(wkt_str)?;
+    let coords: Vec<(f64, f64)> = polygon
+        .exterior()
+        .0
+        .iter()
+        .map(|coord| (coord.x, coord.y))
+        .collect();
+    Ok(coords)
+}
+
+#[cfg(feature = "geo")]
+pub fn polygon_to_wkt(points: &[(f64, f64)]) -> String {
+    let coords_str: Vec<String> = points.iter().map(|(x, y)| format!("{} {}", x, y)).collect();
+    format!("POLYGON(({}))", coords_str.join(", "))
 }

@@ -411,6 +411,7 @@ export interface MerchantCreateRequest {
     handle: string
     url?: string
   }[]
+  image_url?: string | null
 }
 
 export interface MerchantUpdateRequest {
@@ -435,6 +436,7 @@ export interface MerchantUpdateRequest {
     handle: string
     url?: string
   }[]
+  image_url?: string | null
 }
 
 export async function listMerchants(
