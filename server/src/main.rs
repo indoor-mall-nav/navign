@@ -291,6 +291,11 @@ async fn main() -> ServerResult<()> {
             "/api/entities/{entity}/connections/{id}",
             delete(Connection::crud_delete),
         )
+        // Route finding endpoint
+        .route(
+            "/api/entities/{entity}/route",
+            get(kernel::route::find_route),
+        )
         .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)

@@ -119,6 +119,29 @@ impl Display for Floor {
     }
 }
 
+impl Area {
+    /// Extract polygon coordinates as Vec<(f64, f64)>
+    #[cfg(feature = "geo")]
+    pub fn polygon(&self) -> Result<Vec<(f64, f64)>, String> {
+        #[cfg(feature = "postgres")]
+        {
+            // Extract coordinates from PgPolygon
+            let polygon = &self.polygon.0;
+            let coords: Vec<(f64, f64)> = polygon
+                .exterior()
+                .0
+                .iter()
+                .map(|coord| (coord.x, coord.y))
+                .collect();
+            Ok(coords)
+        }
+        #[cfg(not(feature = "postgres"))]
+        {
+            Ok(self.polygon.clone())
+        }
+    }
+}
+
 #[cfg(all(feature = "postgres", feature = "sql"))]
 use crate::schema::repository::IntRepository;
 
