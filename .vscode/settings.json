@@ -1,5 +1,7 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:conda",
     "python-envs.defaultPackageManager": "ms-python.python:conda",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "idf.pythonInstallPath": "/opt/anaconda3/bin/python",
+    "cmake.sourceDirectory": "/Users/ethangoh/Developer/indoor-mall/navign/robot/vision"
 }
