@@ -1,13 +1,13 @@
 //! Unlocker module - handles unlock instance creation and verification
-//! 
+//!
 //! This module provides API endpoints for the BLE-based access control system.
 //! Currently simplified without user authentication - to be integrated later.
 
 use crate::error::ServerError;
 use crate::state::AppState;
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
-use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::info;
