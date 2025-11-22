@@ -1,0 +1,64 @@
+[project]
+dependencies = [
+  "grpcio>=1.76.0",
+  "grpcio-tools>=1.76.0",
+  "protobuf>=5.29.0",
+  "cryptography>=45.0.0",
+  "click>=8.1.0",
+]
+description = "ESP32-C3 eFuse key management and beacon registration CLI tool"
+name = "navign-maintenance"
+readme = "README.md"
+requires-python = ">=3.12"
+version = "0.1.0"
+
+  [project.scripts]
+  navign-maintenance = "navign_maintenance.cli:main"
+
+  [project.optional-dependencies]
+  dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+    "pytest-asyncio>=0.24.0",
+  ]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0", "wheel"]
+
+[tool.setuptools.packages.find]
+include = ["navign_maintenance*", "proto*"]
+
+[tool.pytest.ini_options]
+addopts = [
+  "-v",
+  "--strict-markers",
+  "--tb=short",
+  "--cov=navign_maintenance",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+]
+markers = [
+  "unit: Unit tests",
+  "integration: Integration tests",
+  "slow: Slow running tests",
+]
+python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit   = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
+source = ["navign_maintenance"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
