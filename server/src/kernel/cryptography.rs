@@ -1,11 +1,11 @@
 #![allow(unused)]
 use anyhow::Result;
-use mongodb::Database;
 use p256::PublicKey;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::signature::Signer;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
+use sqlx::PgPool;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserPasswordAuthenticationPayload {
@@ -53,7 +53,7 @@ impl CryptoServer {
         payload: String,
         hash: String,
         user_id: &str,
-        database: &Database,
+        database: &PgPool,
     ) -> Result<String> {
         let payload = hex::decode(payload)?;
         Ok(String::new())

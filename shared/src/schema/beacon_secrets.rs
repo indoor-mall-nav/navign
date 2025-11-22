@@ -17,6 +17,19 @@ pub struct BeaconSecrets {
     /// The private key in bytes (typically 32 bytes for P-256)
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub private_key: [u8; 32],
+    pub counter: i64,
+    #[cfg(feature = "postgres")]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub last_epoch: Option<chrono::DateTime<chrono::Utc>>,
+    #[cfg(not(feature = "postgres"))]
+    #[cfg_attr(
+        all(feature = "serde", not(feature = "postgres")),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub last_epoch: Option<i64>, // Timestamp in milliseconds
     #[cfg(feature = "postgres")]
     #[cfg_attr(
         all(feature = "serde", not(feature = "postgres")),
@@ -99,7 +112,7 @@ impl UuidRepository<sqlx::Postgres> for BeaconSecrets {
     async fn list(pool: &PgPool, offset: i64, limit: i64) -> sqlx::Result<Vec<Self>> {
         let records = sqlx::query_as::<_, BeaconSecrets>(
             "
-            SELECT id, beacon_id, private_key, created_at, updated_at
+            SELECT id, beacon_id, counter, last_epoch, private_key, created_at, updated_at
             FROM beacon_secrets
             ORDER BY id
             OFFSET $1 LIMIT $2",
@@ -122,7 +135,7 @@ impl UuidRepository<sqlx::Postgres> for BeaconSecrets {
     ) -> sqlx::Result<Vec<Self>> {
         let mut sql = String::from(
             "
-            SELECT id, beacon_id, private_key, created_at, updated_at
+            SELECT id, beacon_id, counter, last_epoch, private_key, created_at, updated_at
             FROM beacon_secrets
             WHERE beacon_id::text LIKE ",
         );
@@ -161,14 +174,42 @@ impl UuidRepository<sqlx::Postgres> for BeaconSecrets {
         sqlx::query(
             "
             UPDATE beacon_secrets
-            SET beacon_id = $1, private_key = $2, updated_at = NOW()
-            WHERE id = $3",
+            SET beacon_id = $1, counter = $2, last_epoch = $3, private_key = $4, updated_at = NOW()
+            WHERE id = $5",
         )
         .bind(item.beacon_id)
+        .bind(item.counter)
+        .bind(item.last_epoch)
         .bind(item.private_key)
         .bind(item.id)
         .execute(pool)
         .await?;
+        Ok(())
+    }
+}
+
+#[cfg(all(feature = "postgres", feature = "crypto"))]
+impl BeaconSecrets {
+    pub fn epoch(&mut self, epoch: u64) {
+        self.last_epoch = chrono::DateTime::<chrono::Utc>::from_timestamp(epoch as i64, 0);
+    }
+
+    pub fn ecdsa_key(&self) -> Option<p256::ecdsa::SigningKey> {
+        p256::ecdsa::SigningKey::from_slice(&self.private_key).ok()
+    }
+
+    pub async fn increment_counter(&mut self, pool: &PgPool) -> sqlx::Result<()> {
+        let new_counter = self
+            .counter
+            .checked_add(1)
+            .ok_or_else(|| sqlx::Error::InvalidSavePointStatement)?;
+
+        sqlx::query("UPDATE beacon_secrets SET counter = $1 WHERE id = $2")
+            .bind(new_counter)
+            .bind(self.id.to_string())
+            .execute(pool)
+            .await?;
+
         Ok(())
     }
 }

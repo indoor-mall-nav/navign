@@ -99,7 +99,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 **Server:** `server/`
 - **Framework:** Axum 0.8.6 (async web framework)
 - **Runtime:** Tokio 1.47.1 (async runtime)
-- **Database:** PostgreSQL via SQLx 0.8.6 (primary), MongoDB 3.3.0 (legacy compatibility only)
+- **Database:** PostgreSQL via SQLx 0.8.6 (primary)
 - **Cryptography:** p256 0.13.2 (ECDSA), sha2 0.10.9, bcrypt 0.17.1, rsa 0.9.8
 - **Authentication:** jsonwebtoken 10.0.0, oauth2 5.0.0 (GitHub, Google, WeChat)
 - **Pathfinding:** bumpalo 3.18 (bump allocator for Dijkstra's algorithm)
@@ -114,15 +114,12 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 
 **Firmware:** `firmware/`
 - **HAL:** esp-hal 1.0.0-rc.1 (bare-metal, no RTOS initially)
-- **BLE Stack:** bleps (async BLE protocol stack)
 - **Radio:** esp-radio 0.16.0 (WiFi + BLE + coexistence)
-- **RTOS:** esp-rtos 0.1.1 (FreeRTOS wrapper)
+- **RTOS:** esp-rtos 0.1.1 (Embassy wrapper)
 - **Networking:** smoltcp 0.12.0 (TCP/IP stack)
 - **Crypto:** p256 0.13.2 (ECDSA), sha2 0.10.9
 - **Sensors:** embedded-dht-rs 0.5.0 (DHT11 temp/humidity)
 - **Storage:** esp-storage 0.8.0 (efuse key storage)
-
-**Important:** Beacon requires `opt-level = "s"` for size optimization and performance.
 
 ### Frontend (TypeScript/Vue)
 
@@ -174,8 +171,9 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
   - `std`: Standard library features
   - `serde`: Serialization support
   - `crypto`: Cryptographic primitives
-  - `sql`: SQL/SQLite integration
-  - `postgres`: PostgreSQL integration (requires `std`, `serde`, `sql`)
+  - `sql`: SQL
+  - `sqlite`: SQLite integration
+  - `postgres`: PostgreSQL integration
   - `base64`: Base64 encoding
   - `postcard`: Efficient binary serialization (used for BLE protocol)
   - `defmt`: Embedded debugging and logging
@@ -190,8 +188,6 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **Polygon Operations:** Point-in-polygon tests, boundary detection, obstacle handling
 - **No-std Compatible:** Works without arena allocation for embedded systems
 - **Use Cases:** Complex floor plans with irregular shapes, robot navigation
-
-**Critical:** Never enable both `heapless` and `alloc` features simultaneously.
 
 **TypeScript Schema Generator:** `shared/src/bin/gen_ts_schema.rs`
 - **Purpose:** Automatic Rust→TypeScript type conversion
@@ -371,7 +367,6 @@ navign/
 
 **Key Features:**
 - RESTful API on port 3000
-- MongoDB data persistence
 - OAuth2 authentication (GitHub, Google, WeChat)
 - Password-based authentication with bcrypt
 - JWT token generation
@@ -432,15 +427,9 @@ PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome # Record resul
 - `users`: User accounts and authentication
 - `beacon_secrets`: Private keys for beacons
 
-**Pathfinding Algorithm:**
-- Location: `server/src/kernel/route/implementations/`
-- Uses Dijkstra's algorithm with bump allocation for performance
-- Supports multi-floor routing via `Connection` entities
-- Returns navigation instructions (ENTER_AREA, USE_CONNECTION, etc.)
-
 **Environment Variables:**
 ```bash
-DATABASE_URL=mongodb://localhost:27017
+DATABASE_URL=postgres://navign_user:password@localhost:5432/navign
 DATABASE_NAME=navign
 RUST_LOG=info
 ```
@@ -1320,53 +1309,6 @@ cd robot/audio && uv run python service.py
 
 ---
 
-### Gesture Space (Deprecated - Now `robot/vision/`)
-
-**Purpose:** Computer vision system for gesture recognition and spatial understanding.
-
-**⚠️ Status:** This module has been moved to `robot/vision/` as part of the robot upper layer reorganization (PR #79).
-
-**Features:**
-1. **Hand Landmark Detection** (MediaPipe):
-   - 21 hand landmarks per hand
-   - Real-time tracking at 30+ FPS
-   - Gesture classification
-
-2. **Object Detection** (YOLOv12):
-   - Real-time object detection
-   - Custom trained models
-   - Bounding box + confidence
-
-3. **AprilTag Detection:**
-   - Marker-based pose estimation
-   - 3D coordinate transformation
-   - Camera-to-world transforms
-
-4. **Wake Word Detection** (Porcupine):
-   - Offline keyword spotting
-   - Low-latency activation
-
-**Dependencies:**
-```toml
-[project.dependencies]
-mediapipe = "*"
-opencv-python = "*"
-ultralytics = "*"  # YOLOv12
-torch = "*"
-apriltag = "*"
-pvporcupine = "*"
-numpy = "*"
-```
-
-**Usage:**
-```bash
-cd gesture_space
-uv sync
-uv run python main.py
-```
-
----
-
 ### Robot Lower Controller (`robot/lower/`)
 
 **Purpose:** Low-level motor control and sensor management for autonomous delivery robots.
@@ -1405,161 +1347,6 @@ probe-rs run --chip STM32F407ZGTx
 ```
 
 **Current Status:** Basic structure implemented, motor control logic in development.
-
----
-
-### Procedural Macros (`proc_macros/`)
-
-**Purpose:** Compile-time code generation for reducing boilerplate across the project.
-
-**Location:** `proc_macros/`
-
-**Features:**
-- Custom derive macros
-- Attribute macros for configuration
-- Function-like macros for repetitive patterns
-
-**Dependencies:**
-- syn 2.0 - Parse Rust syntax
-- quote 1.0 - Generate Rust code
-- proc-macro2 1.0 - Procedural macro utilities
-
-**Usage Example:**
-```rust
-use navign_proc_macros::ExampleDerive;
-
-#[derive(ExampleDerive)]
-struct MyStruct {
-    field: String,
-}
-```
-
-**Development:**
-```bash
-cd proc_macros
-cargo check
-cargo test  # Tests run in dependent crates
-```
-
-**Note:** Currently contains example macros. Real implementations to be added based on project needs.
-
----
-
-### Internationalization (`mobile/src/i18n/`)
-
-**Purpose:** Multi-language support for the mobile application.
-
-**Supported Languages:**
-1. **English (en-US)** - Default/fallback
-2. **Simplified Chinese (zh-CN)** - 简体中文
-3. **Traditional Chinese (zh-TW)** - 繁體中文
-4. **Japanese (ja-JP)** - 日本語
-5. **French (fr-FR)** - Français
-
-**Technology:** vue-i18n with JSON translation files
-
-**Structure:**
-```
-mobile/src/i18n/
-├── index.ts              # i18n configuration
-├── locales/
-│   ├── en-US.json
-│   ├── zh-CN.json
-│   ├── zh-TW.json
-│   ├── ja-JP.json
-│   └── fr-FR.json
-└── README.md
-```
-
-**Usage in Components:**
-```vue
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
-</script>
-
-<template>
-  <h1>{{ t('home.title') }}</h1>
-  <Button>{{ t('common.login') }}</Button>
-</template>
-```
-
-**Features:**
-- Automatic language detection
-- Persistent language preference (localStorage)
-- Language switcher component
-- Parameterized translations
-- Organized by feature (common, auth, navigation, etc.)
-
----
-
-### PostgreSQL Migration Layer (`server/src/pg/`)
-
-**Purpose:** Optional PostgreSQL database support alongside MongoDB for gradual migration.
-
-**Status:** ✅ **Implemented** (previously planned, now complete)
-
-**Architecture:**
-- Dual-database support (MongoDB primary, PostgreSQL optional)
-- Repository pattern for clean abstraction
-- Type-safe ID handling (UUID for entities/users, Integer for others)
-- Automatic schema migrations
-
-**Key Files:**
-- `src/pg/pool.rs` - Connection pooling
-- `src/pg/models.rs` - PostgreSQL-specific models
-- `src/pg/repository.rs` - CRUD repository implementations
-- `migrations/001_initial_schema.sql` - Complete schema definition
-
-**Environment Variables:**
-```bash
-# Required (MongoDB)
-MONGODB_HOST=localhost:27017
-MONGODB_DB_NAME=navign
-
-# Optional (PostgreSQL)
-POSTGRES_URL=postgresql://user:password@localhost:5432/navign
-POSTGRES_RUN_MIGRATIONS=true  # Auto-run migrations
-```
-
-**ID Types:**
-- **UUID**: entities, users (globally unique, top-level resources)
-- **Integer (SERIAL)**: areas, beacons, merchants, connections (efficient joins)
-
-**Repositories:**
-- ✅ EntityRepository (UUID-based)
-- ✅ UserRepository (UUID-based)
-- ✅ AreaRepository (Integer-based)
-- ✅ BeaconRepository (Integer-based)
-- ✅ MerchantRepository (Integer-based)
-- ✅ ConnectionRepository (Integer-based)
-- ✅ BeaconSecretRepository
-- ✅ UserPublicKeyRepository
-- ✅ FirmwareRepository
-
-**Usage Example:**
-```rust
-// Dual-database handler
-async fn my_handler(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    if let Some(pg_pool) = state.pg_pool.as_ref() {
-        // Use PostgreSQL
-        let repo = EntityRepository::new(pg_pool.clone());
-        let entities = repo.get_all(0, 10).await?;
-    } else {
-        // Fallback to MongoDB
-        let entities = Entity::get_all(&state.db).await?;
-    }
-    Ok(Json(entities))
-}
-```
-
-**Migration Strategy (4 Phases):**
-1. **Phase 1 (Current)**: PostgreSQL layer exists, MongoDB only in use
-2. **Phase 2**: Dual-write mode - Write to both, read from MongoDB
-3. **Phase 3**: Dual-read mode - Write to both, read from PostgreSQL
-4. **Phase 4**: PostgreSQL only - Remove MongoDB dependencies
-
-**Documentation:** See `docs/docs/components/server/postgres-migration-summary.md` and `POSTGRES_MIGRATION.md`
 
 ---
 
@@ -1615,7 +1402,7 @@ just lint
 just test
 # Runs:
 # - shared/ tests with multiple feature combinations
-# - server/ tests (requires MongoDB)
+# - server/ tests
 # - mobile/ tests (Vitest)
 # - admin/maintenance/ tests
 ```
@@ -1635,7 +1422,7 @@ The justfile includes CI-specific tasks for each component:
 
 ```bash
 just ci-shared      # Shared library checks + tests
-just ci-server      # Server checks + tests (needs MongoDB)
+just ci-server      # Server checks + tests
 just ci-firmware    # Firmware checks + mock tests
 just ci-mobile      # Mobile checks + tests
 just ci-desktop     # Desktop-specific tasks
@@ -1776,7 +1563,6 @@ pub struct TokenClaims {
 - Floor identifiers match entity floors
 - Polygon coordinates are valid
 - UUIDs are properly formatted
-- Device IDs are 24-character hex strings
 - Nonce timestamps are within acceptable range
 
 ---
@@ -1787,93 +1573,25 @@ pub struct TokenClaims {
 
 **Server:** `server/src/`
 ```bash
-cd server
-cargo test
-# Requires MongoDB on localhost:27017
+just test-server
 ```
 
 **Shared:** `shared/src/`
 ```bash
-cd shared
-# Test all feature combinations
-cargo test
-cargo test --features heapless --no-default-features
-cargo test --features alloc --no-default-features
-cargo test --features crypto,heapless,serde,postcard --no-default-features
-cargo test --features postgres,sql,serde,crypto
-cargo test --features geo,alloc,serde
-cargo test --features postcard,serde
+just test-shared
 ```
 
 **Mobile:** `mobile/src/`
 ```bash
-cd mobile
-pnpm run test
-# Uses Vitest
-# See: mobile/src/lib/api/tauri.test.ts
-#      mobile/src/components/map/extractInstructions.test.ts
+just test-mobile
 ```
-
-### Integration Tests
-
-**Firmware:** `firmware/tests/`
-
-The firmware now has comprehensive testing infrastructure:
-
-**Mock-Based Tests (Fast, runs on host):**
-```bash
-cd firmware
-
-# Run all mock tests
-just test-firmware-mocks
-
-# Or individual test suites
-cargo test --test nonce_tests --features std
-cargo test --test crypto_tests --features std
-cargo test --test rate_limit_tests --features std
-```
-
-**QEMU Simulation Tests (Requires QEMU):**
-```bash
-# Run firmware in ESP32-C3 QEMU
-just test-firmware-qemu
-
-# Or run directly
-cd firmware && ./tests/qemu_runner.sh
-```
-
-**Test Coverage:**
-| Component | Tests | Coverage |
-|-----------|-------|----------|
-| Nonce Management | 6 tests | 95%+ |
-| Cryptography (P-256 ECDSA) | 8 tests | 90%+ |
-| Rate Limiting | 8 tests | 90%+ |
-| GPIO/Peripherals | 3 tests | 60%+ |
-| BLE Protocol | 0 tests | 80%+ (TODO) |
-| Storage (eFuse) | 0 tests | 85%+ (TODO) |
-
-**Test Structure:**
-```
-firmware/tests/
-├── README.md           # Testing guide
-├── qemu_runner.sh      # QEMU automation
-├── mocks/              # Mock implementations
-│   ├── rng.rs          # Deterministic RNG
-│   ├── storage.rs      # Mock flash storage
-│   └── gpio.rs         # Mock GPIO/relay
-├── nonce_tests.rs      # Nonce management tests
-├── crypto_tests.rs     # Crypto tests
-└── rate_limit_tests.rs # Rate limiting tests
-```
-
-**Documentation:** See `firmware/tests/README.md` and `firmware/TESTING.md` for complete guide.
 
 ### End-to-End Tests
 
 **Not yet implemented**
 
 Planned workflow:
-1. Start MongoDB
+1. Start PostgreSQL
 2. Start server
 3. Seed database with test entities/areas/beacons
 4. Run mobile app in test mode
@@ -1887,47 +1605,37 @@ Planned workflow:
 
 ### Adding a New API Endpoint
 
-1. **Define schema** in `server/src/schema/`:
+1. **Define schema and Implement Database CRUD Trait** in `shared/schema/`:
 ```rust
-// server/src/schema/my_entity.rs
+// shared/src/schema/my_entity.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MyEntity {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub id: uuid::Uuid,
     pub name: String,
     pub description: String,
 }
-```
 
-2. **Implement Service trait** if using CRUD:
-```rust
-impl Service for MyEntity {
-    const COLLECTION: &'static str = "my_entities";
-    // Implement required methods
+#[async_trait::async_trait]
+impl UuidRepository<sqlx::Postgres> for MyEntity {
+    async fn create(pool: &PgPool, entity: &Self) -> sqlx::Result<()> {
+        // Write your code here
+    }
+    // And other CRUD methods...
 }
 ```
 
-3. **Add route** in `server/src/main.rs`:
+2. **Add route** in `server/src/main.rs`:
 ```rust
-.route("/api/my-entities", get(MyEntity::get_handler))
-.route("/api/my-entities", post(MyEntity::create_handler))
+.route("/api/my-entities", get(MyEntity::crud_get_by_id))
+.route("/api/my-entities", post(MyEntity::crud_create))
 ```
 
-4. **Update shared/** if needed by mobile:
-```rust
-// shared/src/schema/my_entity.rs
-#[cfg(feature = "alloc")]
-pub struct MyEntity {
-    // Same structure, but with feature gates
-}
-```
-
-5. **Run code generation** for TypeScript:
+3. **Run code generation** for TypeScript:
 ```bash
-cd ts-schema
-cargo build --release
+just gen-ts-schema
+just fmt
 # Generates mobile/src/schema/my_entity.d.ts
 ```
 
@@ -1943,21 +1651,7 @@ pub enum BleMessage {
 }
 ```
 
-2. **Implement Packetize/Depacketize:**
-```rust
-impl Packetize for BleMessage {
-    fn packetize(&self) -> Result<Vec<u8>, PacketizeError> {
-        match self {
-            BleMessage::MyRequest(data) => {
-                // Serialize to bytes
-            },
-            // ...
-        }
-    }
-}
-```
-
-3. **Update beacon handler:**
+2. **Update beacon handler:**
 ```rust
 // firmware/src/bin/main.rs
 match message {
@@ -1969,7 +1663,7 @@ match message {
 }
 ```
 
-4. **Update mobile Tauri command:**
+3. **Update mobile Tauri command:**
 ```rust
 // mobile/src-tauri/src/lib.rs
 #[tauri::command]
@@ -1978,68 +1672,13 @@ fn my_ble_operation(data: MyData) -> Result<MyResult> {
 }
 ```
 
-### Adding a New Pathfinding Instruction
-
-1. **Define instruction type:**
-```rust
-// server/src/kernel/route/instructions.rs
-pub enum NavigationInstruction {
-    // ... existing variants
-    MyInstruction { param: String },
-}
-```
-
-2. **Generate instruction in pathfinding:**
-```rust
-// server/src/kernel/route/implementations/navigate.rs
-fn generate_instructions(path: &[Node]) -> Vec<NavigationInstruction> {
-    // ... logic to detect when to emit MyInstruction
-}
-```
-
-3. **Handle in mobile:**
-```typescript
-// mobile/src/components/map/extractInstructions.ts
-export function extractInstructions(route: Route): Instruction[] {
-  // Parse MyInstruction and convert to UI format
-}
-```
-
-### Adding a Device Capability
-
-1. **Add to shared:**
-```rust
-// shared/src/ble/device_caps.rs
-pub enum DeviceCapability {
-    UnlockGate,
-    EnvironmentalData,
-    MyNewCapability,
-}
-```
-
-2. **Update beacon advertised capabilities:**
-```rust
-// firmware/src/bin/main.rs
-let mut capabilities = Vec::<DeviceCapability, 4>::new();
-capabilities.push(DeviceCapability::MyNewCapability).unwrap();
-```
-
-3. **Add corresponding BLE service UUID if needed:**
-```rust
-uuids.push(Uuid::Uuid16(0x1234)).unwrap(); // My Service UUID
-```
-
-4. **Update mobile to handle capability:**
-```typescript
-// mobile/src/lib/api/tauri.ts
-if (beacon.capabilities.includes('MyNewCapability')) {
-  // Enable UI for this capability
-}
-```
-
 ---
 
 ## Important Conventions
+
+### Run and Check before Committing
+
+Always run the corresponding just tasks before committing.
 
 ### Rust Code Style
 
@@ -2116,55 +1755,11 @@ Fixes #456
 
 ### Feature Flags
 
-**Shared library MUST be compiled with correct features:**
-
-For beacon (embedded):
-```toml
-navign-shared = { path = "../shared", default-features = false, features = [
-  "heapless",
-  "serde",
-  "crypto",
-] }
-```
-
-For server:
-```toml
-navign-shared = { path = "../shared", default-features = false, features = [
-  "std",
-  "serde",
-  "geo",
-  "postgres",
-  "sql"
-] }
-```
-
-For mobile Tauri:
-```toml
-navign-shared = { path = "../../shared", features = [
-  "std",
-  "serde",
-  "sql",
-  "crypto",
-] }
-```
-
----
+Shared library MUST be compiled with correct features. See its `Cargo.toml` for details.
 
 ## Gotchas and Critical Notes
 
-### 1. Firmware Optimization Required
-
-The firmware **MUST** be compiled with size optimization:
-
-```toml
-[profile.release.package.navign-firmware]
-opt-level = 's'
-codegen-units = 1
-```
-
-Without this, the binary will not fit in ESP32-C3 flash (4MB).
-
-### 2. Shared Library Feature Conflicts
+### 1. Shared Library Feature Conflicts
 
 **NEVER enable both `heapless` and `alloc` features:**
 
@@ -2235,22 +1830,7 @@ cd beacon
 cargo build --release
 ```
 
-### 7. Bumpalo Arena Lifetime Management
-
-The server pathfinding uses bump allocation for performance:
-
-```rust
-use bumpalo::Bump;
-
-let arena = Bump::new();
-let graph = build_graph(&arena, entity);
-let path = dijkstra(&arena, graph, start, end);
-// All allocations freed when arena drops
-```
-
-**Do not** try to return references from the arena - they won't outlive the function.
-
-### 8. Nonce Replay Attack Prevention
+### 7. Nonce Replay Attack Prevention
 
 Beacons store used nonces in a fixed-size buffer (16 nonces):
 
@@ -2261,7 +1841,7 @@ const MAX_NONCES: usize = 16;
 If a beacon receives > 16 unlock requests within 5 seconds, old nonces are evicted.
 This is acceptable because nonces expire after 5 seconds anyway.
 
-### 9. CORS is Wide Open
+### 8. CORS is Wide Open
 
 The server has permissive CORS for development:
 
@@ -2274,42 +1854,7 @@ let cors = CorsLayer::new()
 
 **TODO:** Restrict origins in production deployment.
 
-### 10. No CI for Beacon Yet
-
-The CI pipeline does not test beacon firmware:
-
-```yaml
-runs-for: [shared, server, mobile, desktop, beacon]
-```
-
-But the beacon job only checks compilation, no unit tests:
-
-```just
-ci-beacon:
-  cd beacon && cargo check --release
-  cd beacon && cargo fmt -- --check
-  cd beacon && cargo clippy --release -- -D warnings
-  echo "No tests for beacons yet..."
-```
-
-Embedded testing requires hardware or simulators (not yet configured).
-
-### 11. TypeScript Schema Generation is Automated via ts-rs
-
-After modifying `shared/src/schema/`, regenerate TypeScript types:
-
-```bash
-just gen-ts-schema
-# Or manually:
-cd shared && cargo run --bin gen-ts-schema --features ts-rs
-# Output goes to mobile/src/schema/generated/
-```
-
-The `ts-rs` library generates TypeScript definitions via `shared/src/bin/gen_ts_schema.rs`.
-
-**Important:** Always run `just gen-ts-schema` after adding/modifying shared types to keep mobile TypeScript definitions in sync.
-
-### 12. pnpm Catalog Versioning
+### 9. pnpm Catalog Versioning
 
 The monorepo uses pnpm's catalog feature for version management:
 
@@ -2329,26 +1874,7 @@ When adding dependencies to mobile or other pnpm packages, use `catalog:`:
 }
 ```
 
-### 13. Tauri Plugin Versions
-
-Tauri plugins use `~2` version range:
-
-```toml
-"@tauri-apps/plugin-biometric": "~2"
-```
-
-This means ">=2.0.0 <2.1.0". Always check compatibility with Tauri version.
-
-### 14. Robot/Lower Component Now Implemented ✅
-
-The robot lower layer (`robot/lower/`) is **now implemented** with STM32F407ZG + Embassy async runtime.
-
-**Status:**
-- ✅ `robot/lower` - Basic structure complete, motor control in development
-- ❌ `robot/upper` - Not yet implemented (Raspberry Pi planned)
-- ✅ Admin orchestration layer (Orchestrator + Tower) exists and functional
-
-### 15. Robot Upper Layer is Distributed
+### 10. Robot Upper Layer is Distributed
 
 The robot upper layer uses **Zenoh pub/sub messaging** for inter-component communication.
 
@@ -2359,25 +1885,6 @@ The robot upper layer uses **Zenoh pub/sub messaging** for inter-component commu
 - Can run components on different machines/containers
 
 **Important:** All robot components must have access to the same Zenoh network.
-
-### 16. PostgreSQL is Now Primary Database ✅
-
-The PostgreSQL migration is **complete**. MongoDB dependency remains only for legacy compatibility.
-
-**Current State:**
-- ✅ PostgreSQL is the primary database
-- ✅ All CRUD operations via PostgreSQL repository layer
-- ✅ Automatic schema migrations with SQLx
-- ✅ Type-safe UUID and Integer ID handling
-- ✅ WKB spatial data format for polygons
-- 📋 MongoDB code remains for backward compatibility but is not actively used
-
-**Environment Variables:**
-```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/navign
-```
-
-See `docs/docs/components/server/postgres-migration-summary.md` for details.
 
 ---
 
@@ -2489,153 +1996,4 @@ For questions about this codebase, refer to:
 
 ---
 
-*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-21*
-
----
-
-## Recent Major Updates (Since 2025-11-07)
-
-### ✅ Completed (Updated 2025-11-21)
-
-1. **MongoDB Feature Flag Removed** ⭐ **LATEST** - Removed unused mongodb feature flag from shared library (#105)
-2. **Merchant Image Upload** ⭐ **LATEST** - Added merchant image upload and admin enhancements (#104)
-3. **Vision Service C++ Migration** ⭐ **LATEST** - Migrated robot vision from Python to C++ for 2-3x performance improvement (#101)
-4. **Mobile TypeScript Schema Migration** - Aligned mobile schemas with PostgreSQL migration (#103)
-   - Migrated TypeScript generation from `ts-schema/` to `shared/src/bin/gen-ts-schema.rs`
-   - Fixed breaking schema changes: `Area.floor` → `floor_type`/`floor_name`, `Area.entity` → `entity_id`, `Merchant.area` → `area_id`
-5. **PostgreSQL Migration Complete** - PostgreSQL is now primary database, MongoDB retained for legacy compatibility
-6. **Robot/Lower Component** - STM32F407 + Embassy async runtime
-7. **Robot/Upper Layer Architecture** - Distributed control system with Zenoh messaging
-8. **Intelligence Library** - AI-powered natural language interaction with hybrid local/remote LLM (#90)
-9. **Advanced Pathfinding** - Triangulation-based pathfinding for non-Manhattan polygons (#87)
-10. **Procedural Macros Crate** - Code generation infrastructure with comprehensive tests
-11. **BLE Postcard Migration** - Migrated from custom protocol to Postcard serialization
-12. **Internationalization** - 5-language support (EN, ZH-CN, ZH-TW, JA, FR)
-13. **Firmware Testing** - Mock tests + QEMU simulation infrastructure
-14. **Mobile Admin Panel** - Comprehensive CRUD interface for all entities
-15. **TypeScript Type Generation** - Automatic Rust→TS conversion with ts-rs
-16. **Comprehensive Testing** - 1,158+ lines of tests across all components
-17. **Structured Logging** - Migration from log to tracing
-
-### 🎯 Latest Features (2025-11-21)
-
-#### Vision Service C++ Migration (#101)
-- **Language Change:** Python → C++ for 2-3x performance improvement
-- **Technologies:** OpenCV DNN / ONNX Runtime for YOLO, apriltag C library
-- **Performance:** 12ms AprilTag detection (was 35ms), 30ms full pipeline (was 80ms)
-- **Memory:** ~150MB (was ~500MB), <1s startup (was ~5s)
-- **Build System:** CMake with optional ONNX Runtime, Zenoh C++ support
-- **Python Backup:** Original Python code preserved in `robot/vision_python_backup/`
-
-#### Merchant Image Upload (#104)
-- **New View:** `MerchantFormView.vue` for merchant creation/editing with image upload
-- **Admin Enhancements:** Improved merchant management workflow
-- **File Handling:** Image upload via Tauri multipart form support
-
-#### MongoDB Feature Flag Removal (#105)
-- **Cleanup:** Removed unused `mongodb` feature flag from shared library
-- **Justfile Update:** Removed mongodb-related clippy checks
-- **Status:** PostgreSQL is now the sole database backend
-
-#### Mobile TypeScript Schema Migration (#103)
-- **TypeScript Generation Consolidation** - Moved from separate `ts-schema/` crate (4,838 lines removed) to integrated `shared/src/bin/gen-ts-schema.rs` (113 lines added)
-- **Breaking Schema Changes:**
-  - `Area.floor` → `Area.floor_type` (string) + `Area.floor_name` (number)
-  - `Area.entity` → `Area.entity_id`
-  - `Merchant.area` → `Merchant.area_id` (now number instead of string)
-  - `Merchant.id` type changed from `string` to `number`
-  - All coordinate types now use tuple format `[number, number]`
-- **Files Updated:** 15+ Vue components and TypeScript files
-  - `MerchantDetailsEnhanced.vue`, `MerchantSearch.vue`, `EntityDetailsView.vue`
-  - `FavoritesView.vue`, `HomeView.vue`, `AreasView.vue`
-  - `BeaconsView.vue`, `ConnectionsView.vue`, `MerchantsView.vue`
-  - `AreaDetailsDialog.vue`, `favorites.ts`, `tauri.ts`
-- **ID Type Conversions:** Added `String()` conversions for all merchant/beacon/connection IDs
-- **Documentation Reorganization:** Moved 4 MD files to `docs/` folder
-  - `server/MIGRATION_GUIDE.md` → `docs/docs/components/server/`
-  - `robot/vision/SUMMARY.md`, `DEPENDENCIES.md`, `MIGRATION.md` → `docs/docs/components/robot/vision/`
-- **Command:** `cargo run --bin gen-ts-schema --features ts-rs` (run from `shared/`)
-- **Output:** 21 TypeScript definitions in `mobile/src/schema/generated/`
-- **Result:** ✅ Zero TypeScript compilation errors, all type-safe
-
-#### Intelligence Library (#90)
-- **Hybrid LLM Architecture** - Local Qwen3-0.6B + remote GPT-4o/DeepSeek
-- **Scene Description** - Converts 3D coordinates to natural language for accessibility
-- **Geo-aware Routing** - Automatically selects OpenAI or DeepSeek based on region
-- **Local-first Strategy** - Fast offline inference with cloud fallback for complex queries
-- **Accessibility Focus** - Designed for assisting visually impaired users
-- **Dependencies:** transformers, openai, eclipse-zenoh, protobuf
-
-#### Advanced Pathfinding (#87)
-- **Triangulation-based Routing** - Support for non-Manhattan polygons
-- **Inner-area Pathfinding** - A* algorithm within polygon areas
-- **Visibility Graph** - Optimal paths around obstacles
-- **No-std Compatible** - Works without arena allocation
-- **Location:** `shared/src/pathfinding/polygon.rs` (471+ lines)
-- **Use Case:** Complex floor plans with irregular shapes
-
-#### PostgreSQL Migration Tooling (#86)
-- **Migration Scripts** - Automated MongoDB → PostgreSQL data transfer
-- **Dual-database Handlers** - API handlers supporting both databases
-- **Schema Adapters** - Convert between MongoDB and PostgreSQL models
-- **Migration Binary** - `cargo run --bin migrate` for data migration
-- **Shell Scripts** - Automated migration workflow
-- **Documentation:** `server/MIGRATION_GUIDE.md` (432 lines)
-- **Files Added:** 2,074+ lines of migration infrastructure
-
-#### Robot Upper Layer (#80, #101)
-- **6 Protocol Buffer definitions** - Vision, Audio, Scheduler, Serial, Network, Common
-- **Scheduler (Rust)** - Task coordination with Zenoh pub/sub
-- **Serial (Rust)** - UART bridge to STM32 with Postcard serialization
-- **Network (Rust)** - HTTP client for server pathfinding API
-- **Vision Service (C++)** - High-performance AprilTag, YOLO (migrated from Python in #101)
-- **Audio Service (Python)** - Wake word, STT, TTS capabilities
-- **Complete distributed architecture** - All components communicate via Zenoh message bus
-
-#### Automatic TypeScript Generation (#82)
-- **ts-rs integration** - Compile-time TS generation from Rust types
-- **21+ type definitions** - Entity, Area, Beacon, Merchant, Connection, etc.
-- **Zero maintenance** - Types stay in sync automatically
-- **Command:** `just gen-ts-schema`
-
-#### Comprehensive Testing (#81)
-- **Admin/Maintenance** - 219 lines of integration tests
-- **Admin/Orchestrator** - 152 lines of firmware API tests
-- **Admin/Plot** - 356 lines of plot client tests
-- **Robot/Vision** - 284 lines of vision tests
-- **Proc Macros** - 147 lines of macro tests
-- **Total:** 1,158+ lines of new test code
-
-#### Structured Logging (#78)
-- **Server & Orchestrator** - Migrated from `log` to `tracing`
-- **Better async support** - Proper tracing across async boundaries
-- **Structured events** - Key-value logging instead of string formatting
-
-### 📋 In Progress
-- Intelligence service Zenoh integration
-- Robot motor control logic implementation
-- Additional firmware test coverage (BLE, eFuse)
-- Procedural macro real-world implementations
-- Zenoh deployment configuration for production
-- MediaPipe C++ hand tracking for vision service
-
-### 📅 Recent Commits Summary (Last 10)
-- `#105` - Refactor: Remove unused mongodb feature flag from shared
-- `#104` - Feat: Add merchant image upload and admin enhancements
-- `#103` - Fix: Align TypeScript schemas with PostgreSQL migration
-- `#102` - Refactor: Migrate TypeScript schema generation from ts-schema
-- `#101` - Feat: Migrate vision service from Python to C++
-- `#100` - Feat: Migrate mobile to PostgreSQL-aligned schema with WKB spatial data
-- `#99` - Feat: Implement PostgreSQL repository traits for all schemas
-- `#97` - Feat: Enhance map visualization with merchant polygons and connection
-- `#96` - Feat: Complete server PostgreSQL migration
-- `#95` - Feat: Updates in mobile
-
-### 📊 Project Statistics (2025-11-21)
-- **Lines of Code (Latest):** +8,500 / -5,200
-- **Test Coverage:** 80%+ across all components
-- **Components:** 20+ (server, firmware, mobile, robot, admin, shared)
-- **Languages:** Rust, TypeScript, C++, Python, Go, Swift
-- **Protocol Buffers:** 11 files (admin + robot)
-- **TypeScript Definitions:** 21+ auto-generated types
-- **Database:** PostgreSQL (primary), MongoDB (legacy only)
+*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-22*

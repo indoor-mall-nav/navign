@@ -157,9 +157,11 @@ CREATE INDEX idx_beacons_connection ON beacons(connection_id);
 CREATE TABLE beacon_secrets (
     id SERIAL PRIMARY KEY,
     beacon_id INTEGER NOT NULL REFERENCES beacons(id) ON DELETE CASCADE,
+    counter BIGINT NOT NULL DEFAULT 0,
     private_key BYTEA NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_epoch TIMESTAMP WITH TIME ZONE DEFAULT '1970-01-01 00:00:00+00'
 );
 
 CREATE UNIQUE INDEX idx_beacon_secrets_beacon ON beacon_secrets(beacon_id);

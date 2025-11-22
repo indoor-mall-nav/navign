@@ -2,57 +2,48 @@
 mod github;
 mod google;
 mod handlers;
-mod password;
 mod token;
 mod wechat;
 
 // pub use handlers::{login_handler, register_handler};
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
+use gravatar::Gravatar;
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use navign_shared::Account;
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use sqlx::Row;
 use std::env;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
-use crate::schema::User;
-use bson::doc;
-use bson::oid::ObjectId;
-use gravatar::Gravatar;
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
-use mongodb::Database;
-use serde::{Deserialize, Serialize};
-
 pub trait Authenticator<'de, T: Sized + Clone + Debug + Serialize + Deserialize<'de>> {
-    async fn authenticate(&self, credential: T, db: &Database) -> Result<String>;
+    async fn authenticate(&self, credential: T, db: &PgPool) -> Result<String>;
 
-    async fn username(&self, db: &Database) -> Result<String> {
-        let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db
-            .collection("users")
-            .find_one(doc! {
-                "_id": id,
-            })
-            .await?
-        {
-            Some(doc) => doc,
-            None => return Err(anyhow!("User not found")),
-        };
-        Ok(document.username)
+    async fn username(&self, db: &PgPool) -> Result<String> {
+        let result = sqlx::query("SELECT username FROM accounts WHERE id = $1")
+            .bind(self.userid())
+            .fetch_one(db)
+            .await?;
+        let username: String = result.try_get("username")?;
+        Ok(username)
     }
 
-    async fn avatar_url(&self, db: &Database) -> Result<String> {
-        let id = ObjectId::from_str(self.userid().as_str())?;
-        let document: User = match db
-            .collection("users")
-            .find_one(doc! {
-                "_id": id,
-            })
-            .await?
-        {
-            Some(doc) => doc,
-            None => return Err(anyhow!("User not found")),
-        };
-        let gravatar = Gravatar::new(document.email.as_str()).image_url();
-        Ok(gravatar.to_string())
+    async fn email(&self, db: &PgPool) -> Result<String> {
+        let result = sqlx::query("SELECT email FROM accounts WHERE id = $1")
+            .bind(self.userid())
+            .fetch_one(db)
+            .await?;
+        let email: String = result.try_get("email")?;
+        Ok(email)
+    }
+
+    async fn avatar_url(&self, db: &PgPool) -> Result<String> {
+        let email = self.email(db).await?;
+
+        let gravatar = Gravatar::new(&email);
+        Ok(gravatar.image_url().into_string())
     }
 
     fn userid(&self) -> String;
@@ -103,12 +94,12 @@ impl FromStr for Token {
     }
 }
 
-impl From<(&User, String)> for Token {
-    fn from((user, device): (&User, String)) -> Self {
+impl From<(&Account, String)> for Token {
+    fn from((user, device): (&Account, String)) -> Self {
         let now = chrono::Utc::now().timestamp();
         Token {
             iss: "Navign".to_string(),
-            sub: user.id.to_hex(),
+            sub: user.id.to_string(),
             name: user.username.clone(),
             device,
             iat: now,
