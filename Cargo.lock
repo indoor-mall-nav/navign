@@ -5764,7 +5764,6 @@ dependencies = [
  "serde_with",
  "sha2",
  "sqlx",
- "tower-layer",
  "ts-rs",
  "uuid",
  "wkb",
