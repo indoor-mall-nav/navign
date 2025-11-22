@@ -3,11 +3,13 @@ use alloc::string::String;
 
 #[cfg(feature = "postgres")]
 use crate::schema::postgis::PgPoint;
+#[cfg(feature = "sql")]
+use crate::traits::{IntRepository, IntRepositoryInArea};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use sqlx::PgPool;
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 use sqlx::SqlitePool;
 #[cfg(feature = "postgres")]
 use uuid::Uuid;
@@ -15,7 +17,7 @@ use uuid::Uuid;
 /// Beacon schema - represents a physical BLE beacon device
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(all(feature = "postgres", feature = "sql"), derive(sqlx::FromRow))]
+#[cfg_attr(feature = "postgres", derive(sqlx::FromRow))]
 #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), derive(ts_rs::TS))]
 #[cfg_attr(
     all(feature = "ts-rs", not(feature = "postgres")),
@@ -152,7 +154,8 @@ impl Beacon {
     }
 }
 
-#[cfg(all(feature = "sql", feature = "postgres"))]
+#[cfg(feature = "postgres")]
+#[allow(unused)]
 fn beacon_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Beacon> {
     use sqlx::Row;
 
@@ -181,9 +184,9 @@ fn beacon_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Beacon> {
     })
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepository<sqlx::Postgres> for Beacon {
+impl IntRepository<sqlx::Postgres> for Beacon {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         sqlx::query(
             r#"INSERT INTO beacons (entity_id, area_id, merchant_id, connection_id, name, description, type, location, device, mac)
@@ -318,9 +321,9 @@ impl crate::schema::repository::IntRepository<sqlx::Postgres> for Beacon {
     }
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepositoryInArea<sqlx::Postgres> for Beacon {
+impl IntRepositoryInArea<sqlx::Postgres> for Beacon {
     async fn search_in_area(
         pool: &PgPool,
         query: &str,
@@ -372,10 +375,10 @@ impl crate::schema::repository::IntRepositoryInArea<sqlx::Postgres> for Beacon {
 }
 
 // SQLite repository implementation for Beacon
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 use crate::schema::postgis::point_to_wkb;
 
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl IntRepository<sqlx::Sqlite> for Beacon {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
@@ -530,7 +533,7 @@ impl IntRepository<sqlx::Sqlite> for Beacon {
     }
 }
 
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl IntRepositoryInArea<sqlx::Sqlite> for Beacon {
     async fn search_in_area(

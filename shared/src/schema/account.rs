@@ -88,10 +88,10 @@ pub struct TokenClaims {
     pub iat: i64, // Issued at
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
-use crate::schema::repository::UuidRepository;
+#[cfg(feature = "postgres")]
+use crate::traits::repository::UuidRepository;
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
 impl UuidRepository<Postgres> for Account {
     async fn create(pool: &sqlx::PgPool, item: &Self) -> sqlx::Result<()> {

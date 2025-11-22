@@ -19,15 +19,15 @@ lint:
   cd animations && uvx ruff check
   cd robot/audio && uvx ruff check
   cd admin/plot && uvx ruff check
-  cd shared && cargo clippy -- -D warnings
-  cd shared && cargo clippy --features heapless --no-default-features -- -D warnings
-  cd shared && cargo clippy --features alloc --no-default-features -- -D warnings
-  cd shared && cargo clippy --features crypto,heapless,serde --no-default-features -- -D warnings
-  cd shared && cargo clippy --features base64,crypto,alloc,serde --no-default-features -- -D warnings
-  cd shared && cargo clippy --features mongodb,serde,crypto
-  cd shared && cargo clippy --features sql,serde,crypto
-  cd shared && cargo clippy --features postgres,sql,serde,crypto
-  cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
+  cargo clippy -p navign-shared -- -D warnings
+  cargo clippy -p navign-shared --features heapless --no-default-features -- -D warnings
+  cargo clippy -p navign-shared --features alloc --no-default-features -- -D warnings
+  cargo clippy -p navign-shared --features crypto,heapless,serde --no-default-features -- -D warnings
+  cargo clippy -p navign-shared --features base64,crypto,alloc,serde --no-default-features -- -D warnings
+  cargo clippy -p navign-shared --features mongodb,serde,crypto
+  cargo clippy -p navign-shared --features sql,serde,crypto
+  cargo clippy -p navign-shared --features postgres,sql,serde,crypto
+  cargo clippy -p navign-shared --features geo,alloc,serde -- -D warnings
   cd firmware && cargo clippy -- -D warnings
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
@@ -102,31 +102,33 @@ ci-desktop:
   echo "No desktop-specific CI tasks yet..."
 
 ci-shared:
-  cd shared && cargo check
-  cd shared && cargo check --features heapless --no-default-features
-  cd shared && cargo check --features alloc --no-default-features
-  cd shared && cargo check --features heapless,serde,crypto --no-default-features
-  cd shared && cargo check --features heapless,serde,crypto,postcard --no-default-features
-  cd shared && cargo check --features base64,alloc,serde,crypto --no-default-features
-  cd shared && cargo check --features sql,serde,crypto
-  cd shared && cargo check --features postgres,sql,serde,crypto
-  cd shared && cargo check --features geo,alloc,serde
-  cd shared && cargo check --features postcard,serde
+  cargo check -p navign-shared
+  cargo check -p navign-shared --features heapless --no-default-features
+  cargo check -p navign-shared --features alloc --no-default-features
+  cargo check -p navign-shared --features heapless,serde,crypto --no-default-features
+  cargo check -p navign-shared --features heapless,serde,crypto,postcard --no-default-features
+  cargo check -p navign-shared --features base64,alloc,serde,crypto --no-default-features
+  cargo check -p navign-shared --features sqlite,sql,serde,crypto
+  cargo check -p navign-shared --features postgres,sql,serde,crypto
+  cargo check -p navign-shared --features geo,alloc,serde
+  cargo check -p navign-shared --features postcard,serde
   cd shared && cargo fmt -- --check
-  cd shared && cargo clippy -- -D warnings
-  cd shared && cargo clippy --features heapless --no-default-features
-  cd shared && cargo clippy --features alloc --no-default-features
-  cd shared && cargo clippy --features heapless,serde,crypto --no-default-features
-  cd shared && cargo clippy --features heapless,serde,crypto,postcard --no-default-features
-  cd shared && cargo clippy --features base64,alloc,serde,crypto --no-default-features
-  cd shared && cargo clippy --features sql,serde,crypto
-  cd shared && cargo clippy --features postgres,sql,serde,crypto
-  cd shared && cargo clippy --features geo,alloc,serde -- -D warnings
-  cd shared && cargo clippy --features postcard,serde -- -D warnings
-  cd shared && cargo test
-  cd shared && cargo test --features geo,alloc,serde
-  cd shared && cargo test --features postgres,sql,serde,crypto
-  cd shared && cargo test --features postcard,serde
+  cargo clippy -p navign-shared -- -D warnings
+  cargo clippy -p navign-shared --features heapless --no-default-features
+  cargo clippy -p navign-shared --features alloc --no-default-features
+  cargo clippy -p navign-shared --features heapless,serde,crypto --no-default-features
+  cargo clippy -p navign-shared --features heapless,serde,crypto,postcard --no-default-features
+  cargo clippy -p navign-shared --features base64,alloc,serde,crypto --no-default-features
+  cargo clippy -p navign-shared --features sqlite,sql,serde,crypto
+  cargo clippy -p navign-shared --features postgres,sql,serde,crypto
+  cargo clippy -p navign-shared --features geo,alloc,serde -- -D warnings
+  cargo clippy -p navign-shared --features postcard,serde -- -D warnings
+  cargo test -p navign-shared
+  cargo test -p navign-shared --features heapless,serde,crypto --no-default-features
+  cargo test -p navign-shared --features geo,alloc,serde --no-default-features
+  cargo test -p navign-shared --features sqlite,sql,serde,crypto
+  cargo test -p navign-shared --features postgres,sql,serde,crypto
+  cargo test -p navign-shared --features postcard,serde
 
 ci-repo:
   taplo format --diff
@@ -141,10 +143,10 @@ ci-tower:
   cd admin/tower && go vet ./...
 
 ci-orchestrator:
-  cd admin/orchestrator && cargo check
-  cd admin/orchestrator && cargo fmt -- --check
-  cd admin/orchestrator && cargo clippy -- -D warnings
-  cd admin/orchestrator && cargo test
+  cargo check -p navign-orchestrator
+  cargo fmt -p navign-orchestrator -- --check
+  cargo clippy -p navign-orchestrator -- -D warnings
+  cargo test -p navign-orchestrator
 
 ci-plot:
   cd admin/plot && uv sync --extra dev

@@ -1,4 +1,4 @@
-#![allow(async_fn_in_trait)]
+#![allow(unused)]
 #![allow(clippy::too_many_arguments)]
 
 #[cfg(feature = "sql")]

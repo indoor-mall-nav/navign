@@ -1,8 +1,13 @@
-#![warn(async_fn_in_trait)]
-#![cfg_attr(not(any(feature = "std", feature = "sql")), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(all(feature = "heapless", feature = "alloc"))]
 compile_error!("Features 'heapless' and 'alloc' cannot be enabled at the same time.");
+
+#[cfg(all(feature = "sql", not(any(feature = "sqlite", feature = "postgres"))))]
+compile_error!("Feature 'sql' requires either feature 'sqlite' or 'postgres' to be enabled.");
+
+#[cfg(all(feature = "sql", feature = "sqlite", feature = "postgres"))]
+compile_error!("Features 'sqlite' and 'postgres' cannot be enabled at the same time.");
 
 #[cfg(all(not(feature = "heapless"), not(feature = "alloc")))]
 compile_error!("Either feature 'heapless' or 'alloc' must be enabled.");
@@ -62,3 +67,6 @@ pub use schema::{
     BeaconLocation, BeaconProvisioningStatus, BluFiConfig, BluFiError, BluFiErrorType,
     BluFiProvisioningResult, BluFiState, WiFiNetwork, WiFiSecurityMode,
 };
+
+#[cfg(feature = "sql")]
+pub use traits::{IntRepository, IntRepositoryInArea, UuidRepository};

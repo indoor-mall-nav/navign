@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 use crate::schema::postgres::PgPoint;
 use core::fmt::Display;
 
+#[cfg(feature = "sql")]
+use crate::traits::UuidRepository;
+
 /// Entity schema - represents a physical building or complex (mall, hospital, etc.)
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -96,10 +99,7 @@ impl Display for EntityType {
     }
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
-use crate::schema::repository::UuidRepository;
-
-#[cfg(all(feature = "postgres", feature = "sql"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
 impl UuidRepository<sqlx::Postgres> for Entity {
     async fn create(pool: &sqlx::PgPool, item: &Self) -> sqlx::Result<()> {
@@ -233,13 +233,10 @@ impl UuidRepository<sqlx::Postgres> for Entity {
 // SQLite repository implementation for Entity
 // SQLite repository implementation for Entity (mirrors PostgreSQL implementation)
 
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 use crate::schema::postgis::point_to_wkb;
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
-use crate::schema::repository::UuidRepository;
 
-#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl UuidRepository<sqlx::Sqlite> for Entity {
     async fn create(pool: &sqlx::SqlitePool, item: &Self) -> sqlx::Result<()> {

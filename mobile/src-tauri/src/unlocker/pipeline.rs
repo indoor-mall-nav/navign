@@ -6,7 +6,7 @@ use crate::unlocker::challenge::ServerChallenge;
 use crate::unlocker::constants::{UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID};
 use base64::Engine;
 use navign_shared::Beacon;
-use navign_shared::schema::IntRepository;
+use navign_shared::IntRepository;
 use navign_shared::{BleMessage, Depacketize, DeviceCapabilities, Packetize, Proof};
 use serde::{Deserialize, Serialize};
 use serde_json::json;

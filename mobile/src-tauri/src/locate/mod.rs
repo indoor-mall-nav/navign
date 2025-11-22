@@ -8,7 +8,7 @@ use crate::locate::locator::LocateResult;
 use crate::locate::scan::stop_scan;
 use crate::shared::BASE_URL;
 use crate::unlocker::constants::{UNLOCKER_CHARACTERISTIC_UUID, UNLOCKER_SERVICE_UUID};
-use navign_shared::schema::IntRepository;
+use navign_shared::IntRepository;
 use navign_shared::{BleMessage, Depacketize, Packetize};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteConnectOptions;

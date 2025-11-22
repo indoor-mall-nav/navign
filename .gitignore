@@ -25,3 +25,7 @@ node_modules
 
 # Firmware storage
 firmware_storage
+
+.vscode
+
+build

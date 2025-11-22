@@ -4,7 +4,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use navign_shared::schema::repository::{IntRepository, IntRepositoryInArea, UuidRepository};
+use navign_shared::{IntRepository, IntRepositoryInArea, UuidRepository};
 use serde::{Deserialize, Serialize};
 use sqlx::Postgres;
 

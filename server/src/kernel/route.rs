@@ -3,10 +3,10 @@ use crate::state::AppState;
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
+use navign_shared::IntRepository;
 use navign_shared::pathfinding::{
     AreaData, ConnectionData, ConnectivityLimits, RouteInstruction, find_path_between_areas,
 };
-use navign_shared::schema::repository::IntRepository;
 use navign_shared::schema::{Area, Connection, Merchant};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};

@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "postgres")]
 use super::postgis::{PgPoint, PgPolygon};
 #[cfg(feature = "sql")]
-use crate::schema::{IntRepository, IntRepositoryInArea};
+use crate::traits::{IntRepository, IntRepositoryInArea};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -293,7 +293,8 @@ impl core::fmt::Display for MerchantStyle {
     }
 }
 
-#[cfg(all(feature = "sql", feature = "postgres"))]
+#[cfg(feature = "postgres")]
+#[allow(unused)]
 fn merchant_from_row(row: &sqlx::postgres::PgRow) -> sqlx::Result<Merchant> {
     use sqlx::Row;
 
@@ -362,7 +363,7 @@ impl Merchant {
     }
 }
 
-#[cfg(all(feature = "sql", feature = "postgres"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
 impl IntRepository<sqlx::Postgres> for Merchant {
     async fn create(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
@@ -643,10 +644,10 @@ impl IntRepositoryInArea<sqlx::Postgres> for Merchant {
 }
 
 // SQLite repository implementation for Merchant
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 use crate::schema::postgis::{point_to_wkb, polygon_to_wkb};
 
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl IntRepository<sqlx::Sqlite> for Merchant {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
@@ -850,7 +851,7 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
     }
 }
 
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl IntRepositoryInArea<sqlx::Sqlite> for Merchant {
     async fn search_in_area(

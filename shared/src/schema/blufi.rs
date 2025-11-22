@@ -17,6 +17,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 
+#[cfg(feature = "alloc")]
+use alloc::string::ToString;
+
 /// WiFi security mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

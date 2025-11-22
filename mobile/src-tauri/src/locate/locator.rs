@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use navign_shared::Beacon;
-use navign_shared::schema::IntRepository;
+use navign_shared::IntRepository;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri_plugin_blec::models::BleDevice;

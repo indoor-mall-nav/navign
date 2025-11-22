@@ -142,8 +142,8 @@ impl Area {
     }
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
-use crate::schema::repository::IntRepository;
+#[cfg(feature = "sql")]
+use crate::traits::repository::IntRepository;
 
 #[cfg(all(feature = "postgres", feature = "sql"))]
 #[async_trait::async_trait]
@@ -276,10 +276,8 @@ impl IntRepository<sqlx::Postgres> for Area {
 }
 
 // SQLite repository implementation for Area
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
+#[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
 use crate::schema::postgis::polygon_to_wkb;
-#[cfg(all(not(feature = "postgres"), feature = "sql", feature = "geo"))]
-use crate::schema::repository::IntRepository;
 
 #[cfg(all(feature = "sqlite", feature = "sql", feature = "geo"))]
 #[async_trait::async_trait]

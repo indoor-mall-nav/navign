@@ -110,9 +110,9 @@ pub struct UnlockInstance {
     pub updated_at: Option<i64>, // Timestamp in milliseconds
 }
 
-#[cfg(all(feature = "postgres", feature = "sql"))]
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
-impl crate::schema::repository::IntRepository<sqlx::Postgres> for UnlockInstance {
+impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
     async fn create(pool: &sqlx::PgPool, item: &Self, _entity: uuid::Uuid) -> sqlx::Result<()> {
         sqlx::query(
             "INSERT INTO unlock_instances (beacon_id, user_id, device_id, timestamp, beacon_nonce, challenge_nonce, stage, outcome, type, created_at, updated_at)

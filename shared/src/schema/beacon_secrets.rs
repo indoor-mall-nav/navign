@@ -1,5 +1,5 @@
 #[cfg(feature = "postgres")]
-use crate::schema::UuidRepository;
+use crate::traits::UuidRepository;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
