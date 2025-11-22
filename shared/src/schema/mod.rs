@@ -45,7 +45,7 @@ pub use blufi::{
     BluFiProvisioningResult, BluFiState, WiFiNetwork, WiFiSecurityMode,
 };
 #[cfg(feature = "alloc")]
-pub use connection::{ConnectedArea, ConnectedAreaData, Connection, ConnectionType};
+pub use connection::{ConnectedArea, Connection, ConnectionType};
 #[cfg(feature = "alloc")]
 pub use entity::{Entity, EntityType};
 #[cfg(feature = "alloc")]

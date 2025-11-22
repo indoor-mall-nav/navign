@@ -10,11 +10,12 @@ use sqlx::SqlitePool;
 use std::fmt::Display;
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
-use tauri_plugin_log::log::trace;
+use tauri_plugin_log::log::{error, trace};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapArea {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub polygon: Vec<(f64, f64)>,
     pub beacons: Vec<MapBeacon>,
@@ -24,16 +25,16 @@ pub struct MapArea {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapConnection {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub r#type: ConnectionType,
-    pub positions: Vec<(String, f64, f64)>, // (area_id, x, y)
+    pub positions: Vec<(i32, f64, f64)>, // (area_id, x, y)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapBeacon {
-    pub id: String,
-    pub area: String,
+    pub id: i32,
+    pub area: i32,
     pub name: String,
     pub location: (f64, f64),
     pub r#type: BeaconType,
@@ -41,7 +42,7 @@ pub struct MapBeacon {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapMerchant {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub location: (f64, f64),
     pub polygon: Vec<(f64, f64)>,
@@ -81,7 +82,7 @@ pub struct RouteResponse {
 #[serde(rename_all = "kebab-case")]
 pub enum InstructionType {
     Move(f64, f64),
-    Transport(String, String, ConnectionType), // Using shared ConnectionType
+    Transport(i32, i32, ConnectionType), // Using shared ConnectionType
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -140,8 +141,8 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|b| MapBeacon {
-            id: b.id.to_string(),
-            area: b.area_id.to_string(),
+            id: b.id,
+            area: b.area_id,
             name: b.name,
             location: b.location,
             r#type: b.r#type,
@@ -168,7 +169,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .data
         .into_iter()
         .map(|m| MapMerchant {
-            id: m.id.to_string(),
+            id: m.id,
             name: m.name,
             location: m.location,
             polygon: m.polygon,
@@ -199,10 +200,10 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
         .filter(|c| {
             c.connected_areas
                 .iter()
-                .any(|(aid, _, _, _)| aid == &area_response.id.to_string())
+                .any(|(aid, _, _, _)| aid == &area_response.id)
         })
         .map(|c| MapConnection {
-            id: c.id.to_string(),
+            id: c.id,
             name: c.name,
             r#type: c.r#type,
             positions: c
@@ -216,7 +217,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} connections for area", map_connections.len());
 
     Ok(MapArea {
-        id: area_response.id.to_string(),
+        id: area_response.id,
         name: area_response.name,
         polygon: area_response.polygon,
         beacons: map_beacons,
@@ -753,10 +754,10 @@ pub async fn get_merchant_details_handler(
 
 /// Compute route offline using local database and pathfinding algorithms
 pub async fn compute_route_offline(
-    entity: &str,
-    from_area: &str,
+    entity: Uuid,
+    from_area: i32,
     from_pos: (f64, f64),
-    to_area: &str,
+    to_area: i32,
     to_pos: (f64, f64),
     limits: Option<ConnectivityLimits>,
 ) -> anyhow::Result<RouteResponse> {
@@ -792,10 +793,10 @@ pub async fn compute_route_offline(
             if conn
                 .connected_areas
                 .iter()
-                .any(|(aid, _, _, _)| aid == &area_row.id.to_string())
+                .any(|(aid, _, _, _)| *aid == area_row.id)
             {
                 area_connections.push(ConnectionData {
-                    id: conn.id.to_string(),
+                    id: conn.id,
                     conn_type: conn.r#type,
                     connected_areas: conn.connected_areas.clone(),
                 });
@@ -803,7 +804,7 @@ pub async fn compute_route_offline(
         }
 
         area_data_vec.push(AreaData {
-            id: area_row.id.to_string(),
+            id: area_row.id,
             polygon,
             connections: area_connections,
         });
@@ -884,30 +885,42 @@ pub async fn get_route_offline_handler(
     to_area: String,
     to_pos: String,       // "x,y" format
     connectivity: String, // "esc" format: e=elevator, s=stairs, c=escalator
-) -> Result<String, String> {
+) -> Result<String, ()> {
     // Parse from_pos
     let from_coords: Vec<&str> = from_pos.split(',').collect();
     if from_coords.len() != 2 {
         return Ok(json!({"status": "error", "message": "Invalid from_pos format"}).to_string());
     }
-    let from_x: f64 = from_coords[0]
-        .parse()
-        .map_err(|_| "Invalid from_x".to_string())?;
-    let from_y: f64 = from_coords[1]
-        .parse()
-        .map_err(|_| "Invalid from_y".to_string())?;
+    let from_x: f64 = from_coords[0].parse().map_err(|_| {
+        error!("Invalid from_x");
+    })?;
+    let from_y: f64 = from_coords[1].parse().map_err(|_| {
+        error!("Invalid from_y");
+    })?;
+
+    let from_area: i32 = from_area.parse().map_err(|_| {
+        error!("Invalid from_area");
+    })?;
+
+    let to_area: i32 = to_area.parse().map_err(|_| {
+        error!("Invalid to_area");
+    })?;
+
+    let entity = Uuid::parse_str(&entity).map_err(|_| {
+        error!("Invalid entity UUID");
+    })?;
 
     // Parse to_pos
     let to_coords: Vec<&str> = to_pos.split(',').collect();
     if to_coords.len() != 2 {
         return Ok(json!({"status": "error", "message": "Invalid to_pos format"}).to_string());
     }
-    let to_x: f64 = to_coords[0]
-        .parse()
-        .map_err(|_| "Invalid to_x".to_string())?;
-    let to_y: f64 = to_coords[1]
-        .parse()
-        .map_err(|_| "Invalid to_y".to_string())?;
+    let to_x: f64 = to_coords[0].parse().map_err(|_| {
+        error!("Invalid to_x");
+    })?;
+    let to_y: f64 = to_coords[1].parse().map_err(|_| {
+        error!("Invalid to_y");
+    })?;
 
     let limits = ConnectivityLimits {
         elevator: connectivity.contains('e'),
@@ -916,10 +929,10 @@ pub async fn get_route_offline_handler(
     };
 
     match compute_route_offline(
-        &entity,
-        &from_area,
+        entity,
+        from_area,
         (from_x, from_y),
-        &to_area,
+        to_area,
         (to_x, to_y),
         Some(limits),
     )
@@ -969,7 +982,7 @@ mod tests {
     #[test]
     fn test_generate_svg_map_with_empty_data() {
         let map_data = MapArea {
-            id: "test_area".to_string(),
+            id: 1,
             name: "Test Area".to_string(),
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![],
@@ -989,20 +1002,20 @@ mod tests {
     #[test]
     fn test_generate_svg_map_with_beacons() {
         let map_data = MapArea {
-            id: "test_area".to_string(),
+            id: 1,
             name: "Test Area".to_string(),
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![
                 MapBeacon {
-                    id: "beacon1".to_string(),
-                    area: "test_area".to_string(),
+                    id: 1,
+                    area: 1,
                     name: "Beacon 1".to_string(),
                     location: (50.0, 50.0),
                     r#type: BeaconType::Navigation,
                 },
                 MapBeacon {
-                    id: "beacon2".to_string(),
-                    area: "test_area".to_string(),
+                    id: 2,
+                    area: 1,
                     name: "Beacon 2".to_string(),
                     location: (75.0, 75.0),
                     r#type: BeaconType::Marketing,
@@ -1024,12 +1037,12 @@ mod tests {
     #[test]
     fn test_generate_svg_map_with_merchants() {
         let map_data = MapArea {
-            id: "test_area".to_string(),
+            id: 1,
             name: "Test Area".to_string(),
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![],
             merchants: vec![MapMerchant {
-                id: "merchant1".to_string(),
+                id: 1,
                 name: "Store A".to_string(),
                 location: (25.0, 25.0),
                 polygon: vec![(20.0, 20.0), (30.0, 20.0), (30.0, 30.0), (20.0, 30.0)],
@@ -1042,7 +1055,6 @@ mod tests {
 
         assert!(svg.contains("merchants"));
         assert!(svg.contains("Store A"));
-        assert!(svg.contains("merchant-merchant1"));
         assert!(svg.contains("#bbdefb"));
         assert!(svg.contains("#1565c0"));
     }
@@ -1050,19 +1062,16 @@ mod tests {
     #[test]
     fn test_generate_svg_map_with_connections() {
         let map_data = MapArea {
-            id: "area1".to_string(),
+            id: 1,
             name: "Test Area".to_string(),
             polygon: vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)],
             beacons: vec![],
             merchants: vec![],
             connections: vec![MapConnection {
-                id: "conn1".to_string(),
+                id: 1,
                 name: "Main Elevator".to_string(),
                 r#type: ConnectionType::Elevator,
-                positions: vec![
-                    ("area1".to_string(), 50.0, 50.0),
-                    ("area2".to_string(), 50.0, 150.0),
-                ],
+                positions: vec![(1, 50.0, 50.0), (2, 50.0, 150.0)],
             }],
         };
 

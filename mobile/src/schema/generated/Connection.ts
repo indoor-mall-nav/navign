@@ -13,7 +13,7 @@ export type Connection = {
   /**
    * List of Area IDs that this connection links
    */
-  connected_areas: Array<[string, number, number, boolean]>
+  connected_areas: Array<[number, number, number, boolean]>
   /**
    * List of `(start_time, end_time)` in milliseconds on a 24-hour clock
    */

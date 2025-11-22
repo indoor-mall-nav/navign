@@ -78,21 +78,17 @@ fn area_to_area_data(area: &Area, connections: &[Connection]) -> Result<AreaData
     // Find connections for this area
     let area_connections: Vec<ConnectionData> = connections
         .iter()
-        .filter(|conn| {
-            conn.get_connected_areas_data()
-                .iter()
-                .any(|ca| ca.area_id == area.id)
-        })
+        .filter(|conn| conn.connected_areas.iter().any(|ca| ca.0 == area.id))
         .map(|conn| {
             let connected_areas = conn
-                .get_connected_areas_data()
+                .connected_areas
                 .iter()
-                .filter(|ca| ca.area_id != area.id)
-                .map(|ca| (ca.area_id.to_string(), ca.x, ca.y, ca.enabled))
+                .filter(|ca| ca.0 != area.id)
+                .map(|ca| (ca.0, ca.1, ca.2, ca.3))
                 .collect();
 
             ConnectionData {
-                id: conn.id.to_string(),
+                id: conn.id,
                 conn_type: conn.r#type,
                 connected_areas,
             }
@@ -100,7 +96,7 @@ fn area_to_area_data(area: &Area, connections: &[Connection]) -> Result<AreaData
         .collect();
 
     Ok(AreaData {
-        id: area.id.to_string(),
+        id: area.id,
         polygon,
         connections: area_connections,
     })
@@ -170,9 +166,9 @@ pub async fn find_route(
     // Find path using shared pathfinding module
     let instructions = find_path_between_areas(
         &area_data,
-        &start_area_id.to_string(),
+        start_area_id,
         (start_x, start_y),
-        &end_area_id.to_string(),
+        end_area_id,
         (end_x, end_y),
         limits,
         1.0, // block_size for inner-area pathfinding

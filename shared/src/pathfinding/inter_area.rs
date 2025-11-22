@@ -4,7 +4,7 @@ use super::inner_area::find_path_in_area;
 use super::polygon::Polygon;
 use crate::ConnectionType;
 use alloc::collections::{BTreeMap, BinaryHeap};
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
@@ -35,14 +35,14 @@ impl core::fmt::Display for InterPathError {
 }
 
 /// Navigation instruction
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum RouteInstruction {
     /// Move to a coordinate (x, y)
     Move(f64, f64),
     /// Take a connection (connection_id, target_area_id, connection_type)
-    Transport(String, String, ConnectionType),
+    Transport(i32, i32, ConnectionType),
 }
 
 /// Connectivity limits for pathfinding
@@ -66,7 +66,7 @@ impl Default for ConnectivityLimits {
 /// Area data for pathfinding
 #[derive(Debug, Clone)]
 pub struct AreaData {
-    pub id: String,
+    pub id: i32,
     pub polygon: Polygon,
     pub connections: Vec<ConnectionData>,
 }
@@ -74,16 +74,16 @@ pub struct AreaData {
 /// Connection data
 #[derive(Debug, Clone)]
 pub struct ConnectionData {
-    pub id: String,
+    pub id: i32,
     pub conn_type: ConnectionType,
     /// List of (area_id, x, y, enabled) for connected areas
-    pub connected_areas: Vec<(String, f64, f64, bool)>,
+    pub connected_areas: Vec<(i32, f64, f64, bool)>,
 }
 
 /// Node for Dijkstra priority queue
 #[derive(Debug, Clone)]
 struct PathNode {
-    area_id: String,
+    area_id: i32,
     distance: u64,
     position: (f64, f64),
 }
@@ -130,9 +130,9 @@ fn manhattan_distance(a: (f64, f64), b: (f64, f64)) -> f64 {
 /// * `Err(InterPathError)` - Error if pathfinding fails
 pub fn find_path_between_areas(
     areas: &[AreaData],
-    start_area_id: &str,
+    start_area_id: i32,
     start_pos: (f64, f64),
-    end_area_id: &str,
+    end_area_id: i32,
     end_pos: (f64, f64),
     limits: ConnectivityLimits,
     block_size: f64,
@@ -160,20 +160,20 @@ pub fn find_path_between_areas(
     }
 
     // Create area map for quick lookup
-    let area_map: BTreeMap<&str, &AreaData> = areas.iter().map(|a| (a.id.as_str(), a)).collect();
+    let area_map: BTreeMap<i32, &AreaData> = areas.iter().map(|a| (a.id, a)).collect();
 
     // Dijkstra's algorithm
     let mut heap = BinaryHeap::new();
     let mut visited = BTreeMap::new();
-    let mut came_from: BTreeMap<String, (String, String)> = BTreeMap::new(); // area_id -> (prev_area_id, connection_id)
-    let mut distance_map = BTreeMap::new();
+    let mut came_from: BTreeMap<i32, (i32, i32)> = BTreeMap::new(); // area_id -> (prev_area_id, connection_id)
+    let mut distance_map: BTreeMap<i32, u64> = BTreeMap::new();
 
     heap.push(PathNode {
-        area_id: start_area_id.to_string(),
+        area_id: start_area_id,
         distance: 0,
         position: start_pos,
     });
-    distance_map.insert(start_area_id.to_string(), 0u64);
+    distance_map.insert(start_area_id, 0u64);
 
     while let Some(PathNode {
         area_id: current_area_id,
@@ -181,10 +181,10 @@ pub fn find_path_between_areas(
         position: current_pos,
     }) = heap.pop()
     {
-        if visited.contains_key(current_area_id.as_str()) {
+        if visited.contains_key(&current_area_id) {
             continue;
         }
-        visited.insert(current_area_id.clone(), current_pos);
+        visited.insert(current_area_id, current_pos);
 
         // Check if we reached the end
         if current_area_id == end_area_id {
@@ -201,7 +201,7 @@ pub fn find_path_between_areas(
         }
 
         // Get current area
-        let current_area = match area_map.get(current_area_id.as_str()) {
+        let current_area = match area_map.get(&current_area_id) {
             Some(a) => a,
             None => continue,
         };
@@ -226,7 +226,7 @@ pub fn find_path_between_areas(
                     continue;
                 }
 
-                if visited.contains_key(neighbor_id.as_str()) {
+                if visited.contains_key(neighbor_id) {
                     continue;
                 }
 
@@ -234,16 +234,12 @@ pub fn find_path_between_areas(
                 let edge_distance = manhattan_distance(current_pos, (*conn_x, *conn_y));
                 let tentative_distance = current_distance + (edge_distance * 100.0) as u64;
 
-                if tentative_distance < *distance_map.get(neighbor_id.as_str()).unwrap_or(&u64::MAX)
-                {
-                    came_from.insert(
-                        neighbor_id.clone(),
-                        (current_area_id.clone(), conn.id.clone()),
-                    );
-                    distance_map.insert(neighbor_id.clone(), tentative_distance);
+                if tentative_distance < *distance_map.get(neighbor_id).unwrap_or(&u64::MAX) {
+                    came_from.insert(*neighbor_id, (current_area_id, conn.id));
+                    distance_map.insert(*neighbor_id, tentative_distance);
 
                     heap.push(PathNode {
-                        area_id: neighbor_id.clone(),
+                        area_id: *neighbor_id,
                         distance: tentative_distance,
                         position: (*conn_x, *conn_y),
                     });
@@ -257,22 +253,22 @@ pub fn find_path_between_areas(
 
 /// Reconstruct the full path with instructions
 fn reconstruct_full_path(
-    came_from: &BTreeMap<String, (String, String)>,
-    area_map: &BTreeMap<&str, &AreaData>,
-    _start_area_id: &str,
+    came_from: &BTreeMap<i32, (i32, i32)>,
+    area_map: &BTreeMap<i32, &AreaData>,
+    _start_area_id: i32,
     start_pos: (f64, f64),
-    end_area_id: &str,
+    end_area_id: i32,
     end_pos: (f64, f64),
     block_size: f64,
 ) -> Result<Vec<RouteInstruction>, InterPathError> {
     // Build path from end to start
     let mut path = Vec::new();
-    path.push(end_area_id.to_string());
+    path.push(end_area_id);
 
-    let mut current = end_area_id.to_string();
+    let mut current = end_area_id;
     while let Some((prev, _)) = came_from.get(&current) {
-        path.push(prev.clone());
-        current = prev.clone();
+        path.push(*prev);
+        current = *prev;
     }
     path.reverse();
 
@@ -281,9 +277,9 @@ fn reconstruct_full_path(
     let mut current_pos = start_pos;
 
     for i in 0..path.len() {
-        let current_area_id = &path[i];
+        let current_area_id = path[i];
         let current_area = area_map
-            .get(current_area_id.as_str())
+            .get(&current_area_id)
             .ok_or(InterPathError::InvalidStartArea)?;
 
         if i == path.len() - 1 {
@@ -315,7 +311,7 @@ fn reconstruct_full_path(
             let conn_point = conn
                 .connected_areas
                 .iter()
-                .find(|(aid, _, _, _)| aid == current_area_id)
+                .find(|(aid, _, _, _)| *aid == current_area_id)
                 .map(|(_, x, y, _)| (*x, *y))
                 .ok_or(InterPathError::InvalidConnection)?;
 
@@ -332,8 +328,8 @@ fn reconstruct_full_path(
 
             // Add transport instruction
             instructions.push(RouteInstruction::Transport(
-                conn_id.clone(),
-                next_area_id.clone(),
+                *conn_id,
+                *next_area_id,
                 conn.conn_type,
             ));
 
@@ -357,7 +353,7 @@ mod tests {
     #[test]
     fn test_same_area_routing() {
         let area = AreaData {
-            id: "area1".to_string(),
+            id: 1,
             polygon: Polygon::from_coords(vec![
                 (0.0, 0.0),
                 (10.0, 0.0),
@@ -370,9 +366,9 @@ mod tests {
 
         let result = find_path_between_areas(
             &[area],
-            "area1",
+            1,
             (1.0, 1.0),
-            "area1",
+            1,
             (9.0, 9.0),
             ConnectivityLimits::default(),
             1.0,
@@ -387,7 +383,7 @@ mod tests {
     #[test]
     fn test_two_connected_areas() {
         let area1 = AreaData {
-            id: "area1".to_string(),
+            id: 1,
             polygon: Polygon::from_coords(vec![
                 (0.0, 0.0),
                 (10.0, 0.0),
@@ -396,17 +392,14 @@ mod tests {
                 (0.0, 0.0),
             ]),
             connections: vec![ConnectionData {
-                id: "conn1".to_string(),
+                id: 1,
                 conn_type: ConnectionType::Escalator,
-                connected_areas: vec![
-                    ("area1".to_string(), 9.0, 5.0, true),
-                    ("area2".to_string(), 1.0, 5.0, true),
-                ],
+                connected_areas: vec![(1, 9.0, 5.0, true), (2, 1.0, 5.0, true)],
             }],
         };
 
         let area2 = AreaData {
-            id: "area2".to_string(),
+            id: 2,
             polygon: Polygon::from_coords(vec![
                 (0.0, 0.0),
                 (10.0, 0.0),
@@ -415,20 +408,17 @@ mod tests {
                 (0.0, 0.0),
             ]),
             connections: vec![ConnectionData {
-                id: "conn1".to_string(),
+                id: 1,
                 conn_type: ConnectionType::Escalator,
-                connected_areas: vec![
-                    ("area1".to_string(), 9.0, 5.0, true),
-                    ("area2".to_string(), 1.0, 5.0, true),
-                ],
+                connected_areas: vec![(1, 9.0, 5.0, true), (2, 1.0, 5.0, true)],
             }],
         };
 
         let result = find_path_between_areas(
             &[area1, area2],
-            "area1",
+            1,
             (1.0, 1.0),
-            "area2",
+            2,
             (9.0, 9.0),
             ConnectivityLimits::default(),
             1.0,
