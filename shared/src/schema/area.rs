@@ -25,7 +25,6 @@ use sqlx::Row;
     ts(export, export_to = "generated/")
 )]
 pub struct Area {
-    #[cfg_attr(all(feature = "ts-rs", not(feature = "postgres")), ts(type = "string"))]
     pub id: i32,
     #[cfg(feature = "postgres")]
     pub entity_id: sqlx::types::Uuid,
@@ -298,7 +297,7 @@ impl IntRepository<sqlx::Postgres> for Area {
                WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)"#
         };
 
-        let row = sqlx::query(&sql)
+        let row = sqlx::query(sql)
             .bind(entity)
             .bind(&like_pattern)
             .fetch_one(pool)

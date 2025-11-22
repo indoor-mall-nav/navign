@@ -618,7 +618,7 @@ impl IntRepository<sqlx::Postgres> for Merchant {
                WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)"#
         };
 
-        let row = sqlx::query(&sql)
+        let row = sqlx::query(sql)
             .bind(entity)
             .bind(&like_pattern)
             .fetch_one(pool)
@@ -702,7 +702,7 @@ impl IntRepositoryInArea<sqlx::Postgres> for Merchant {
                WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR beacon_code LIKE $3)"#
         };
 
-        let row = sqlx::query(&sql)
+        let row = sqlx::query(sql)
             .bind(entity)
             .bind(area)
             .bind(&like_pattern)

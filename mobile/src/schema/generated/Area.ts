@@ -4,7 +4,7 @@
  * Area schema - represents a physical area in the mall/building
  */
 export type Area = {
-  id: string
+  id: number
   entity_id: string
   name: string
   description: string | null

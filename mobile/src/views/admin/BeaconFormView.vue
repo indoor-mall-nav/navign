@@ -3,11 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/states/session'
 import { createBeacon, updateBeacon, getBeacon, listAreas } from '@/lib/api/client'
-import type { BeaconCreateRequest, BeaconUpdateRequest } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Beacon } from '@/schema'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +18,7 @@ const error = ref<string | null>(null)
 const areas = ref<any[]>([])
 
 const entityId = computed(() => route.query.entity as string || '')
-const beaconId = computed(() => route.query.id as string || '')
+const beaconId = computed(() => parseInt(route.query.id as string) || -1)
 const isEditMode = computed(() => !!beaconId.value)
 
 // Form data
@@ -27,9 +27,9 @@ const formData = ref({
   description: '',
   type: 'navigation' as 'navigation' | 'marketing',
   device: 'esp32c3' as 'esp32' | 'esp32c3' | 'esp32s3' | 'esp32c6',
-  area: '',
-  merchant: null as string | null,
-  connection: null as string | null,
+  area: -1,
+  merchant: null as number | null,
+  connection: null as number | null,
   location: [0, 0] as [number, number],
 })
 
@@ -98,16 +98,20 @@ async function handleSubmit() {
 
   try {
     if (isEditMode.value) {
-      const updateData: BeaconUpdateRequest = {
-        _id: beaconId.value,
+      const updateData: Beacon = {
+        id: beaconId.value,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         type: formData.value.type,
         device: formData.value.device,
-        area: formData.value.area,
-        merchant: formData.value.merchant,
-        connection: formData.value.connection,
+        area_id: formData.value.area,
+        merchant_id: formData.value.merchant,
+        connection_id: formData.value.connection,
         location: formData.value.location,
+        mac: '',
+        created_at: '',
+        updated_at: ''
       }
       const response = await updateBeacon(entityId.value, updateData, session.userToken || '')
       if (response.status === 'success') {
@@ -116,16 +120,20 @@ async function handleSubmit() {
         error.value = response.message || 'Failed to update beacon'
       }
     } else {
-      const createData: BeaconCreateRequest = {
-        entity: entityId.value,
+      const createData: Beacon = {
+        id: -1,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         type: formData.value.type,
         device: formData.value.device,
-        area: formData.value.area,
-        merchant: formData.value.merchant,
-        connection: formData.value.connection,
+        area_id: formData.value.area,
+        merchant_id: formData.value.merchant,
+        connection_id: formData.value.connection,
         location: formData.value.location,
+        mac: '',
+        created_at: '',
+        updated_at: ''
       }
       const response = await createBeacon(entityId.value, createData, session.userToken || '')
       if (response.status === 'success') {

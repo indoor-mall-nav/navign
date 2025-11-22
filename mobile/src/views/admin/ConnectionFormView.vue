@@ -3,11 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/states/session'
 import { createConnection, updateConnection, getConnection, listAreas } from '@/lib/api/client'
-import type { ConnectionCreateRequest, ConnectionUpdateRequest } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Connection } from '@/schema'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +18,7 @@ const error = ref<string | null>(null)
 const areas = ref<any[]>([])
 
 const entityId = computed(() => route.query.entity as string || '')
-const connectionId = computed(() => route.query.id as string || '')
+const connectionId = computed(() => parseInt(route.query.id as string) || -1)
 const isEditMode = computed(() => !!connectionId.value)
 
 // Form data
@@ -26,7 +26,7 @@ const formData = ref({
   name: '',
   description: '',
   type: 'gate' as 'gate' | 'escalator' | 'elevator' | 'stairs' | 'rail' | 'shuttle',
-  connected_areas: [] as [string, number, number][],
+  connected_areas: [] as [number, number, number, boolean][],
   connected_areas_input: '',
   available_period: [] as [number, number][],
   available_period_input: '',
@@ -70,12 +70,14 @@ async function loadConnection() {
         connected_areas: connection.connected_areas.map((ca: any) => [
           ca[0],
           ca[1],
-          ca[2]
-        ]) as [string, number, number][],
+          ca[2],
+          ca[3]
+        ]) as [number, number, number, boolean][],
         connected_areas_input: JSON.stringify(connection.connected_areas.map((ca: any) => [
           ca[0],
           ca[1],
-          ca[2]
+          ca[2],
+          ca[3]
         ])),
         available_period: connection.available_period,
         available_period_input: JSON.stringify(connection.available_period),
@@ -167,14 +169,18 @@ async function handleSubmit() {
 
   try {
     if (isEditMode.value) {
-      const updateData: ConnectionUpdateRequest = {
-        _id: connectionId.value,
+      const updateData: Connection = {
+        id: connectionId.value,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         type: formData.value.type,
         connected_areas: formData.value.connected_areas,
         available_period: formData.value.available_period,
         tags: formData.value.tags,
+        gnd: [0.0, 0.0],
+        created_at: '',
+        updated_at: ''
       }
       const response = await updateConnection(entityId.value, updateData, session.userToken || '')
       if (response.status === 'success') {
@@ -183,14 +189,18 @@ async function handleSubmit() {
         error.value = response.message || 'Failed to update connection'
       }
     } else {
-      const createData: ConnectionCreateRequest = {
-        entity: entityId.value,
+      const createData: Connection = {
+        id: -1,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         type: formData.value.type,
         connected_areas: formData.value.connected_areas,
         available_period: formData.value.available_period,
         tags: formData.value.tags,
+        gnd: [0.0, 0.0],
+        created_at: '',
+        updated_at: ''
       }
       const response = await createConnection(entityId.value, createData, session.userToken || '')
       if (response.status === 'success') {

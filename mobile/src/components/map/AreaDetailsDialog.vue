@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { getAreaDetails, type AreaDetails } from '@/lib/api/tauri'
+import { getAreaDetails } from '@/lib/api/tauri'
 import {
   Dialog,
   DialogContent,
@@ -12,18 +12,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Icon } from '@iconify/vue'
 import { error as logError } from '@tauri-apps/plugin-log'
+import { Area } from '@/schema'
 
 const props = defineProps<{
   open: boolean
   entityId: string
-  areaId: string | null
+  areaId: number | null
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
 }>()
 
-const areaDetails = ref<AreaDetails | null>(null)
+const areaDetails = ref<Area | null>(null)
 const loading = ref(false)
 const error = ref<string>('')
 

@@ -14,16 +14,23 @@ import { Icon } from '@iconify/vue'
 import RouteOverlay from './RouteOverlay.vue'
 import { error as logError } from '@tauri-apps/plugin-log'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   entityId: string
-  areaId: string
+  areaId: number
   width?: number
   height?: number
   userLocation?: { x: number; y: number } | null
   route?: RouteResponse | null
   currentStep?: number
-  targetMerchantId?: string | null
-}>()
+  targetMerchantId?: number | null
+}>(), {
+  width: 800,
+  height: 600,
+  userLocation: null,
+  route: null,
+  currentStep: 0,
+  targetMerchantId: -1,
+})
 
 const {
   entityId,
@@ -37,9 +44,9 @@ const {
 } = toRefs(props)
 
 const emit = defineEmits<{
-  beaconClick: [beaconId: string]
-  merchantClick: [merchantId: string]
-  areaClick: [areaId: string]
+  beaconClick: [beaconId: number]
+  merchantClick: [merchantId: number]
+  areaClick: [areaId: number]
 }>()
 
 const mapData = ref<MapData | null>(null)
@@ -212,10 +219,10 @@ function handleSvgClick(event: MouseEvent) {
   const elementId = target.id
 
   if (parentId?.startsWith('beacon-')) {
-    const beaconId = parentId.replace('beacon-', '')
+    const beaconId = parseInt(parentId.replace('beacon-', ''))
     emit('beaconClick', beaconId)
   } else if (parentId?.startsWith('merchant-')) {
-    const merchantId = parentId.replace('merchant-', '')
+    const merchantId = parseInt(parentId.replace('merchant-', ''))
     emit('merchantClick', merchantId)
   } else if (elementId === 'area-boundary' || parentId === 'area-boundary') {
     // Emit area click with current area ID
