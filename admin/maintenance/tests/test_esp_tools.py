@@ -2,7 +2,7 @@
 
 import pytest
 
-from navign_maintenance import esp_tools
+from src import esp_tools
 
 
 def test_check_espefuse_available():
@@ -25,7 +25,7 @@ def test_detect_flash_tool_returns_string_or_raises():
 
 def test_generate_device_id_format():
     """Test device ID format (moved from crypto test but kept for compatibility)."""
-    from navign_maintenance.crypto import generate_device_id
+    from src.crypto import generate_device_id
 
     device_id = generate_device_id()
     assert len(device_id) == 24

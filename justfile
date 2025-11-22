@@ -155,12 +155,6 @@ ci-plot:
   cd admin/plot && uvx ruff check
   cd admin/plot && uv run pytest
 
-ci-maintenance-rust:
-  cd admin/maintenance_rust_deprecated && cargo check
-  cd admin/maintenance_rust_deprecated && cargo fmt -- --check
-  cd admin/maintenance_rust_deprecated && cargo clippy -- -D warnings
-  cd admin/maintenance_rust_deprecated && cargo test
-
 ci-maintenance:
   cd admin/maintenance && bash generate_proto.sh
   cd admin/maintenance && uv sync --extra dev
@@ -241,7 +235,7 @@ build-robot-vision-onnx:
 clean-robot-vision:
   rm -rf robot/vision/build
 
-ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
+ci-admin: ci-orchestrator ci-tower ci-plot ci-maintenance
 
 roll:
   just fmt-check

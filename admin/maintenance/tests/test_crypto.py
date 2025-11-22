@@ -1,6 +1,6 @@
 """Tests for cryptographic key generation and management."""
 
-from navign_maintenance import crypto
+from src import crypto
 
 
 def test_generate_p256_key_pair():

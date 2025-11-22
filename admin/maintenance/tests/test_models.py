@@ -3,7 +3,7 @@
 import json
 
 
-from navign_maintenance.models import KeyMetadata
+from src.models import KeyMetadata
 
 
 def test_key_metadata_creation():
