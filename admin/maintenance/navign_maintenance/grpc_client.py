@@ -18,7 +18,7 @@ except ImportError as e:
     try:
         import sys
         from pathlib import Path
-        
+
         # Add proto directory to path
         proto_dir = Path(__file__).parent.parent / "proto"
         if proto_dir.exists():

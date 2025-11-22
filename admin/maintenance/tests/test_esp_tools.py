@@ -1,8 +1,5 @@
 """Tests for ESP tool wrappers."""
 
-import shutil
-from pathlib import Path
-
 import pytest
 
 from navign_maintenance import esp_tools

@@ -104,11 +104,11 @@ def fuse_key_to_efuse(
     cmd = ["espefuse.py", "--chip", "esp32c3"]
     if port:
         cmd.extend(["--port", port])
-    
+
     # Add --do-not-confirm if force is True to skip "BURN" confirmation
     if force:
         cmd.append("--do-not-confirm")
-    
+
     cmd.extend(["burn_key", "BLOCK_KEY0", str(key_file), "USER"])
 
     print(f"   Executing: {' '.join(cmd)}")

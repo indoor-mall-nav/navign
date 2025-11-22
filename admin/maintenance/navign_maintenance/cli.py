@@ -32,13 +32,9 @@ def main():
     default=Path("./keys"),
     help="Output directory for key files",
 )
-@click.option(
-    "--key-name", "-k", default="esp32c3_key", help="Key name prefix"
-)
+@click.option("--key-name", "-k", default="esp32c3_key", help="Key name prefix")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
-@click.option(
-    "--port", "-p", help="ESP32-C3 serial port (e.g., /dev/ttyUSB0 or COM3)"
-)
+@click.option("--port", "-p", help="ESP32-C3 serial port (e.g., /dev/ttyUSB0 or COM3)")
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -64,12 +60,8 @@ def main():
     type=click.Choice(["Merchant", "Pathway", "Connection", "Turnstile"]),
     help="Device type",
 )
-@click.option(
-    "--firmware-version", default="0.1.0", help="Firmware version"
-)
-@click.option(
-    "--hardware-revision", default="v1.0", help="Hardware revision"
-)
+@click.option("--firmware-version", default="0.1.0", help="Firmware version")
+@click.option("--hardware-revision", default="v1.0", help="Hardware revision")
 @click.option("--area-id", help="Area ID where beacon is located")
 def fuse_priv_key(
     output_dir: Path,
@@ -233,9 +225,7 @@ def fuse_priv_key(
             click.echo(f"   Device ID: {device_id}")
 
         except Exception as e:
-            click.secho(
-                f"❌ Failed to register beacon: {e}", fg="red", err=True
-            )
+            click.secho(f"❌ Failed to register beacon: {e}", fg="red", err=True)
             sys.exit(1)
 
 
@@ -264,12 +254,8 @@ def fuse_priv_key(
     type=click.Choice(["Merchant", "Pathway", "Connection", "Turnstile"]),
     help="Device type",
 )
-@click.option(
-    "--firmware-version", default="0.1.0", help="Firmware version"
-)
-@click.option(
-    "--hardware-revision", default="v1.0", help="Hardware revision"
-)
+@click.option("--firmware-version", default="0.1.0", help="Firmware version")
+@click.option("--hardware-revision", default="v1.0", help="Hardware revision")
 @click.option("--area-id", help="Area ID where beacon is located")
 def register_beacon(
     metadata: Path,
@@ -340,9 +326,7 @@ def register_beacon(
     required=True,
     help="ESP32-C3 serial port (e.g., /dev/ttyUSB0 or COM3)",
 )
-@click.option(
-    "--baud", "-b", default=921600, help="Baud rate for flashing"
-)
+@click.option("--baud", "-b", default=921600, help="Baud rate for flashing")
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
 @click.option("--erase", is_flag=True, help="Erase flash before flashing")
 @click.option(
@@ -397,13 +381,9 @@ def flash_firmware(
 
     try:
         if flash_tool == "espflash":
-            esp_tools.flash_with_espflash(
-                firmware, port, baud, erase, verify, monitor
-            )
+            esp_tools.flash_with_espflash(firmware, port, baud, erase, verify, monitor)
         elif flash_tool == "esptool.py":
-            esp_tools.flash_with_esptool(
-                firmware, port, baud, erase, verify, monitor
-            )
+            esp_tools.flash_with_esptool(firmware, port, baud, erase, verify, monitor)
         else:
             click.secho(f"❌ Unsupported flash tool: {flash_tool}", fg="red", err=True)
             sys.exit(1)

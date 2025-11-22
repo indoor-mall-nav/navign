@@ -1,9 +1,7 @@
 """Tests for key metadata models."""
 
 import json
-from pathlib import Path
 
-import pytest
 
 from navign_maintenance.models import KeyMetadata
 

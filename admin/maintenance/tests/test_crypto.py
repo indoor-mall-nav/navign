@@ -1,7 +1,5 @@
 """Tests for cryptographic key generation and management."""
 
-import pytest
-
 from navign_maintenance import crypto
 
 

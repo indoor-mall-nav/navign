@@ -1,4 +1,4 @@
-# Navign Maintenance Tool
+# Navign Maintenance Tool (Python)
 
 ESP32-C3 eFuse key management and beacon registration CLI tool.
 
@@ -7,17 +7,37 @@ ESP32-C3 eFuse key management and beacon registration CLI tool.
 - **Key Generation**: Generate P-256 ECDSA private/public key pairs
 - **eFuse Programming**: Securely burn private keys to ESP32-C3 BLOCK_KEY0
 - **Beacon Registration**: Register beacons with the orchestrator via gRPC
+- **Firmware Flashing**: Flash firmware to ESP32-C3 beacons
 
 ## Prerequisites
 
-- Rust 1.86+
+- Python 3.12+
 - ESP-IDF tools (for eFuse programming):
   - `espefuse.py` (included with ESP-IDF or esptool)
   - Install: `pip install esptool`
-- Protocol Buffers compiler (for building):
+- Protocol Buffers compiler (for development):
   - Debian/Ubuntu: `apt-get install protobuf-compiler`
   - macOS: `brew install protobuf`
-  - Or download from: https://github.com/protocolbuffers/protobuf/releases
+
+## Installation
+
+```bash
+cd admin/maintenance
+
+# Sync dependencies with uv
+uv sync
+
+# Or install with pip (if uv is not available)
+pip install -e .
+```
+
+## Generate Protobuf Code
+
+Before using the tool, generate the gRPC code:
+
+```bash
+./generate_proto.sh
+```
 
 ## Usage
 
@@ -26,7 +46,7 @@ ESP32-C3 eFuse key management and beacon registration CLI tool.
 Flash firmware to an ESP32-C3 beacon:
 
 ```bash
-cargo run -- flash-firmware \
+uv run navign-maintenance flash-firmware \
   --firmware ../firmware/target/riscv32imc-esp-espidf/release/navign-firmware \
   --port /dev/ttyUSB0
 ```
@@ -37,12 +57,12 @@ Options:
 - `--baud, -b`: Baud rate for flashing (default: `921600`)
 - `--force`: Skip confirmation prompt
 - `--erase`: Erase flash before flashing (recommended for initial flash)
-- `--verify`: Verify flash after writing (default: `true`)
+- `--verify/--no-verify`: Verify flash after writing (default: `--verify`)
 - `--monitor`: Monitor serial output after flashing
 
 Example with full options:
 ```bash
-cargo run -- flash-firmware \
+uv run navign-maintenance flash-firmware \
   --firmware path/to/firmware.bin \
   --port /dev/ttyUSB0 \
   --baud 921600 \
@@ -60,7 +80,7 @@ The maintenance tool automatically detects and uses:
 Generate a new P-256 private key and fuse it to ESP32-C3 eFuse:
 
 ```bash
-cargo run -- fuse-priv-key \
+uv run navign-maintenance fuse-priv-key \
   --output-dir ./keys \
   --key-name beacon_001 \
   --port /dev/ttyUSB0
@@ -78,12 +98,12 @@ Options:
 Generate a key and immediately register the beacon with the orchestrator:
 
 ```bash
-cargo run -- fuse-priv-key \
+uv run navign-maintenance fuse-priv-key \
   --output-dir ./keys \
   --key-name beacon_001 \
   --port /dev/ttyUSB0 \
   --register \
-  --orchestrator-addr http://localhost:50051 \
+  --orchestrator-addr localhost:50051 \
   --entity-id mall-123 \
   --device-type Pathway \
   --area-id entrance-area
@@ -91,7 +111,7 @@ cargo run -- fuse-priv-key \
 
 Additional registration options:
 - `--register`: Enable beacon registration after key generation
-- `--orchestrator-addr`: Orchestrator gRPC address (default: `http://localhost:50051`)
+- `--orchestrator-addr`: Orchestrator gRPC address (default: `localhost:50051`)
 - `--entity-id`: Entity/mall identifier (required when `--register` is used)
 - `--device-id`: Device ID (24-char hex, auto-generated if not provided)
 - `--device-type`: Device type: `Merchant`, `Pathway`, `Connection`, `Turnstile` (default: `Pathway`)
@@ -104,9 +124,9 @@ Additional registration options:
 Register a previously generated beacon with the orchestrator:
 
 ```bash
-cargo run -- register-beacon \
+uv run navign-maintenance register-beacon \
   --metadata ./keys/beacon_001_metadata.json \
-  --orchestrator-addr http://localhost:50051 \
+  --orchestrator-addr localhost:50051 \
   --entity-id mall-123 \
   --device-type Pathway \
   --area-id entrance-area
@@ -180,20 +200,30 @@ The orchestrator then syncs the beacon information with the central server.
 
 ## Development
 
-Build:
+Install development dependencies:
 ```bash
-cargo build --release
+uv sync --extra dev
 ```
 
 Run tests:
 ```bash
-cargo test
+uv run pytest
+```
+
+Run tests with coverage:
+```bash
+uv run pytest --cov=navign_maintenance --cov-report=html
 ```
 
 Format and lint:
 ```bash
-cargo fmt
-cargo clippy -- -D warnings
+uvx ruff format
+uvx ruff check
+```
+
+Generate protobuf code:
+```bash
+./generate_proto.sh
 ```
 
 ## License
