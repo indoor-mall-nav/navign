@@ -170,7 +170,7 @@ impl UuidRepository<sqlx::Postgres> for BeaconSecrets {
         Ok(records)
     }
 
-    async fn update(pool: &PgPool, item: &Self) -> sqlx::Result<()> {
+    async fn update(pool: &PgPool, id: Uuid, item: &Self) -> sqlx::Result<()> {
         sqlx::query(
             "
             UPDATE beacon_secrets
@@ -181,10 +181,36 @@ impl UuidRepository<sqlx::Postgres> for BeaconSecrets {
         .bind(item.counter)
         .bind(item.last_epoch)
         .bind(item.private_key)
-        .bind(item.id)
+        .bind(id)
         .execute(pool)
         .await?;
         Ok(())
+    }
+
+    async fn count(pool: &PgPool, query: &str, case_insensitive: bool) -> sqlx::Result<i64> {
+        let mut sql = String::from(
+            "
+            SELECT COUNT(*) as count
+            FROM beacon_secrets
+            WHERE beacon_id::text LIKE ",
+        );
+        if case_insensitive {
+            sql.push_str("LOWER($1)");
+        } else {
+            sql.push_str("$1");
+        }
+
+        let pattern = if case_insensitive {
+            format!("%{}%", query.to_lowercase())
+        } else {
+            format!("%{}%", query)
+        };
+
+        let record = sqlx::query_as::<_, (i64,)>(sql.as_str())
+            .bind(pattern)
+            .fetch_one(pool)
+            .await?;
+        Ok(record.0)
     }
 }
 

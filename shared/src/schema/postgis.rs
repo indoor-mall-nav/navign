@@ -22,9 +22,32 @@ use wkt::TryFromWkt;
 /// This type handles the encoding and decoding of PostGIS points in WKB (Well-Known Binary) format.
 /// It uses SRID 4326 (WGS84) which is the standard for GPS coordinates.
 #[cfg(feature = "postgres")]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PgPoint(pub Point<f64>);
+
+#[cfg(all(feature = "serde", feature = "postgres"))]
+impl Serialize for PgPoint {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Serialize to `[x, y]` array
+        let coords = [self.lon(), self.lat()];
+        coords.serialize(serializer)
+    }
+}
+
+#[cfg(all(feature = "serde", feature = "postgres"))]
+impl<'de> Deserialize<'de> for PgPoint {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Deserialize from `[x, y]` array
+        let coords: [f64; 2] = Deserialize::deserialize(deserializer)?;
+        Ok(PgPoint::new(coords[0], coords[1]))
+    }
+}
 
 #[cfg(feature = "postgres")]
 impl PgPoint {
@@ -118,9 +141,38 @@ impl From<PgPoint> for Point<f64> {
 }
 
 #[cfg(feature = "postgres")]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PgPolygon(pub Polygon<f64>);
+
+#[cfg(all(feature = "serde", feature = "postgres"))]
+impl Serialize for PgPolygon {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Serialize to [(x1, y1), (x2, y2), ...] array
+        let coords: Vec<(f64, f64)> = self
+            .0
+            .exterior()
+            .0
+            .iter()
+            .map(|coord| (coord.x, coord.y))
+            .collect();
+        coords.serialize(serializer)
+    }
+}
+
+#[cfg(all(feature = "serde", feature = "postgres"))]
+impl<'de> Deserialize<'de> for PgPolygon {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Deserialize from [(x1, y1), (x2, y2), ...] array
+        let coords: Vec<(f64, f64)> = Deserialize::deserialize(deserializer)?;
+        Ok(PgPolygon::new(coords))
+    }
+}
 
 #[cfg(feature = "postgres")]
 impl PgPolygon {

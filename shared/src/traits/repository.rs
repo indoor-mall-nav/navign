@@ -12,7 +12,7 @@ use uuid::Uuid;
 pub trait IntRepository<T: Database>: Sized {
     async fn create(pool: &Pool<T>, item: &Self, entity: Uuid) -> Result<()>;
     async fn get_by_id(pool: &Pool<T>, id: i32, entity: Uuid) -> Result<Option<Self>>;
-    async fn update(pool: &Pool<T>, item: &Self, entity: Uuid) -> Result<()>;
+    async fn update(pool: &Pool<T>, id: i32, item: &Self, entity: Uuid) -> Result<()>;
     async fn delete(pool: &Pool<T>, id: i32, entity: Uuid) -> Result<()>;
     async fn list(pool: &Pool<T>, offset: i64, limit: i64, entity: Uuid) -> Result<Vec<Self>>;
     async fn search(
@@ -25,6 +25,12 @@ pub trait IntRepository<T: Database>: Sized {
         asc: bool,
         entity: Uuid,
     ) -> Result<Vec<Self>>;
+    async fn count(
+        pool: &Pool<T>,
+        entity: Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> Result<i64>;
 }
 
 #[cfg(feature = "sql")]
@@ -41,6 +47,13 @@ pub trait IntRepositoryInArea<T: Database>: IntRepository<T> {
         area: i32,
         entity: Uuid,
     ) -> Result<Vec<Self>>;
+    async fn count_in_area(
+        pool: &Pool<T>,
+        entity: Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> Result<i64>;
 }
 
 #[cfg(feature = "sql")]
@@ -48,7 +61,7 @@ pub trait IntRepositoryInArea<T: Database>: IntRepository<T> {
 pub trait UuidRepository<T: Database>: Sized {
     async fn create(pool: &Pool<T>, item: &Self) -> Result<()>;
     async fn get_by_uuid(pool: &Pool<T>, uuid: Uuid) -> Result<Option<Self>>;
-    async fn update(pool: &Pool<T>, item: &Self) -> Result<()>;
+    async fn update(pool: &Pool<T>, uuid: Uuid, item: &Self) -> Result<()>;
     async fn delete(pool: &Pool<T>, uuid: Uuid) -> Result<()>;
     async fn list(pool: &Pool<T>, offset: i64, limit: i64) -> Result<Vec<Self>>;
     async fn search(
@@ -60,4 +73,5 @@ pub trait UuidRepository<T: Database>: Sized {
         sort: Option<&str>,
         asc: bool,
     ) -> Result<Vec<Self>>;
+    async fn count(pool: &Pool<T>, query: &str, case_insensitive: bool) -> Result<i64>;
 }

@@ -100,7 +100,7 @@ export interface ConnectivityLimits {
 
 export async function getMapData(
   entity: string,
-  area: string,
+  area: number,
 ): Promise<ApiResponse<MapData>> {
   const response = await invoke<string>('get_map_data_handler', {
     entity,
@@ -216,9 +216,9 @@ export async function getRoute(
 
 export async function getRouteOffline(
   entity: string,
-  fromArea: string,
+  fromArea: number,
   fromPos: [number, number],
-  toArea: string,
+  toArea: number,
   toPos: [number, number],
   limits?: ConnectivityLimits,
 ): Promise<ApiResponse<RouteResponse>> {
@@ -235,9 +235,9 @@ export async function getRouteOffline(
 
   const response = await invoke<string>('get_route_offline_handler', {
     entity,
-    fromArea,
+    fromArea: fromArea.toString(),
     fromPos: `${fromPos[0]},${fromPos[1]}`,
-    toArea,
+    toArea: toArea.toString(),
     toPos: `${toPos[0]},${toPos[1]}`,
     connectivity,
   })
@@ -254,8 +254,8 @@ export interface AreaDetails {
   floor_type: string | null
   floor_name: number | null
   polygon: [number, number][]
-  created_at: number
-  updated_at: number
+  created_at: string
+  updated_at: string
 }
 
 export async function getAreaDetails(
@@ -291,8 +291,8 @@ export interface MerchantDetails {
     handle: string
     url?: string
   }> | null
-  created_at: number
-  updated_at: number
+  created_at: string
+  updated_at: string
 }
 
 export async function getMerchantDetails(

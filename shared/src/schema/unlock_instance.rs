@@ -147,7 +147,12 @@ impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
         .await
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self, _entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::PgPool,
+        id: i32,
+        item: &Self,
+        _entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         sqlx::query(
             "UPDATE unlock_instances
              SET stage = $1, outcome = $2, updated_at = NOW()
@@ -155,7 +160,7 @@ impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
         )
         .bind(item.stage.to_string())
         .bind(&item.outcome)
-        .bind(item.id)
+        .bind(id)
         .execute(pool)
         .await?;
         Ok(())
@@ -173,14 +178,16 @@ impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
         pool: &sqlx::PgPool,
         offset: i64,
         limit: i64,
-        _entity: uuid::Uuid,
+        user: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
         sqlx::query_as::<_, UnlockInstance>(
             "SELECT id, beacon_id, user_id, device_id, timestamp, beacon_nonce, challenge_nonce, stage, outcome, type, created_at, updated_at
              FROM unlock_instances
+             WHERE user_id = $1
              ORDER BY created_at DESC
-             OFFSET $1 LIMIT $2"
+             OFFSET $2 LIMIT $3"
         )
+        .bind(user)
         .bind(offset)
         .bind(limit)
         .fetch_all(pool)
@@ -195,18 +202,18 @@ impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
         limit: i64,
         sort: Option<&str>,
         asc: bool,
-        _entity: uuid::Uuid,
+        user: uuid::Uuid,
     ) -> sqlx::Result<Vec<Self>> {
         let mut sql = String::from(
             "SELECT id, beacon_id, user_id, device_id, timestamp, beacon_nonce, challenge_nonce, stage, outcome, type, created_at, updated_at
              FROM unlock_instances
-             WHERE "
+             WHERE user_id = $1 AND "
         );
 
         if case_insensitive {
-            sql.push_str("LOWER(device_id) LIKE LOWER($1)");
+            sql.push_str("LOWER(device_id) LIKE LOWER($2)");
         } else {
-            sql.push_str("device_id LIKE $1");
+            sql.push_str("device_id LIKE $2");
         }
 
         if let Some(sort_field) = sort {
@@ -224,11 +231,38 @@ impl crate::traits::IntRepository<sqlx::Postgres> for UnlockInstance {
         let pattern = format!("%{}%", query);
 
         sqlx::query_as::<_, UnlockInstance>(&sql)
+            .bind(user)
             .bind(pattern)
             .bind(offset)
             .bind(limit)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count(
+        pool: &sqlx::PgPool,
+        user: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM unlock_instances
+               WHERE user_id = $1 AND LOWER(device_id) LIKE LOWER($2)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM unlock_instances
+               WHERE user_id = $1 AND device_id LIKE $2"#
+        };
+
+        let pattern = format!("%{}%", query);
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(user)
+            .bind(pattern)
+            .fetch_one(pool)
+            .await?;
+        Ok(row.0)
     }
 }
 

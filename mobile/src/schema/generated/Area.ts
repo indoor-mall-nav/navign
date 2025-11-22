@@ -15,6 +15,6 @@ export type Area = {
   floor_type: string | null
   floor_name: number | null
   polygon: Array<[number, number]>
-  created_at: bigint | null
-  updated_at: bigint | null
+  created_at: string | null
+  updated_at: string | null
 }

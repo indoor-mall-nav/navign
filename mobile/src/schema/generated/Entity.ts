@@ -17,6 +17,6 @@ export type Entity = {
   region: string | null
   city: string | null
   tags: Array<string>
-  created_at: bigint | null
-  updated_at: bigint | null
+  created_at: string | null
+  updated_at: string | null
 }

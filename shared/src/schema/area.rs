@@ -12,6 +12,8 @@ use crate::schema::postgis::PgPolygon;
 use core::fmt::{Display, Formatter};
 #[cfg(all(feature = "postgres", feature = "sql"))]
 use sqlx::FromRow;
+#[cfg(feature = "sql")]
+use sqlx::Row;
 
 /// Area schema - represents a physical area in the mall/building
 #[derive(Debug, Clone, PartialEq)]
@@ -40,30 +42,30 @@ pub struct Area {
     pub polygon: PgPolygon,
     #[cfg(not(feature = "postgres"))]
     pub polygon: Vec<(f64, f64)>,
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
-    #[cfg(feature = "postgres")]
+    pub created_at: Option<String>, // Timestamp in milliseconds
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -181,13 +183,18 @@ impl IntRepository<sqlx::Postgres> for Area {
         .await
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::PgPool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         sqlx::query(
             r#"UPDATE areas
                SET name = $3, description = $4, floor_type = $5, floor_name = $6, beacon_code = $7, polygon = $8
                WHERE id = $1 AND entity_id = $2"#
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity)
         .bind(&item.name)
         .bind(&item.description)
@@ -273,6 +280,32 @@ impl IntRepository<sqlx::Postgres> for Area {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(
+        pool: &sqlx::PgPool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM areas
+               WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR beacon_code ILIKE $2)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM areas
+               WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)"#
+        };
+
+        let row = sqlx::query(&sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 // SQLite repository implementation for Area
@@ -285,10 +318,7 @@ impl IntRepository<sqlx::Sqlite> for Area {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let polygon_wkb = polygon_to_wkb(&item.polygon)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"INSERT INTO areas (entity_id, name, description, floor_type, floor_name, beacon_code, polygon_wkb,
@@ -325,13 +355,15 @@ impl IntRepository<sqlx::Sqlite> for Area {
         .await
     }
 
-    async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::SqlitePool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         let polygon_wkb = polygon_to_wkb(&item.polygon)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"UPDATE areas
@@ -339,7 +371,7 @@ impl IntRepository<sqlx::Sqlite> for Area {
                    polygon_wkb = ?8, updated_at = ?9
                WHERE id = ?1 AND entity_id = ?2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity.to_string())
         .bind(&item.name)
         .bind(&item.description)
@@ -425,5 +457,31 @@ impl IntRepository<sqlx::Sqlite> for Area {
             .bind(offset)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count(
+        pool: &sqlx::SqlitePool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM areas
+               WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE OR beacon_code LIKE ?2 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM areas
+               WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2 OR beacon_code LIKE ?2)"#
+        };
+
+        let row = sqlx::query(&sql)
+            .bind(entity.to_string())
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
     }
 }

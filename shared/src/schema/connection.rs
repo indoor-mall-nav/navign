@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::postgis::PgPoint;
 
 #[cfg(feature = "sql")]
-use crate::traits::IntRepository;
+use crate::traits::{IntRepository, IntRepositoryInArea};
 use core::fmt::Display;
 
 pub type ConnectedArea = (i32, f64, f64, bool);
@@ -39,8 +39,10 @@ pub struct Connection {
         feature = "ts-rs",
         ts(type = "Array<[number, number, number, boolean]>")
     )]
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub connected_areas: Vec<ConnectedArea>,
     /// List of `(start_time, end_time)` in milliseconds on a 24-hour clock
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub available_period: Vec<(i32, i32)>,
     pub tags: Vec<String>,
     /// Ground location if connection goes outside (optional)
@@ -48,30 +50,30 @@ pub struct Connection {
     pub gnd: Option<PgPoint>,
     #[cfg(not(feature = "postgres"))]
     pub gnd: Option<(f64, f64)>,
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
-    #[cfg(feature = "postgres")]
+    pub created_at: Option<String>, // Timestamp in milliseconds
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -156,7 +158,12 @@ impl IntRepository<sqlx::Postgres> for Connection {
         .await
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::PgPool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         // Serialize connected_areas to JSON
         let connected_areas_json = serde_json::to_value(&item.connected_areas)
             .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
@@ -175,7 +182,7 @@ impl IntRepository<sqlx::Postgres> for Connection {
                    available_period = $7, tags = $8, gnd = $9
                WHERE id = $1 AND entity_id = $2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity)
         .bind(&item.name)
         .bind(&item.description)
@@ -262,6 +269,121 @@ impl IntRepository<sqlx::Postgres> for Connection {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(
+        pool: &sqlx::PgPool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2)"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
+    }
+}
+
+#[async_trait::async_trait]
+#[cfg(feature = "postgres")]
+impl IntRepositoryInArea<sqlx::Postgres> for Connection {
+    async fn search_in_area(
+        pool: &sqlx::PgPool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        area: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = $1 AND $2 = ANY (SELECT (ca).0 FROM
+                       jsonb_to_recordset(connected_areas) AS ca(area_id int, x double precision, y double precision, primary_connection boolean))
+                       AND (name ILIKE $3 OR description ILIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = $1 AND $2 = ANY (SELECT (ca).0 FROM
+                       jsonb_to_recordset(connected_areas) AS ca(area_id int, x double precision, y double precision, primary_connection boolean))
+                       AND (name LIKE $3 OR description LIKE $3)
+                   ORDER BY {} {}
+                   LIMIT $4 OFFSET $5"#,
+                order_by, direction
+            )
+        };
+
+        sqlx::query_as::<_, Self>(&sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await
+    }
+
+    async fn count_in_area(
+        pool: &sqlx::PgPool,
+        entity: uuid::Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = $1 AND $2 = ANY (SELECT (ca).0 FROM
+                   jsonb_to_recordset(connected_areas) AS ca(area_id int, x double precision, y double precision, primary_connection boolean))
+                   AND (name ILIKE $3 OR description ILIKE $3)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = $1 AND $2 = ANY (SELECT (ca).0 FROM
+                   jsonb_to_recordset(connected_areas) AS ca(area_id int, x double precision, y double precision, primary_connection boolean))
+                   AND (name LIKE $3 OR description LIKE $3)"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
+    }
 }
 
 // SQLite repository implementation for Connection
@@ -283,10 +405,7 @@ impl IntRepository<sqlx::Sqlite> for Connection {
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
         let tags_json = serde_json::to_string(&item.tags)
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"INSERT INTO connections (entity_id, name, description, type, connected_areas,
@@ -324,7 +443,12 @@ impl IntRepository<sqlx::Sqlite> for Connection {
         .await
     }
 
-    async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::SqlitePool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         let gnd_wkb = item
             .gnd
             .map(point_to_wkb)
@@ -336,10 +460,7 @@ impl IntRepository<sqlx::Sqlite> for Connection {
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
         let tags_json = serde_json::to_string(&item.tags)
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"UPDATE connections
@@ -347,7 +468,7 @@ impl IntRepository<sqlx::Sqlite> for Connection {
                    available_period = ?7, tags = ?8, gnd_wkb = ?9, updated_at = ?10
                WHERE id = ?1 AND entity_id = ?2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity.to_string())
         .bind(&item.name)
         .bind(&item.description)
@@ -434,5 +555,125 @@ impl IntRepository<sqlx::Sqlite> for Connection {
             .bind(offset)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count(
+        pool: &sqlx::SqlitePool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2)"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(entity.to_string())
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
+    }
+}
+
+#[async_trait::async_trait]
+#[cfg(feature = "sqlite")]
+impl IntRepositoryInArea<sqlx::Sqlite> for Connection {
+    async fn search_in_area(
+        pool: &sqlx::SqlitePool,
+        query: &str,
+        case_insensitive: bool,
+        offset: i64,
+        limit: i64,
+        sort: Option<&str>,
+        asc: bool,
+        area: i32,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<Vec<Self>> {
+        let like_pattern = format!("%{}%", query);
+
+        let order_by = sort.unwrap_or("created_at");
+        let direction = if asc { "ASC" } else { "DESC" };
+
+        let sql = if case_insensitive {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd_wkb, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = ?1 AND EXISTS (
+                       SELECT 1 FROM json_each(connected_areas)
+                       WHERE json_extract(value, '$[0]') = ?2
+                   ) AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE)
+                   ORDER BY {} {}
+                   LIMIT ?4 OFFSET ?5"#,
+                order_by, direction
+            )
+        } else {
+            format!(
+                r#"SELECT id, entity_id, name, description, type, connected_areas,
+                          available_period, tags, gnd_wkb, created_at, updated_at
+                   FROM connections
+                   WHERE entity_id = ?1 AND EXISTS (
+                       SELECT 1 FROM json_each(connected_areas)
+                       WHERE json_extract(value, '$[0]') = ?2
+                   ) AND (name LIKE ?3 OR description LIKE ?3)
+                   ORDER BY {} {}
+                   LIMIT ?4 OFFSET ?5"#,
+                order_by, direction
+            )
+        };
+
+        sqlx::query_as::<_, Self>(&sql)
+            .bind(entity.to_string())
+            .bind(area)
+            .bind(&like_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await
+    }
+
+    async fn count_in_area(
+        pool: &sqlx::SqlitePool,
+        entity: uuid::Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = ?1 AND EXISTS (
+                   SELECT 1 FROM json_each(connected_areas)
+                   WHERE json_extract(value, '$[0]') = ?2
+               ) AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM connections
+               WHERE entity_id = ?1 AND EXISTS (
+                   SELECT 1 FROM json_each(connected_areas)
+                   WHERE json_extract(value, '$[0]') = ?2
+               ) AND (name LIKE ?3 OR description LIKE ?3)"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(entity.to_string())
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
     }
 }

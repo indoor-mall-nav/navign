@@ -19,6 +19,7 @@ use axum::{
     http::{Method, StatusCode},
     routing::{delete, get, post, put},
 };
+use dotenv::dotenv;
 use navign_shared::schema::{Area, Beacon, Connection, Entity, Merchant};
 use p256::pkcs8::EncodePublicKey;
 use rsa::pkcs1::LineEnding;
@@ -32,6 +33,7 @@ use tower_governor::key_extractor::GlobalKeyExtractor;
 #[cfg(not(debug_assertions))]
 use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tower_http::cors::CorsLayer;
+use tower_http::normalize_path::NormalizePathLayer;
 use tracing::info;
 
 async fn root() -> impl IntoResponse {
@@ -85,6 +87,11 @@ async fn main() -> ServerResult<()> {
         ServerError::ConfigurationError(format!("Failed to initialize metrics: {}", e))
     })?;
     info!("Metrics exporter initialized");
+
+    match dotenv() {
+        Ok(_) => info!("Loaded environment variables from .env file"),
+        Err(_) => info!(".env file not found, proceeding with system environment variables"),
+    }
 
     // Load or generate persistent private key
     info!("Loading server private key...");
@@ -156,35 +163,32 @@ async fn main() -> ServerResult<()> {
     });
 
     // Optionally connect to PostgreSQL for migration
-    let pg_pool = if let Ok(pg_url) = std::env::var("POSTGRES_URL") {
-        info!("PostgreSQL URL found, connecting to PostgreSQL...");
-        match pg::create_pool(&pg_url).await {
-            Ok(pool) => {
-                info!("Successfully connected to PostgreSQL");
+    let pg_url =
+        std::env::var("POSTGRES_URL").unwrap_or("postgres://localhost:5432/navign".to_string());
+    info!("PostgreSQL URL found, connecting to PostgreSQL...");
+    let pg_pool = match pg::create_pool(&pg_url).await {
+        Ok(pool) => {
+            info!("Successfully connected to PostgreSQL");
 
-                // Run migrations if POSTGRES_RUN_MIGRATIONS=true
-                if std::env::var("POSTGRES_RUN_MIGRATIONS").unwrap_or_default() == "true" {
-                    info!("Running PostgreSQL migrations...");
-                    if let Err(e) = pool.run_migrations().await {
-                        tracing::warn!("Failed to run PostgreSQL migrations: {}", e);
-                    } else {
-                        info!("PostgreSQL migrations completed successfully");
-                    }
+            // Run migrations if POSTGRES_RUN_MIGRATIONS=true
+            if std::env::var("POSTGRES_RUN_MIGRATIONS").unwrap_or_default() == "true" {
+                info!("Running PostgreSQL migrations...");
+                if let Err(e) = pool.run_migrations().await {
+                    tracing::warn!("Failed to run PostgreSQL migrations: {}", e);
+                } else {
+                    info!("PostgreSQL migrations completed successfully");
                 }
+            }
 
-                Some(pool)
-            }
-            Err(e) => {
-                tracing::warn!(
-                    "Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.",
-                    e
-                );
-                None
-            }
+            Some(pool)
         }
-    } else {
-        info!("No PostgreSQL URL configured, using MongoDB only");
-        None
+        Err(e) => {
+            tracing::warn!(
+                "Failed to connect to PostgreSQL: {}. Continuing with MongoDB only.",
+                e
+            );
+            None
+        }
     };
 
     let Some(pg_pool) = pg_pool else {
@@ -204,114 +208,118 @@ async fn main() -> ServerResult<()> {
         private_key,
         prometheus_handle,
     };
+
+    let path_normalizer = NormalizePathLayer::append_trailing_slash();
+
     let app = Router::new()
         .route("/", get(root))
-        .route("/health", get(health_check))
-        .route("/cert", get(cert))
-        .route("/metrics", get(metrics::metrics_handler))
+        .route("/health/", get(health_check))
+        .route("/cert/", get(cert))
+        .route("/metrics/", get(metrics::metrics_handler))
         // Entity endpoints (UUID-based)
-        .route("/api/entities", get(Entity::crud_search))
-        .route("/api/entities", post(Entity::crud_create))
-        .route("/api/entities", put(Entity::crud_update))
-        .route("/api/entities/{id}", get(Entity::crud_read_one))
-        .route("/api/entities/{id}", delete(Entity::crud_delete))
+        .route("/api/entities/", get(Entity::crud_search))
+        .route("/api/entities/", post(Entity::crud_create))
+        .route("/api/entities/", put(Entity::crud_update))
+        .route("/api/entities/{id}/", get(Entity::crud_read_one))
+        .route("/api/entities/{id}/", delete(Entity::crud_delete))
         // Area endpoints (Int-based, entity-scoped)
-        .route("/api/entities/{entity}/areas", get(Area::crud_search))
-        .route("/api/entities/{entity}/areas", post(Area::crud_create))
-        .route("/api/entities/{entity}/areas", put(Area::crud_update))
+        .route("/api/entities/{entity}/areas/", get(Area::crud_search))
+        .route("/api/entities/{entity}/areas/", post(Area::crud_create))
+        .route("/api/entities/{entity}/areas/", put(Area::crud_update))
         .route(
-            "/api/entities/{entity}/areas/{id}",
+            "/api/entities/{entity}/areas/{id}/",
             get(Area::crud_read_one),
         )
         .route(
-            "/api/entities/{entity}/areas/{id}",
+            "/api/entities/{entity}/areas/{id}/",
             delete(Area::crud_delete),
         )
         // Beacon endpoints (Int-based, entity-scoped)
-        .route("/api/entities/{entity}/beacons", get(Beacon::crud_search))
-        .route("/api/entities/{entity}/beacons", post(Beacon::crud_create))
-        .route("/api/entities/{entity}/beacons", put(Beacon::crud_update))
+        .route("/api/entities/{entity}/beacons/", get(Beacon::crud_search))
+        .route("/api/entities/{entity}/beacons/", post(Beacon::crud_create))
+        .route("/api/entities/{entity}/beacons/", put(Beacon::crud_update))
         .route(
-            "/api/entities/{entity}/beacons/{id}",
+            "/api/entities/{entity}/beacons/{id}/",
             get(Beacon::crud_read_one),
         )
         .route(
-            "/api/entities/{entity}/beacons/{id}",
+            "/api/entities/{entity}/beacons/{id}/",
             delete(Beacon::crud_delete),
         )
         // Merchant endpoints (Int-based, entity-scoped)
         .route(
-            "/api/entities/{entity}/merchants",
+            "/api/entities/{entity}/merchants/",
             get(Merchant::crud_search),
         )
         .route(
-            "/api/entities/{entity}/merchants",
+            "/api/entities/{entity}/merchants/",
             post(Merchant::crud_create),
         )
         .route(
-            "/api/entities/{entity}/merchants",
+            "/api/entities/{entity}/merchants/",
             put(Merchant::crud_update),
         )
         .route(
-            "/api/entities/{entity}/merchants/{id}",
+            "/api/entities/{entity}/merchants/{id}/",
             get(Merchant::crud_read_one),
         )
         .route(
-            "/api/entities/{entity}/merchants/{id}",
+            "/api/entities/{entity}/merchants/{id}/",
             delete(Merchant::crud_delete),
         )
         // Merchant area-scoped search
         .route(
-            "/api/entities/{entity}/areas/{area}/merchants",
+            "/api/entities/{entity}/areas/{area}/merchants/",
             get(Merchant::crud_search_in_area),
         )
         // Beacon area-scoped search
         .route(
-            "/api/entities/{entity}/areas/{area}/beacons",
+            "/api/entities/{entity}/areas/{area}/beacons/",
             get(Beacon::crud_search_in_area),
         )
         // Connection endpoints (Int-based, entity-scoped)
         .route(
-            "/api/entities/{entity}/connections",
+            "/api/entities/{entity}/connections/",
             get(Connection::crud_search),
         )
         .route(
-            "/api/entities/{entity}/connections",
+            "/api/entities/{entity}/connections/",
             post(Connection::crud_create),
         )
         .route(
-            "/api/entities/{entity}/connections",
+            "/api/entities/{entity}/connections/",
             put(Connection::crud_update),
         )
         .route(
-            "/api/entities/{entity}/connections/{id}",
+            "/api/entities/{entity}/connections/{id}/",
             get(Connection::crud_read_one),
         )
         .route(
-            "/api/entities/{entity}/connections/{id}",
+            "/api/entities/{entity}/connections/{id}/",
             delete(Connection::crud_delete),
         )
         // Route finding endpoint
         .route(
-            "/api/entities/{entity}/route",
+            "/api/entities/{entity}/route/",
             get(kernel::route::find_route),
         )
         // Unlocker endpoints (placeholder for now)
         .route(
-            "/api/entities/{entity}/beacons/{beacon}/unlocker",
+            "/api/entities/{entity}/beacons/{beacon}/unlocker/",
             post(kernel::unlocker::create_unlock_instance),
         )
         .route(
-            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}",
+            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}/",
             put(kernel::unlocker::update_unlock_instance),
         )
         .route(
-            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}/result",
+            "/api/entities/{entity}/beacons/{beacon}/unlocker/{instance}/result/",
             post(kernel::unlocker::record_unlock_result),
         )
         .layer(middleware::from_fn(metrics::track_metrics))
         .layer(GovernorLayer::new(governor_conf))
         .layer(cors)
+        .layer(path_normalizer)
         .with_state(state);
 
     info!("Starting HTTP server...");

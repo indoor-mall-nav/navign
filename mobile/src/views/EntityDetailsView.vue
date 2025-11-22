@@ -80,11 +80,7 @@ function navigateToArea(areaId: string) {
   // Update session area and navigate to home
   const area = areas.value.find((a) => a.id === areaId);
   if (area) {
-    session.area = {
-      ...area,
-      created_at: area.created_at ? BigInt(area.created_at) : null,
-      updated_at: area.updated_at ? BigInt(area.updated_at) : null,
-    };
+    session.area = area;
     router.push("/");
   }
 }

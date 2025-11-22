@@ -32,6 +32,6 @@ export type Merchant = {
   website: string | null
   social_media: Array<SocialMedia> | null
   image_url: string | null
-  created_at: bigint | null
-  updated_at: bigint | null
+  created_at: string | null
+  updated_at: string | null
 }

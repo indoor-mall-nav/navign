@@ -131,7 +131,7 @@ async function findEntity() {
       },
     )
 
-    const data: Entity[] = await response.json()
+    const data: Entity[] = (await response.json()).data
     await info('Entities found: ' + JSON.stringify(data))
 
     entities.value = data
