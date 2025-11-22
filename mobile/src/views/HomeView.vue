@@ -44,7 +44,7 @@ const findingArea = ref(false)
 const areaFindingError = ref('')
 
 const entityId = ref(session.entity?.id || '')
-const areaId = ref(session.area?.id || '')
+const areaId = ref(session.area?.id || 0)
 
 session.$subscribe((mutation, state) => {
   info(
@@ -53,7 +53,7 @@ session.$subscribe((mutation, state) => {
         state.entity ? state.entity.name : 'None'
       }, New Area: ${state.area ? state.area.name : 'None'}`,
   )
-  areaId.value = state.area?.id || ''
+  areaId.value = state.area?.id || -1
   entityId.value = state.entity?.id || ''
 })
 
@@ -131,7 +131,7 @@ async function findEntity() {
       },
     )
 
-    const data: Entity[] = await response.json()
+    const data: Entity[] = (await response.json()).data
     await info('Entities found: ' + JSON.stringify(data))
 
     entities.value = data
@@ -175,7 +175,7 @@ async function findAreaWithBackend() {
     // For initial area detection, we pass empty area string
     await info('Calling backend locate API for entity: ' + entityId.value)
 
-    const result = await locateDevice('', entityId.value)
+    const result = await locateDevice(-1, entityId.value)
 
     if (result.status === 'success') {
       // Backend returns the detected area
@@ -262,11 +262,11 @@ async function handleLocateMe() {
   }
 }
 
-async function handleBeaconClick(beaconId: string) {
+async function handleBeaconClick(beaconId: number) {
   await info('Beacon clicked:' + beaconId)
 }
 
-async function handleMerchantClick(merchantId: string) {
+async function handleMerchantClick(merchantId: number) {
   await info('Merchant clicked: ' + merchantId)
 }
 
@@ -529,7 +529,7 @@ watch(
               v-for="merchant in session.nearestMerchants.slice(0, 5)"
               :key="merchant.id"
               class="p-2 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              @click="handleMerchantClick(String(merchant.id))"
+              @click="handleMerchantClick(merchant.id)"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

@@ -21,3 +21,4 @@ export type MerchantType =
   | { facility: { type: FacilityType } }
   | 'room'
   | 'other'
+  | 'type'

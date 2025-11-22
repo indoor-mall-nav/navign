@@ -22,14 +22,14 @@ const router = useRouter()
 
 // Entity and area from route params or defaults
 const entityId = ref((route.query.entity as string) || 'default-entity')
-const areaId = ref((route.query.area as string) || 'default-area')
+const areaId = ref((parseInt(route.query.area as string)) || 0)
 
 // Navigation state
 const currentRoute = ref<RouteResponse | null>(null)
 const currentStep = ref<number>(0)
-const targetMerchantId = ref<string | null>(null)
+const targetMerchantId = ref<number | null>(null)
 const userLocation = ref<{ x: number; y: number } | null>(null)
-const currentLocationId = ref<string | undefined>(undefined)
+const currentLocationId = ref<number | undefined>(undefined)
 
 // Map data for navigation panel
 const mapData = ref<any>(null)
@@ -43,8 +43,8 @@ const showNavigationPanel = ref(true)
 // Dialog state
 const showAreaDialog = ref(false)
 const showMerchantDialog = ref(false)
-const selectedAreaId = ref<string | null>(null)
-const selectedMerchantId = ref<string | null>(null)
+const selectedAreaId = ref<number | null>(null)
+const selectedMerchantId = ref<number | null>(null)
 
 async function loadMapData() {
   try {
@@ -93,7 +93,7 @@ function handleRouteCalculated(route: RouteResponse) {
   currentStep.value = 0
 }
 
-function handleNavigationStarted(targetId: string) {
+function handleNavigationStarted(targetId: number) {
   targetMerchantId.value = targetId
   currentStep.value = 0
 }
@@ -118,12 +118,12 @@ function formatDistance(meters: number): string {
   }
 }
 
-function handleAreaClick(areaClickedId: string) {
+function handleAreaClick(areaClickedId: number) {
   selectedAreaId.value = areaClickedId
   showAreaDialog.value = true
 }
 
-function handleMerchantClick(merchantClickedId: string) {
+function handleMerchantClick(merchantClickedId: number) {
   selectedMerchantId.value = merchantClickedId
   showMerchantDialog.value = true
 }

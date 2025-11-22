@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { getMerchantDetails, unlockDevice, type MerchantDetails } from '@/lib/api/tauri'
+import { getMerchantDetails, unlockDevice } from '@/lib/api/tauri'
 import { formatMerchantType } from '@/lib/structure/merchant'
 import {
   Dialog,
@@ -14,18 +14,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@iconify/vue'
 import { error as logError } from '@tauri-apps/plugin-log'
+import { Merchant } from '@/schema'
 
 const props = defineProps<{
   open: boolean
   entityId: string
-  merchantId: string | null
+  merchantId: number | null
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
 }>()
 
-const merchantDetails = ref<MerchantDetails | null>(null)
+const merchantDetails = ref<Merchant | null>(null)
 const loading = ref(false)
 const error = ref<string>('')
 const unlockLoading = ref(false)
@@ -89,7 +90,10 @@ const socialMediaIcons: Record<string, string> = {
   telegram: 'mdi:telegram',
 }
 
-function getSocialIcon(platform: string): string {
+function getSocialIcon(platform: string | { other: string }): string {
+  if (typeof platform === 'object' && 'other' in platform) {
+    return 'mdi:web'
+  }
   return socialMediaIcons[platform.toLowerCase()] || 'mdi:web'
 }
 
@@ -98,14 +102,15 @@ function openLink(url: string) {
 }
 
 async function unlockMerchantBeacon() {
-  if (!merchantDetails.value?.beacon_code) return
+  if (!merchantDetails.value?.id) return
 
   unlockLoading.value = true
   unlockError.value = ''
   unlockSuccess.value = false
 
   try {
-    const result = await unlockDevice(props.entityId, merchantDetails.value.beacon_code)
+    // TODO this shouldn't be `beacon_code`. We need to inquiry beacon database and find the most recent
+    const result = await unlockDevice(props.entityId, merchantDetails.value.id)
     if (result.status === 'success') {
       unlockSuccess.value = true
       setTimeout(() => {

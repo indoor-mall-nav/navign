@@ -32,6 +32,6 @@ export type Beacon = {
   location: [number, number]
   device: BeaconDevice
   mac: string
-  created_at: bigint | null
-  updated_at: bigint | null
+  created_at: string | null
+  updated_at: string | null
 }

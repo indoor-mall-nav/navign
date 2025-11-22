@@ -9,6 +9,8 @@ use crate::traits::{IntRepository, IntRepositoryInArea};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "postgres")]
 use sqlx::PgPool;
+#[cfg(feature = "sql")]
+use sqlx::Row;
 #[cfg(feature = "sqlite")]
 use sqlx::SqlitePool;
 #[cfg(feature = "postgres")]
@@ -56,30 +58,30 @@ pub struct Beacon {
     pub location: (f64, f64),
     pub device: BeaconDevice,
     pub mac: String,
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
-    #[cfg(feature = "postgres")]
+    pub created_at: Option<String>, // Timestamp in milliseconds
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -223,14 +225,19 @@ impl IntRepository<sqlx::Postgres> for Beacon {
         .await
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::PgPool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         sqlx::query(
             r#"UPDATE beacons
                SET area_id = $3, merchant_id = $4, connection_id = $5, name = $6, description = $7,
                    type = $8, location = $9, device = $10, mac = $11
                WHERE id = $1 AND entity_id = $2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity)
         .bind(item.area_id)
         .bind(item.merchant_id)
@@ -319,6 +326,34 @@ impl IntRepository<sqlx::Postgres> for Beacon {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(
+        pool: &PgPool,
+        entity: Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR mac ILIKE $2)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR mac LIKE $2)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 #[cfg(feature = "postgres")]
@@ -361,16 +396,44 @@ impl IntRepositoryInArea<sqlx::Postgres> for Beacon {
             )
         };
 
-        let rows = sqlx::query(&sql)
+        sqlx::query_as::<_, Self>(&sql)
             .bind(entity)
             .bind(area)
             .bind(&like_pattern)
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
+            .await
+    }
+
+    async fn count_in_area(
+        pool: &PgPool,
+        entity: Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = $1 AND area_id = $2 AND (name ILIKE $3 OR description ILIKE $3 OR mac ILIKE $3)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR mac LIKE $3)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
             .await?;
 
-        rows.iter().map(beacon_from_row).collect()
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
     }
 }
 
@@ -384,10 +447,7 @@ impl IntRepository<sqlx::Sqlite> for Beacon {
     async fn create(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"INSERT INTO beacons (entity_id, area_id, merchant_id, connection_id, name, description,
@@ -427,13 +487,15 @@ impl IntRepository<sqlx::Sqlite> for Beacon {
         .await
     }
 
-    async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::SqlitePool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"UPDATE beacons
@@ -441,7 +503,7 @@ impl IntRepository<sqlx::Sqlite> for Beacon {
                    type = ?8, location_wkb = ?9, device = ?10, mac = ?11, updated_at = ?12
                WHERE id = ?1 AND entity_id = ?2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity.to_string())
         .bind(item.area_id)
         .bind(item.merchant_id)
@@ -531,6 +593,34 @@ impl IntRepository<sqlx::Sqlite> for Beacon {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(
+        pool: &SqlitePool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE OR mac LIKE ?2 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2 OR mac LIKE ?2)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity.to_string())
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 #[cfg(feature = "sqlite")]
@@ -581,5 +671,35 @@ impl IntRepositoryInArea<sqlx::Sqlite> for Beacon {
             .bind(offset)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count_in_area(
+        pool: &SqlitePool,
+        entity: uuid::Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE OR mac LIKE ?3 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM beacons
+               WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 OR description LIKE ?3 OR mac LIKE ?3)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity.to_string())
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
     }
 }

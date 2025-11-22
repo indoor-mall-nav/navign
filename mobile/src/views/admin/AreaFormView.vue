@@ -3,11 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/states/session'
 import { createArea, updateArea, getArea } from '@/lib/api/client'
-import type { AreaCreateRequest, AreaUpdateRequest } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Area } from '@/schema'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,7 +17,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 const entityId = computed(() => route.query.entity as string || '')
-const areaId = computed(() => route.query.id as string || '')
+const areaId = computed(() => parseInt(route.query.id as string) || -1)
 const isEditMode = computed(() => !!areaId.value)
 
 // Form data
@@ -105,13 +105,17 @@ async function handleSubmit() {
 
   try {
     if (isEditMode.value) {
-      const updateData: AreaUpdateRequest = {
-        _id: areaId.value,
+      const updateData: Area = {
+        id: areaId.value,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         beacon_code: formData.value.beacon_code,
-        floor: formData.value.floor,
+        floor_name: formData.value.floor?.name ?? 0,
+        floor_type: formData.value.floor?.type ?? '',
         polygon: formData.value.polygon,
+        created_at: '', // Placeholder, not needed for update
+        updated_at: '', // Placeholder, not needed for update
       }
       const response = await updateArea(entityId.value, updateData, session.userToken || '')
       if (response.status === 'success') {
@@ -120,13 +124,17 @@ async function handleSubmit() {
         error.value = response.message || 'Failed to update area'
       }
     } else {
-      const createData: AreaCreateRequest = {
-        entity: entityId.value,
+      const createData: Area = {
+        id: -1,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         beacon_code: formData.value.beacon_code,
-        floor: formData.value.floor,
+        floor_name: formData.value.floor?.name ?? 0,
+        floor_type: formData.value.floor?.type ?? '',
         polygon: formData.value.polygon,
+        created_at: '', // Placeholder, not needed for creation
+        updated_at: '', // Placeholder, not needed for creation
       }
       const response = await createArea(entityId.value, createData, session.userToken || '')
       if (response.status === 'success') {

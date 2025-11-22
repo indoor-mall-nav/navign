@@ -11,7 +11,7 @@ import { useNavigation } from './composables/useNavigation'
 const props = withDefaults(
   defineProps<{
     entityId: string
-    currentLocation?: string // merchant/area id
+    currentLocation?: number // merchant/area id
     currentExactLocation?: [number, number] // precise coordinates if available
     merchants: MapMerchant[]
   }>(),
@@ -20,7 +20,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   routeCalculated: [route: RouteResponse]
-  navigationStarted: [targetId: string]
+  navigationStarted: [targetId: number]
   navigationEnded: []
 }>()
 

@@ -103,7 +103,7 @@ CREATE TABLE merchants (
     beacon_code VARCHAR(255) NOT NULL,
     type JSONB NOT NULL,
     color VARCHAR(50),
-    tags JSONB DEFAULT '[]'::jsonb,
+    tags TEXT[] DEFAULT '{}',
     location GEOMETRY(POINT, 4326) NOT NULL, -- PostGIS POINT for centroid/entrance
     style VARCHAR(50),
     polygon GEOMETRY(POLYGON, 4326) NOT NULL, -- PostGIS POLYGON for merchant boundary
@@ -113,6 +113,7 @@ CREATE TABLE merchants (
     phone VARCHAR(50),
     website TEXT,
     social_media JSONB DEFAULT '[]'::jsonb,
+    image_url TEXT DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

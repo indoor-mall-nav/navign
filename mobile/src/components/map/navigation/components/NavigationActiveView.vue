@@ -16,7 +16,7 @@ const props = defineProps<{
   nextStep?: NavigationStep | null
   progress: NavigationProgress
   entityId: string
-  targetId: string
+  targetId: number
 }>()
 
 const emit = defineEmits<{

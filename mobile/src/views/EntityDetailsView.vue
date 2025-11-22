@@ -3,8 +3,8 @@ import { computed, onMounted, ref } from "vue";
 import { useSessionStore } from "@/states/session";
 import { useRouter } from "vue-router";
 import { getAllAreas, getAllMerchants, getAllBeacons } from "@/lib/api/tauri";
-import type { AreaDetails, MapBeacon } from "@/lib/api/tauri";
-import type { Merchant } from "@/schema";
+import type { MapBeacon } from "@/lib/api/tauri";
+import type { Area, Merchant } from "@/schema";
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ const router = useRouter();
 
 const loading = ref(false);
 const error = ref("");
-const areas = ref<AreaDetails[]>([]);
+const areas = ref<Area[]>([]);
 const merchants = ref<Merchant[]>([]);
 const beacons = ref<MapBeacon[]>([]);
 
@@ -76,25 +76,21 @@ async function loadEntityDetails() {
   }
 }
 
-function navigateToArea(areaId: string) {
+function navigateToArea(areaId: number) {
   // Update session area and navigate to home
-  const area = areas.value.find((a) => a.id === areaId);
+  const area = areas.value.find((a: Area) => a.id === areaId);
   if (area) {
-    session.area = {
-      ...area,
-      created_at: area.created_at ? BigInt(area.created_at) : null,
-      updated_at: area.updated_at ? BigInt(area.updated_at) : null,
-    };
+    session.area = area;
     router.push("/");
   }
 }
 
-function getMerchantsInArea(areaId: string): Merchant[] {
-  return merchants.value.filter((m) => String(m.area_id) === areaId);
+function getMerchantsInArea(areaId: number): Merchant[] {
+  return merchants.value.filter((m) => m.area_id === areaId);
 }
 
-function getBeaconsInArea(areaId: string): MapBeacon[] {
-  return beacons.value.filter((b) => String(b.area) === areaId);
+function getBeaconsInArea(areaId: number): MapBeacon[] {
+  return beacons.value.filter((b) => b.area === areaId);
 }
 </script>
 

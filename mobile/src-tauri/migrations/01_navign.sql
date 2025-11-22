@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS entities (
     region TEXT,
     city TEXT,
     tags TEXT NOT NULL,  -- JSON array
-    created_at INTEGER NOT NULL,  -- Unix timestamp in milliseconds
-    updated_at INTEGER NOT NULL
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,  -- Unix timestamp in milliseconds
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_entities_name ON entities(name);
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS areas (
     floor_name INTEGER,
     beacon_code TEXT NOT NULL,
     polygon BLOB NOT NULL,  -- WKB POLYGON
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_areas_entity ON areas(entity_id);
@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS beacons (
     location BLOB NOT NULL,  -- WKB POINT
     device TEXT NOT NULL,  -- BeaconDevice as string
     mac TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_beacons_entity ON beacons(entity_id);
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS merchants (
     phone TEXT,
     website TEXT,
     social_media TEXT,  -- JSON array
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_merchants_entity ON merchants(entity_id);
@@ -108,8 +108,8 @@ CREATE TABLE IF NOT EXISTS connections (
     available_period TEXT NOT NULL,  -- JSON array: [[start, end], ...]
     tags TEXT NOT NULL,  -- JSON array
     gnd BLOB,  -- WKB POINT (ground coordinates, optional)
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(entity_id, name)
 );
 
@@ -140,7 +140,7 @@ CREATE INDEX IF NOT EXISTS idx_route_cache_computed_at ON route_cache(computed_a
 CREATE TABLE IF NOT EXISTS preferences (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Sync metadata

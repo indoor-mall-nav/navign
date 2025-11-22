@@ -14,7 +14,7 @@ import type {
 
 export function useNavigation(
   entityId: string,
-  currentLocation?: string,
+  currentLocation?: number,
   currentExactLocation?: [number, number],
 ) {
   // State
@@ -70,7 +70,7 @@ export function useNavigation(
   })
 
   // Actions
-  async function calculateRoute(targetId: string) {
+  async function calculateRoute(targetId: number) {
     if (!currentLocation || !currentExactLocation) {
       error.value = 'Current location is required'
       return false
@@ -83,7 +83,7 @@ export function useNavigation(
       const result = await getRoute(
         entityId,
         `${currentExactLocation[0]},${currentExactLocation[1]},${currentLocation}`,
-        targetId,
+        targetId.toString(),
         routePreferences.value,
       )
 

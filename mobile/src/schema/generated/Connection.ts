@@ -20,6 +20,6 @@ export type Connection = {
   available_period: Array<[number, number]>
   tags: Array<string>
   gnd: [number, number] | null
-  created_at: bigint | null
-  updated_at: bigint | null
+  created_at: string | null
+  updated_at: string | null
 }

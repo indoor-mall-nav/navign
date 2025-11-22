@@ -103,11 +103,11 @@ impl Default for ConnectivityLimits {
 }
 
 /// Fetch map data for a specific area including beacons and merchants
-pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea> {
+pub async fn fetch_map_data(entity: &str, area: i32) -> anyhow::Result<MapArea> {
     let client = reqwest::Client::new();
 
     // Fetch area data
-    let area_url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
+    let area_url = format!("{}api/entities/{}/areas/{}/", BASE_URL, entity, area);
     trace!("Fetching area from URL: {}", area_url);
     let area_response: Area = client
         .get(&area_url)
@@ -124,7 +124,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     );
 
     // Fetch beacons in the area
-    let beacons_url = format!("{}/beacons", area_url);
+    let beacons_url = format!("{}beacons/", area_url);
     trace!("Fetching beacons from URL: {}", beacons_url);
     let beacons_response: PaginationResponse<Beacon> = client
         .get(&beacons_url)
@@ -152,7 +152,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} beacons", map_beacons.len());
 
     // Fetch merchants in the area
-    let merchants_url = format!("{}/merchants", area_url);
+    let merchants_url = format!("{}merchants/", area_url);
     trace!("Fetching merchants from URL: {}", merchants_url);
     let merchants_response: PaginationResponse<SharedMerchant> = client
         .get(&merchants_url)
@@ -180,7 +180,10 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
     trace!("Mapped {} merchants", map_merchants.len());
 
     // Fetch all connections for the entity
-    let connections_url = format!("{}api/entities/{}/connections?limit=1000", BASE_URL, entity);
+    let connections_url = format!(
+        "{}api/entities/{}/connections/?limit=1000",
+        BASE_URL, entity
+    );
     trace!("Fetching connections from URL: {}", connections_url);
     let connections_response: PaginationResponse<Connection> = client
         .get(&connections_url)
@@ -228,7 +231,7 @@ pub async fn fetch_map_data(entity: &str, area: &str) -> anyhow::Result<MapArea>
 
 pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<SharedMerchant>> {
     let client = reqwest::Client::new();
-    let url = format!("{}api/entities/{}/merchants?limit=1000", BASE_URL, entity);
+    let url = format!("{}api/entities/{}/merchants/?limit=1000", BASE_URL, entity);
     trace!("Fetching all merchants from URL: {}", url);
     let response: PaginationResponse<SharedMerchant> = client
         .get(&url)
@@ -243,7 +246,7 @@ pub async fn get_all_merchants(entity: &str) -> anyhow::Result<Vec<SharedMerchan
 
 pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<Area>> {
     let client = reqwest::Client::new();
-    let url = format!("{}api/entities/{}/areas?limit=1000", BASE_URL, entity);
+    let url = format!("{}api/entities/{}/areas/?limit=1000", BASE_URL, entity);
     trace!("Fetching all areas from URL: {}", url);
     let response: PaginationResponse<Area> = client
         .get(&url)
@@ -252,13 +255,16 @@ pub async fn get_all_areas(entity: &str) -> anyhow::Result<Vec<Area>> {
         .map_err(|e| anyhow::anyhow!("Failed to fetch areas: {}", e))?
         .json()
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to parse areas: {}", e))?;
+        .map_err(|e| {
+            error!("Error parsing areas: {}", e);
+            anyhow::anyhow!("Failed to parse areas: {}", e)
+        })?;
     Ok(response.data)
 }
 
 pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<Beacon>> {
     let client = reqwest::Client::new();
-    let url = format!("{}api/entities/{}/beacons?limit=1000", BASE_URL, entity);
+    let url = format!("{}api/entities/{}/beacons/?limit=1000", BASE_URL, entity);
     trace!("Fetching all beacons from URL: {}", url);
     let response: PaginationResponse<Beacon> = client
         .get(&url)
@@ -272,7 +278,7 @@ pub async fn get_all_beacons(entity: &str) -> anyhow::Result<Vec<Beacon>> {
 }
 
 /// Fetch detailed information for a specific area
-pub async fn fetch_area_details(entity: &str, area: &str) -> anyhow::Result<Area> {
+pub async fn fetch_area_details(entity: &str, area: i32) -> anyhow::Result<Area> {
     let client = reqwest::Client::new();
     let url = format!("{}api/entities/{}/areas/{}", BASE_URL, entity, area);
     trace!("Fetching area details from URL: {}", url);
@@ -295,7 +301,10 @@ pub async fn fetch_merchant_details(
     merchant: &str,
 ) -> anyhow::Result<SharedMerchant> {
     let client = reqwest::Client::new();
-    let url = format!("{}api/entities/{}/merchants/{}", BASE_URL, entity, merchant);
+    let url = format!(
+        "{}api/entities/{}/merchants/{}/",
+        BASE_URL, entity, merchant
+    );
     trace!("Fetching merchant details from URL: {}", url);
 
     let response: SharedMerchant = client
@@ -471,9 +480,9 @@ pub fn generate_svg_map(map_data: &MapArea, width: u32, height: u32) -> String {
 pub async fn get_map_data_handler(
     _app: AppHandle,
     entity: String,
-    area: String,
+    area: i32,
 ) -> Result<String, String> {
-    match fetch_map_data(&entity, &area).await {
+    match fetch_map_data(&entity, area).await {
         Ok(map_data) => {
             let result = json!({
                 "status": "success",
@@ -495,11 +504,11 @@ pub async fn get_map_data_handler(
 pub async fn generate_svg_map_handler(
     _app: AppHandle,
     entity: String,
-    area: String,
+    area: i32,
     width: u32,
     height: u32,
 ) -> Result<String, String> {
-    match fetch_map_data(&entity, &area).await {
+    match fetch_map_data(&entity, area).await {
         Ok(map_data) => {
             let svg = generate_svg_map(&map_data, width, height);
             let result = json!({
@@ -708,9 +717,9 @@ pub async fn get_route_handler(
 pub async fn get_area_details_handler(
     _app: AppHandle,
     entity: String,
-    area: String,
+    area: i32,
 ) -> Result<String, String> {
-    match fetch_area_details(&entity, &area).await {
+    match fetch_area_details(&entity, area).await {
         Ok(area_details) => {
             let result = json!({
                 "status": "success",

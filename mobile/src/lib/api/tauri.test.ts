@@ -123,7 +123,7 @@ describe('Map APIs', () => {
     const mockMapData = {
       status: 'success',
       data: {
-        id: 'area_123',
+        id: 1,
         name: 'Main Hall',
         polygon: [
           [0, 0],
@@ -133,7 +133,7 @@ describe('Map APIs', () => {
         ],
         beacons: [
           {
-            id: 'beacon_1',
+            id: 1,
             name: 'Beacon A',
             location: [50, 50],
             type: 'navigation',
@@ -145,7 +145,7 @@ describe('Map APIs', () => {
 
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockMapData))
 
-    const result = await getMapData('entity_1', 'area_123')
+    const result = await getMapData('entity_1', 1)
 
     expect(result.status).toBe('success')
     expect(result.data?.name).toBe('Main Hall')
@@ -160,13 +160,13 @@ describe('Map APIs', () => {
 
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockSvgResponse))
 
-    const result = await generateSvgMap('entity_1', 'area_123', 800, 600)
+    const result = await generateSvgMap('entity_1', 1, 800, 600)
 
     expect(result.status).toBe('success')
     expect(result.svg).toContain('<svg')
     expect(invoke).toHaveBeenCalledWith('generate_svg_map_handler', {
       entity: 'entity_1',
-      area: 'area_123',
+      area: 1,
       width: 800,
       height: 600,
     })
@@ -211,7 +211,7 @@ describe('Map APIs', () => {
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockAreaDetails))
 
     const { getAreaDetails } = await import('./tauri')
-    const result = await getAreaDetails('entity_1', 'area_123')
+    const result = await getAreaDetails('entity_1', 1)
 
     expect(result.status).toBe('success')
     expect(result.data?.name).toBe('Main Hall')
@@ -254,7 +254,7 @@ describe('Map APIs', () => {
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockMerchantDetails))
 
     const { getMerchantDetails } = await import('./tauri')
-    const result = await getMerchantDetails('entity_1', 'merchant_456')
+    const result = await getMerchantDetails('entity_1', 1)
 
     expect(result.status).toBe('success')
     expect(result.data?.name).toBe('Coffee Bean')
@@ -263,7 +263,7 @@ describe('Map APIs', () => {
     expect(result.data?.tags).toContain('coffee')
     expect(invoke).toHaveBeenCalledWith('get_merchant_details_handler', {
       entity: 'entity_1',
-      merchant: 'merchant_456',
+      merchant: 1,
     })
   })
 
@@ -276,7 +276,7 @@ describe('Map APIs', () => {
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
 
     const { getAreaDetails } = await import('./tauri')
-    const result = await getAreaDetails('entity_1', 'invalid_area')
+    const result = await getAreaDetails('entity_1', -1)
 
     expect(result.status).toBe('error')
     expect(result.message).toBe('Area not found')
@@ -291,7 +291,7 @@ describe('Map APIs', () => {
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
 
     const { getMerchantDetails } = await import('./tauri')
-    const result = await getMerchantDetails('entity_1', 'invalid_merchant')
+    const result = await getMerchantDetails('entity_1', -1)
 
     expect(result.status).toBe('error')
     expect(result.message).toBe('Merchant not found')
@@ -306,7 +306,7 @@ describe('Location APIs', () => {
   it('should locate device successfully', async () => {
     const mockLocationResponse = {
       status: 'success',
-      area: 'area_123',
+      area: 1,
       x: 45.5,
       y: 67.8,
     }
@@ -315,7 +315,7 @@ describe('Location APIs', () => {
     ;(info as any).mockResolvedValue(undefined)
     ;(error as any).mockResolvedValue(undefined)
 
-    const result = await locateDevice('area_123', 'entity_1')
+    const result = await locateDevice(1, 'entity_1')
 
     expect(result.status).toBe('success')
     expect(result.x).toBe(45.5)
@@ -332,7 +332,7 @@ describe('Location APIs', () => {
     ;(info as any).mockResolvedValue(undefined)
     ;(error as any).mockResolvedValue(undefined)
 
-    const result = await locateDevice('area_123', 'entity_1')
+    const result = await locateDevice(1, 'entity_1')
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('beacons')
@@ -352,7 +352,7 @@ describe('Route/Navigation APIs', () => {
 
     ;(invoke as any).mockResolvedValue(JSON.stringify(mockErrorResponse))
 
-    const result = await getRoute('entity_1', 'merchant_a', 'merchant_z')
+    const result = await getRoute('entity_1', '1', '2')
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('No route found')
@@ -368,9 +368,9 @@ describe('Route/Navigation APIs', () => {
 
     const result = await getRouteOffline(
       'entity_1',
-      'area_a',
+      1,
       [0.0, 0.0],
-      'area_z',
+      2,
       [0.0, 0.0],
     )
 
@@ -395,13 +395,13 @@ describe('API Error Handling', () => {
   it('should handle malformed JSON responses', async () => {
     ;(invoke as any).mockResolvedValue('invalid json {')
 
-    await expect(getMapData('e1', 'a1')).rejects.toThrow()
+    await expect(getMapData('e1', 1)).rejects.toThrow()
   })
 
   it('should handle empty responses', async () => {
     ;(invoke as any).mockResolvedValue('')
 
-    await expect(locateDevice('a1', 'e1')).rejects.toThrow()
+    await expect(locateDevice(1, 'e1')).rejects.toThrow()
   })
 })
 

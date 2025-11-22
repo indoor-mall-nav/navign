@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "postgres")]
-use crate::schema::postgres::PgPoint;
+use crate::schema::postgis::PgPoint;
 use core::fmt::Display;
 
 #[cfg(feature = "sql")]
@@ -45,30 +45,30 @@ pub struct Entity {
     pub region: Option<String>,
     pub city: Option<String>,
     pub tags: Vec<String>,
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
-    #[cfg(feature = "postgres")]
+    pub created_at: Option<String>, // Timestamp in milliseconds
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,7 +79,7 @@ pub struct Entity {
 #[cfg_attr(feature = "sql", derive(sqlx::Type))]
 #[cfg_attr(
     feature = "sql",
-    sqlx(type_name = "VARCHAR", rename_all = "PascalCase")
+    sqlx(type_name = "VARCHAR", rename_all = "kebab-case")
 )]
 pub enum EntityType {
     Mall,
@@ -137,7 +137,7 @@ impl UuidRepository<sqlx::Postgres> for Entity {
         .await
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self) -> sqlx::Result<()> {
+    async fn update(pool: &sqlx::PgPool, id: uuid::Uuid, item: &Self) -> sqlx::Result<()> {
         sqlx::query(
             r#"UPDATE entities
                SET type = $2, name = $3, description = $4, point_min = $5, point_max = $6,
@@ -145,7 +145,7 @@ impl UuidRepository<sqlx::Postgres> for Entity {
                    tags = $12
                WHERE id = $1"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(item.r#type.to_string())
         .bind(&item.name)
         .bind(&item.description)
@@ -229,6 +229,27 @@ impl UuidRepository<sqlx::Postgres> for Entity {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(pool: &sqlx::PgPool, query: &str, case_insensitive: bool) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM entities
+               WHERE name ILIKE $1 OR description ILIKE $1"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM entities
+               WHERE name LIKE $1 OR description LIKE $1"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
+    }
 }
 // SQLite repository implementation for Entity
 // SQLite repository implementation for Entity (mirrors PostgreSQL implementation)
@@ -246,10 +267,7 @@ impl UuidRepository<sqlx::Sqlite> for Entity {
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let tags_json = serde_json::to_string(&item.tags)
             .map_err(|e| sqlx::Error::Encode(format!("JSON: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"INSERT INTO entities (id, type, name, description, point_min_wkb, point_max_wkb,
@@ -288,17 +306,14 @@ impl UuidRepository<sqlx::Sqlite> for Entity {
         .await
     }
 
-    async fn update(pool: &sqlx::SqlitePool, item: &Self) -> sqlx::Result<()> {
+    async fn update(pool: &sqlx::SqlitePool, id: uuid::Uuid, item: &Self) -> sqlx::Result<()> {
         let point_min_wkb = point_to_wkb(item.point_min)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let point_max_wkb = point_to_wkb(item.point_max)
             .map_err(|e| sqlx::Error::Encode(format!("WKB: {}", e).into()))?;
         let tags_json = serde_json::to_string(&item.tags)
             .map_err(|e| sqlx::Error::Encode(format!("JSON: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"UPDATE entities
@@ -307,7 +322,7 @@ impl UuidRepository<sqlx::Sqlite> for Entity {
                    tags = ?12, updated_at = ?13
                WHERE id = ?1"#,
         )
-        .bind(&item.id)
+        .bind(id.to_string())
         .bind(item.r#type.to_string())
         .bind(&item.name)
         .bind(&item.description)
@@ -391,5 +406,30 @@ impl UuidRepository<sqlx::Sqlite> for Entity {
             .bind(offset)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count(
+        pool: &sqlx::SqlitePool,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM entities
+               WHERE name LIKE ?1 COLLATE NOCASE OR description LIKE ?1 COLLATE NOCASE"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM entities
+               WHERE name LIKE ?1 OR description LIKE ?1"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        Ok(row.0)
     }
 }

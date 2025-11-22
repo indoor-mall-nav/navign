@@ -1,7 +1,7 @@
 // API service layer for Tauri commands
 import { invoke } from '@tauri-apps/api/core'
 import { info } from '@tauri-apps/plugin-log'
-import { Merchant } from '@/schema'
+import { Area, Merchant } from '@/schema'
 
 export interface ApiResponse<T = any> {
   status: 'success' | 'error'
@@ -50,7 +50,7 @@ export async function validateToken(token: string): Promise<ApiResponse> {
 
 // Map Display APIs
 export interface MapData {
-  id: string
+  id: number
   name: string
   polygon: [number, number][]
   beacons: MapBeacon[]
@@ -58,15 +58,15 @@ export interface MapData {
 }
 
 export interface MapBeacon {
-  id: string
-  area: string
+  id: number
+  area: number
   name: string
   location: [number, number]
   type: string
 }
 
 export interface MapMerchant {
-  id: string
+  id: number
   name: string
   location: [number, number]
   polygon: [number, number][]
@@ -100,7 +100,7 @@ export interface ConnectivityLimits {
 
 export async function getMapData(
   entity: string,
-  area: string,
+  area: number,
 ): Promise<ApiResponse<MapData>> {
   const response = await invoke<string>('get_map_data_handler', {
     entity,
@@ -120,7 +120,7 @@ export async function getAllMerchants(
 
 export async function getAllAreas(
   entity: string,
-): Promise<ApiResponse<AreaDetails[]>> {
+): Promise<ApiResponse<Area[]>> {
   const response = await invoke<string>('get_all_areas_handler', {
     entity,
   })
@@ -138,7 +138,7 @@ export async function getAllBeacons(
 
 export async function generateSvgMap(
   entity: string,
-  area: string,
+  area: number,
   width: number,
   height: number,
 ): Promise<ApiResponse<{ svg: string }>> {
@@ -166,7 +166,7 @@ export async function searchMerchants(
 
 // Location APIs
 export async function locateDevice(
-  area: string,
+  area: number,
   entity: string,
 ): Promise<ApiResponse<{ area: string; x: number; y: number }>> {
   const response = await invoke<string>('locate_handler', { area, entity })
@@ -177,7 +177,7 @@ export async function locateDevice(
 // Unlocker APIs
 export async function unlockDevice(
   entity: string,
-  target: string,
+  target: number,
 ): Promise<ApiResponse> {
   const response = await invoke<string>('unlock_handler', {
     entity,
@@ -216,9 +216,9 @@ export async function getRoute(
 
 export async function getRouteOffline(
   entity: string,
-  fromArea: string,
+  fromArea: number,
   fromPos: [number, number],
-  toArea: string,
+  toArea: number,
   toPos: [number, number],
   limits?: ConnectivityLimits,
 ): Promise<ApiResponse<RouteResponse>> {
@@ -235,33 +235,19 @@ export async function getRouteOffline(
 
   const response = await invoke<string>('get_route_offline_handler', {
     entity,
-    fromArea,
+    fromArea: fromArea.toString(),
     fromPos: `${fromPos[0]},${fromPos[1]}`,
-    toArea,
+    toArea: toArea.toString(),
     toPos: `${toPos[0]},${toPos[1]}`,
     connectivity,
   })
   return JSON.parse(response)
 }
 
-// Area Details API
-export interface AreaDetails {
-  id: string
-  entity_id: string
-  name: string
-  description: string | null
-  beacon_code: string
-  floor_type: string | null
-  floor_name: number | null
-  polygon: [number, number][]
-  created_at: number
-  updated_at: number
-}
-
 export async function getAreaDetails(
   entity: string,
-  area: string,
-): Promise<ApiResponse<AreaDetails>> {
+  area: number,
+): Promise<ApiResponse<Area>> {
   const response = await invoke<string>('get_area_details_handler', {
     entity,
     area,
@@ -269,36 +255,10 @@ export async function getAreaDetails(
   return JSON.parse(response)
 }
 
-// Merchant Details API
-export interface MerchantDetails {
-  _id: string
-  name: string
-  description: string | null
-  chain: string | null
-  entity: string
-  beacon_code: string
-  area: string
-  location: [number, number]
-  polygon: [number, number][] | null
-  tags: string[]
-  type: any
-  style: string
-  email: string | null
-  phone: string | null
-  website: string | null
-  social_media: Array<{
-    platform: string
-    handle: string
-    url?: string
-  }> | null
-  created_at: number
-  updated_at: number
-}
-
 export async function getMerchantDetails(
   entity: string,
-  merchant: string,
-): Promise<ApiResponse<MerchantDetails>> {
+  merchant: number,
+): Promise<ApiResponse<Merchant>> {
   const response = await invoke<string>('get_merchant_details_handler', {
     entity,
     merchant,

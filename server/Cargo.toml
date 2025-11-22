@@ -54,7 +54,8 @@ sqlx = { version = "0.8.6", features = [
 thiserror = "2.0"
 tokio = { version = "1.47.1", features = ["full"] }
 totp-lite = "2.0.1"
-tower-http = { version = "0.6.6", features = ["cors"] }
+tower-http = { version = "0.6.6", features = ["cors", "normalize-path"] }
+tower-layer = "0.3.3"
 tower_governor = "0.8.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

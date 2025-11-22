@@ -3,11 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/states/session'
 import { createMerchant, updateMerchant, getMerchant, listAreas } from '@/lib/api/client'
-import type { MerchantCreateRequest, MerchantUpdateRequest } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Merchant } from '@/schema'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +18,7 @@ const error = ref<string | null>(null)
 const areas = ref<any[]>([])
 
 const entityId = computed(() => route.query.entity as string || '')
-const merchantId = computed(() => route.query.id as string || '')
+const merchantId = computed(() => parseInt(route.query.id as string) || -1)
 const isEditMode = computed(() => !!merchantId.value)
 
 // Form data
@@ -26,13 +26,13 @@ const formData = ref({
   name: '',
   description: '',
   chain: '',
-  area: '',
+  area_id: -1,
   beacon_code: '',
-  type: 'other' as any,
+  type: 'other' as Merchant['type'],
   tags: [] as string[],
   tagsInput: '',
   location: [0, 0] as [number, number],
-  style: 'store' as 'store' | 'kiosk' | 'popUp' | 'foodTruck' | 'room',
+  style: 'store' as Merchant['style'],
   polygon: [] as [number, number][],
   polygonInput: '',
   website: '',
@@ -74,7 +74,7 @@ async function loadMerchant() {
         name: merchant.name,
         description: merchant.description || '',
         chain: merchant.chain || '',
-        area: merchant.area,
+        area_id: merchant.area_id,
         beacon_code: merchant.beacon_code,
         type: merchant.type,
         tags: merchant.tags,
@@ -129,7 +129,7 @@ async function handleSubmit() {
     return
   }
 
-  if (!formData.value.name || !formData.value.area || !formData.value.beacon_code) {
+  if (!formData.value.name || !formData.value.area_id || !formData.value.beacon_code) {
     error.value = 'Name, area, and beacon code are required'
     return
   }
@@ -146,12 +146,13 @@ async function handleSubmit() {
 
   try {
     if (isEditMode.value) {
-      const updateData: MerchantUpdateRequest = {
-        _id: merchantId.value,
+      const updateData: Merchant = {
+        id: merchantId.value,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         chain: formData.value.chain || null,
-        area: formData.value.area,
+        area_id: formData.value.area_id,
         beacon_code: formData.value.beacon_code,
         type: formData.value.type,
         tags: formData.value.tags,
@@ -159,9 +160,10 @@ async function handleSubmit() {
         style: formData.value.style,
         polygon: formData.value.polygon,
         website: formData.value.website || null,
-        phone: formData.value.phone || undefined,
+        phone: formData.value.phone || null,
         email: formData.value.email || null,
         image_url: formData.value.imageUrl || null,
+        color: null, available_period: [], opening_hours: [], social_media: [], created_at: '', updated_at: ''
       }
       const response = await updateMerchant(entityId.value, updateData, session.userToken || '')
       if (response.status === 'success') {
@@ -170,12 +172,13 @@ async function handleSubmit() {
         error.value = response.message || 'Failed to update merchant'
       }
     } else {
-      const createData: MerchantCreateRequest = {
-        entity: entityId.value,
+      const createData: Merchant = {
+        id: -1,
+        entity_id: entityId.value,
         name: formData.value.name,
         description: formData.value.description || null,
         chain: formData.value.chain || null,
-        area: formData.value.area,
+        area_id: formData.value.area_id,
         beacon_code: formData.value.beacon_code,
         type: formData.value.type,
         tags: formData.value.tags,
@@ -183,9 +186,10 @@ async function handleSubmit() {
         style: formData.value.style,
         polygon: formData.value.polygon,
         website: formData.value.website || null,
-        phone: formData.value.phone || undefined,
+        phone: formData.value.phone || null,
         email: formData.value.email || null,
         image_url: formData.value.imageUrl || null,
+        color: null, available_period: [], opening_hours: [], social_media: [], created_at: '', updated_at: ''
       }
       const response = await createMerchant(entityId.value, createData, session.userToken || '')
       if (response.status === 'success') {
@@ -308,7 +312,7 @@ function validateWebsite() {
             <Label for="area">Area *</Label>
             <select
               id="area"
-              v-model="formData.area"
+              v-model="formData.area_id"
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               required
             >

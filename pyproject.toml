@@ -9,4 +9,4 @@ version         = "0.1.0"
 [tool.uv.sources]
 
 [tool.uv.workspace]
-members = ["admin/plot", "robot/audio", "robot/intelligence"]
+members = ["admin/plot", "robot/audio", "robot/intelligence", "scripts"]

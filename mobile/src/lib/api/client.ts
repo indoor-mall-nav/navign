@@ -1,4 +1,5 @@
 // API client abstraction layer that supports both Tauri and direct HTTP modes
+import { Area, Beacon, Connection, Merchant } from '@/schema'
 import type { ApiResponse } from './tauri'
 import * as tauriApi from './tauri'
 
@@ -164,34 +165,6 @@ export async function validateToken(token: string): Promise<ApiResponse> {
   return httpRequest('GET', '/api/auth/validate', undefined, token)
 }
 
-// ============================================================
-// Beacon CRUD APIs
-// ============================================================
-
-export interface BeaconCreateRequest {
-  entity: string
-  area: string
-  merchant?: string | null
-  connection?: string | null
-  name: string
-  description?: string | null
-  type: 'navigation' | 'marketing'
-  location: [number, number]
-  device: 'esp32' | 'esp32c3' | 'esp32s3' | 'esp32c6'
-}
-
-export interface BeaconUpdateRequest {
-  _id: string
-  area?: string
-  merchant?: string | null
-  connection?: string | null
-  name?: string
-  description?: string | null
-  type?: 'navigation' | 'marketing'
-  location?: [number, number]
-  device?: 'esp32' | 'esp32c3' | 'esp32s3' | 'esp32c6'
-}
-
 export async function listBeacons(
   entityId: string,
   token: string,
@@ -209,7 +182,7 @@ export async function listBeacons(
 
 export async function getBeacon(
   entityId: string,
-  beaconId: string,
+  beaconId: number,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -226,7 +199,7 @@ export async function getBeacon(
 
 export async function createBeacon(
   entityId: string,
-  beacon: BeaconCreateRequest,
+  beacon: Beacon,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -243,7 +216,7 @@ export async function createBeacon(
 
 export async function updateBeacon(
   entityId: string,
-  beacon: BeaconUpdateRequest,
+  beacon: Beacon,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -275,34 +248,6 @@ export async function deleteBeacon(
   )
 }
 
-// ============================================================
-// Area CRUD APIs
-// ============================================================
-
-export interface AreaCreateRequest {
-  entity: string
-  name: string
-  description?: string | null
-  beacon_code: string
-  floor?: {
-    type: 'level' | 'floor' | 'basement'
-    name: number
-  } | null
-  polygon: [number, number][]
-}
-
-export interface AreaUpdateRequest {
-  _id: string
-  name?: string
-  description?: string | null
-  beacon_code?: string
-  floor?: {
-    type: 'level' | 'floor' | 'basement'
-    name: number
-  } | null
-  polygon?: [number, number][]
-}
-
 export async function listAreas(
   entityId: string,
   token: string,
@@ -320,7 +265,7 @@ export async function listAreas(
 
 export async function getArea(
   entityId: string,
-  areaId: string,
+  areaId: number,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -336,7 +281,7 @@ export async function getArea(
 
 export async function createArea(
   entityId: string,
-  area: AreaCreateRequest,
+  area: Area,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -353,7 +298,7 @@ export async function createArea(
 
 export async function updateArea(
   entityId: string,
-  area: AreaUpdateRequest,
+  area: Area,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -370,7 +315,7 @@ export async function updateArea(
 
 export async function deleteArea(
   entityId: string,
-  areaId: string,
+  areaId: number,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -383,60 +328,6 @@ export async function deleteArea(
     undefined,
     token,
   )
-}
-
-// ============================================================
-// Merchant CRUD APIs
-// ============================================================
-
-export interface MerchantCreateRequest {
-  entity: string
-  area: string
-  name: string
-  description?: string | null
-  chain?: string | null
-  beacon_code: string
-  type: any // MerchantType from schema
-  tags: string[]
-  location: [number, number]
-  style: 'store' | 'kiosk' | 'popUp' | 'foodTruck' | 'room'
-  polygon: [number, number][]
-  website?: string | null
-  phone?: string
-  email?: string | null
-  opening_hours?: ([number, number] | [])[]
-  images?: string[]
-  social_media?: {
-    platform: string
-    handle: string
-    url?: string
-  }[]
-  image_url?: string | null
-}
-
-export interface MerchantUpdateRequest {
-  _id: string
-  area?: string
-  name?: string
-  description?: string | null
-  chain?: string | null
-  beacon_code?: string
-  type?: any
-  tags?: string[]
-  location?: [number, number]
-  style?: 'store' | 'kiosk' | 'popUp' | 'foodTruck' | 'room'
-  polygon?: [number, number][]
-  website?: string | null
-  phone?: string
-  email?: string | null
-  opening_hours?: ([number, number] | [])[]
-  images?: string[]
-  social_media?: {
-    platform: string
-    handle: string
-    url?: string
-  }[]
-  image_url?: string | null
 }
 
 export async function listMerchants(
@@ -456,7 +347,7 @@ export async function listMerchants(
 
 export async function getMerchant(
   entityId: string,
-  merchantId: string,
+  merchantId: number,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -472,7 +363,7 @@ export async function getMerchant(
 
 export async function createMerchant(
   entityId: string,
-  merchant: MerchantCreateRequest,
+  merchant: Merchant,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -489,7 +380,7 @@ export async function createMerchant(
 
 export async function updateMerchant(
   entityId: string,
-  merchant: MerchantUpdateRequest,
+  merchant: Merchant,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -521,30 +412,6 @@ export async function deleteMerchant(
   )
 }
 
-// ============================================================
-// Connection CRUD APIs
-// ============================================================
-
-export interface ConnectionCreateRequest {
-  entity: string
-  name: string
-  description?: string | null
-  type: 'gate' | 'escalator' | 'elevator' | 'stairs' | 'rail' | 'shuttle'
-  connected_areas: [string, number, number][]
-  available_period: [number, number][]
-  tags: string[]
-}
-
-export interface ConnectionUpdateRequest {
-  _id: string
-  name?: string
-  description?: string | null
-  type?: 'gate' | 'escalator' | 'elevator' | 'stairs' | 'rail' | 'shuttle'
-  connected_areas?: [string, number, number][]
-  available_period?: [number, number][]
-  tags?: string[]
-}
-
 export async function listConnections(
   entityId: string,
   token: string,
@@ -563,7 +430,7 @@ export async function listConnections(
 
 export async function getConnection(
   entityId: string,
-  connectionId: string,
+  connectionId: number,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -580,7 +447,7 @@ export async function getConnection(
 
 export async function createConnection(
   entityId: string,
-  connection: ConnectionCreateRequest,
+  connection: Connection,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {
@@ -597,7 +464,7 @@ export async function createConnection(
 
 export async function updateConnection(
   entityId: string,
-  connection: ConnectionUpdateRequest,
+  connection: Connection,
   token: string,
 ): Promise<ApiResponse> {
   if (isTauriMode()) {

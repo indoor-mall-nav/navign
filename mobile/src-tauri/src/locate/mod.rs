@@ -255,7 +255,7 @@ async fn update_area(conn: &SqlitePool, area: i32, entity: Uuid) -> anyhow::Resu
                     "Beacon with ID {} already exists in the database.",
                     beacon.id
                 );
-                Beacon::update(conn, beacon, entity).await?;
+                Beacon::update(conn, beacon.id, beacon, entity).await?;
             } else {
                 info!(
                     "Inserting new beacon with ID {} into the database.",

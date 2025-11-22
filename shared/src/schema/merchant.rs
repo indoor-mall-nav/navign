@@ -9,6 +9,8 @@ use super::postgis::{PgPoint, PgPolygon};
 use crate::traits::{IntRepository, IntRepositoryInArea};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "sql")]
+use sqlx::Row;
 
 /// Merchant schema - represents a shop, store, or service location
 #[derive(Debug, Clone, PartialEq)]
@@ -28,8 +30,10 @@ pub struct Merchant {
     pub entity_id: String,
     pub beacon_code: String,
     pub area_id: i32,
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub r#type: MerchantType,
     pub color: Option<String>,
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub tags: Vec<String>,
     #[cfg(feature = "postgres")]
     pub location: PgPoint,
@@ -40,6 +44,7 @@ pub struct Merchant {
     pub polygon: PgPolygon,
     #[cfg(not(feature = "postgres"))]
     pub polygon: Vec<(f64, f64)>,
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub available_period: Option<Vec<(i64, i64)>>,
     /// Opening hours for each day of the week (Sunday=0 to Saturday=6)
     /// Each entry is (start_time_ms, end_time_ms) from midnight
@@ -49,32 +54,33 @@ pub struct Merchant {
     pub email: Option<String>,
     pub phone: Option<String>,
     pub website: Option<String>,
+    #[cfg_attr(feature = "postgres", sqlx(json))]
     pub social_media: Option<Vec<SocialMedia>>,
     pub image_url: Option<String>,
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
-    #[cfg(feature = "postgres")]
+    pub created_at: Option<String>, // Timestamp in milliseconds
+    #[cfg(feature = "chrono")]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[cfg(not(feature = "postgres"))]
+    #[cfg(not(feature = "chrono"))]
     #[cfg_attr(
-        all(feature = "serde", not(feature = "postgres")),
+        all(feature = "serde", not(feature = "chrono")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,6 +111,7 @@ pub enum MerchantType {
     },
     Room,
     Other,
+    Type,
 }
 
 impl core::fmt::Display for MerchantType {
@@ -157,6 +164,7 @@ impl core::fmt::Display for MerchantType {
             MerchantType::Facility { r#type } => write!(f, "Facility ({:?})", r#type),
             MerchantType::Room => write!(f, "Room"),
             MerchantType::Other => write!(f, "Other"),
+            MerchantType::Type => write!(f, "Type"),
         }
     }
 }
@@ -444,7 +452,12 @@ impl IntRepository<sqlx::Postgres> for Merchant {
         row.map(|r| merchant_from_row(&r)).transpose()
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::PgPool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         // Serialize MerchantType to JSON
         let type_json =
             serde_json::to_value(&item.r#type).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
@@ -481,7 +494,7 @@ impl IntRepository<sqlx::Postgres> for Merchant {
                    website = $18, social_media = $19, image_url = $20
                WHERE id = $1 AND entity_id = $2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity)
         .bind(item.area_id)
         .bind(&item.name)
@@ -586,6 +599,34 @@ impl IntRepository<sqlx::Postgres> for Merchant {
 
         rows.iter().map(merchant_from_row).collect()
     }
+
+    async fn count(
+        pool: &sqlx::PgPool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR beacon_code ILIKE $2)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = $1 AND (name LIKE $2 OR description LIKE $2 OR beacon_code LIKE $2)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 #[cfg(all(feature = "sql", feature = "postgres"))]
@@ -641,6 +682,36 @@ impl IntRepositoryInArea<sqlx::Postgres> for Merchant {
 
         rows.iter().map(merchant_from_row).collect()
     }
+
+    async fn count_in_area(
+        pool: &sqlx::PgPool,
+        entity: uuid::Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = $1 AND area_id = $2 AND (name ILIKE $3 OR description ILIKE $3 OR beacon_code ILIKE $3)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = $1 AND area_id = $2 AND (name LIKE $3 OR description LIKE $3 OR beacon_code LIKE $3)"#
+        };
+
+        let row = sqlx::query(sql)
+            .bind(entity)
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 // SQLite repository implementation for Merchant
@@ -665,10 +736,7 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
         let social_media_json = serde_json::to_string(&item.social_media)
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"INSERT INTO merchants (entity_id, area_id, name, description, chain, beacon_code,
@@ -719,7 +787,12 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
         .await
     }
 
-    async fn update(pool: &sqlx::SqlitePool, item: &Self, entity: uuid::Uuid) -> sqlx::Result<()> {
+    async fn update(
+        pool: &sqlx::SqlitePool,
+        id: i32,
+        item: &Self,
+        entity: uuid::Uuid,
+    ) -> sqlx::Result<()> {
         let location_wkb = point_to_wkb(item.location)
             .map_err(|e| sqlx::Error::Encode(format!("WKB encode: {}", e).into()))?;
         let polygon_wkb = polygon_to_wkb(&item.polygon)
@@ -734,10 +807,7 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
         let social_media_json = serde_json::to_string(&item.social_media)
             .map_err(|e| sqlx::Error::Encode(format!("JSON encode: {}", e).into()))?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let now = chrono::Utc::now();
 
         sqlx::query(
             r#"UPDATE merchants
@@ -747,7 +817,7 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
                    website = ?18, social_media = ?19, image_url = ?20, updated_at = ?21
                WHERE id = ?1 AND entity_id = ?2"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(entity.to_string())
         .bind(item.area_id)
         .bind(&item.name)
@@ -849,6 +919,34 @@ impl IntRepository<sqlx::Sqlite> for Merchant {
             .fetch_all(pool)
             .await
     }
+
+    async fn count(
+        pool: &sqlx::SqlitePool,
+        entity: uuid::Uuid,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = ?1 AND (name LIKE ?2 COLLATE NOCASE OR description LIKE ?2 COLLATE NOCASE OR beacon_code LIKE ?2 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = ?1 AND (name LIKE ?2 OR description LIKE ?2 OR beacon_code LIKE ?2)"#
+        };
+
+        let row = sqlx::query(&sql)
+            .bind(entity.to_string())
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
+    }
 }
 
 #[cfg(feature = "sqlite")]
@@ -901,5 +999,35 @@ impl IntRepositoryInArea<sqlx::Sqlite> for Merchant {
             .bind(offset)
             .fetch_all(pool)
             .await
+    }
+
+    async fn count_in_area(
+        pool: &sqlx::SqlitePool,
+        entity: uuid::Uuid,
+        area: i32,
+        query: &str,
+        case_insensitive: bool,
+    ) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 COLLATE NOCASE OR description LIKE ?3 COLLATE NOCASE OR beacon_code LIKE ?3 COLLATE NOCASE)"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM merchants
+               WHERE entity_id = ?1 AND area_id = ?2 AND (name LIKE ?3 OR description LIKE ?3 OR beacon_code LIKE ?3)"#
+        };
+
+        let row = sqlx::query(&sql)
+            .bind(entity.to_string())
+            .bind(area)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+
+        let count: i64 = row.try_get("count")?;
+        Ok(count)
     }
 }

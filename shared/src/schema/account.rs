@@ -33,7 +33,7 @@ pub struct Account {
         all(feature = "serde", not(feature = "postgres")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub created_at: Option<i64>, // Timestamp in milliseconds
+    pub created_at: Option<String>, // Timestamp in milliseconds
     #[cfg(feature = "postgres")]
     #[cfg_attr(
         all(feature = "serde", not(feature = "postgres")),
@@ -45,7 +45,7 @@ pub struct Account {
         all(feature = "serde", not(feature = "postgres")),
         serde(skip_serializing_if = "Option::is_none")
     )]
-    pub updated_at: Option<i64>, // Timestamp in milliseconds
+    pub updated_at: Option<String>, // Timestamp in milliseconds
 }
 
 /// Request schema for user registration
@@ -142,13 +142,13 @@ impl UuidRepository<Postgres> for Account {
         }
     }
 
-    async fn update(pool: &sqlx::PgPool, item: &Self) -> sqlx::Result<()> {
+    async fn update(pool: &sqlx::PgPool, id: uuid::Uuid, item: &Self) -> sqlx::Result<()> {
         sqlx::query(
             r#"UPDATE users
                SET username = $2, email = $3, hashed_password = $4, activated = $5, privileged = $6
                WHERE id = $1"#,
         )
-        .bind(item.id)
+        .bind(id)
         .bind(&item.username)
         .bind(&item.email)
         .bind(&item.hashed_password)
@@ -256,5 +256,25 @@ impl UuidRepository<Postgres> for Account {
         }
 
         Ok(accounts)
+    }
+
+    async fn count(pool: &sqlx::PgPool, query: &str, case_insensitive: bool) -> sqlx::Result<i64> {
+        let like_pattern = format!("%{}%", query);
+
+        let sql = if case_insensitive {
+            r#"SELECT COUNT(*) as count
+               FROM users
+               WHERE username ILIKE $1 OR email ILIKE $1"#
+        } else {
+            r#"SELECT COUNT(*) as count
+               FROM users
+               WHERE username LIKE $1 OR email LIKE $1"#
+        };
+
+        let row: (i64,) = sqlx::query_as(sql)
+            .bind(&like_pattern)
+            .fetch_one(pool)
+            .await?;
+        Ok(row.0)
     }
 }
