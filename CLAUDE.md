@@ -110,6 +110,13 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **Protocol:** Protocol Buffers (task.proto)
 - **Task Scheduling:** Custom robot selection algorithm
 
+**Admin Maintenance:** `admin/maintenance/` (Python)
+- **CLI Framework:** Click 8.1+
+- **Cryptography:** cryptography 45.0+ (P-256 ECDSA)
+- **gRPC:** grpcio 1.76.0, grpcio-tools 1.76.0
+- **Testing:** pytest 8.3+, pytest-cov 6.0+
+- **Package Manager:** uv
+
 ### Embedded (Rust)
 
 **Firmware:** `firmware/`
@@ -263,7 +270,18 @@ navign/
 │   │   │   └── socket_server/   # Socket.IO server
 │   │   ├── Makefile             # Proto generation (use justfile instead)
 │   │   └── go.mod
-│   └── maintenance/             # ESP32-C3 key management CLI (Rust)
+│   ├── maintenance/             # ESP32-C3 key management CLI (Python)
+│   │   ├── navign_maintenance/  # Main package
+│   │   │   ├── cli.py           # Click CLI commands
+│   │   │   ├── crypto.py        # P-256 key generation
+│   │   │   ├── esp_tools.py     # espefuse.py wrapper
+│   │   │   ├── grpc_client.py   # Beacon registration client
+│   │   │   └── models.py        # Data models
+│   │   ├── tests/               # Pytest test suite
+│   │   ├── proto/               # Generated gRPC code
+│   │   ├── generate_proto.sh    # Proto code generation
+│   │   └── pyproject.toml       # Python dependencies
+│   └── maintenance_rust_deprecated/  # Old Rust version (archived)
 │       ├── src/main.rs          # CLI for eFuse key programming
 │       └── Cargo.toml           # Dependencies
 │
@@ -506,7 +524,7 @@ espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 **Setting Private Key:**
 ```bash
 cd admin/maintenance
-cargo run -- fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
+uv run navign-maintenance fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
 ```
 
 **OTA (Over-The-Air) Updates:**
@@ -833,6 +851,68 @@ cd admin/plot
 uv sync
 uv run python plot_client.py <floor_plan_image.png> [entity_id] [floor_id]
 ```
+
+#### Maintenance (Python)
+
+**Location:** `admin/maintenance/`
+
+**Purpose:** ESP32-C3 eFuse key management and beacon registration CLI tool.
+
+**Responsibilities:**
+- Generate P-256 ECDSA key pairs for beacons
+- Program private keys to ESP32-C3 eFuse (BLOCK_KEY0)
+- Register beacons with orchestrator via gRPC (sync.proto)
+- Flash firmware to ESP32-C3 devices
+
+**Key Features:**
+- **Cryptography:** Uses Python `cryptography` library for P-256 ECDSA
+- **eFuse Programming:** Wraps `espefuse.py` for hardware key burning
+- **gRPC Integration:** Connects to OrchestratorSync service
+- **Firmware Flashing:** Supports both `espflash` and `esptool.py`
+
+**Installation:**
+```bash
+cd admin/maintenance
+uv sync
+```
+
+**Proto Generation:**
+```bash
+cd admin/maintenance
+bash generate_proto.sh
+```
+
+**Usage Examples:**
+
+Generate and fuse key to ESP32-C3:
+```bash
+uv run navign-maintenance fuse-priv-key \
+  --output-dir ./keys \
+  --key-name beacon_001 \
+  --port /dev/ttyUSB0
+```
+
+Generate key and register with orchestrator:
+```bash
+uv run navign-maintenance fuse-priv-key \
+  --output-dir ./keys \
+  --key-name beacon_001 \
+  --port /dev/ttyUSB0 \
+  --register \
+  --orchestrator-addr localhost:50051 \
+  --entity-id mall-123 \
+  --device-type Pathway
+```
+
+Flash firmware:
+```bash
+uv run navign-maintenance flash-firmware \
+  --firmware path/to/firmware.bin \
+  --port /dev/ttyUSB0 \
+  --erase
+```
+
+**Note:** The old Rust version is archived in `admin/maintenance_rust_deprecated/`.
 
 **Environment Variables:**
 ```bash
@@ -1947,6 +2027,7 @@ just ci-mobile     # Mobile CI tasks
 - **Pathfinding:** `server/src/kernel/route/implementations/navigate.rs`
 - **BLE Protocol:** `shared/src/ble/message.rs`
 - **Admin Proto:** `admin/proto/task.proto`, `admin/proto/plot.proto`, `admin/proto/sync.proto`
+- **Admin Maintenance:** `admin/maintenance/navign_maintenance/cli.py` (Python CLI)
 - **Robot Proto:** `robot/proto/` - `common.proto`, `vision.proto`, `audio.proto`, `scheduler.proto`, `serial.proto`, `network.proto`
 - **Robot Scheduler:** `robot/scheduler/src/main.rs`
 - **Robot Serial:** `robot/serial/src/main.rs`

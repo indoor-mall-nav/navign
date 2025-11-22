@@ -18,7 +18,9 @@ lint:
   just check
   cd animations && uvx ruff check
   cd robot/audio && uvx ruff check
+  cd robot/intelligence && uvx ruff check
   cd admin/plot && uvx ruff check
+  cd admin/maintenance && uvx ruff check
   cargo clippy -p navign-shared -- -D warnings
   cargo clippy -p navign-shared --features heapless --no-default-features -- -D warnings
   cargo clippy -p navign-shared --features alloc --no-default-features -- -D warnings
@@ -32,7 +34,6 @@ lint:
   pnpm run --filter mobile lint
   cd mobile/src-tauri && cargo clippy -- -D warnings
   cd server && cargo clippy --all-targets --all-features -- -D warnings
-  cd admin/maintenance && cargo clippy --all-targets --all-features -- -D warnings
   cd robot/firmware && cargo clippy -- -D warnings
   cd robot/scheduler && cargo clippy -- -D warnings
   cd robot/network && cargo clippy -- -D warnings
@@ -155,10 +156,11 @@ ci-plot:
   cd admin/plot && uv run pytest
 
 ci-maintenance:
-  cd admin/maintenance && cargo check
-  cd admin/maintenance && cargo fmt -- --check
-  cd admin/maintenance && cargo clippy -- -D warnings
-  cd admin/maintenance && cargo test
+  cd admin/maintenance && bash generate_proto.sh
+  cd admin/maintenance && uv sync --extra dev
+  cd admin/maintenance && uvx ruff format --check
+  cd admin/maintenance && uvx ruff check
+  cd admin/maintenance && uv run pytest -v
 
 ci-robot-firmware:
   cd robot/firmware && cargo check --release
@@ -233,7 +235,7 @@ build-robot-vision-onnx:
 clean-robot-vision:
   rm -rf robot/vision/build
 
-ci-admin: ci-tower ci-orchestrator ci-plot ci-maintenance
+ci-admin: ci-orchestrator ci-tower ci-plot ci-maintenance
 
 roll:
   just fmt-check
