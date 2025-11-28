@@ -35,7 +35,7 @@ impl<'a> Accelerometer<'a> {
 
     pub async fn init(&mut self) -> bool {
         const PWR_MGMT_1: u8 = 0x6B;
-        
+
         // Wake up the device
         self.i2c
             .write(Self::SLAVE_ADDRESS_AD0_0, &[PWR_MGMT_1, 0x00])
@@ -63,9 +63,7 @@ impl<'a> Accelerometer<'a> {
         self.i2c
             .write_read(
                 Self::SLAVE_ADDRESS_AD0_0,
-                &[
-                    Self::ACCEL_XOUT_H,
-                ],
+                &[Self::ACCEL_XOUT_H],
                 &mut buffer,
             )
             .await
@@ -82,13 +80,7 @@ impl<'a> Accelerometer<'a> {
         let mut buffer = [0u8; 6];
 
         self.i2c
-            .write_read(
-                Self::SLAVE_ADDRESS_AD0_0,
-                &[
-                    Self::GYRO_XOUT_H,
-                ],
-                &mut buffer,
-            )
+            .write_read(Self::SLAVE_ADDRESS_AD0_0, &[Self::GYRO_XOUT_H], &mut buffer)
             .await
             .ok();
 
@@ -103,11 +95,7 @@ impl<'a> Accelerometer<'a> {
         let mut buffer = [0u8; 2];
 
         self.i2c
-            .write_read(
-                Self::SLAVE_ADDRESS_AD0_0,
-                &[Self::TEMP_OUT_H],
-                &mut buffer,
-            )
+            .write_read(Self::SLAVE_ADDRESS_AD0_0, &[Self::TEMP_OUT_H], &mut buffer)
             .await
             .ok();
 

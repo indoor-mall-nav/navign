@@ -10,11 +10,11 @@ use embassy_executor::Spawner;
 use embassy_stm32::i2c::{Config, I2c};
 use embassy_stm32::timer::complementary_pwm::ComplementaryPwm;
 use embassy_stm32::{
+    bind_interrupts,
     gpio::{Level, Output, OutputType, Speed},
     time::Hertz,
-    timer::{complementary_pwm::ComplementaryPwmPin, simple_pwm::PwmPin},
     timer::low_level::CountingMode,
-    bind_interrupts,
+    timer::{complementary_pwm::ComplementaryPwmPin, simple_pwm::PwmPin},
 };
 use embassy_time::TICK_HZ;
 use embassy_time::{Duration, Timer};
@@ -103,20 +103,18 @@ async fn main(_spawner: Spawner) {
     let mcstby2 = Output::new(p.PE9, Level::High, Speed::Low);
 
     let mut motor_control = motor::MotorControl::new(
-        motor_pwm,
-        mcina1,
-        mcina2,
-        mcinb1,
-        mcinb2,
-        mcinc1,
-        mcinc2,
-        mcind1,
-        mcind2,
-        mcstby1,
-        mcstby2,
+        motor_pwm, mcina1, mcina2, mcinb1, mcinb2, mcinc1, mcinc2, mcind1, mcind2, mcstby1, mcstby2,
     );
 
-    let i2c = I2c::new(p.I2C1, p.PB6, p.PB7, Irqs, p.DMA1_CH0, p.DMA1_CH1, Config::default());
+    let i2c = I2c::new(
+        p.I2C1,
+        p.PB6,
+        p.PB7,
+        Irqs,
+        p.DMA1_CH0,
+        p.DMA1_CH1,
+        Config::default(),
+    );
 
     let mut accelerometer = motor::Accelerometer::new(i2c);
 
