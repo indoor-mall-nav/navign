@@ -40,5 +40,12 @@ incremental      = false
 opt-level        = 's'
 overflow-checks  = false
 
+[profile.dev.package.navign-robot-firmware]
+debug = true
+opt-level = "z"
+incremental = true
+
 [profile.release.package.navign-robot-firmware]
-debug = 2
+debug = false
+opt-level = "z"
+incremental = true

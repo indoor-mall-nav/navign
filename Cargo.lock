@@ -2338,6 +2338,9 @@ name = "embassy-futures"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc2d050bdc5c21e0862a89256ed8029ae6c290a93aecefc73084b3002cdebb01"
+dependencies = [
+ "defmt 1.0.1",
+]
 
 [[package]]
 name = "embassy-hal-internal"
@@ -5620,7 +5623,7 @@ dependencies = [
 
 [[package]]
 name = "navign-robot-firmware"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "alloc-cortex-m",
  "chrono",
@@ -5630,6 +5633,7 @@ dependencies = [
  "defmt 1.0.1",
  "defmt-rtt",
  "embassy-executor",
+ "embassy-futures",
  "embassy-stm32",
  "embassy-sync 0.7.2",
  "embassy-time",

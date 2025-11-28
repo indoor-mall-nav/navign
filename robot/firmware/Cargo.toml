@@ -1,8 +1,14 @@
+# This file was automatically generated.
+
 [package]
 edition.workspace = true
 license.workspace = true
 name              = "navign-robot-firmware"
-version.workspace = true
+
+[[bin]]
+bench = false
+name  = "navign-robot-firmware"
+test  = false
 
 [dependencies]
 alloc-cortex-m = "0.4.4"
@@ -21,9 +27,10 @@ embassy-executor = { version = "0.9.1", features = [
   "executor-interrupt",
   "defmt",
 ] }
+embassy-futures = { version = "0.1.2", features = ["defmt"] }
 embassy-stm32 = { version = "0.4.0", features = [
   "defmt",
-  "stm32f407zg",
+  "stm32h743vg",
   "unstable-pac",
   "memory-x",
   "time-driver-tim4",
@@ -34,15 +41,9 @@ embassy-sync = { version = "0.7.2", features = ["defmt"] }
 embassy-time = { version = "0.5.0", features = [
   "defmt",
   "defmt-timestamp-uptime",
-  "tick-hz-32_768",
+  "tick-hz-48_000_000",
 ] }
 futures-util = { version = "0.3.30", default-features = false }
 heapless = { version = "0.8", default-features = false }
 nb = "1.0.0"
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
-
-
-  [package.metadata.embassy]
-  build = [
-    { target = "thumbv7em-none-eabi", artifact-dir = "out/examples/stm32f4" },
-  ]
