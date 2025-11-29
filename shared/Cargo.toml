@@ -5,8 +5,8 @@ name              = "navign-shared"
 version.workspace = true
 
 [[bin]]
-name = "gen-ts-schema"
-path = "src/bin/gen_ts_schema.rs"
+name              = "gen-ts-schema"
+path              = "src/bin/gen_ts_schema.rs"
 required-features = ["ts-rs"]
 
 [features]
@@ -25,7 +25,15 @@ chrono = ["dep:chrono"]
 crypto = ["dep:sha2", "dep:hmac", "dep:p256"]
 default = ["std"]
 defmt = ["dep:defmt"]
-geo = ["dep:geo", "dep:earcutr", "dep:wkt", "dep:wkb", "dep:geo-traits", "dep:geo-types", "std"]
+geo = [
+  "dep:geo",
+  "dep:earcutr",
+  "dep:wkt",
+  "dep:wkb",
+  "dep:geo-traits",
+  "dep:geo-types",
+  "std",
+]
 heapless = ["dep:heapless", "postcard?/heapless"]
 postcard = ["dep:postcard", "serde"]
 postgres = [
@@ -35,20 +43,6 @@ postgres = [
   "dep:sqlx",
   "dep:async-trait",
   "sqlx?/postgres",
-  "sqlx?/uuid",
-  "sqlx?/chrono",
-  "sqlx?/json",
-  "dep:uuid",
-  "dep:serde_json",
-  "chrono",
-]
-sqlite = [
-  "std",
-  "serde",
-  "geo",
-  "dep:sqlx",
-  "dep:async-trait",
-  "sqlx?/sqlite",
   "sqlx?/uuid",
   "sqlx?/chrono",
   "sqlx?/json",
@@ -68,7 +62,30 @@ serde = [
   "serde_with?/macros",
   "geo?/serde",
 ]
-sql = ["std", "serde", "geo", "dep:sqlx", "dep:uuid", "dep:async-trait", "dep:uuid", "dep:serde_json"]
+sql = [
+  "std",
+  "serde",
+  "geo",
+  "dep:sqlx",
+  "dep:uuid",
+  "dep:async-trait",
+  "dep:uuid",
+  "dep:serde_json",
+]
+sqlite = [
+  "std",
+  "serde",
+  "geo",
+  "dep:sqlx",
+  "dep:async-trait",
+  "sqlx?/sqlite",
+  "sqlx?/uuid",
+  "sqlx?/chrono",
+  "sqlx?/json",
+  "dep:uuid",
+  "dep:serde_json",
+  "chrono",
+]
 std = [
   "serde?/std",
   "chrono?/std",

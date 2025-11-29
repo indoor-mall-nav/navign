@@ -15,9 +15,7 @@ members = [
 
 # Exclude members from default workspace builds if needed
 # This is useful since firmware needs special cross-compilation
-default-members = [
-  "shared",
-]
+default-members = ["shared"]
 
   [workspace.package]
   edition = "2024"
@@ -41,11 +39,11 @@ opt-level        = 's'
 overflow-checks  = false
 
 [profile.dev.package.navign-robot-firmware]
-debug = true
-opt-level = "z"
+debug       = true
 incremental = true
+opt-level   = "z"
 
 [profile.release.package.navign-robot-firmware]
-debug = false
-opt-level = "z"
+debug       = false
 incremental = true
+opt-level   = "z"

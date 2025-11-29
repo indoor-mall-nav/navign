@@ -32,7 +32,7 @@ navign-shared = { path = "../shared", default-features = false, features = [
   "serde",
   "geo",
   "postgres",
-  "sql"
+  "sql",
 ] }
 oauth2 = "5.0.0"
 p256 = { version = "0.13.2", features = ["ecdsa"] }

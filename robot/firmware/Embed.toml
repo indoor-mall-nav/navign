@@ -1,13 +1,13 @@
 # This file was automatically generated.
 
 [default.general]
-chip = "STM32H743VGTx"
+chip                = "STM32H743VGTx"
 connect_under_reset = true
 
 [default.rtt]
 enabled     = true
 log_enabled = true
-up_mode = "NoBlockSkip"
+up_mode     = "NoBlockSkip"
 
 [default.reset]
 halt_afterwards = true

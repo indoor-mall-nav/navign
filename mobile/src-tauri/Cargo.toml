@@ -1,9 +1,9 @@
 [package]
-authors = ["Ethan Wu"]
-description = "Mobile client for Navign"
+authors           = ["Ethan Wu"]
+description       = "Mobile client for Navign"
 edition.workspace = true
 license.workspace = true
-name = "navign-mobile"
+name              = "navign-mobile"
 version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,7 +13,7 @@ version.workspace = true
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 crate-type = ["staticlib", "cdylib", "rlib"]
-name = "mobile_lib"
+name       = "mobile_lib"
 
 [lints.clippy]
 print_stdout = "deny"
@@ -40,9 +40,9 @@ serde-big-array = "0.5.1"
 serde_json = "1"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = [
-    "sqlite",
-    "runtime-tokio",
-    "runtime-tokio-native-tls",
+  "sqlite",
+  "runtime-tokio",
+  "runtime-tokio-native-tls",
 ] }
 tauri = { version = "2", features = [] }
 tauri-plugin-barcode-scanner = "2"
@@ -64,4 +64,11 @@ tokio = { version = "1.47.1", features = ["sync"] }
 uuid = { version = "1.18.0", features = ["v4"] }
 wkt = { version = "0.14.0", features = ["serde"] }
 #tauri-plugin-gyroscope = { path = "../../tauri-plugin-gyroscope" }
-navign-shared = { path = "../../shared", features = ["std", "serde", "sql", "postcard", "sqlite", "alloc"] }
+navign-shared = { path = "../../shared", features = [
+  "std",
+  "serde",
+  "sql",
+  "postcard",
+  "sqlite",
+  "alloc",
+] }
