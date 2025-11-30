@@ -30,6 +30,7 @@ pub mod pathfinding;
 
 pub mod ble;
 mod crypto;
+pub mod robot;
 pub mod schema;
 mod traits;
 

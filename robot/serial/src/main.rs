@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_serial::SerialPortBuilderExt;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 // Include generated protobuf code
 pub mod proto {
@@ -28,13 +28,11 @@ pub struct SerialComponent {
 impl SerialComponent {
     /// Create a new serial component
     pub async fn new(port_path: String, baud_rate: u32) -> Result<Self> {
-        info!(
-            "Initializing Serial component on {} @ {}",
-            port_path, baud_rate
-        );
-
         // Initialize Zenoh session
         let config = zenoh::Config::default();
+
+        info!("Opening Zenoh session...");
+
         let session = zenoh::open(config)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
@@ -50,6 +48,11 @@ impl SerialComponent {
     /// Start the serial component
     pub async fn start(&self) -> Result<()> {
         info!("Starting serial component...");
+
+        tokio_serial::available_ports()
+            .map_err(|e| anyhow::anyhow!("Failed to list serial ports: {}", e))?
+            .iter()
+            .for_each(|p| info!("Found serial port: {}", p.port_name));
 
         // Open serial port
         let serial_port = tokio_serial::new(&self.port_path, self.baud_rate).open_native_async()?;
@@ -226,6 +229,13 @@ impl SerialComponent {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    info!("Starting...");
+
+    match dotenv::dotenv() {
+        Ok(_) => info!("Loaded .env file"),
+        Err(_) => warn!(".env file not found, proceeding without it"),
+    }
+
     // Initialize tracing
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -235,10 +245,12 @@ async fn main() -> Result<()> {
 
     // Get serial port from environment or use default
     let port_path = std::env::var("SERIAL_PORT").unwrap_or_else(|_| "/dev/ttyUSB0".to_string());
-    let baud_rate = std::env::var("SERIAL_BAUD")
+    let baud_rate = std::env::var("SERIAL_BAUD_RATE")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(115200);
+
+    info!("Using serial port: {} @ {}", port_path, baud_rate);
 
     // Create and start serial component
     let serial = SerialComponent::new(port_path, baud_rate).await?;

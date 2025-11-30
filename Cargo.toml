@@ -23,6 +23,7 @@ default-members = ["shared"]
   version = "0.1.0"
 
   [workspace.dependencies]
+  navign-shared = { path = "shared" }
 
 
 [profile.dev.package.navign-firmware]

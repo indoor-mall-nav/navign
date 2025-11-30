@@ -32,5 +32,10 @@ chrono = "0.4"
 # Postcard for UART serialization (communication with lower/firmware)
 postcard = "1.0"
 
+# Serial port handling
+serialport = { version = "4.8.1", features = ["serde"] }
+dotenv = "0.15.0"
+navign-shared = { path = "../../shared", features = ["serde"] }
+
 [build-dependencies]
 prost-build = "0.14.1"

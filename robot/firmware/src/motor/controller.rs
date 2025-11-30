@@ -5,10 +5,8 @@ use embassy_stm32::peripherals::TIM8;
 use embassy_stm32::timer::Channel;
 use embassy_stm32::timer::complementary_pwm::IdlePolarity;
 use embassy_stm32::timer::low_level::OutputPolarity;
+use embassy_stm32::timer::simple_pwm::PwmPin;
 use embassy_stm32::timer::simple_pwm::SimplePwm;
-use embassy_stm32::timer::{
-    simple_pwm::PwmPin,
-};
 
 pub struct MotorControl<'a> {
     pwm: SimplePwm<'a, TIM8>,
@@ -88,7 +86,9 @@ impl<'a> MotorControl<'a> {
 
     pub fn set_terminate(&mut self) {
         let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
-        channels.iter().for_each(|ch| self.pwm.channel(*ch).set_duty_cycle(0));
+        channels
+            .iter()
+            .for_each(|ch| self.pwm.channel(*ch).set_duty_cycle(0));
         self.stbys.iter_mut().for_each(|s| s.set_low());
         for motor in 0..4 {
             self.inputs[motor as usize].0.set_low();
@@ -98,7 +98,9 @@ impl<'a> MotorControl<'a> {
 
     pub fn init(&mut self) {
         let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
-        channels.iter().for_each(|ch| self.pwm.channel(*ch).enable());
+        channels
+            .iter()
+            .for_each(|ch| self.pwm.channel(*ch).enable());
 
         self.set_move(0, 0, true, true);
     }
@@ -107,6 +109,8 @@ impl<'a> MotorControl<'a> {
         self.set_terminate();
 
         let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
-        channels.iter().for_each(|ch| self.pwm.channel(*ch).disable());
+        channels
+            .iter()
+            .for_each(|ch| self.pwm.channel(*ch).disable());
     }
 }
