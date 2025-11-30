@@ -1,16 +1,17 @@
 #![allow(unused)]
+use defmt::info;
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::peripherals::TIM8;
 use embassy_stm32::timer::Channel;
 use embassy_stm32::timer::complementary_pwm::IdlePolarity;
 use embassy_stm32::timer::low_level::OutputPolarity;
+use embassy_stm32::timer::simple_pwm::SimplePwm;
 use embassy_stm32::timer::{
-    complementary_pwm::{ComplementaryPwm, ComplementaryPwmPin},
     simple_pwm::PwmPin,
 };
 
 pub struct MotorControl<'a> {
-    pwm: ComplementaryPwm<'a, TIM8>,
+    pwm: SimplePwm<'a, TIM8>,
 
     inputs: [(Output<'a>, Output<'a>); 4],
 
@@ -20,7 +21,7 @@ pub struct MotorControl<'a> {
 impl<'a> MotorControl<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        pwm: ComplementaryPwm<'a, TIM8>,
+        pwm: SimplePwm<'a, TIM8>,
         ain1: Output<'a>,
         ain2: Output<'a>,
         bin1: Output<'a>,
@@ -64,53 +65,30 @@ impl<'a> MotorControl<'a> {
         }
     }
 
-    pub fn set_straight(&mut self, duty_cycle: u16, forward: bool) {
-        self.pwm
-            .set_output_idle_state(&[Channel::Ch2, Channel::Ch3], IdlePolarity::OisActive);
-        self.pwm.set_duty(Channel::Ch2, duty_cycle);
-        self.pwm.set_duty(Channel::Ch3, duty_cycle);
+    pub fn set_move(&mut self, duty_cycle_l: u16, duty_cycle_r: u16, forw_l: bool, forw_r: bool) {
         self.stbys.iter_mut().for_each(|s| s.set_high());
-        self.set_run(0, Some(forward));
-        self.set_run(1, Some(forward));
-        self.set_run(2, Some(forward));
-        self.set_run(3, Some(forward));
-    }
 
-    pub fn set_stop(&mut self) {
-        self.pwm
-            .set_output_idle_state(&[Channel::Ch2, Channel::Ch3], IdlePolarity::OisnActive);
-        self.pwm.set_duty(Channel::Ch2, 0);
-        self.pwm.set_duty(Channel::Ch3, 0);
-        self.stbys.iter_mut().for_each(|s| s.set_low());
-        for motor in 0..4 {
-            self.set_run(motor, None);
-        }
-    }
+        let max_duty = self.pwm.max_duty_cycle();
 
-    pub fn set_turn(&mut self, duty_cycle: u16, left: bool) {
-        self.pwm
-            .set_output_idle_state(&[Channel::Ch2, Channel::Ch3], IdlePolarity::OisActive);
-        self.pwm.set_duty(Channel::Ch2, duty_cycle);
-        self.pwm.set_duty(Channel::Ch3, duty_cycle);
-        self.stbys.iter_mut().for_each(|s| s.set_high());
-        if left {
-            self.set_run(0, Some(false));
-            self.set_run(1, Some(false));
-            self.set_run(2, Some(true));
-            self.set_run(3, Some(true));
-        } else {
-            self.set_run(0, Some(true));
-            self.set_run(1, Some(true));
-            self.set_run(2, Some(false));
-            self.set_run(3, Some(false));
-        }
+        info!("Max duty: {}", max_duty);
+
+        let duty_cycle_l = duty_cycle_l.min(max_duty);
+        let duty_cycle_r = duty_cycle_r.min(max_duty);
+
+        self.pwm.ch1().set_duty_cycle(duty_cycle_l);
+        self.pwm.ch2().set_duty_cycle(duty_cycle_r);
+        self.pwm.ch3().set_duty_cycle(duty_cycle_l);
+        self.pwm.ch4().set_duty_cycle(duty_cycle_r);
+
+        self.set_run(0, Some(forw_l));
+        self.set_run(1, Some(forw_r));
+        self.set_run(2, Some(forw_l));
+        self.set_run(3, Some(forw_r));
     }
 
     pub fn set_terminate(&mut self) {
-        self.pwm
-            .set_output_idle_state(&[Channel::Ch2, Channel::Ch3], IdlePolarity::OisnActive);
-        self.pwm.set_duty(Channel::Ch2, 0);
-        self.pwm.set_duty(Channel::Ch3, 0);
+        let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
+        channels.iter().for_each(|ch| self.pwm.channel(*ch).set_duty_cycle(0));
         self.stbys.iter_mut().for_each(|s| s.set_low());
         for motor in 0..4 {
             self.inputs[motor as usize].0.set_low();
@@ -119,16 +97,16 @@ impl<'a> MotorControl<'a> {
     }
 
     pub fn init(&mut self) {
-        self.pwm.enable(Channel::Ch2);
-        self.pwm.enable(Channel::Ch3);
+        let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
+        channels.iter().for_each(|ch| self.pwm.channel(*ch).enable());
 
-        self.set_straight(0, true);
+        self.set_move(0, 0, true, true);
     }
 
     pub fn deinit(&mut self) {
         self.set_terminate();
 
-        self.pwm.disable(Channel::Ch2);
-        self.pwm.disable(Channel::Ch3);
+        let channels = [Channel::Ch1, Channel::Ch2, Channel::Ch3, Channel::Ch4];
+        channels.iter().for_each(|ch| self.pwm.channel(*ch).disable());
     }
 }

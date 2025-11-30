@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod control;
 mod measure;
 mod motor;
 
@@ -10,8 +11,7 @@ use {defmt_rtt as _, panic_probe as _};
 
 use defmt::{error, info, panic};
 use embassy_executor::Spawner;
-use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::i2c::{Config, I2c};
+use embassy_stm32::i2c::{Config as I2cConfig, I2c};
 use embassy_stm32::timer::complementary_pwm::ComplementaryPwm;
 use embassy_stm32::timer::simple_pwm::SimplePwm;
 use embassy_stm32::{
@@ -21,6 +21,10 @@ use embassy_stm32::{
     timer::low_level::CountingMode,
     timer::{complementary_pwm::ComplementaryPwmPin, simple_pwm::PwmPin},
 };
+use embassy_stm32::{
+    exti::ExtiInput,
+    usart::{Config as UsartConfig, Uart, UartTx},
+};
 use embassy_time::TICK_HZ;
 use embassy_time::{Duration, Timer};
 
@@ -29,6 +33,8 @@ bind_interrupts!(struct Irqs {
     I2C1_ER => embassy_stm32::i2c::ErrorInterruptHandler<embassy_stm32::peripherals::I2C1>;
 
     TIM5 => embassy_stm32::timer::CaptureCompareInterruptHandler<embassy_stm32::peripherals::TIM5>;
+
+    USART1 => embassy_stm32::usart::InterruptHandler<embassy_stm32::peripherals::USART1>;
 });
 
 fn get_stm_config() -> embassy_stm32::Config {
@@ -77,45 +83,58 @@ async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(config);
     info!("Initialized peripherals.");
 
-    let mcpwm_a = PwmPin::new(p.PC7, OutputType::PushPull);
-    let mcpwm_b = ComplementaryPwmPin::new(p.PB0, OutputType::PushPull);
+    let uart = match Uart::new(
+        p.USART1,
+        p.PA10,
+        p.PA9,
+        Irqs,
+        p.DMA2_CH0,
+        p.DMA2_CH1,
+        UsartConfig::default(),
+    ) {
+        Ok(uart) => uart,
+        Err(err) => {
+            panic!("Failed to initialize USART1: {:?}", err);
+        }
+    };
+
+    let protocol_handler = control::protocol::ProtocolHandler::new(uart);
+
+    let mcpwm_a = PwmPin::new(p.PC6, OutputType::PushPull);
+    let mcpwm_b = PwmPin::new(p.PC7, OutputType::PushPull);
     let mcpwm_c = PwmPin::new(p.PC8, OutputType::PushPull);
-    let mcpwm_d = ComplementaryPwmPin::new(p.PB1, OutputType::PushPull);
+    let mcpwm_d = PwmPin::new(p.PC9, OutputType::PushPull);
 
     info!(
         "Configured PWM pins. PWM Frequency: {} MHz",
-        Hertz::mhz(24).0
+        Hertz::khz(24).0
     );
 
-    let motor_pwm = ComplementaryPwm::new(
+    let motor_pwm = SimplePwm::new(
         p.TIM8,
-        None,
-        None,
         Some(mcpwm_a),
         Some(mcpwm_b),
         Some(mcpwm_c),
         Some(mcpwm_d),
-        None,
-        None,
-        Hertz::mhz(24),
+        Hertz::khz(24),
         CountingMode::CenterAlignedBothInterrupts,
     );
 
     info!("Initialized motor PWM. Using TIM8.");
 
-    let mcina1 = Output::new(p.PE0, Level::Low, Speed::Low);
-    let mcina2 = Output::new(p.PE1, Level::Low, Speed::Low);
-    let mcinb1 = Output::new(p.PE2, Level::Low, Speed::Low);
-    let mcinb2 = Output::new(p.PE3, Level::Low, Speed::Low);
-    let mcinc1 = Output::new(p.PE4, Level::Low, Speed::Low);
-    let mcinc2 = Output::new(p.PE5, Level::Low, Speed::Low);
-    let mcind1 = Output::new(p.PE6, Level::Low, Speed::Low);
-    let mcind2 = Output::new(p.PE7, Level::Low, Speed::Low);
+    let mcina1 = Output::new(p.PE0, Level::Low, Speed::High);
+    let mcina2 = Output::new(p.PE1, Level::Low, Speed::High);
+    let mcinb1 = Output::new(p.PE2, Level::Low, Speed::High);
+    let mcinb2 = Output::new(p.PE3, Level::Low, Speed::High);
+    let mcinc1 = Output::new(p.PE4, Level::Low, Speed::High);
+    let mcinc2 = Output::new(p.PE5, Level::Low, Speed::High);
+    let mcind1 = Output::new(p.PE6, Level::Low, Speed::High);
+    let mcind2 = Output::new(p.PE7, Level::Low, Speed::High);
 
     info!("Initialized motor control inputs.");
 
-    let mcstby1 = Output::new(p.PE8, Level::High, Speed::Low);
-    let mcstby2 = Output::new(p.PE9, Level::High, Speed::Low);
+    let mcstby1 = Output::new(p.PE8, Level::High, Speed::High);
+    let mcstby2 = Output::new(p.PE9, Level::High, Speed::High);
 
     info!("Initialized motor standby outputs.");
 
@@ -125,7 +144,7 @@ async fn main(_spawner: Spawner) {
 
     info!("Motor control initialized.");
 
-    let drdy = ExtiInput::new(p.PB5, p.EXTI5, Pull::Down);
+    let drdy = ExtiInput::new(p.PB5, p.EXTI5, Pull::Up);
 
     info!("Configured DRDY pin for accelerometer.");
 
@@ -136,12 +155,12 @@ async fn main(_spawner: Spawner) {
         Irqs,
         p.DMA1_CH0,
         p.DMA1_CH1,
-        Config::default(),
+        I2cConfig::default(),
     );
 
     info!("Initialized I2C1 for accelerometer.");
 
-    let mut accelerometer = motor::Accelerometer::new(i2c, drdy);
+    let mut motion = motor::Motion::new(i2c, drdy);
 
     info!("Created accelerometer instance.");
 
@@ -177,17 +196,17 @@ async fn main(_spawner: Spawner) {
 
     let mut ultrasonic = measure::ultrasonic::Ultrasonic::new(ultrasonic_trigger, ultrasonic_echo);
 
-    match accelerometer.init().await {
+    match motion.init().await {
         Ok(()) => {
-            info!("Accelerometer identity check passed.");
+            info!("Motion identity check passed.");
         }
-        Err(()) => {
-            error!("Accelerometer identity check failed.");
-            panic!("Cannot continue without accelerometer.");
+        Err(err) => {
+            error!("Motion identity check failed.");
+            panic!("Cannot continue without motion sensor: {:?}", err);
         }
     }
 
-    info!("Initialized accelerometer.");
+    info!("Initialized motion sensor.");
 
     motor_control.init();
 
@@ -202,24 +221,48 @@ async fn main(_spawner: Spawner) {
     info!("Ultrasonic sensor initialized.");
 
     loop {
-        info!("Hello, World!");
-        let accel = match accelerometer.read_acceleration().await {
+        let accel = match motion.read_acceleration().await {
             Ok(data) => data,
-            Err(()) => {
-                error!("Failed to read acceleration data.");
+            Err(err) => {
+                error!("Failed to read acceleration data: {:?}", err);
                 continue;
             }
         };
-        let gyro = match accelerometer.read_gyroscope().await {
+        let gyro = match motion.read_gyroscope().await {
             Ok(data) => data,
-            Err(()) => {
-                error!("Failed to read gyroscope data.");
+            Err(err) => {
+                error!("Failed to read gyroscope data: {:?}", err);
+                continue;
+            }
+        };
+        let baro = match motion.read_barometer().await {
+            Ok(data) => data,
+            Err(err) => {
+                error!("Failed to read barometer data: {:?}", err);
+                continue;
+            }
+        };
+        let magneto = match motion.read_magnetometer().await {
+            Ok(data) => data,
+            Err(err) => {
+                error!("Failed to read magnetometer data: {:?}", err);
                 continue;
             }
         };
 
         info!("Acceleration: ax={} ay={} az={}", accel.0, accel.1, accel.2);
         info!("Gyroscope: gx={} gy={} gz={}", gyro.0, gyro.1, gyro.2);
+        info!("Barometer: temp={} pressure={}", baro.0, baro.1);
+        info!(
+            "Magnetometer: mx={} my={} mz={}",
+            magneto.0, magneto.1, magneto.2
+        );
+
+        motor_control.set_move(800, 800, true, true);
+
+        Timer::after(Duration::from_millis(800)).await;
+
+        motor_control.set_terminate();
 
         Timer::after(Duration::from_millis(500)).await;
     }

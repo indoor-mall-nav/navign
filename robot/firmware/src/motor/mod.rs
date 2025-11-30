@@ -1,5 +1,5 @@
 mod accelerometer;
 mod controller;
 
-pub use accelerometer::Accelerometer;
+pub use accelerometer::Motion;
 pub use controller::MotorControl;
