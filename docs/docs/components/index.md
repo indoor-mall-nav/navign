@@ -7,7 +7,7 @@ The Navign project is a polyglot monorepo composed of multiple interconnected co
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     Mobile App                          │
-│              (Vue 3 + Tauri 2 + TypeScript)            │
+│              (Vue 3 + Tauri 2 + TypeScript)             │
 │     Navigation, Access Control, Admin Panel             │
 └───────────┬──────────────────────────────┬──────────────┘
             │                              │
@@ -20,15 +20,15 @@ The Navign project is a polyglot monorepo composed of multiple interconnected co
                                           │
                            ┌──────────────┼──────────────┐
                            │              │              │
-                     ┌─────▼─────┐  ┌────▼────┐  ┌──────▼──────┐
-                     │   Admin   │  │  Robot  │  │  Database   │
+                     ┌─────▼──────┐  ┌────▼────┐  ┌──────▼──────┐
+                     │   Admin    │  │  Robot  │  │  Database   │
                      │Orchestrator│  │ System  │  │  (MongoDB)  │
-                     │   (gRPC)  │  │(Zenoh)  │  │(PostgreSQL) │
-                     └─────┬─────┘  └─────────┘  └─────────────┘
-                           │
-                      ┌────▼────┐
-                      │  Tower  │
-                      │(Socket) │
+                     │   (gRPC)   │  │(Zenoh)  │  │(PostgreSQL) │
+                     └─────┬──────┘  └─────────┘  └─────────────┘
+                      gRPC │             ▼
+                      ┌────▼────┐ Socket |
+                      │  Tower  │────────┘
+                      │ (Go)    │
                       └─────────┘
 ```
 

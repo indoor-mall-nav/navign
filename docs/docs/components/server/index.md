@@ -170,34 +170,6 @@ Summary of the PostgreSQL migration layer implementation, including:
 
 ---
 
-## Pathfinding Algorithm
-
-**Location:** `server/src/kernel/route/implementations/`
-
-The server uses Dijkstra's algorithm with bump allocation for efficient pathfinding:
-
-```rust
-use bumpalo::Bump;
-
-let arena = Bump::new();
-let graph = build_graph(&arena, entity);
-let path = dijkstra(&arena, graph, start, end);
-let instructions = generate_instructions(path);
-```
-
-**Features:**
-- Multi-floor routing
-- Connection type handling (elevator, stairs, escalator)
-- Turn-by-turn instructions
-- Obstacle avoidance
-- Optimal path selection
-
-**Instruction Types:**
-- `ENTER_AREA` - Enter a new area/zone
-- `USE_CONNECTION` - Use elevator/stairs/escalator
-- `TURN_LEFT` / `TURN_RIGHT` - Navigation turns
-- `DESTINATION_REACHED` - End of route
-
 ## Environment Variables
 
 ```bash
@@ -309,11 +281,6 @@ See [PostgreSQL Migration Guide](./postgres-migration.md) for complete details.
    - Bounds checking for coordinates
 
 ## Performance
-
-### Pathfinding Optimization
-- Bump allocation for zero-cost routing
-- Graph caching (planned)
-- Pre-computed shortest paths (planned)
 
 ### Database Optimization
 - Index all frequently queried fields

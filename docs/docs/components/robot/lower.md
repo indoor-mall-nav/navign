@@ -4,7 +4,7 @@ Low-level motor control and sensor management for autonomous delivery robots.
 
 ## Overview
 
-**Microcontroller:** STM32F407ZG (ARM Cortex-M4F, 168 MHz)
+**Microcontroller:** STM32H743ZG (ARM Cortex-M7, 480 MHz)
 **Language:** Rust
 **Runtime:** Embassy async executor
 **Location:** `robot/lower/`
@@ -60,10 +60,10 @@ cd robot/lower
 cargo build --release
 
 # Flash using probe-rs
-probe-rs run --chip STM32F407ZGTx
+probe-rs run --chip STM32H743ZGTx
 
 # Or using OpenOCD
-openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
+openocd -f interface/stlink.cfg -f target/stm32h7x.cfg \
   -c "program target/thumbv7em-none-eabihf/release/robot-lower verify reset exit"
 ```
 
@@ -73,8 +73,8 @@ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
 - ✅ Basic structure implemented
 - ✅ UART communication working
 - ✅ Embassy async runtime configured
-- 🚧 Motor control logic in development
-- 🚧 Sensor integration ongoing
+- ✅ Motor control logic in development
+- ✅ Sensor integration ongoing
 
 **Planned:**
 - PID motor control
