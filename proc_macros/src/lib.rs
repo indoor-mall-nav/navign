@@ -5,7 +5,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Attribute, DeriveInput};
+use syn::{Attribute, DeriveInput, parse_macro_input};
 
 /// Derive macro for generating SQL repository search and count methods
 ///
