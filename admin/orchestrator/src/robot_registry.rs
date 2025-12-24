@@ -164,8 +164,8 @@ impl Default for RobotRegistry {
 mod tests {
     use super::*;
     use crate::test_utils::{create_test_robot, create_test_task};
-    use crate::types::task::Location;
     use crate::types::Priority;
+    use crate::types::task::Location;
 
     #[tokio::test]
     async fn test_robot_registry_new() {

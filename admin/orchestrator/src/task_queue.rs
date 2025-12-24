@@ -65,7 +65,7 @@ impl Default for TaskQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{create_test_task};
+    use crate::test_utils::create_test_task;
     use crate::types::Priority;
 
     #[test]
