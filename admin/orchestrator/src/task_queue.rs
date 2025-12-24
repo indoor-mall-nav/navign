@@ -65,25 +65,8 @@ impl Default for TaskQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Priority, TaskType};
-    use std::collections::HashMap;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    fn create_test_task(id: &str, priority: Priority) -> Task {
-        Task {
-            id: id.to_string(),
-            r#type: TaskType::Delivery as i32,
-            sources: vec![],
-            terminals: vec![],
-            priority: priority as i32,
-            created_at: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64,
-            entity_id: "entity-1".to_string(),
-            metadata: HashMap::new(),
-        }
-    }
+    use crate::test_utils::{create_test_task};
+    use crate::types::Priority;
 
     #[test]
     fn test_task_queue_new() {

@@ -71,30 +71,8 @@ impl OrchestratorService for OrchestratorServiceImpl {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::create_test_robot;
     use tonic::Request;
-
-    fn create_test_robot(
-        id: &str,
-        entity_id: &str,
-        state: crate::types::RobotState,
-        battery: f64,
-    ) -> crate::types::RobotInfo {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        crate::types::RobotInfo {
-            id: id.to_string(),
-            name: format!("Test Robot {}", id),
-            state: state as i32,
-            current_location: None,
-            battery_level: battery,
-            current_task_id: String::new(),
-            last_seen: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64,
-            entity_id: entity_id.to_string(),
-        }
-    }
 
     #[tokio::test]
     async fn test_orchestrator_service_report_robot_status() {

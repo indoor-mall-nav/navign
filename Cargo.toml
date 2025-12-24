@@ -6,6 +6,7 @@ members = [
   "server",
   "mobile/src-tauri",
   "shared",
+  "proc_macros",
   "admin/orchestrator",
   "robot/firmware",
   "robot/scheduler",
