@@ -5,6 +5,7 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 ## 🌟 Features
 
 ### 🗺️ Advanced Indoor Navigation
+
 - **Intelligent Pathfinding**: Dijkstra-based algorithm with optimized routing between areas using bump allocation for ultra-fast memory management
 - **Multi-floor Navigation**: Support for elevators, escalators, and stairs with customizable restrictions
 - **Area Connectivity Graph**: Dynamic graph generation for complex indoor layouts with support for multiple connection types
@@ -14,6 +15,7 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 - **Connectivity Limits**: Configurable routing constraints (elevator, escalator, stairs availability)
 
 ### 🔐 Beacon-Based Authentication & Access Control
+
 - **TOTP (Time-based One-Time Password)**: Secure time-synchronized authentication with HMAC-SHA1
 - **BLE Integration**: Bluetooth Low Energy beacon support for proximity-based access
 - **Challenge-Response Protocol**: Secure handshake mechanism for door unlocking
@@ -22,6 +24,7 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 - **ESP32 Support**: Compatible with ESP32, ESP32-C3, ESP32-C5, ESP32-C6, and ESP32-S3 devices
 
 ### 🏢 Entity Management
+
 - **Multiple Entity Types**: Support for Malls, Transportation hubs, Schools, and Hospitals
 - **Hierarchical Structure**: Entities → Areas → Merchants/Services with full relationship tracking
 - **Geospatial Support**: Longitude, latitude, and altitude range management
@@ -30,6 +33,7 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 - **Polygon-based Areas**: Define complex area shapes with coordinate polygons
 
 ### 🏪 Merchant & Service Management
+
 - **Rich Merchant Types**: Food (with cuisine types), Electronics, Clothing, Supermarket, Health, Entertainment, Facilities, Rooms
 - **Chain Store Support**: Track merchants that are part of chain store series
 - **Branding**: Color codes for UI representation (e.g., Starbucks green, McDonald's yellow)
@@ -38,6 +42,7 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 - **Merchant Styles**: Different visual representations (Counter, Booth, Room, etc.)
 
 ### 🔌 RESTful API
+
 - **Full CRUD Operations**: Complete management for entities, areas, connections, merchants, and beacons
 - **OAuth2 Integration**: GitHub, Google, and WeChat authentication
 - **JWT Token-based Auth**: Secure session management with custom claims
@@ -46,10 +51,11 @@ A high-performance Rust-based backend server for intelligent indoor navigation a
 - **Public Key Certification**: P-256 ECDSA public key endpoint for verification
 
 ### ⚡ High Performance
+
 - **Bump Allocation**: Ultra-fast memory allocation using `bumpalo` for pathfinding operations
 - **Async/Await**: Built on Tokio runtime for concurrent request handling
 - **MongoDB Integration**: Efficient document storage and querying with connection pooling
-  (*We plan to migrate to PostgreSQL in future releases.*)
+  (_We plan to migrate to PostgreSQL in future releases._)
 - **Optimized Routing**: Efficient graph algorithms with minimal memory overhead
 
 ## 🏗️ Architecture
@@ -149,20 +155,22 @@ server/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/navign.git
    cd navign/server
    ```
 
 2. **Set up environment variables**
-   
+
    Create a `.env` file in the server directory:
+
    ```env
    MONGODB_HOST=localhost:27017
    MONGODB_DB_NAME=navign
    MONGODB_URI=mongodb://localhost:27017
    JWT_SIGN_KEY=your-secret-key-here
-   
+
    # Optional OAuth credentials
    GITHUB_CLIENT_ID=your-github-client-id
    GITHUB_CLIENT_SECRET=your-github-client-secret
@@ -173,6 +181,7 @@ server/
    ```
 
 3. **Install dependencies and build**
+
    ```bash
    cargo build --release
    ```
@@ -197,6 +206,7 @@ curl http://localhost:3000/cert
 ## 📡 API Reference
 
 ### Base URL
+
 ```
 http://localhost:3000
 ```
@@ -204,11 +214,13 @@ http://localhost:3000
 ### Core Endpoints
 
 #### Health & Status
+
 - `GET /` - Root endpoint
 - `GET /health` - Health check (checks MongoDB connection)
 - `GET /cert` - Get public key certificate (PEM format)
 
 #### Entities
+
 - `GET /api/entities` - Search entities (query params: nation, region, city, name, longitude, latitude)
 - `GET /api/entities/{id}` - Get entity by ID
 - `POST /api/entities` - Create new entity
@@ -218,6 +230,7 @@ http://localhost:3000
 - `GET /api/entities/{id}/route/point` - Find route by coordinates
 
 #### Areas
+
 - `GET /api/entities/{eid}/areas` - Get all areas in entity
 - `GET /api/entities/{eid}/areas/{id}` - Get specific area
 - `POST /api/entities/{eid}/areas` - Create area
@@ -227,6 +240,7 @@ http://localhost:3000
 - `GET /api/entities/{eid}/areas/{aid}/merchants` - Get merchants in area
 
 #### Merchants
+
 - `GET /api/entities/{eid}/merchants` - Get all merchants
 - `GET /api/entities/{eid}/merchants/{id}` - Get specific merchant
 - `POST /api/entities/{eid}/merchants` - Create merchant
@@ -234,6 +248,7 @@ http://localhost:3000
 - `DELETE /api/entities/{eid}/merchants/{id}` - Delete merchant
 
 #### Connections
+
 - `GET /api/entities/{eid}/connections` - Get all connections
 - `GET /api/entities/{eid}/connections/{id}` - Get specific connection
 - `POST /api/entities/{eid}/connections` - Create connection
@@ -241,6 +256,7 @@ http://localhost:3000
 - `DELETE /api/entities/{eid}/connections/{id}` - Delete connection
 
 #### Beacons
+
 - `GET /api/entities/{eid}/beacons` - Get all beacons
 - `GET /api/entities/{eid}/beacons/{id}` - Get specific beacon
 - `POST /api/entities/{eid}/beacons` - Create beacon
@@ -248,6 +264,7 @@ http://localhost:3000
 - `DELETE /api/entities/{eid}/beacons/{id}` - Delete beacon
 
 #### Beacon Unlock (Requires Authentication)
+
 - `POST /api/entities/{eid}/beacons/{id}/unlocker` - Create unlock instance
 - `PUT /api/entities/{eid}/beacons/{id}/unlocker/{instance}/status` - Update unlock status
 - `PUT /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome` - Record unlock result
@@ -263,6 +280,7 @@ curl "http://localhost:3000/api/entities/{entity_id}/route/point?departure=114.1
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -285,13 +303,16 @@ curl "http://localhost:3000/api/entities/{entity_id}/route/point?departure=114.1
 Navign supports multiple authentication methods:
 
 ### JWT Token Authentication
+
 Include the JWT token in the Authorization header:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   http://localhost:3000/api/entities/{eid}/beacons/{id}/unlocker
 ```
 
 ### OAuth2 Providers (Not implemented yet)
+
 - **GitHub**: OAuth2 integration for GitHub authentication
 - **Google**: OAuth2 integration for Google authentication
 - **WeChat**: OAuth2 integration for WeChat authentication
@@ -312,12 +333,14 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 ## 🧮 Data Models
 
 ### Entity Types
+
 - **Mall**: Shopping centers
 - **Transportation**: Airports, train stations, bus terminals
 - **School**: Educational institutions
 - **Hospital**: Medical facilities
 
 ### Connection Types
+
 - **Gate**: Access-controlled passages
 - **Escalator**: Moving staircases
 - **Elevator**: Vertical transportation
@@ -326,6 +349,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - **Shuttle**: Shuttle buses
 
 ### Merchant Types
+
 - **Food**: Restaurants, cafes (with cuisine types)
 - **Electronics**: Mobile, computer, accessories
 - **Clothing**: Menswear, womenswear, childrenswear
@@ -336,6 +360,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - **Room**: Hotel rooms, offices, meeting rooms
 
 ### Beacon Types
+
 - **Navigation**: Location-based services
 - **Marketing**: Proximity marketing
 - **Tracking**: Asset tracking
@@ -346,6 +371,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **Rust** - Systems programming language for safety and performance
 - **Axum** - Modern web framework built on Tokio
 - **Tokio** - Async runtime for concurrent operations
@@ -353,6 +379,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - **BSON** - Binary JSON for MongoDB operations
 
 ### Cryptography & Security
+
 - **jsonwebtoken** - JWT token handling
 - **bcrypt** - Password hashing
 - **p256** - ECDSA signature generation
@@ -362,10 +389,12 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - **oauth2** - OAuth2 client implementation
 
 ### Performance Optimization
+
 - **bumpalo** - Fast bump allocation for pathfinding
 - **bumpalo-herd** - Thread-safe bump allocation
 
 ### Utilities
+
 - **serde** - Serialization/deserialization
 - **anyhow** - Error handling
 - **chrono** - Date and time handling

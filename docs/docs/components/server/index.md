@@ -7,6 +7,7 @@ The Navign server is a centralized backend built with Rust and Axum, providing R
 **Location:** `server/`
 
 **Technologies:**
+
 - **Framework:** Axum 0.8.6 (async web framework)
 - **Runtime:** Tokio 1.47.1 (async runtime)
 - **Database:** MongoDB 3.3.0 (primary), PostgreSQL via SQLx 0.8.6 (optional)
@@ -18,28 +19,33 @@ The Navign server is a centralized backend built with Rust and Axum, providing R
 ## Key Features
 
 ### 1. RESTful API
+
 - Complete CRUD for entities, areas, beacons, merchants, connections
 - User authentication and authorization
 - Pathfinding and navigation instructions
 - Access control instance management
 
 ### 2. Multi-Database Support
+
 - MongoDB (primary) - Flexible schema, fast prototyping
 - PostgreSQL (optional) - ACID compliance, relational queries
 - Dual-database mode for gradual migration
 
 ### 3. Authentication
+
 - OAuth2 (GitHub, Google, WeChat)
 - Password-based authentication with bcrypt
 - JWT token generation (24h expiration)
 
 ### 4. Pathfinding
+
 - Dijkstra's algorithm with bump allocation
 - Multi-floor routing via connections
 - Support for elevators, stairs, escalators
 - Turn-by-turn navigation instructions
 
 ### 5. Security
+
 - P-256 ECDSA cryptography
 - TOTP generation for access control
 - Rate limiting (planned)
@@ -64,6 +70,7 @@ The Navign server is a centralized backend built with Rust and Axum, providing R
 ## API Endpoints
 
 ### Health & Info
+
 ```
 GET  /                    # Health check
 GET  /health              # Database ping
@@ -71,6 +78,7 @@ GET  /cert                # Server public key (PEM)
 ```
 
 ### Authentication
+
 ```
 POST /api/auth/register   # User registration
 POST /api/auth/login      # User login
@@ -78,6 +86,7 @@ GET  /api/auth/{provider}/authorize  # OAuth2 flow
 ```
 
 ### Entities
+
 ```
 GET    /api/entities             # Search entities
 POST   /api/entities             # Create entity
@@ -88,6 +97,7 @@ GET    /api/entities/{id}/route  # Pathfinding
 ```
 
 ### Areas
+
 ```
 GET    /api/entities/{eid}/areas       # List areas
 POST   /api/entities/{eid}/areas       # Create area
@@ -97,6 +107,7 @@ DELETE /api/entities/{eid}/areas/{id}  # Delete area
 ```
 
 ### Beacons
+
 ```
 GET    /api/entities/{eid}/beacons       # List beacons
 POST   /api/entities/{eid}/beacons       # Create beacon
@@ -106,6 +117,7 @@ DELETE /api/entities/{eid}/beacons/{id}  # Delete beacon
 ```
 
 ### Merchants
+
 ```
 GET    /api/entities/{eid}/merchants       # List merchants
 POST   /api/entities/{eid}/merchants       # Create merchant
@@ -115,6 +127,7 @@ DELETE /api/entities/{eid}/merchants/{id}  # Delete merchant
 ```
 
 ### Connections
+
 ```
 GET    /api/entities/{eid}/connections       # List connections
 POST   /api/entities/{eid}/connections       # Create connection
@@ -124,6 +137,7 @@ DELETE /api/entities/{eid}/connections/{id}  # Delete connection
 ```
 
 ### Access Control
+
 ```
 POST /api/entities/{eid}/beacons/{id}/unlocker                  # Create unlock instance
 PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/status   # Update status
@@ -133,6 +147,7 @@ PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome  # Record resu
 ## Database Schema
 
 ### Collections (MongoDB)
+
 - `entities` - Buildings (malls, hospitals, airports)
 - `areas` - Polygonal zones within entities
 - `beacons` - BLE devices for positioning/access
@@ -142,16 +157,19 @@ PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome  # Record resu
 - `beacon_secrets` - Private keys for beacons
 
 ### Tables (PostgreSQL)
+
 Same schema, with additional relational integrity constraints and foreign keys.
 
 ## Documentation
 
 ### PostgreSQL Migration
+
 **[PostgreSQL Migration Guide](./postgres-migration.md)** - Migrating from MongoDB to PostgreSQL
 
 Complete guide for the dual-database architecture and gradual migration strategy.
 
 **Topics:**
+
 - Repository pattern implementation
 - Type-safe ID handling (UUID vs Integer)
 - Schema migrations
@@ -160,9 +178,11 @@ Complete guide for the dual-database architecture and gradual migration strategy
 ---
 
 ### PostgreSQL Migration Summary
+
 **[Migration Summary](./postgres-migration-summary.md)** - Quick overview of migration status
 
 Summary of the PostgreSQL migration layer implementation, including:
+
 - Current status
 - Implemented repositories
 - 4-phase migration strategy
@@ -283,11 +303,13 @@ See [PostgreSQL Migration Guide](./postgres-migration.md) for complete details.
 ## Performance
 
 ### Database Optimization
+
 - Index all frequently queried fields
 - Connection pooling
 - Query optimization
 
 ### Async Runtime
+
 - Tokio for async I/O
 - Multi-threaded executor
 - Non-blocking database queries

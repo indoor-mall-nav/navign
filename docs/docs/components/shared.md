@@ -5,6 +5,7 @@ The `shared/` directory contains a `no_std` compatible Rust library that provide
 ## Overview
 
 The shared library is designed to work in multiple environments:
+
 - Embedded systems (ESP32-C3 firmware) using `heapless` collections
 - Server and desktop applications using standard library allocations
 - Mobile applications with SQLite integration
@@ -35,14 +36,18 @@ See [Feature Flags Analysis](./shared/feature-flags-analysis.md) for a comprehen
 ## Key Modules
 
 ### BLE Protocol
+
 Defines the Bluetooth Low Energy communication protocol used between mobile apps and beacons:
+
 - Device discovery and capabilities
 - Challenge-response authentication
 - Access control messages
 - Postcard binary serialization
 
 ### Schemas
+
 Core data structures shared across components:
+
 - `Entity` - Buildings (malls, hospitals, airports)
 - `Area` - Polygonal zones within entities
 - `Beacon` - BLE devices for positioning/access
@@ -51,14 +56,18 @@ Core data structures shared across components:
 - `Account` - User authentication data
 
 ### Crypto
+
 Cryptographic utilities:
+
 - P-256 ECDSA signature generation/verification
 - Nonce management for replay attack prevention
 - Proof structures for access control
 
 ### Pathfinding
+
 Advanced pathfinding algorithms:
-- Inner-area routing (A* within polygons)
+
+- Inner-area routing (A\* within polygons)
 - Inter-area routing (Dijkstra between areas)
 - Triangulation for non-Manhattan geometries
 - Visibility graph construction
@@ -66,6 +75,7 @@ Advanced pathfinding algorithms:
 ## Usage Examples
 
 ### Firmware (Embedded)
+
 ```toml
 [dependencies]
 navign-shared = { path = "../shared", default-features = false, features = [
@@ -78,6 +88,7 @@ navign-shared = { path = "../shared", default-features = false, features = [
 ```
 
 ### Server
+
 ```toml
 [dependencies]
 navign-shared = { path = "../shared", default-features = false, features = [
@@ -91,6 +102,7 @@ navign-shared = { path = "../shared", default-features = false, features = [
 ```
 
 ### Mobile (Tauri)
+
 ```toml
 [dependencies]
 navign-shared = { path = "../../shared", features = [

@@ -9,6 +9,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 ### 1. SQL Migrations
 
 **`migrations/001_initial_schema.sql`**
+
 - Complete PostgreSQL schema definition
 - UUID primary keys for `entities` and `users`
 - Integer (SERIAL) primary keys for all other tables
@@ -20,15 +21,18 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 ### 2. PostgreSQL Module (`src/pg/`)
 
 **`src/pg/mod.rs`**
+
 - Module organization and exports
 
 **`src/pg/pool.rs`**
+
 - `PgPool` wrapper around sqlx connection pool
 - `create_pool()` function with connection configuration
 - `run_migrations()` for automatic schema migration
 - Connection pooling with configurable limits
 
 **`src/pg/models.rs`**
+
 - PostgreSQL-specific models with correct ID types:
   - `PgEntity` - UUID
   - `PgUser` - UUID
@@ -41,6 +45,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
   - `PgFirmware` - i32
 
 **`src/pg/repository.rs`**
+
 - Repository traits:
   - `Repository<T>` - Generic CRUD operations
   - `UuidRepository<T>` - UUID-specific operations
@@ -54,6 +59,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 ### 3. Server Integration
 
 **`src/main.rs`** (Modified)
+
 - Added `pg` module import
 - Updated `AppState` to include optional `pg_pool: Option<Arc<PgPool>>`
 - Added PostgreSQL connection on startup (if `POSTGRES_URL` is set)
@@ -61,11 +67,13 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 - Graceful fallback to MongoDB-only if PostgreSQL not configured
 
 **`src/error.rs`** (Modified)
+
 - Added `DatabaseQuery(String)` error variant for PostgreSQL query errors
 - Added `NotFound(String)` generic not-found error
 - Updated error status code mappings
 
 **`Cargo.toml`** (Modified)
+
 - Updated sqlx dependency with full feature set:
   - `runtime-tokio`
   - `postgres`
@@ -77,6 +85,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 ### 4. Documentation
 
 **`POSTGRES_MIGRATION.md`**
+
 - Complete migration guide
 - Architecture overview
 - Schema design explanation
@@ -88,6 +97,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 - Troubleshooting guide
 
 **`.env.example`**
+
 - Example environment variable configuration
 - Shows both MongoDB (required) and PostgreSQL (optional) settings
 
@@ -125,7 +135,7 @@ This implementation adds a complete PostgreSQL migration layer as an **intermedi
 - ❌ No existing API endpoints changed
 - ❌ No existing service trait modified
 - ❌ No database.rs file touched
-- ❌ No schema/*.rs files changed (MongoDB models)
+- ❌ No schema/\*.rs files changed (MongoDB models)
 
 ## Environment Variables
 

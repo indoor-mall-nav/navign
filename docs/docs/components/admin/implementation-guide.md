@@ -969,7 +969,7 @@ async fn test_data_sync() {
 **File:** `docker-compose.yml`
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   central-server:

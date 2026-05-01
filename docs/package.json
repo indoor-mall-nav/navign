@@ -8,8 +8,8 @@
     "serve": "vitepress serve docs"
   },
   "devDependencies": {
-    "vue": "catalog:",
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4",
+    "vue": "catalog:"
   },
   "pnpm": {
     "peerDependencyRules": {

@@ -27,6 +27,7 @@ The frontend manages user interaction, visual rendering, and reactive state mana
 **State Management Strategy:**
 
 Pinia serves as the central state store, but unlike traditional single-store architectures, the application uses domain-specific stores:
+
 - Session store: User authentication state, current location, active navigation
 - Entity store: Cached building data, floor plans, area geometries
 - Beacon store: Known beacon locations, RSSI measurements, positioning data
@@ -36,6 +37,7 @@ This modular approach allows granular reactivity—updating beacon RSSI values d
 **Map Rendering Architecture:**
 
 Indoor map visualization combines two rendering technologies:
+
 1. **MapLibre GL** provides the base layer—vector tile rendering of building outlines, outdoor context, and floor plan backgrounds
 2. **Konva Canvas** overlays interactive elements—area polygons, navigation routes, user position markers
 
@@ -50,6 +52,7 @@ The Rust backend handles computationally intensive operations and platform-speci
 **Tauri Command Architecture:**
 
 Commands follow a consistent pattern:
+
 1. Frontend invokes command via Tauri API
 2. Request serialization (JSON over IPC)
 3. Rust handler executes business logic
@@ -60,6 +63,7 @@ This might seem inefficient compared to native mobile development, but the IPC o
 **Plugin System:**
 
 Tauri's plugin architecture provides access to native platform features:
+
 - **tauri-plugin-blec**: BLE communication layer
 - **tauri-plugin-sql**: SQLite database for offline storage
 - **tauri-plugin-stronghold**: Encrypted key storage using platform keychains
@@ -79,6 +83,7 @@ The localization process begins with BLE scanning. The application scans for adv
 **Device Identification Protocol:**
 
 When a beacon is discovered for the first time:
+
 1. Mobile connects to the beacon via GATT (Generic Attribute Profile)
 2. Subscribes to the characteristic at UUID `134b1d88-cd91-8134-3e94-5c4052743845`
 3. Sends a `DeviceRequest` message
@@ -91,6 +96,7 @@ This handshake occurs only once per beacon. Subsequent scans use the cached MAC-
 **Database Caching Strategy:**
 
 The SQLite schema maintains several tables:
+
 - `beacons`: MAC address, object ID, location coordinates, area association
 - `areas`: Polygon geometry (WKT format), floor identifier, accessibility metadata
 - `merchants`: Points of interest for navigation destinations
@@ -106,6 +112,7 @@ RSSI = -10n * log10(d) + A
 ```
 
 Where:
+
 - `n` is the path loss exponent (typically 2-4 for indoor environments)
 - `d` is distance in meters
 - `A` is the measured RSSI at 1 meter reference distance
@@ -119,6 +126,7 @@ However, this model is highly unreliable in practice. Signal multipath, absorpti
 **Area Detection:**
 
 Before trilateration can occur, the system must determine which area the user is in. This uses a majority voting algorithm:
+
 1. For each detected beacon, lookup its associated area
 2. Count area occurrences across all detected beacons
 3. The area with the most beacons is considered the current area
@@ -128,6 +136,7 @@ This approach handles edge cases where a user might detect beacons from multiple
 ### Position Update Frequency
 
 The localization handler runs on-demand rather than continuously. Continuous BLE scanning would drain battery rapidly. Instead, the UI triggers localization when:
+
 - User opens the navigation screen
 - User requests current position
 - Navigation is active (periodic updates every 5 seconds)
@@ -148,6 +157,7 @@ When a user requests navigation from their current position to a destination:
    - If merchant ID provided, resolve to coordinates via local database
 
 2. **Server Route Query:**
+
    ```
    GET /api/entities/{entity_id}/route?from={x},{y},{area_id}&to={x},{y},{area_id}&disallow={constraints}
    ```
@@ -170,6 +180,7 @@ These indicate transitions between areas via elevators, stairs, or escalators. T
 
 **Area Transition Management:**
 When navigation crosses area boundaries, the app must:
+
 1. Update the displayed floor plan
 2. Adjust the map viewport to the new area
 3. Re-run localization in the new context
@@ -179,6 +190,7 @@ This coordination between navigation state and UI state requires careful reactiv
 ### Visual Route Rendering
 
 The route overlay uses Konva's vector graphics capabilities to draw the path on the map canvas. The rendering algorithm:
+
 1. Transforms route waypoints from local coordinates to screen coordinates
 2. Draws a polyline connecting waypoints
 3. Adds directional arrows at intervals
@@ -193,6 +205,7 @@ The mobile app serves as a digital key for unlocking doors, gates, and turnstile
 ### Cryptographic Foundation
 
 Each mobile device generates a P-256 ECDSA key pair on first launch. The private key is stored in platform-specific secure storage:
+
 - **iOS**: Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` attribute
 - **Android**: Android Keystore with biometric protection
 - **Desktop**: Tauri Stronghold encrypted vault
@@ -204,6 +217,7 @@ The public key is registered with the server and associated with the user's acco
 The complete unlock sequence involves multiple round-trips between mobile, beacon, and server:
 
 **Phase 1: Nonce Challenge**
+
 1. User initiates unlock request in the mobile UI
 2. Mobile connects to beacon via BLE GATT
 3. Mobile sends `NonceRequest` to beacon
@@ -213,38 +227,24 @@ The complete unlock sequence involves multiple round-trips between mobile, beaco
 
 The signature identifier is the last 8 bytes of the beacon's signature. This allows the mobile to verify it's communicating with a genuine Navign beacon without performing full signature verification (which would require knowing the beacon's public key a priori).
 
-**Phase 2: Server Verification**
-7. Mobile requests unlock instance from server:
-   ```
-   POST /api/entities/{eid}/beacons/{bid}/unlocker
-   ```
+**Phase 2: Server Verification** 7. Mobile requests unlock instance from server:
+
+```
+POST /api/entities/{eid}/beacons/{bid}/unlocker
+```
+
 8. Server generates a TOTP code for this specific unlock attempt
 9. Server returns the TOTP and updates its database with unlock instance metadata
 
-**Phase 3: Proof Generation**
-10. Mobile constructs proof payload: `nonce || device_id || totp`
-11. Mobile signs the payload with its private key (ECDSA signature)
-12. This signature proves the mobile possesses the private key associated with the authorized user
+**Phase 3: Proof Generation** 10. Mobile constructs proof payload: `nonce || device_id || totp` 11. Mobile signs the payload with its private key (ECDSA signature) 12. This signature proves the mobile possesses the private key associated with the authorized user
 
-**Phase 4: Beacon Verification**
-13. Mobile sends `UnlockRequest(proof)` to beacon
-14. Beacon extracts the signature and payload from the proof
-15. Beacon verifies the ECDSA signature using the mobile's registered public key
-16. Beacon checks the nonce hasn't expired (5-second TTL)
-17. Beacon checks the nonce hasn't been used before (replay attack prevention)
-18. Beacon enforces rate limiting (max 5 attempts per 5 minutes)
+**Phase 4: Beacon Verification** 13. Mobile sends `UnlockRequest(proof)` to beacon 14. Beacon extracts the signature and payload from the proof 15. Beacon verifies the ECDSA signature using the mobile's registered public key 16. Beacon checks the nonce hasn't expired (5-second TTL) 17. Beacon checks the nonce hasn't been used before (replay attack prevention) 18. Beacon enforces rate limiting (max 5 attempts per 5 minutes)
 
-**Phase 5: Physical Unlock**
-19. If all checks pass, beacon activates the relay (or servo, or IR transmitter)
-20. Physical lock mechanism opens
-21. Beacon sends `UnlockResponse(success=true)`
+**Phase 5: Physical Unlock** 19. If all checks pass, beacon activates the relay (or servo, or IR transmitter) 20. Physical lock mechanism opens 21. Beacon sends `UnlockResponse(success=true)`
 
-**Phase 6: Audit Trail**
-22. Mobile reports outcome to server:
-    ```
-    PUT /api/entities/{eid}/beacons/{bid}/unlocker/{instance}/outcome
-    ```
-23. Server logs the access event for audit purposes
+**Phase 6: Audit Trail** 22. Mobile reports outcome to server:
+`     PUT /api/entities/{eid}/beacons/{bid}/unlocker/{instance}/outcome
+    ` 23. Server logs the access event for audit purposes
 
 ### Security Considerations
 
@@ -340,6 +340,7 @@ Desktop BLE support varies by platform. macOS has native BLE through IOBluetooth
 ### File System Access
 
 Mobile platforms sandbox file system access. Tauri's path resolver provides platform-appropriate directories:
+
 - **iOS**: Application Support directory (iCloud synced if configured)
 - **Android**: Internal storage (app-private directory)
 - **Desktop**: System-specific app data directories

@@ -6,13 +6,13 @@ This document provides a comprehensive guide for migrating from the Python visio
 
 ### Performance Improvements
 
-| Metric | Python | C++ | Improvement |
-|--------|--------|-----|-------------|
-| **Startup Time** | ~5 seconds | <1 second | **5x faster** |
-| **Frame Processing** | 50-80ms | 25-40ms | **2-3x faster** |
-| **Memory Usage** | ~500MB | ~150MB | **3x lower** |
-| **CPU Usage** | ~80% | ~40% | **2x lower** |
-| **Latency** | 80ms | 30ms | **2.6x lower** |
+| Metric               | Python     | C++       | Improvement     |
+| -------------------- | ---------- | --------- | --------------- |
+| **Startup Time**     | ~5 seconds | <1 second | **5x faster**   |
+| **Frame Processing** | 50-80ms    | 25-40ms   | **2-3x faster** |
+| **Memory Usage**     | ~500MB     | ~150MB    | **3x lower**    |
+| **CPU Usage**        | ~80%       | ~40%      | **2x lower**    |
+| **Latency**          | 80ms       | 30ms      | **2.6x lower**  |
 
 ### Key Benefits
 
@@ -27,6 +27,7 @@ This document provides a comprehensive guide for migrating from the Python visio
 ### Dependencies
 
 **Python:**
+
 ```python
 dependencies = [
   "eclipse-zenoh>=1.6.2",
@@ -40,6 +41,7 @@ dependencies = [
 ```
 
 **C++:**
+
 ```cmake
 find_package(OpenCV REQUIRED)
 find_library(APRILTAG_LIB apriltag)
@@ -50,6 +52,7 @@ find_package(zenohcxx OPTIONAL)
 ### AprilTag Detection
 
 **Python (robot/vision/locate.py):**
+
 ```python
 from pupil_apriltags import Detector
 
@@ -63,6 +66,7 @@ for tag in tags:
 ```
 
 **C++ (robot/vision_cpp/src/apriltag_detector.cpp):**
+
 ```cpp
 #include "apriltag_detector.hpp"
 
@@ -81,6 +85,7 @@ for (const auto& tag : tags) {
 ### Object Detection
 
 **Python (robot/vision/detection.py):**
+
 ```python
 from ultralytics import YOLO
 
@@ -94,6 +99,7 @@ for box in results[0].boxes:
 ```
 
 **C++ (robot/vision_cpp/src/object_detector.cpp):**
+
 ```cpp
 #include "object_detector.hpp"
 
@@ -111,6 +117,7 @@ for (const auto& obj : objects) {
 ### Camera Calibration
 
 **Python (robot/vision/calibrate.py):**
+
 ```python
 import cv2
 import numpy as np
@@ -127,6 +134,7 @@ np.savez("assets/interstices.npz",
 ```
 
 **C++ (robot/vision_cpp/src/camera_calibration.cpp):**
+
 ```cpp
 #include "camera_calibration.hpp"
 
@@ -147,6 +155,7 @@ calibrator.save("calibration.yml");
 ### Coordinate Transformation
 
 **Python (robot/vision/locate.py):**
+
 ```python
 def get_point_3d_place(point, Z0, camera_pos, R):
     # Undistort
@@ -164,6 +173,7 @@ def get_point_3d_place(point, Z0, camera_pos, R):
 ```
 
 **C++ (robot/vision_cpp/src/coordinate_transform.cpp):**
+
 ```cpp
 #include "coordinate_transform.hpp"
 
@@ -183,6 +193,7 @@ std::cout << "World: (" << world_point.x << ", "
 ### Step 1: Install Dependencies
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install -y \
     cmake \
@@ -195,6 +206,7 @@ sudo apt-get install -y \
 ```
 
 **macOS:**
+
 ```bash
 brew install cmake opencv apriltag protobuf onnxruntime
 ```
@@ -213,6 +225,7 @@ model.export(format="onnx", simplify=True)
 ```
 
 Or download pre-converted models:
+
 ```bash
 wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.onnx
 ```
@@ -247,6 +260,7 @@ cd robot/vision_cpp
 ```
 
 Or using justfile:
+
 ```bash
 just build-robot-vision-cpp-onnx
 ```
@@ -263,6 +277,7 @@ cd robot/vision_cpp/build
 Update your robot launch script:
 
 **Before:**
+
 ```bash
 # Launch Python vision
 cd robot/vision
@@ -270,6 +285,7 @@ uv run python service.py
 ```
 
 **After:**
+
 ```bash
 # Launch C++ vision
 cd robot/vision_cpp/build
@@ -278,19 +294,20 @@ cd robot/vision_cpp/build
 
 ## Feature Parity Matrix
 
-| Feature | Python | C++ | Status |
-|---------|--------|-----|--------|
-| AprilTag Detection | ✅ pupil-apriltags | ✅ apriltag C | ✅ Complete |
-| Pose Estimation | ✅ | ✅ | ✅ Complete |
-| YOLO Object Detection | ✅ YOLOv8/v12 | ✅ ONNX | ✅ Complete |
-| Camera Calibration | ✅ | ✅ | ✅ Complete |
-| Coordinate Transform | ✅ | ✅ | ✅ Complete |
-| Hand Tracking | ✅ MediaPipe | ⚠️ Optional | 🚧 In Progress |
-| Gesture Recognition | ✅ PyTorch | ❌ Not implemented | 📋 Planned |
-| Zenoh Messaging | ✅ | ⚠️ Partial | 🚧 In Progress |
-| Protocol Buffers | ✅ | ✅ | ✅ Complete |
+| Feature               | Python             | C++                | Status         |
+| --------------------- | ------------------ | ------------------ | -------------- |
+| AprilTag Detection    | ✅ pupil-apriltags | ✅ apriltag C      | ✅ Complete    |
+| Pose Estimation       | ✅                 | ✅                 | ✅ Complete    |
+| YOLO Object Detection | ✅ YOLOv8/v12      | ✅ ONNX            | ✅ Complete    |
+| Camera Calibration    | ✅                 | ✅                 | ✅ Complete    |
+| Coordinate Transform  | ✅                 | ✅                 | ✅ Complete    |
+| Hand Tracking         | ✅ MediaPipe       | ⚠️ Optional        | 🚧 In Progress |
+| Gesture Recognition   | ✅ PyTorch         | ❌ Not implemented | 📋 Planned     |
+| Zenoh Messaging       | ✅                 | ⚠️ Partial         | 🚧 In Progress |
+| Protocol Buffers      | ✅                 | ✅                 | ✅ Complete    |
 
 **Legend:**
+
 - ✅ Fully implemented
 - ⚠️ Partially implemented
 - ❌ Not implemented
@@ -309,11 +326,13 @@ cd robot/vision_cpp/build
 ### Workarounds
 
 **Hand Tracking:**
+
 - Keep Python vision service running alongside C++ for hand tracking
 - Use separate process for gesture recognition
 - Plan: Integrate MediaPipe C++ API (in progress)
 
 **Gesture Recognition:**
+
 - Use ONNX Runtime to load PyTorch gesture model
 - Convert gesture model to ONNX format
 - Plan: Native C++ inference (planned)
@@ -324,26 +343,26 @@ Measured on Intel i7-10700K, NVIDIA RTX 3060:
 
 ### AprilTag Detection (640x480)
 
-| Implementation | Avg Time | FPS |
-|----------------|----------|-----|
-| Python (pupil-apriltags) | 35ms | 28 |
-| C++ (apriltag) | 12ms | 83 |
+| Implementation           | Avg Time | FPS |
+| ------------------------ | -------- | --- |
+| Python (pupil-apriltags) | 35ms     | 28  |
+| C++ (apriltag)           | 12ms     | 83  |
 
 ### YOLO Object Detection (640x640)
 
-| Implementation | Backend | Avg Time | FPS |
-|----------------|---------|----------|-----|
-| Python (Ultralytics) | PyTorch CPU | 45ms | 22 |
-| C++ | OpenCV DNN | 28ms | 35 |
-| C++ | ONNX Runtime | 18ms | 55 |
+| Implementation       | Backend      | Avg Time | FPS |
+| -------------------- | ------------ | -------- | --- |
+| Python (Ultralytics) | PyTorch CPU  | 45ms     | 22  |
+| C++                  | OpenCV DNN   | 28ms     | 35  |
+| C++                  | ONNX Runtime | 18ms     | 55  |
 
 ### Full Pipeline (AprilTag + YOLO)
 
-| Implementation | Total Time | FPS |
-|----------------|------------|-----|
-| Python | 80ms | 12 |
-| C++ (OpenCV DNN) | 40ms | 25 |
-| C++ (ONNX Runtime) | 30ms | 33 |
+| Implementation     | Total Time | FPS |
+| ------------------ | ---------- | --- |
+| Python             | 80ms       | 12  |
+| C++ (OpenCV DNN)   | 40ms       | 25  |
+| C++ (ONNX Runtime) | 30ms       | 33  |
 
 ## Troubleshooting
 
@@ -401,17 +420,20 @@ grep "names:" coco.yaml | cut -d: -f2- | tr ',' '\n' | sed 's/^[ \t]*//' > coco.
 If you need to revert to Python:
 
 1. **Keep Python environment**:
+
    ```bash
    cd robot/vision
    uv sync
    ```
 
 2. **Stop C++ service**:
+
    ```bash
    killall navign_vision
    ```
 
 3. **Start Python service**:
+
    ```bash
    cd robot/vision
    uv run python service.py

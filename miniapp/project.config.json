@@ -3,10 +3,7 @@
   "miniprogramRoot": "miniprogram/",
   "compileType": "miniprogram",
   "setting": {
-    "useCompilerPlugins": [
-      "typescript",
-      "sass"
-    ],
+    "useCompilerPlugins": ["typescript", "sass"],
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],

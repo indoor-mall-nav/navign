@@ -15,19 +15,23 @@ User Request → Position Resolution → Server Pathfinding → Instruction Gene
 Navigation requests can specify locations in two formats:
 
 **Explicit Coordinates:**
+
 ```
 from: "45.5,67.3,507f191e810c19729de860ea"
 to: "23.1,89.4,507f191e810c19729de860eb"
 ```
+
 Format: `<x>,<y>,<area_id>`
 
 **Merchant References:**
+
 ```
 from: "507f1f77bcf86cd799439011"  (current_user_position special value)
 to: "507f1f77bcf86cd799439012"    (merchant ObjectId)
 ```
 
 The mobile resolves merchant IDs to coordinates via local cache:
+
 ```sql
 SELECT location_x, location_y, area FROM merchants WHERE id = ?
 ```
@@ -37,6 +41,7 @@ This two-format system balances flexibility (users can navigate to any coordinat
 **Current Position Handling:**
 
 The special value `"current"` or user position from localization pipeline resolves to:
+
 ```
 (localization.x, localization.y, localization.area)
 ```
@@ -56,14 +61,16 @@ GET /api/entities/{entity_id}/route?from={source}&to={destination}&disallow={con
 `from`: Source position (format: `x,y,area_id` or `merchant_id`)
 `to`: Destination position (same format)
 `disallow`: Optional string encoding disabled connection types
-  - `'e'`: Disable elevators
-  - `'s'`: Disable stairs
-  - `'c'`: Disable escalators
-  - Example: `"esc"` disables all vertical transitions (same-floor only)
+
+- `'e'`: Disable elevators
+- `'s'`: Disable stairs
+- `'c'`: Disable escalators
+- Example: `"esc"` disables all vertical transitions (same-floor only)
 
 The `disallow` parameter enables accessibility routing. A wheelchair user would set `disallow="sc"` (stairs and escalators disabled), forcing the router to use only elevators and same-floor paths.
 
 **Request Example:**
+
 ```
 GET /api/entities/507f1f77bcf86cd799439011/route?from=10.5,20.3,507f191e810c19729de860ea&to=507f191e810c19729de860eb&disallow=c
 ```
@@ -75,12 +82,13 @@ This requests a route avoiding escalators.
 The server begins by loading all areas and connections for the entity from MongoDB:
 
 ```javascript
-areas = db.areas.find({ entity: entity_id })
-connections = db.connections.find({ entity: entity_id })
-merchants = db.merchants.find({ entity: entity_id })
+areas = db.areas.find({ entity: entity_id });
+connections = db.connections.find({ entity: entity_id });
+merchants = db.merchants.find({ entity: entity_id });
 ```
 
 These documents are converted into a connectivity graph where:
+
 - **Nodes**: Areas (each floor's rooms, hallways, zones)
 - **Edges**: Connections (elevators, stairs, escalators linking areas)
 
@@ -108,6 +116,7 @@ struct ConnectedArea {
 ```
 
 For example, an elevator connecting Floor 1 to Floor 2 might specify:
+
 - Area A (Floor 1): entry at (50, 30)
 - Area B (Floor 2): exit at (51, 31)
 
@@ -134,6 +143,7 @@ Connections of disabled types are excluded from the graph, making them effective
 **Edge Weights:**
 
 Each connection has a weight representing traversal cost. The current implementation uses uniform weights (all connections cost 1), but future enhancements could incorporate:
+
 - Physical distance between area centers
 - Elevator wait times (elevators cost more than stairs)
 - Stair difficulty (multiple floors cost more than single floor)
@@ -142,11 +152,13 @@ Each connection has a weight representing traversal cost. The current implementa
 **Algorithm Execution:**
 
 Dijkstra's maintains:
+
 - Priority queue of unexplored nodes (ordered by cumulative distance from source)
 - Distance table mapping each node to shortest known distance from source
 - Predecessor table tracking optimal path
 
 The algorithm iteratively:
+
 1. Extract minimum-distance node from priority queue
 2. For each neighbor, calculate distance via current node
 3. If shorter than known distance, update distance and predecessor
@@ -169,6 +181,7 @@ All allocations come from a contiguous memory region. When the arena drops, all 
 **Asymptotic Complexity:**
 
 For V areas and E connections:
+
 - Time: O((V + E) log V) (priority queue operations)
 - Space: O(V + E) (graph storage)
 
@@ -177,6 +190,7 @@ Typical indoor entities have V ~ 50-200 areas and E ~ 100-500 connections, yield
 ## Stage 5: Path Decomposition
 
 Dijkstra's returns a sequence of areas:
+
 ```
 [area_1, area_2, area_3, ..., area_n]
 ```
@@ -186,6 +200,7 @@ The server decomposes this into segments, where each segment represents movement
 **Segment Structure:**
 
 For each adjacent pair `(area_i, area_i+1)`:
+
 1. Find the connection linking them
 2. Extract entry point in `area_i` from connection metadata
 3. Extract exit point (entry point in `area_i+1`)
@@ -201,7 +216,7 @@ Each area has a polygon boundary representing navigable space. The server finds 
 Construct a graph where nodes are polygon vertices and edges are visible (unobstructed) segments. This produces optimal paths but requires O(V²) visibility checks for V vertices.
 
 **Polygon-Based Displacement:**
-Current implementation uses a simpler approach: the polygon is converted to a grid-based or bounded block representation, and A* or similar search finds a path. This is faster to compute but produces sub-optimal (longer) paths.
+Current implementation uses a simpler approach: the polygon is converted to a grid-based or bounded block representation, and A\* or similar search finds a path. This is faster to compute but produces sub-optimal (longer) paths.
 
 Future implementation will use visibility graphs for better path quality.
 
@@ -229,6 +244,7 @@ Generated for movement within areas. The distance is Euclidean distance between 
 **Transport Instructions:**
 
 Generated at connection transitions:
+
 ```json
 {
   "type": "Transport",
@@ -243,6 +259,7 @@ The mobile UI interprets this as "Take elevator to Floor 2" (extracting floor fr
 **Instruction Merging:**
 
 Consecutive walk instructions in the same direction merge:
+
 ```
 Walk 5m north + Walk 3m north → Walk 8m north
 ```
@@ -255,27 +272,29 @@ The mobile receives JSON instructions and converts them into UI-renderable forma
 
 ```typescript
 interface RenderedInstruction {
-  text: string;           // "Walk 15 meters north"
-  icon: string;           // Icon name for UI
-  distance?: number;      // For progress tracking
-  type: 'walk' | 'transport' | 'arrive';
+  text: string; // "Walk 15 meters north"
+  icon: string; // Icon name for UI
+  distance?: number; // For progress tracking
+  type: "walk" | "transport" | "arrive";
 }
 ```
 
 **Localization:**
 
 Instruction text supports i18n (internationalization):
+
 ```typescript
 const instructionText = {
   en: "Take elevator to Floor 2",
   zh: "乘坐电梯到2楼",
-  ja: "エレベーターで2階へ"
+  ja: "エレベーターで2階へ",
 }[userLanguage];
 ```
 
 **Icon Selection:**
 
 Each instruction type maps to an icon:
+
 - Walk: Arrow icon
 - Elevator: Elevator icon
 - Stairs: Stairs icon
@@ -293,8 +312,8 @@ Server instructions include waypoint coordinates in local coordinate systems. Th
 ```typescript
 function localToScreen(x: number, y: number, area: Area): Point {
   const mapBounds = getMapBounds(area);
-  const screenX = (x - mapBounds.minX) / (mapBounds.maxX - mapBounds.minX) * screenWidth;
-  const screenY = (y - mapBounds.minY) / (mapBounds.maxY - mapBounds.minY) * screenHeight;
+  const screenX = ((x - mapBounds.minX) / (mapBounds.maxX - mapBounds.minX)) * screenWidth;
+  const screenY = ((y - mapBounds.minY) / (mapBounds.maxY - mapBounds.minY)) * screenHeight;
   return { x: screenX, y: screenY };
 }
 ```
@@ -302,13 +321,14 @@ function localToScreen(x: number, y: number, area: Area): Point {
 **Polyline Rendering:**
 
 The route is drawn as a styled polyline:
+
 ```typescript
 const routeLine = new Konva.Line({
-  points: waypoints.flatMap(p => [p.x, p.y]),
-  stroke: '#0066FF',
+  points: waypoints.flatMap((p) => [p.x, p.y]),
+  stroke: "#0066FF",
   strokeWidth: 4,
-  lineCap: 'round',
-  lineJoin: 'round',
+  lineCap: "round",
+  lineJoin: "round",
 });
 ```
 
@@ -327,8 +347,9 @@ As the user moves, the mobile tracks progress:
 **Progress Calculation:**
 
 For each walk instruction, the distance from current position to instruction's endpoint is compared to the instruction's total distance:
+
 ```typescript
-const progress = 1 - (remainingDistance / totalDistance);
+const progress = 1 - remainingDistance / totalDistance;
 ```
 
 When progress exceeds 90%, the UI highlights the next instruction.
@@ -336,6 +357,7 @@ When progress exceeds 90%, the UI highlights the next instruction.
 **Off-Route Detection:**
 
 If the user's position deviates >5 meters from the route polyline, the system triggers re-routing:
+
 1. Calculate new route from current position to original destination
 2. Animate transition from old route to new route
 3. Update instructions

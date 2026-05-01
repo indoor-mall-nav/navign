@@ -11,6 +11,7 @@ This repository contains the firmware for the beacon devices that act as smart a
 ## Features
 
 ### Core Functionality
+
 - **BLE Advertising**: Broadcasts beacon presence with multiple service UUIDs:
   - `0x183D` - Authorization Control Service (for gate unlocking)
   - `0x1819` - Location and Navigation Service
@@ -23,17 +24,20 @@ This repository contains the firmware for the beacon devices that act as smart a
 - **Hardware Integration**: Controls physical actuators (relays, servo motors, IR transmitters)
 
 ### Device Types
+
 - **Merchant** (`0x01`): Commercial establishment access points
 - **Pathway** (`0x02`): Navigation waypoints in corridors
 - **Connection** (`0x03`): Junction points between different areas
 - **Turnstile** (`0x04`): Access control gates and turnstiles
 
 ### Device Capabilities
+
 - **UnlockGate** (`0x01`): Physical gate/door unlocking capability
 - **EnvironmentalData** (`0x02`): Environmental sensor data collection (temperature, humidity)
 - **RssiCalibration** (`0x04`): Signal strength calibration for precise indoor positioning
 
 ### Security Features
+
 - **Nonce-based Authentication**: 16-byte random nonces prevent replay attacks
 - **Challenge-Response Protocol**: Secure proof verification with server-signed challenges
 - **Counter-based Protection**: Sequential request validation with monotonic counter
@@ -45,10 +49,12 @@ This repository contains the firmware for the beacon devices that act as smart a
 ## Hardware Requirements
 
 ### Supported Chips
+
 - **ESP32-C3** (primary target)
 - ESP32, ESP32-S3, ESP32-C2, ESP32-C6, ESP32-H2
 
 ### GPIO Configuration (ESP32-C3)
+
 ```
 GPIO1  - Human body sensor (PIR sensor, input)
 GPIO3  - Button input (boot button)
@@ -58,11 +64,13 @@ GPIO8  - LED indicator output
 ```
 
 ### Memory Requirements
+
 - **Heap Size**: 192KB allocated for dynamic memory
 - **Flash**: ~200KB for firmware (varies with features)
 - **Efuse**: BLOCK_KEY0 (256 bits) used for private key storage
 
 ### Hardware Components
+
 - ESP32-C3-DevKitM-1 or similar board
 - DHT11 temperature/humidity sensor
 - PIR motion sensor (HC-SR501 or similar)
@@ -104,7 +112,9 @@ beacon/
 ### Key Components
 
 #### BeaconState
+
 The central state machine that manages:
+
 - Device authentication and proof verification
 - Nonce generation and tracking
 - Unlock method execution (relay, servo, IR remote)
@@ -112,21 +122,27 @@ The central state machine that manages:
 - Rate limiting and security
 
 #### ProofManager
+
 Handles cryptographic operations:
+
 - P-256 ECDSA signature verification
 - Server signature validation
 - Device signature generation
 - Counter-based challenge validation
 
 #### NonceManager
+
 Manages nonce lifecycle:
+
 - Random nonce generation using TRNG
 - Replay attack prevention
 - Automatic expiry of old nonces (5-minute window)
 - Capacity: up to 32 concurrent nonces
 
 #### BleProtocolHandler
+
 Implements the binary protocol:
+
 - Message serialization/deserialization
 - Buffer management (128-byte MTU)
 - Fragmentation for larger messages
@@ -137,16 +153,16 @@ Implements the binary protocol:
 
 All messages start with a 1-byte identifier:
 
-| Message Type | ID | Length | Description |
-|-------------|-----|--------|-------------|
-| DEVICE_REQUEST | 0x01 | 1 byte | Request device info |
-| DEVICE_RESPONSE | 0x02 | 27 bytes | Device type, capabilities, ID |
-| NONCE_REQUEST | 0x03 | 1 byte | Request authentication nonce |
-| NONCE_RESPONSE | 0x04 | 21 bytes | Nonce + signature tail |
-| UNLOCK_REQUEST | 0x05 | 105 bytes | Signed unlock proof |
-| UNLOCK_RESPONSE | 0x06 | 3 bytes | Success/failure + reason |
-| DEBUG_REQUEST | 0xFF | 1+ bytes | Debug command |
-| DEBUG_RESPONSE | 0xFE | 1+ bytes | Debug response |
+| Message Type    | ID   | Length    | Description                   |
+| --------------- | ---- | --------- | ----------------------------- |
+| DEVICE_REQUEST  | 0x01 | 1 byte    | Request device info           |
+| DEVICE_RESPONSE | 0x02 | 27 bytes  | Device type, capabilities, ID |
+| NONCE_REQUEST   | 0x03 | 1 byte    | Request authentication nonce  |
+| NONCE_RESPONSE  | 0x04 | 21 bytes  | Nonce + signature tail        |
+| UNLOCK_REQUEST  | 0x05 | 105 bytes | Signed unlock proof           |
+| UNLOCK_RESPONSE | 0x06 | 3 bytes   | Success/failure + reason      |
+| DEBUG_REQUEST   | 0xFF | 1+ bytes  | Debug command                 |
+| DEBUG_RESPONSE  | 0xFE | 1+ bytes  | Debug response                |
 
 ### Authentication Flow
 
@@ -178,28 +194,34 @@ Client                          Beacon                      Server
 ### Message Format Details
 
 #### DEVICE_RESPONSE (27 bytes)
+
 ```
 [0x02][device_type][capabilities][24-byte MongoDB ObjectId]
 ```
 
 #### NONCE_RESPONSE (21 bytes)
+
 ```
 [0x04][16-byte nonce][4-byte signature tail]
 ```
+
 - Signature tail: Last 4 bytes of device signature on nonce
 
 #### UNLOCK_REQUEST (105 bytes)
+
 ```
 [0x05][16-byte nonce][8-byte device_bytes][8-byte verify_bytes]
       [8-byte timestamp][64-byte server_signature]
 ```
 
 #### UNLOCK_RESPONSE (3 bytes)
+
 ```
 [0x06][success: 0x00/0x01][error_code]
 ```
 
 Error codes:
+
 - `0x01` - Invalid signature
 - `0x02` - Invalid key
 - `0x03` - Server public key not set
@@ -213,11 +235,13 @@ Error codes:
 ### Prerequisites
 
 1. **Rust Toolchain**
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
 2. **ESP-RS Toolchain**
+
    ```bash
    cargo install espup
    espup install
@@ -293,6 +317,7 @@ let server_public_key = [
 The beacon supports three unlock methods:
 
 ### 1. Relay (Default)
+
 Simple on/off control for electric strikes and magnetic locks:
 
 ```rust
@@ -301,11 +326,13 @@ let method = UnlockMethod::Relay(relay);
 ```
 
 **Behavior**:
+
 - Unlocks: Relay HIGH for 5 seconds
 - Human sensor active: Extends relay HIGH
 - Closes: 10 seconds after last motion or unlock
 
 ### 2. Servo Motor
+
 For mechanical gates using servo motors:
 
 ```rust
@@ -313,11 +340,13 @@ let method = UnlockMethod::Servo { channel, timer };
 ```
 
 **Behavior**:
+
 - Rotates servo to unlock position
 - Holds for configured duration
 - Returns to locked position
 
 ### 3. IR Remote
+
 For IR-controlled gates (e.g., garage doors):
 
 ```rust
@@ -325,6 +354,7 @@ let method = UnlockMethod::remote(rmt, output, addr, cmd)?;
 ```
 
 **Behavior**:
+
 - Sends IR signal using RMT peripheral
 - Supports custom address and command codes
 
@@ -417,23 +447,27 @@ Use `espmonitor` to view logs in real-time.
 ### Common Issues
 
 **Beacon not advertising**
+
 - Check BLE is enabled in sdkconfig
 - Verify heap allocation (192KB required)
 - Check for panic messages in serial output
 
 **Authentication failures**
+
 - Verify server public key matches server's private key
 - Check device ID is correctly configured
 - Ensure nonce hasn't expired (5-minute window)
 - Verify system time is synchronized
 
 **Relay not activating**
+
 - Check GPIO pin configuration
 - Verify relay module power supply
 - Test relay with manual GPIO toggle
 - Check for rate limiting (max 5 attempts)
 
 **DHT11 read errors**
+
 - Verify GPIO4 connection
 - Check sensor power (3.3V or 5V)
 - Ensure proper pull-up resistor (4.7kΩ)
@@ -468,6 +502,7 @@ Contributions are welcome! Please:
 ## Support
 
 For questions, issues, or feature requests:
+
 - Open an issue on GitHub
 
 ## Acknowledgments

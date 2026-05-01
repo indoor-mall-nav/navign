@@ -5,6 +5,7 @@ This directory contains tests for the ESP32-C3 firmware. See `/firmware/TESTING.
 ## Quick Start
 
 ### Mock-based Tests (Fastest)
+
 Run on host machine without hardware or simulators:
 
 ```bash
@@ -18,6 +19,7 @@ cargo test --test rate_limit_tests --features std
 ```
 
 ### QEMU Simulation Tests
+
 Requires QEMU installation (see TESTING.md):
 
 ```bash
@@ -29,6 +31,7 @@ just test-firmware-qemu
 ```
 
 ### All Tests
+
 ```bash
 just test-firmware-all
 ```
@@ -52,6 +55,7 @@ tests/
 ## CI/CD
 
 Tests run automatically in GitHub Actions:
+
 - **Mock tests**: Run on every PR/push
 - **QEMU tests**: Run on firmware changes
 - **Hardware build**: Verify firmware compiles for real hardware
@@ -62,14 +66,14 @@ See `.github/workflows/firmware-tests.yml` for details.
 
 Current test coverage:
 
-| Component | Tests | Coverage Goal |
-|-----------|-------|---------------|
-| Nonce Management | 6 | 95%+ |
-| Cryptography (P-256 ECDSA) | 8 | 90%+ |
-| Rate Limiting | 8 | 90%+ |
-| BLE Protocol | 0 | 80%+ (TODO) |
-| Storage (eFuse) | 0 | 85%+ (TODO) |
-| GPIO/Peripherals | 3 | 60%+ |
+| Component                  | Tests | Coverage Goal |
+| -------------------------- | ----- | ------------- |
+| Nonce Management           | 6     | 95%+          |
+| Cryptography (P-256 ECDSA) | 8     | 90%+          |
+| Rate Limiting              | 8     | 90%+          |
+| BLE Protocol               | 0     | 80%+ (TODO)   |
+| Storage (eFuse)            | 0     | 85%+ (TODO)   |
+| GPIO/Peripherals           | 3     | 60%+          |
 
 ## Adding New Tests
 
@@ -91,6 +95,7 @@ fn test_my_feature() {
 ```
 
 Run with:
+
 ```bash
 cargo test --test my_feature_tests --features std
 ```
@@ -110,10 +115,12 @@ To add custom QEMU validation, edit `qemu_runner.sh`.
 ## Troubleshooting
 
 ### Mock tests fail
+
 - Ensure you're using `--features std` flag
 - Check Rust toolchain is up to date
 
 ### QEMU not found
+
 ```bash
 # Install ESP32-C3 QEMU
 git clone --depth 1 --branch esp-develop-9.0.0 https://github.com/espressif/qemu.git
@@ -124,6 +131,7 @@ sudo make install
 ```
 
 ### Firmware build fails
+
 ```bash
 # Install espup
 cargo install espup

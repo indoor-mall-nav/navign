@@ -42,6 +42,7 @@ robot/vision_cpp/
 ## Key Features Implemented
 
 ### 1. AprilTag Detection
+
 - **Library**: apriltag C library (native)
 - **Features**:
   - Tag detection with configurable parameters
@@ -52,6 +53,7 @@ robot/vision_cpp/
 - **Performance**: 12ms per frame (640x480)
 
 ### 2. Object Detection
+
 - **Backend**: OpenCV DNN or ONNX Runtime
 - **Model Format**: YOLO ONNX (v8, v12 compatible)
 - **Features**:
@@ -63,6 +65,7 @@ robot/vision_cpp/
 - **Performance**: 18-28ms per frame (640x640)
 
 ### 3. Camera Calibration
+
 - **Method**: Chessboard pattern
 - **Features**:
   - Live camera calibration
@@ -73,6 +76,7 @@ robot/vision_cpp/
 - **Accuracy**: Sub-pixel corner detection
 
 ### 4. Coordinate Transformation
+
 - **Features**:
   - 2D image to 3D world coordinates
   - 3D world to 2D image coordinates
@@ -82,6 +86,7 @@ robot/vision_cpp/
 - **Use Cases**: Spatial reasoning, object localization
 
 ### 5. Vision Service
+
 - **Architecture**: Async processing loop
 - **Features**:
   - Configurable frame rate
@@ -93,18 +98,19 @@ robot/vision_cpp/
 
 ## Performance Comparison
 
-| Metric | Python | C++ | Improvement |
-|--------|--------|-----|-------------|
-| Startup Time | ~5s | <1s | **5x** |
-| AprilTag Detection | 35ms | 12ms | **2.9x** |
-| YOLO Detection | 45ms | 18ms | **2.5x** |
-| Full Pipeline | 80ms | 30ms | **2.6x** |
-| Memory Usage | 500MB | 150MB | **3.3x** |
-| Frame Rate | 12 FPS | 33 FPS | **2.75x** |
+| Metric             | Python | C++    | Improvement |
+| ------------------ | ------ | ------ | ----------- |
+| Startup Time       | ~5s    | <1s    | **5x**      |
+| AprilTag Detection | 35ms   | 12ms   | **2.9x**    |
+| YOLO Detection     | 45ms   | 18ms   | **2.5x**    |
+| Full Pipeline      | 80ms   | 30ms   | **2.6x**    |
+| Memory Usage       | 500MB  | 150MB  | **3.3x**    |
+| Frame Rate         | 12 FPS | 33 FPS | **2.75x**   |
 
 ## Dependencies
 
 ### Required
+
 - CMake >= 3.20
 - OpenCV >= 4.5 (with contrib)
 - apriltag C library
@@ -112,6 +118,7 @@ robot/vision_cpp/
 - pthreads
 
 ### Optional
+
 - ONNX Runtime (recommended for 40% faster YOLO)
 - Zenoh C++ (for pub/sub messaging)
 - MediaPipe C++ (hand tracking, experimental)
@@ -119,6 +126,7 @@ robot/vision_cpp/
 ## Build System
 
 ### CMake Configuration
+
 - Cross-platform support (Linux, macOS, Windows)
 - Automatic dependency detection
 - Optional feature flags
@@ -126,6 +134,7 @@ robot/vision_cpp/
 - Install targets
 
 ### Build Commands
+
 ```bash
 # Standard build
 just build-robot-vision-cpp
@@ -138,6 +147,7 @@ just clean-robot-vision-cpp
 ```
 
 ### CI Integration
+
 - Added `ci-robot-vision-cpp` to justfile
 - Integrated with `ci-robot-upper` target
 - CMake configuration check
@@ -146,6 +156,7 @@ just clean-robot-vision-cpp
 ## API Design
 
 ### Modern C++ Features
+
 - Smart pointers (`std::unique_ptr`, `std::shared_ptr`)
 - RAII resource management
 - Move semantics
@@ -154,6 +165,7 @@ just clean-robot-vision-cpp
 - Thread-safe atomics
 
 ### Example Usage
+
 ```cpp
 // Create service
 auto service = std::make_unique<VisionService>();
@@ -171,18 +183,21 @@ if (service->start()) {
 ## Testing Strategy
 
 ### Unit Testing (Planned)
+
 - AprilTag detection accuracy
 - Object detection precision
 - Calibration reprojection error
 - Coordinate transformation validation
 
 ### Integration Testing (Planned)
+
 - End-to-end pipeline testing
 - Multi-camera scenarios
 - Zenoh messaging integration
 - Performance benchmarks
 
 ### Current Status
+
 - ✅ Manual testing with live camera
 - ✅ Calibration verified with chessboard
 - ✅ AprilTag detection validated
@@ -192,18 +207,21 @@ if (service->start()) {
 ## Migration Path
 
 ### Phase 1: Parallel Deployment ✅ (Current)
+
 - Both Python and C++ services available
 - Users can choose based on requirements
 - Python for hand tracking/gestures
 - C++ for core vision tasks
 
 ### Phase 2: Gradual Migration (Planned)
+
 - Migrate hand tracking to C++ (MediaPipe C++)
 - Add gesture recognition ONNX inference
 - Complete Zenoh integration
 - Deprecate Python service
 
 ### Phase 3: Full Replacement (Future)
+
 - Remove Python vision dependency
 - C++ as primary vision service
 - Maintain Python only for prototyping
@@ -211,12 +229,14 @@ if (service->start()) {
 ## Known Limitations
 
 ### Not Yet Implemented
+
 1. **Hand Tracking**: MediaPipe C++ integration is optional
 2. **Gesture Recognition**: Neural network inference for gestures
 3. **Zenoh Full Integration**: Pub/sub messaging is partial
 4. **Multi-Camera**: Single camera only
 
 ### Workarounds
+
 - Run Python vision alongside for hand tracking
 - Use ONNX Runtime for gesture model inference
 - Manual Zenoh integration in application code
@@ -225,18 +245,21 @@ if (service->start()) {
 ## Future Enhancements
 
 ### Short-term (1-2 months)
+
 - [ ] Complete Zenoh C++ integration
 - [ ] MediaPipe C++ hand tracking
 - [ ] Multi-camera support
 - [ ] Unit tests and benchmarks
 
 ### Medium-term (3-6 months)
+
 - [ ] CUDA/GPU acceleration
 - [ ] TensorRT backend
 - [ ] Gesture recognition ONNX
 - [ ] ROS 2 bridge
 
 ### Long-term (6+ months)
+
 - [ ] Custom neural networks
 - [ ] Depth camera support
 - [ ] 3D object detection
@@ -245,11 +268,13 @@ if (service->start()) {
 ## Documentation
 
 ### User Documentation
+
 - **README.md**: Installation, usage, API reference
 - **MIGRATION.md**: Python-to-C++ migration guide
 - **SUMMARY.md**: This overview document
 
 ### Developer Documentation
+
 - **CMakeLists.txt**: Build system comments
 - **Header files**: Doxygen-style comments
 - **CLAUDE.md**: C++ coding standards (root)
@@ -257,17 +282,20 @@ if (service->start()) {
 ## Integration Points
 
 ### Robot System
+
 - Component: `robot/vision_cpp/`
 - Executable: `navign_vision`
 - Config: `calibration.yml`
 - Models: `*.onnx`, `coco.names`
 
 ### Build System
+
 - Justfile commands: `build-robot-vision-cpp`, etc.
 - CI target: `ci-robot-vision-cpp`
 - Integrated with `ci-robot-upper`
 
 ### Messaging
+
 - Protocol: Protocol Buffers (`robot/proto/vision.proto`)
 - Transport: Zenoh (partial)
 - Topics: `robot/vision/*`
@@ -277,6 +305,7 @@ if (service->start()) {
 The C++ vision service migration is **complete and production-ready** for core features:
 
 ✅ **Working Features:**
+
 - AprilTag detection with pose estimation
 - YOLO object detection (ONNX)
 - Camera calibration and persistence
@@ -285,6 +314,7 @@ The C++ vision service migration is **complete and production-ready** for core f
 - Build system and documentation
 
 📋 **Planned Features:**
+
 - Hand tracking (MediaPipe C++)
 - Gesture recognition (ONNX)
 - Complete Zenoh integration

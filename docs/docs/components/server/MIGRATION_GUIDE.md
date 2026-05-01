@@ -34,6 +34,7 @@ POSTGRES_RUN_MIGRATIONS=true cargo run --bin navign-server
 ```
 
 This will:
+
 - Create all tables (entities, users, areas, beacons, merchants, connections, etc.)
 - Set up indexes and constraints
 - Install PostGIS extension
@@ -167,6 +168,7 @@ cargo run --bin navign-server
 ```
 
 The server will:
+
 - Use PostgreSQL for reads/writes when available
 - Fall back to MongoDB if PostgreSQL is not configured
 - Log which database is being used for each operation
@@ -246,6 +248,7 @@ use crate::pg::handlers;
 ```
 
 These handlers automatically:
+
 - Check if PostgreSQL pool exists
 - Use PostgreSQL if available
 - Fall back to MongoDB otherwise
@@ -256,6 +259,7 @@ These handlers automatically:
 ### Migration fails with "Entity not found in map"
 
 This means a foreign key relationship is broken. Possible causes:
+
 - Data corruption in MongoDB
 - Orphaned records (area references non-existent entity)
 
@@ -276,6 +280,7 @@ POSTGRES_RUN_MIGRATIONS=true cargo run --bin navign-server
 ### Connection refused errors
 
 **MongoDB:**
+
 ```bash
 # Check if MongoDB is running
 systemctl status mongod
@@ -289,6 +294,7 @@ brew services start mongodb-community
 ```
 
 **PostgreSQL:**
+
 ```bash
 # Check if PostgreSQL is running
 systemctl status postgresql
@@ -325,11 +331,13 @@ psql $POSTGRES_URL -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 If migration fails with unique constraint violations:
 
 **Option 1**: Use `--skip-existing` flag:
+
 ```bash
 ./scripts/migrate.sh --skip-existing
 ```
 
 **Option 2**: Clear PostgreSQL and re-run:
+
 ```bash
 # WARNING: This deletes all PostgreSQL data
 psql $POSTGRES_URL -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
@@ -344,11 +352,13 @@ POSTGRES_RUN_MIGRATIONS=true cargo run --bin navign-server
 For databases with millions of records:
 
 1. **Use batch migration**:
+
 ```bash
 ./scripts/migrate.sh --batch-size 1000
 ```
 
 2. **Disable indexes temporarily** (PostgreSQL):
+
 ```sql
 -- Before migration
 ALTER TABLE beacons DISABLE TRIGGER ALL;
@@ -362,6 +372,7 @@ ALTER TABLE beacons ENABLE TRIGGER ALL;
 ```
 
 3. **Monitor progress**:
+
 ```bash
 # Watch PostgreSQL table sizes
 watch -n 5 "psql $POSTGRES_URL -c \"
@@ -375,6 +386,7 @@ watch -n 5 "psql $POSTGRES_URL -c \"
 ### Network Latency
 
 If MongoDB and PostgreSQL are on different servers:
+
 - Run migration from a machine close to both databases
 - Use `--batch-size` to tune network vs. transaction overhead
 - Consider using `pg_dump` / `mongodump` for large datasets
@@ -386,6 +398,7 @@ If you need to rollback to MongoDB:
 1. **Stop the server**
 
 2. **Update environment variables**:
+
 ```bash
 export MONGODB_HOST="localhost:27017"
 export DATABASE_NAME="navign"
@@ -395,6 +408,7 @@ unset POSTGRES_URL
 3. **Start server** - it will use MongoDB only
 
 4. **Restore MongoDB backup** (if needed):
+
 ```bash
 mongorestore --host localhost:27017 --db navign mongodb_backup_*/navign/
 ```
@@ -426,6 +440,7 @@ If you encounter issues:
 4. Check `server/migrations/001_initial_schema.sql` for schema definition
 
 For questions or issues, please file a GitHub issue with:
+
 - Migration command used
 - Error messages
 - Database versions (MongoDB, PostgreSQL)

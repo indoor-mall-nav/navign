@@ -52,6 +52,7 @@ uv run navign-maintenance flash-firmware \
 ```
 
 Options:
+
 - `--firmware, -f`: Path to firmware binary file (required)
 - `--port, -p`: ESP32-C3 serial port (required, e.g., `/dev/ttyUSB0`, `COM3`)
 - `--baud, -b`: Baud rate for flashing (default: `921600`)
@@ -61,6 +62,7 @@ Options:
 - `--monitor`: Monitor serial output after flashing
 
 Example with full options:
+
 ```bash
 uv run navign-maintenance flash-firmware \
   --firmware path/to/firmware.bin \
@@ -72,6 +74,7 @@ uv run navign-maintenance flash-firmware \
 
 **Flash tools:**
 The maintenance tool automatically detects and uses:
+
 - `espflash` (Rust-based, recommended): `cargo install espflash`
 - `esptool.py` (Python-based): `pip install esptool`
 
@@ -87,6 +90,7 @@ uv run navign-maintenance fuse-priv-key \
 ```
 
 Options:
+
 - `--output-dir, -o`: Directory to store key files (default: `./keys`)
 - `--key-name, -k`: Key name prefix (default: `esp32c3_key`)
 - `--port, -p`: ESP32-C3 serial port (e.g., `/dev/ttyUSB0`, `COM3`)
@@ -110,6 +114,7 @@ uv run navign-maintenance fuse-priv-key \
 ```
 
 Additional registration options:
+
 - `--register`: Enable beacon registration after key generation
 - `--orchestrator-addr`: Orchestrator gRPC address (default: `localhost:50051`)
 - `--entity-id`: Entity/mall identifier (required when `--register` is used)
@@ -133,6 +138,7 @@ uv run navign-maintenance register-beacon \
 ```
 
 Options:
+
 - `--metadata, -m`: Path to key metadata JSON file (required)
 - `--orchestrator-addr`: Orchestrator gRPC address
 - `--entity-id, -e`: Entity/mall identifier (required)
@@ -160,6 +166,7 @@ The tool generates two files in the output directory:
      - Chip information (if available)
 
 Example metadata:
+
 ```json
 {
   "key_name": "beacon_001",
@@ -201,27 +208,32 @@ The orchestrator then syncs the beacon information with the central server.
 ## Development
 
 Install development dependencies:
+
 ```bash
 uv sync --extra dev
 ```
 
 Run tests:
+
 ```bash
 uv run pytest
 ```
 
 Run tests with coverage:
+
 ```bash
 uv run pytest --cov=navign_maintenance --cov-report=html
 ```
 
 Format and lint:
+
 ```bash
 uvx ruff format
 uvx ruff check
 ```
 
 Generate protobuf code:
+
 ```bash
 ./generate_proto.sh
 ```

@@ -9,16 +9,16 @@
 
 The shared library has **8 optional feature flags** with varying levels of usage:
 
-| Feature | Status | Used By | Recommendation |
-|---------|--------|---------|-----------------|
-| **mongodb** | ❌ UNUSED | server only | **REMOVE** |
-| **base64** | ✅ USED | firmware, mobile | **KEEP** |
-| **chrono** | ✅ USED | postgres feature | **KEEP** |
-| **crypto** | ✅ USED | firmware | **KEEP** |
-| **geo** | ✅ USED | server, mobile | **KEEP** |
-| **postgres** | ✅ USED | server | **KEEP** |
-| **sql** | ✅ USED | mobile | **KEEP** |
-| **ts-rs** | ✅ USED | TypeScript generation | **KEEP** |
+| Feature      | Status    | Used By               | Recommendation |
+| ------------ | --------- | --------------------- | -------------- |
+| **mongodb**  | ❌ UNUSED | server only           | **REMOVE**     |
+| **base64**   | ✅ USED   | firmware, mobile      | **KEEP**       |
+| **chrono**   | ✅ USED   | postgres feature      | **KEEP**       |
+| **crypto**   | ✅ USED   | firmware              | **KEEP**       |
+| **geo**      | ✅ USED   | server, mobile        | **KEEP**       |
+| **postgres** | ✅ USED   | server                | **KEEP**       |
+| **sql**      | ✅ USED   | mobile                | **KEEP**       |
+| **ts-rs**    | ✅ USED   | TypeScript generation | **KEEP**       |
 
 ---
 
@@ -27,39 +27,48 @@ The shared library has **8 optional feature flags** with varying levels of usage
 ### 1. **mongodb** ❌ UNUSED - RECOMMEND REMOVAL
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 mongodb = ["alloc", "serde", "dep:bson"]
 ```
 
 #### Dependencies Enabled
+
 - `bson 2.15.0` (BSON serialization)
 - `alloc` (heap allocation)
 - `serde` (serialization)
 
 #### Usage in Shared
+
 - **No `#[cfg(feature = "mongodb")]` gates found**
 - **No `use bson` or `bson::` imports**
 - **No BSON types used anywhere**
 
 #### Used By
+
 - **Server** (Cargo.toml line 35): requests "mongodb" feature
 - **Firmware** (Cargo.toml line 81-87): does NOT request "mongodb"
 - **Mobile** (Cargo.toml line 67-72): does NOT request "mongodb"
 - **Orchestrator** (Cargo.toml line 9-13): does NOT request "mongodb"
 
 #### Server-Side Usage
+
 The server uses MongoDB directly (not via shared):
+
 - `/home/user/navign/server/src/kernel/unlocker/instance.rs`: uses `mongodb::Database`
-- `/home/user/navign/server/src/kernel/auth/`: uses `mongodb::Database` 
+- `/home/user/navign/server/src/kernel/auth/`: uses `mongodb::Database`
 - Server imports `mongodb` crate directly (line 30 in server/Cargo.toml)
 
 **Key Finding:** The server declares `navign-shared` with `"mongodb"` feature (line 35), but:
+
 1. Shared library doesn't use BSON or any mongodb feature gates
 2. Server doesn't rely on mongodb feature from shared - it imports mongodb directly
 3. This is **cargo cult dependency** - feature requested but never used
 
 #### Recommendation
+
 **REMOVE** the mongodb feature flag from shared/Cargo.toml:
+
 - Not used in any code
 - Adds unnecessary dependency weight
 - Creates confusion about what's actually needed
@@ -69,17 +78,20 @@ The server uses MongoDB directly (not via shared):
 ### 2. **base64** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 base64 = ["dep:base64", "alloc"]
 ```
 
 #### Dependencies Enabled
+
 - `base64 0.22.1` (base64 encoding/decoding)
 - `alloc` (heap allocation required)
 
 #### Code Usage
 
 **File: `/home/user/navign/shared/src/traits/packetize.rs`**
+
 - **Lines 52-56** (alloc variant): `packetize_to_base64()` method
   ```rust
   #[cfg(feature = "base64")]
@@ -91,6 +103,7 @@ base64 = ["dep:base64", "alloc"]
   ```
 
 **File: `/home/user/navign/shared/src/traits/depacketize.rs`**
+
 - **Lines 6-14** (depacketize variant): `depacketize_from_base64()` method
   ```rust
   #[cfg(feature = "base64")]
@@ -102,20 +115,22 @@ base64 = ["dep:base64", "alloc"]
   ```
 
 #### Used By
+
 - **Firmware** (Cargo.toml): does NOT explicitly request "base64"
   - But uses Packetize/Depacketize traits which include the methods
   - Can encode/decode BLE messages to base64 if needed
-  
 - **Mobile** (Cargo.toml): does NOT explicitly request "base64"
   - Uses same trait-based API
   - Can encode/decode to base64
 
 #### Current Status
+
 - Feature is properly gated with `#[cfg(feature = "base64")]`
 - Methods are conditional - won't bloat binary if not requested
 - Useful for optional base64 encoding of BLE messages
 
 #### Recommendation
+
 **KEEP** - Feature works as intended, properly gated, adds optional functionality
 
 ---
@@ -123,16 +138,19 @@ base64 = ["dep:base64", "alloc"]
 ### 3. **chrono** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 chrono = ["dep:chrono"]
 ```
 
 #### Dependencies Enabled
+
 - `chrono 0.4.42` (date/time handling) - **optional**
 
 #### Code Usage
 
 **File: `/home/user/navign/shared/src/schema/account.rs`**
+
 - **Lines 28, 40** (with postgres feature):
   ```rust
   #[cfg(feature = "postgres")]
@@ -142,12 +160,14 @@ chrono = ["dep:chrono"]
   ```
 
 **File: `/home/user/navign/shared/src/schema/postgres.rs`**
+
 - Lines 50, 52, 74, 76, 97, 99, 126, 128, 161, 163, 181, 183, 199, 201, 212, 214, 228, 230
 - Used throughout all PostgreSQL model structs for timestamp fields
 
 #### Feature Coupling
 
 In Cargo.toml, the **postgres feature** includes chrono:
+
 ```toml
 postgres = [
   ...,
@@ -157,17 +177,20 @@ postgres = [
 ```
 
 This means:
+
 - `chrono` is only included when `postgres` is enabled
 - Cannot use chrono without postgres in this crate
 - This is intentional coupling - postgres models need chrono timestamps
 
 #### Used By
+
 - **Server** (Cargo.toml line 32-39): requests `postgres` which includes `chrono`
 - **Firmware**: does NOT request postgres
 - **Mobile**: requests `sql` which does NOT include postgres/chrono
 - **Orchestrator**: does NOT request postgres
 
 #### Recommendation
+
 **KEEP** - Feature properly couples with postgres, used for timestamp handling in PostgreSQL models
 
 **Note:** chrono is NOT enabled when using MongoDB or SQLite - timestamps are i64 (milliseconds) in those cases (see account.rs lines 34, 46)
@@ -177,11 +200,13 @@ This means:
 ### 4. **crypto** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 crypto = ["dep:sha2", "dep:hmac", "dep:p256"]
 ```
 
 #### Dependencies Enabled
+
 - `sha2 0.10.9` (SHA-256 hashing)
 - `hmac 0.12.1` (HMAC authentication)
 - `p256 0.13.2` (P-256 ECDSA elliptic curve)
@@ -191,6 +216,7 @@ crypto = ["dep:sha2", "dep:hmac", "dep:p256"]
 **File: `/home/user/navign/shared/src/traits/packetize.rs`**
 
 Heapless variant (lines 13-45):
+
 ```rust
 #[cfg(feature = "crypto")]
 fn get_hash(&self) -> [u8; 32] {
@@ -212,16 +238,18 @@ fn verify(&self, verify_key: &p256::ecdsa::VerifyingKey, signature: &[u8; 64]) -
 ```
 
 Alloc variant (lines 59-91):
+
 - Same methods available for heap-allocated variant
 - Identical implementation
 
 #### Used By
+
 - **Firmware** (Cargo.toml line 81-87): explicitly requests `"crypto"`
   - Used for BLE message signing/verification
   - Beacon authentication with mobile devices
   - Nonce challenge-response security
 
-- **Server** (Cargo.toml line 32-39): 
+- **Server** (Cargo.toml line 32-39):
   - Requests `postgres`, `geo`, `sql` but NOT explicitly `crypto`
   - Server has its own p256 import (line 33 in server/Cargo.toml)
   - Doesn't rely on shared's crypto feature
@@ -233,11 +261,13 @@ Alloc variant (lines 59-91):
 #### Functional Purpose
 
 In firmware/beacon:
+
 - Signs BLE responses with beacon's private key
 - Verifies signatures from mobile app
 - Essential for access control security
 
 #### Recommendation
+
 **KEEP** - Feature is actively used by firmware, properly gated, essential for security
 
 ---
@@ -245,11 +275,13 @@ In firmware/beacon:
 ### 5. **geo** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 geo = ["dep:geo", "dep:earcutr", "dep:wkt", "dep:wkb", "dep:geo-traits", "dep:geo-types", "alloc"]
 ```
 
 #### Dependencies Enabled
+
 - `geo 0.29.3` (geographic operations)
 - `earcutr 0.5.0` (polygon triangulation - Earcut algorithm)
 - `wkt 0.14.0` (Well-Known Text format)
@@ -263,6 +295,7 @@ geo = ["dep:geo", "dep:earcutr", "dep:wkt", "dep:wkb", "dep:geo-traits", "dep:ge
 **File: `/home/user/navign/shared/src/pathfinding/polygon.rs`**
 
 Lines 69-73: Imports when geo feature enabled
+
 ```rust
 #[cfg(feature = "geo")]
 use geo::{BoundingRect, Contains, Coord, LineString, Point, Polygon as GeoPolygon};
@@ -272,6 +305,7 @@ use earcutr;
 ```
 
 Throughout file (lines 156, 208, 304, 364-550, 637-763):
+
 - 24 `#[cfg(feature = "geo")]` gates
 - Used for:
   - Triangulation-based pathfinding (Earcut algorithm)
@@ -280,6 +314,7 @@ Throughout file (lines 156, 208, 304, 364-550, 637-763):
   - Visibility graph construction
 
 **File: `/home/user/navign/shared/src/pathfinding/mod.rs`**
+
 - Line 20: Re-exports triangulation mesh when geo enabled
   ```rust
   #[cfg(feature = "geo")]
@@ -289,6 +324,7 @@ Throughout file (lines 156, 208, 304, 364-550, 637-763):
 **File: `/home/user/navign/shared/src/schema/postgis.rs`**
 
 Lines 6-11: PostGIS support
+
 ```rust
 #[cfg(all(feature = "postgres", feature = "geo"))]
 use geo_traits::to_geo::{ToGeoPoint, ToGeoPolygon};
@@ -300,6 +336,7 @@ use geo_types::{Point, Polygon};
 Lines 50-266: PostGIS point/polygon serialization for PostgreSQL
 
 #### Used By
+
 - **Server** (Cargo.toml line 32-39): explicitly requests `"geo"`
   - Advanced pathfinding with triangulation
   - PostgreSQL PostGIS geometry handling
@@ -316,16 +353,19 @@ Lines 50-266: PostGIS point/polygon serialization for PostgreSQL
 #### Pathfinding Usage
 
 **Grid-based (no feature required):**
+
 - Basic Manhattan-style pathfinding with rectangular blocks
 - Works with heapless/embedded
 
 **Triangulation-based (requires `geo` feature):**
+
 - For irregular polygon shapes
 - Earcut algorithm for fast triangulation
 - More natural paths around obstacles
 - Used in server for complex floor plans
 
 #### Recommendation
+
 **KEEP** - Feature properly used by server for advanced pathfinding and PostGIS support
 
 ---
@@ -333,6 +373,7 @@ Lines 50-266: PostGIS point/polygon serialization for PostgreSQL
 ### 6. **postgres** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 postgres = [
   "std",
@@ -351,6 +392,7 @@ postgres = [
 ```
 
 #### Dependencies Enabled
+
 - `sqlx 0.8.6` (with postgres driver, uuid, chrono, json support)
 - `async-trait 0.1.89` (async trait support)
 - `uuid 1.18.1` (UUID type for entity IDs)
@@ -364,6 +406,7 @@ postgres = [
 **File: `/home/user/navign/shared/src/schema/postgres.rs` (156 lines)**
 
 Provides PostgreSQL-specific models:
+
 - `PgEntity` (line 34-58): UUID-based entity with PostGIS point fields
 - `PgUser` (line 59-76): UUID-based user accounts
 - `PgArea` (line 77-108): Integer-based areas with PostGIS polygons
@@ -376,6 +419,7 @@ All use sqlx `FromRow` derive, UUID types, chrono timestamps
 **File: `/home/user/navign/shared/src/schema/postgis.rs` (276 lines)**
 
 PostGIS geometry wrapper types:
+
 - `PgPoint` (lines 24-210): Point wrapper for GEOMETRY(POINT, 4326)
 - `PgPolygon` (lines 211-274): Polygon wrapper for PostGIS polygons
 - Implements sqlx `Type`, `Encode`, `Decode` traits for WKB serialization
@@ -383,6 +427,7 @@ PostGIS geometry wrapper types:
 **File: `/home/user/navign/shared/src/schema/connection.rs`**
 
 Lines 9, 27, 45, 49, 61: PostgreSQL-gated fields
+
 ```rust
 #[cfg(feature = "postgres")]
 pub struct PgConnection {
@@ -418,12 +463,14 @@ PostgreSQL firmware models (lines 16-49)
 **File: `/home/user/navign/shared/src/schema/repository.rs`**
 
 PostgreSQL repository trait implementations:
+
 - `UuidRepository` trait for UUID-based entities
 - `IntRepository` trait for Integer-based entities
 - `IntRepositoryInArea` for area-scoped queries
 - Async methods using sqlx::PgPool
 
 #### Used By
+
 - **Server** (Cargo.toml line 32-39): explicitly requests `"postgres"`
   - Uses PostgreSQL models for database operations
   - Dual-database support (MongoDB + PostgreSQL)
@@ -438,13 +485,16 @@ PostgreSQL repository trait implementations:
 - **Orchestrator**: does NOT request "postgres"
 
 #### Migration Status
+
 PostgreSQL layer is **fully implemented** (from CLAUDE.md):
+
 - Phase 1 (Current): Layer exists, MongoDB is primary
 - Phase 2 (Upcoming): Dual-write mode
-- Phase 3 (Future): Dual-read mode  
+- Phase 3 (Future): Dual-read mode
 - Phase 4 (Final): PostgreSQL only
 
 #### Recommendation
+
 **KEEP** - Feature is actively used, fully implemented, essential for PostgreSQL migration strategy
 
 ---
@@ -452,11 +502,13 @@ PostgreSQL layer is **fully implemented** (from CLAUDE.md):
 ### 7. **sql** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 sql = ["std", "serde", "geo", "dep:sqlx", "dep:async-trait", "dep:uuid", "dep:serde_json"]
 ```
 
 #### Dependencies Enabled
+
 - `sqlx 0.8.6` (SQLite + PostgreSQL support)
 - `async-trait 0.1.89` (async trait support)
 - `uuid 1.18.1` (UUID type)
@@ -469,6 +521,7 @@ sql = ["std", "serde", "geo", "dep:sqlx", "dep:async-trait", "dep:uuid", "dep:se
 **File: `/home/user/navign/shared/src/schema/repository.rs` (36 lines)**
 
 Defines repository traits used by both SQLite and PostgreSQL:
+
 ```rust
 #[cfg(feature = "sql")]
 pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};
@@ -479,11 +532,13 @@ pub use repository::{IntRepository, IntRepositoryInArea, UuidRepository};
 - `IntRepositoryInArea`: Scoped queries within an area
 
 All async methods using sqlx:
+
 - `create()`, `get_by_uuid()`, `update()`, `delete()`, `list()`, `search()`
 
 **File: `/home/user/navign/shared/src/schema/area.rs`**
 
 Line 14: FromRow implementation
+
 ```rust
 use sqlx::FromRow;
 ```
@@ -493,6 +548,7 @@ Implements from_row for SQLite/PostgreSQL
 **File: `/home/user/navign/shared/src/schema/sqlite_from_row.rs` (23 lines)**
 
 SQLite-specific FromRow implementations:
+
 - Lines 7-9: sqlx imports
 - Implements `FromRow` for SQLite schema (when not using postgres)
 - Located at: `/home/user/navign/shared/src/schema/sqlite_from_row.rs`
@@ -500,6 +556,7 @@ SQLite-specific FromRow implementations:
 **File: `/home/user/navign/shared/src/schema/account.rs`**
 
 Line 12: SQL trait derivation
+
 ```rust
 #[cfg(feature = "sql")]
 derive(sqlx::FromRow)
@@ -512,11 +569,11 @@ Lines 127, 183, 243: `use sqlx::Row` for field extraction
 Line 296: `use sqlx::Row` for custom field extraction
 
 #### Used By
+
 - **Mobile** (Cargo.toml line 67-72): explicitly requests `"sql"`
   - Uses SQLite for local caching
   - Stores entities, areas, merchants, beacons
   - SQLitePool for database operations
-  
 - **Server** (Cargo.toml line 32-39): requests "postgres" which includes "sql"
   - Uses sqlx for database access
   - Supports both PostgreSQL and SQLite
@@ -528,16 +585,19 @@ Line 296: `use sqlx::Row` for custom field extraction
 #### Database Support
 
 Mobile uses SQLite:
+
 - Local offline cache
 - Entities, areas, merchants, beacons
 - via tauri-plugin-sql
 - Fast queries for map rendering
 
 Server uses:
+
 - PostgreSQL (primary with postgres feature)
 - Can also use SQLite (via sql feature without postgres)
 
 #### Recommendation
+
 **KEEP** - Feature actively used by mobile for SQLite, provides database abstraction
 
 ---
@@ -545,11 +605,13 @@ Server uses:
 ### 8. **ts-rs** ✅ USED - KEEP
 
 #### Feature Definition (Cargo.toml)
+
 ```toml
 ts-rs = ["dep:ts-rs", "std", "serde"]
 ```
 
 #### Dependencies Enabled
+
 - `ts-rs 10.0.0` (TypeScript type generation)
   - With `serde-compat` and `chrono-impl` features
 - `std` (standard library)
@@ -560,6 +622,7 @@ ts-rs = ["dep:ts-rs", "std", "serde"]
 **File: `/home/user/navign/shared/src/bin/gen_ts_schema.rs` (50 lines)**
 
 Binary that generates TypeScript definitions:
+
 ```rust
 use ts_rs::TS;
 
@@ -571,6 +634,7 @@ fn main() {
 ```
 
 **Exported Types (21 total):**
+
 1. Entity / EntityType
 2. Area / Floor / FloorType
 3. Beacon / BeaconDevice / BeaconType
@@ -580,6 +644,7 @@ fn main() {
 
 **Schema Files:**
 All core schema types are decorated with `#[derive(TS)]`:
+
 - `/home/user/navign/shared/src/schema/entity.rs`
 - `/home/user/navign/shared/src/schema/area.rs`
 - `/home/user/navign/shared/src/schema/beacon.rs`
@@ -590,6 +655,7 @@ All core schema types are decorated with `#[derive(TS)]`:
 #### Binary Invocation
 
 From `shared/Cargo.toml`:
+
 ```toml
 [[bin]]
 name = "gen-ts-schema"
@@ -598,6 +664,7 @@ required-features = ["ts-rs"]
 ```
 
 From `justfile`:
+
 ```bash
 just gen-ts-schema
 # Runs: cargo run --bin gen-ts-schema --features ts-rs
@@ -606,6 +673,7 @@ just gen-ts-schema
 #### Output
 
 Generates TypeScript definitions in `/home/user/navign/shared/bindings/generated/`:
+
 - 21 `.d.ts` files
 - Auto-sync with Rust types
 - Zero-maintenance approach
@@ -613,10 +681,12 @@ Generates TypeScript definitions in `/home/user/navign/shared/bindings/generated
 #### Used By
 
 **Development Process:**
+
 - Runs during TypeScript schema generation
 - Mobile (vue/tauri) imports from generated types
 
 **Compile-time Only:**
+
 - Only needed when `ts-rs` feature is enabled
 - Binary is optional
 - Not included in default build
@@ -624,12 +694,14 @@ Generates TypeScript definitions in `/home/user/navign/shared/bindings/generated
 #### Recent Changes
 
 From CLAUDE.md (Mobile TypeScript Schema Migration #103):
-- TypeScript generation **consolidated** from separate `ts-schema/` crate (4,838 lines removed) 
+
+- TypeScript generation **consolidated** from separate `ts-schema/` crate (4,838 lines removed)
 - **Integrated** into `shared/src/bin/gen_ts_schema.rs` (113 lines added)
 - Removes redundant crate
 - Single source of truth in shared library
 
 #### Recommendation
+
 **KEEP** - Feature is actively used for automatic TypeScript type generation, enables mobile development
 
 ---
@@ -668,15 +740,15 @@ From CLAUDE.md (Mobile TypeScript Schema Migration #103):
                               ├─> chrono (USED)
                               ├─> geo (USED)
                               └─> uuid, serde_json
-                      
+
     sql (USED)
     └─> geo (USED, advanced pathfinding)
     └─> uuid, serde_json
     └─> sqlx (database)
-    
+
     ts-rs (USED)
     └─> std, serde (TypeScript generation)
-    
+
     crypto (USED - firmware)
     └─> sha2, hmac, p256 (cryptographic operations)
 ```
@@ -686,38 +758,46 @@ From CLAUDE.md (Mobile TypeScript Schema Migration #103):
 ## Feature Request Summary by Component
 
 ### Server
+
 ```toml
-navign-shared = { 
+navign-shared = {
   features = ["std", "serde", "mongodb", "geo", "postgres", "sql"]
 }
 ```
+
 - Uses: postgres, geo, sql ✅
 - Unused: mongodb ❌
 
-### Firmware  
+### Firmware
+
 ```toml
 navign-shared = {
   features = ["heapless", "crypto", "defmt", "postcard", "serde"]
 }
 ```
+
 - Uses: crypto ✅
 - All requested features used
 
 ### Mobile (Tauri)
+
 ```toml
 navign-shared = {
   features = ["std", "serde", "sql", "postcard"]
 }
 ```
+
 - Uses: sql ✅
 - All requested features used
 
 ### Orchestrator
+
 ```toml
 navign-shared = {
   features = ["std", "serde", "alloc"]
 }
 ```
+
 - Uses: basic types only
 - All requested features used
 
@@ -730,18 +810,21 @@ navign-shared = {
 **Action:** Remove `mongodb = ["alloc", "serde", "dep:bson"]` from shared/Cargo.toml
 
 **Rationale:**
+
 - Never used in shared library code
 - No #[cfg(feature = "mongodb")] gates anywhere
 - Server doesn't depend on shared's mongodb feature
 - Server imports mongodb directly
 
 **Impact:**
+
 - Reduces shared crate dependencies
 - Makes feature set clearer
 - No breaking changes (nothing uses it from shared)
 - Saves ~2KB from compiled binary
 
 **Code Changes:**
+
 ```diff
 # shared/Cargo.toml
 [features]
@@ -767,6 +850,7 @@ navign-shared = {
 ### 2. **KEEP All Other Features**
 
 All other 7 features are actively used and properly implemented:
+
 - **base64**: Optional encoding functionality, properly gated
 - **chrono**: PostgreSQL timestamp support
 - **crypto**: Firmware cryptographic operations
@@ -779,16 +863,16 @@ All other 7 features are actively used and properly implemented:
 
 ## Summary Table
 
-| Feature | Status | Gates | Used By | Size Impact | Action |
-|---------|--------|-------|---------|-------------|--------|
-| mongodb | DEAD | 0 | server (unused) | ~50KB (bson) | REMOVE |
-| base64 | LIVE | 2 | firmware, mobile | 50KB | KEEP |
-| chrono | LIVE | 0 | postgres models | 40KB | KEEP |
-| crypto | LIVE | 8 | firmware | 60KB | KEEP |
-| geo | LIVE | 24 | server, pathfinding | 100KB+ | KEEP |
-| postgres | LIVE | 10+ | server | 80KB+ | KEEP |
-| sql | LIVE | 4 | mobile, server | 80KB+ | KEEP |
-| ts-rs | LIVE | 0 | (build-time) | 0 (dev-dep) | KEEP |
+| Feature  | Status | Gates | Used By             | Size Impact  | Action |
+| -------- | ------ | ----- | ------------------- | ------------ | ------ |
+| mongodb  | DEAD   | 0     | server (unused)     | ~50KB (bson) | REMOVE |
+| base64   | LIVE   | 2     | firmware, mobile    | 50KB         | KEEP   |
+| chrono   | LIVE   | 0     | postgres models     | 40KB         | KEEP   |
+| crypto   | LIVE   | 8     | firmware            | 60KB         | KEEP   |
+| geo      | LIVE   | 24    | server, pathfinding | 100KB+       | KEEP   |
+| postgres | LIVE   | 10+   | server              | 80KB+        | KEEP   |
+| sql      | LIVE   | 4     | mobile, server      | 80KB+        | KEEP   |
+| ts-rs    | LIVE   | 0     | (build-time)        | 0 (dev-dep)  | KEEP   |
 
 ---
 
@@ -798,4 +882,3 @@ If removing mongodb feature:
 
 1. `/home/user/navign/shared/Cargo.toml` (lines 12-45)
 2. `/home/user/navign/server/Cargo.toml` (line 35)
-

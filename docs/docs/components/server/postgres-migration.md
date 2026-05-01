@@ -150,11 +150,13 @@ POSTGRES_URL="postgresql://localhost/navign_test" cargo test
 ### Integration Tests
 
 1. Start PostgreSQL:
+
    ```bash
    docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:16
    ```
 
 2. Create database:
+
    ```bash
    psql -U postgres -c "CREATE DATABASE navign;"
    ```
@@ -184,14 +186,14 @@ Check if PostgreSQL is connected:
 
 ### MongoDB → PostgreSQL Mapping
 
-| MongoDB           | PostgreSQL       | Notes                          |
-|-------------------|------------------|--------------------------------|
-| ObjectId          | UUID (entities)  | For entities and users         |
-| ObjectId          | SERIAL (others)  | For areas, beacons, etc.       |
-| Embedded objects  | JSONB            | For floors, images, etc.       |
-| References        | Foreign Keys     | With CASCADE delete            |
-| No schema         | Strict schema    | All fields defined             |
-| Flexible types    | Strong types     | Type safety enforced           |
+| MongoDB          | PostgreSQL      | Notes                    |
+| ---------------- | --------------- | ------------------------ |
+| ObjectId         | UUID (entities) | For entities and users   |
+| ObjectId         | SERIAL (others) | For areas, beacons, etc. |
+| Embedded objects | JSONB           | For floors, images, etc. |
+| References       | Foreign Keys    | With CASCADE delete      |
+| No schema        | Strict schema   | All fields defined       |
+| Flexible types   | Strong types    | Type safety enforced     |
 
 ## Repository Pattern
 

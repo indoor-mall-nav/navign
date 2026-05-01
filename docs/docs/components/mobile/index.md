@@ -7,6 +7,7 @@ The Navign mobile application is a cross-platform app built with Vue 3 and Tauri
 **Location:** `mobile/`
 
 **Technologies:**
+
 - **Frontend:** Vue 3.5.18 (reactive UI)
 - **Desktop/Mobile:** Tauri 2.8.1 (native wrapper)
 - **State:** Pinia 3.0.3 (state management)
@@ -15,6 +16,7 @@ The Navign mobile application is a cross-platform app built with Vue 3 and Tauri
 - **Styling:** Tailwind CSS 4.1.12
 
 **Platforms:**
+
 - macOS (tested)
 - iOS (planned)
 - Android (planned)
@@ -24,6 +26,7 @@ The Navign mobile application is a cross-platform app built with Vue 3 and Tauri
 ## Key Features
 
 ### 1. Indoor Navigation
+
 - Real-time position tracking via BLE beacon triangulation
 - Turn-by-turn navigation instructions
 - Multi-floor support with floor selector
@@ -31,17 +34,20 @@ The Navign mobile application is a cross-platform app built with Vue 3 and Tauri
 - Konva canvas for polygon overlays
 
 ### 2. Access Control
+
 - BLE communication with beacons
 - P-256 ECDSA signature generation
 - Biometric authentication (Touch ID, Face ID)
 - Secure credential storage (Stronghold)
 
 ### 3. Offline Support
+
 - SQLite for caching entities, areas, merchants
 - Downloaded map tiles
 - Local pathfinding fallback (planned)
 
 ### 4. Admin Panel
+
 - CRUD interface for entities, areas, beacons, merchants
 - Polygon drawing and editing
 - Connection management
@@ -94,11 +100,13 @@ mobile/
 ## Documentation
 
 ### Admin Panel
+
 **[Admin Panel Guide](./admin-panel.md)** - Comprehensive CRUD interface documentation
 
 Learn how to use the mobile admin panel to manage entities, areas, beacons, merchants, and connections.
 
 **Features:**
+
 - Entity management with floor configuration
 - Area polygon drawing and editing
 - Beacon positioning and configuration
@@ -108,11 +116,13 @@ Learn how to use the mobile admin panel to manage entities, areas, beacons, merc
 ---
 
 ### gRPC-Web Integration
+
 **[gRPC-Web Integration](./grpc-web-integration.md)** - Connecting to Orchestrator gRPC services
 
 Guide for integrating gRPC-Web in the mobile app to communicate with the Admin Orchestrator for robot fleet management.
 
 **Features:**
+
 - gRPC-Web client setup
 - Task submission and monitoring
 - Robot status tracking
@@ -159,6 +169,7 @@ interface SessionState {
 ## Internationalization
 
 The mobile app supports 5 languages:
+
 - English (en-US)
 - Simplified Chinese (zh-CN)
 - Traditional Chinese (zh-TW)

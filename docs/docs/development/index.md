@@ -20,6 +20,7 @@ just init
 ```
 
 This will:
+
 - Install cargo-binstall, cargo-deny, cargo-shear, typos-cli
 - Enable corepack and install pnpm packages
 - Sync Python dependencies
@@ -49,9 +50,11 @@ just ci-robot-upper
 ## Development Resources
 
 ### Critical TODOs
+
 **[Critical TODOs](./critical-todos.md)** - High-priority tasks and known issues
 
 This document tracks critical tasks that need attention, including:
+
 - Security improvements
 - Performance optimizations
 - Feature completions
@@ -60,9 +63,11 @@ This document tracks critical tasks that need attention, including:
 ---
 
 ### Refactoring Plan
+
 **[Refactoring Plan](./refactoring-plan.md)** - Long-term architectural improvements
 
 This document outlines planned refactorings and architectural changes:
+
 - Code organization improvements
 - Performance optimizations
 - Dependency updates
@@ -83,11 +88,13 @@ This document outlines planned refactorings and architectural changes:
   - `SCREAMING_SNAKE_CASE` for constants
 
 **Error Handling:**
+
 - Use `anyhow::Result` for applications
 - Use custom error types (`thiserror`) for libraries
 - Always propagate errors with `?`, never `unwrap()` in production
 
 **Async:**
+
 - Prefer `async`/`await` over manual futures
 - Use Tokio for server, esp-rtos for firmware
 
@@ -101,6 +108,7 @@ This document outlines planned refactorings and architectural changes:
   - Prefer interfaces over types for objects
 
 **Vue:**
+
 - Use `<script setup lang="ts">` composition API
 - Define props with `defineProps<T>()`
 - Use Pinia for state management
@@ -135,6 +143,7 @@ Follow conventional commits:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -145,9 +154,11 @@ Follow conventional commits:
 - `chore`: Maintenance tasks
 
 **Scopes:**
+
 - `server`, `beacon`, `mobile`, `shared`, `admin`, `robot`, `docs`
 
 **Examples:**
+
 ```
 feat(beacon): add servo motor unlock support
 
@@ -199,6 +210,7 @@ Closes #123
 The `shared/` library uses feature flags for no_std compatibility:
 
 **For firmware (embedded):**
+
 ```toml
 navign-shared = {
   path = "../shared",
@@ -208,6 +220,7 @@ navign-shared = {
 ```
 
 **For server:**
+
 ```toml
 navign-shared = {
   path = "../shared",
@@ -224,24 +237,28 @@ navign-shared = {
 ### Technology Choices
 
 **Why Rust?**
+
 - Memory safety without garbage collection
 - Excellent async support (Tokio)
 - no_std support for embedded systems
 - Strong type system prevents bugs at compile time
 
 **Why Tauri?**
+
 - Native performance
 - Small bundle size compared to Electron
 - Rust backend for cryptography and BLE
 - Cross-platform support (mobile + desktop)
 
 **Why Zenoh?**
+
 - Efficient pub/sub messaging for robots
 - Zero-copy message passing
 - Network-transparent (works across machines)
 - Protocol Buffers integration
 
 **Why MongoDB + PostgreSQL?**
+
 - MongoDB: Flexible schema, fast prototyping
 - PostgreSQL: ACID compliance, relational queries
 - Dual-database: Gradual migration strategy
@@ -253,23 +270,28 @@ navign-shared = {
 ### Required Tools
 
 **Rust:**
+
 - Rust 1.83+ (nightly for some features)
 - cargo-binstall, cargo-deny, cargo-shear
 - espup (for firmware development)
 
 **Node.js:**
+
 - Node 23.11.0+
 - pnpm 10.15.0+
 - Corepack enabled
 
 **Python:**
+
 - Python 3.13+
 - uv package manager
 
 **Go:**
+
 - Go 1.24+
 
 **Other:**
+
 - MongoDB 8.0+
 - PostgreSQL 16+ (optional)
 - Just command runner
@@ -278,6 +300,7 @@ navign-shared = {
 ### IDE Setup
 
 **Recommended:**
+
 - Visual Studio Code with extensions:
   - rust-analyzer
   - Volar (Vue)
@@ -287,6 +310,7 @@ navign-shared = {
   - Go
 
 **Configuration:**
+
 - Enable format on save
 - Enable clippy lints
 - Configure type checking for TypeScript

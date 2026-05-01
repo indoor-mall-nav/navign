@@ -4,6 +4,6 @@
     "oxc/approx-constant": "warn",
     "no-plusplus": "off",
     "no-console": "error",
-    "no-floating-promises": "off"
-  }
+    "no-floating-promises": "off",
+  },
 }

@@ -43,6 +43,7 @@ cp config.example.py config.py
 ```
 
 Get Porcupine API key:
+
 1. Visit https://console.picovoice.ai/
 2. Create free account
 3. Copy API key
@@ -70,6 +71,7 @@ uv run python service.py
 ## Configuration
 
 Edit `config.py`:
+
 - Porcupine wake word model
 - Wake word sensitivity (0.0-1.0)
 - Speech recognition model

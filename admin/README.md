@@ -47,6 +47,7 @@ This directory contains the robot management system for Navign, consisting of tw
 The brain of the system, implemented in Rust for performance and reliability.
 
 **Responsibilities:**
+
 - Receives robot status reports from Go tower via gRPC
 - Maintains a registry of all connected robots
 - Implements task scheduling and robot selection algorithms
@@ -54,11 +55,13 @@ The brain of the system, implemented in Rust for performance and reliability.
 - Makes all business logic decisions
 
 **Technologies:**
+
 - Rust with Tokio async runtime
 - Tonic for gRPC
 - Protocol Buffers for serialization
 
 **Running:**
+
 ```bash
 cd admin/orchestrator
 cargo run
@@ -70,6 +73,7 @@ cargo run
 The communication layer, implemented in Go to leverage goroutines for concurrent robot management.
 
 **Responsibilities:**
+
 - Acts as gRPC client to the Rust orchestrator
 - Manages Socket.IO connections with robots
 - Spawns one goroutine per robot for:
@@ -80,11 +84,13 @@ The communication layer, implemented in Go to leverage goroutines for concurrent
 - Reports robot status changes to orchestrator
 
 **Technologies:**
+
 - Go with goroutines
 - gRPC client
 - Socket.IO for real-time robot communication
 
 **Running:**
+
 ```bash
 cd admin/tower
 go build -o tower ./cmd/tower
@@ -92,6 +98,7 @@ go build -o tower ./cmd/tower
 ```
 
 **Arguments:**
+
 - `--entity-id`: Required. The entity (mall/building) ID
 - `--grpc`: Rust orchestrator gRPC address (default: `localhost:50051`)
 - `--tower`: Socket.IO server address (default: `http://[::1]:8080`)
@@ -103,6 +110,7 @@ The system uses Protocol Buffers for type-safe communication. The schema is defi
 ### Key Message Types
 
 **Task:**
+
 - `id`: Unique task identifier
 - `type`: DELIVERY, PATROL, RETURN_HOME, EMERGENCY
 - `sources`: Starting locations
@@ -111,6 +119,7 @@ The system uses Protocol Buffers for type-safe communication. The schema is defi
 - `metadata`: Additional parameters
 
 **RobotInfo:**
+
 - `id`: Robot identifier
 - `state`: IDLE, BUSY, CHARGING, ERROR, OFFLINE
 - `current_location`: Current position (x, y, z, floor)
@@ -120,6 +129,7 @@ The system uses Protocol Buffers for type-safe communication. The schema is defi
 ### RPC Services
 
 **OrchestratorService** (implemented by Rust):
+
 - `ReportRobotStatus(RobotReportRequest) → RobotReportResponse`
   - Called by Go tower to report robot status
 - `GetTaskAssignment(RobotDistributionRequest) → stream TaskAssignment`
@@ -130,6 +140,7 @@ The system uses Protocol Buffers for type-safe communication. The schema is defi
 Communication between Go tower and robots uses Socket.IO with these events:
 
 ### From Robot to Tower:
+
 - `register`: Robot connects and registers
   - Payload: `{ robot_id, name, entity_id, battery, timestamp }`
 - `status_update`: Robot reports status change
@@ -140,6 +151,7 @@ Communication between Go tower and robots uses Socket.IO with these events:
   - Payload: `{ timestamp }`
 
 ### From Tower to Robot:
+
 - `task_assigned`: Tower assigns a task
   - Payload: `{ task_id, type, sources[], terminals[], priority, metadata, assigned_at }`
 - `keep_alive`: Periodic keep-alive check
@@ -150,6 +162,7 @@ Communication between Go tower and robots uses Socket.IO with these events:
 ## Data Flow Examples
 
 ### Robot Registration Flow:
+
 1. Robot connects to Go tower via Socket.IO
 2. Robot sends `register` event with ID, battery, location
 3. Go tower stores robot info and starts goroutine
@@ -157,6 +170,7 @@ Communication between Go tower and robots uses Socket.IO with these events:
 5. Rust orchestrator adds robot to registry
 
 ### Task Assignment Flow:
+
 1. External system creates a task (or orchestrator generates one)
 2. Rust orchestrator finds best robot (highest battery + closest location)
 3. Rust streams TaskAssignment to Go tower
@@ -166,6 +180,7 @@ Communication between Go tower and robots uses Socket.IO with these events:
 7. Updates flow back through Go → Rust
 
 ### Status Reporting Flow:
+
 1. Robot sends `status_update` event to Go tower
 2. Go tower updates local robot state
 3. Go tower calls orchestrator's `ReportRobotStatus` gRPC
@@ -177,12 +192,14 @@ Communication between Go tower and robots uses Socket.IO with these events:
 ### Build Protobuf Code:
 
 **Go:**
+
 ```bash
 cd admin/tower
 make proto
 ```
 
 **Rust:**
+
 ```bash
 cd admin/orchestrator
 cargo build
@@ -190,6 +207,7 @@ cargo build
 ```
 
 ### Build Everything:
+
 ```bash
 # Rust orchestrator
 cd admin/orchestrator && cargo build --release
@@ -201,6 +219,7 @@ cd admin/tower && go build -o tower ./cmd/tower
 ## Development
 
 ### Prerequisites:
+
 - Rust 1.86+ (for orchestrator)
 - Go 1.25+ (for tower)
 - Protocol Buffers compiler (`protoc`)
@@ -210,12 +229,14 @@ cd admin/tower && go build -o tower ./cmd/tower
 ### Testing Locally:
 
 1. Start the Rust orchestrator:
+
 ```bash
 cd admin/orchestrator
 RUST_LOG=info cargo run
 ```
 
 2. Start the Go tower:
+
 ```bash
 cd admin/tower
 ./tower --entity-id "test-mall-001"
@@ -226,18 +247,21 @@ cd admin/tower
 ## Design Decisions
 
 ### Why Rust for Orchestrator?
+
 - Performance: Handles many robots efficiently
 - Safety: Type system prevents bugs in critical scheduling logic
 - Async: Tokio provides excellent async/await support
 - Protobuf: First-class support via Tonic
 
 ### Why Go for Tower?
+
 - Goroutines: Perfect for one-thread-per-robot pattern
 - Simple: Easy to manage concurrent connections
 - Socket.IO: Good library support for real-time communication
 - Minimal logic: Just connection management and forwarding
 
 ### Why Split?
+
 - **Separation of concerns**: Business logic (Rust) vs connection management (Go)
 - **Leverage strengths**: Use Rust for algorithms, Go for concurrency
 - **Scalability**: Can run multiple tower instances for different entities

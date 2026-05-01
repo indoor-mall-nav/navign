@@ -26,6 +26,7 @@ This document outlines refactoring opportunities identified across the Navign co
 **File:** `server/src/schema/user.rs:30`
 
 **Issue:**
+
 ```rust
 let hashed_password = hash(password, 4).expect("Failed to hash password");
 //                               ^ COST FACTOR TOO LOW!
@@ -34,6 +35,7 @@ let hashed_password = hash(password, 4).expect("Failed to hash password");
 **Risk:** Cost factor of 4 makes brute-force attacks trivial. OWASP recommends minimum 10-12.
 
 **Fix:**
+
 ```rust
 const BCRYPT_COST: u32 = 12; // Adjust based on performance testing
 
@@ -54,6 +56,7 @@ pub fn new(..., password: String) -> Result<Self, bcrypt::BcryptError> {
 **File:** `server/src/kernel/unlocker/instance.rs:131`
 
 **Issue:**
+
 ```rust
 // TODO verify if the user is allowed to unlock this beacon
 let instance = UnlockInstance { /* ... */ };
@@ -62,6 +65,7 @@ let instance = UnlockInstance { /* ... */ };
 **Risk:** Any authenticated user can unlock any beacon without permission checks.
 
 **Fix:**
+
 ```rust
 // Verify user authorization
 let user_permissions = UserPermissions::get_for_beacon(db, &user, &beacon.get_id()).await?;
@@ -73,6 +77,7 @@ if !user_permissions.can_unlock() {
 **Impact:** HIGH - Access control bypass
 **Effort:** 2-4 hours (needs new permission system)
 **Files to modify:**
+
 - `server/src/kernel/unlocker/instance.rs`
 - `server/src/schema/user_permissions.rs` (new file)
 
@@ -87,6 +92,7 @@ if !user_permissions.can_unlock() {
 **Current Code:** ~42 lines of manual HMAC-SHA1 and dynamic truncation
 
 **Benefits:**
+
 - **Standards compliance:** RFC 6238 compliant
 - **Battle-tested:** Used in production by thousands of projects
 - **Maintenance:** Remove custom crypto code
@@ -124,6 +130,7 @@ impl BeaconSecret {
 **Impact:** MEDIUM-HIGH - Removes ~40 lines, improves security
 **Effort:** 1-2 hours
 **Files to modify:**
+
 - `server/src/kernel/totp.rs`
 - `server/Cargo.toml`
 
@@ -136,6 +143,7 @@ impl BeaconSecret {
 **Current Code:** ~50+ lines of manual error implementations per error type
 
 **Example - NavigationError:**
+
 ```rust
 // Before (server/src/kernel/route/implementations/navigate.rs:10-64)
 #[derive(Debug, Clone, PartialEq)]
@@ -155,6 +163,7 @@ impl<'de> Deserialize<'de> for NavigationError { /* 15 lines manual */ }
 ```
 
 **After:**
+
 ```rust
 use thiserror::Error;
 
@@ -181,6 +190,7 @@ thiserror = "2.0"
 ```
 
 **Files to modify:**
+
 - `server/src/kernel/route/implementations/navigate.rs`
 - `shared/src/errors/crypto.rs`
 - Any other custom error types
@@ -198,6 +208,7 @@ thiserror = "2.0"
 **Problem:** Massive code duplication due to feature flags
 
 **Current Code:**
+
 - `shared/src/ble/message.rs`: 130 lines with ~60% duplication between `heapless` and `alloc` features
 - `shared/src/ble/proof.rs`: Similar duplication
 - `shared/src/ble/device_caps.rs`: Similar duplication
@@ -215,6 +226,7 @@ alloc = ["postcard/alloc"]
 ```
 
 **Example:**
+
 ```rust
 // Before: 80+ lines of manual byte manipulation
 #[cfg(feature = "heapless")]
@@ -242,6 +254,7 @@ impl Packetize for BleMessage {
 **Risk:** MEDIUM - Requires thorough testing on ESP32-C3
 
 **Files to modify:**
+
 - `shared/src/ble/message.rs`
 - `shared/src/ble/proof.rs`
 - `shared/src/ble/device_caps.rs`
@@ -258,11 +271,13 @@ impl Packetize for BleMessage {
 **File:** `server/src/kernel/route/implementations/blocks/polygon.rs`
 
 **Issues:**
+
 1. Manual ray-casting algorithm (lines 50-63)
 2. **Data loss:** Casting `f64` to `u64` for sorting (lines 66-67)
 3. **Unsafe:** `.unwrap()` on polygon.last() (lines 95-96)
 
 **Current Code:**
+
 ```rust
 pub fn get_sorted_coords(&self) -> (Vec<f64>, Vec<f64>) {
     let xs: BTreeSet<u64> = self.points.iter().map(|(x, _)| *x as u64).collect();
@@ -275,6 +290,7 @@ pub fn get_sorted_coords(&self) -> (Vec<f64>, Vec<f64>) {
 ```
 
 **Solution:**
+
 ```toml
 geo = "0.29"
 ordered-float = "4.6"
@@ -320,6 +336,7 @@ impl<'a> Polygon<'a> {
 **Impact:** MEDIUM - Fixes data loss bug, removes ~30 lines, adds battle-tested algorithms
 **Effort:** 2-3 hours
 **Benefits:**
+
 - No precision loss
 - Industry-standard geometric operations
 - Additional features available (intersections, unions, buffering)
@@ -333,6 +350,7 @@ impl<'a> Polygon<'a> {
 **Problem:** Repetitive parsing with error handling (72 `.unwrap()` calls found)
 
 **Current Pattern (repeated 50+ times):**
+
 ```rust
 let oid = ObjectId::parse_str(id).map_err(|_| {
     mongodb::error::Error::custom("Invalid ObjectId format".to_string())
@@ -398,6 +416,7 @@ typed_id!(UserId);
 ```
 
 **Usage:**
+
 ```rust
 // Before
 async fn get_beacon(
@@ -418,6 +437,7 @@ async fn get_beacon(
 ```
 
 **Impact:** VERY HIGH
+
 - Removes ~200-300 lines of error handling
 - Type safety prevents mixing entity/beacon/area IDs
 - Better API documentation
@@ -431,6 +451,7 @@ async fn get_beacon(
 ### 8. Centralize Crypto Challenge-Response Logic
 
 **Files:**
+
 - `beacon/src/bin/crypto/proof.rs`
 - `shared/src/ble/proof.rs`
 - `mobile/src-tauri/src/unlocker/challenge.rs`
@@ -477,6 +498,7 @@ impl Challenge {
 **Impact:** MEDIUM-HIGH - Single source of truth, removes duplication
 **Effort:** 4-6 hours
 **Files to modify:**
+
 - `shared/src/crypto/challenge.rs` (new)
 - `beacon/src/bin/crypto/proof.rs`
 - `mobile/src-tauri/src/unlocker/challenge.rs`
@@ -490,10 +512,12 @@ impl Challenge {
 **File:** `beacon/src/bin/crypto/nonce.rs:9-16`
 
 **Issues:**
+
 1. Debug `println!()` in production hot path
 2. Byte-by-byte RNG calls (16 calls instead of 1)
 
 **Current Code:**
+
 ```rust
 pub fn generate(rng: &mut Trng) -> Self {
     let mut nonce = [0u8; NONCE_LENGTH];
@@ -506,6 +530,7 @@ pub fn generate(rng: &mut Trng) -> Self {
 ```
 
 **Fix:**
+
 ```rust
 pub fn generate(rng: &mut Trng) -> Self {
     let mut nonce = [0u8; NONCE_LENGTH];
@@ -542,6 +567,7 @@ fn rssi_to_distance(mut rssi: f64) -> f64 {
 ```
 
 **Fix:**
+
 ```rust
 pub struct RssiConfig {
     pub tx_power: f64,
@@ -622,6 +648,7 @@ pub fn verify_password(&self, password: &str) -> Result<bool, bcrypt::BcryptErro
 **Opportunity:** Create standalone positioning library
 
 **Benefits:**
+
 - Reusable across projects
 - Better testing
 - Potential for advanced algorithms (Kalman filtering, particle filtering)
@@ -636,8 +663,9 @@ pub fn verify_password(&self, password: &str) -> Result<bool, bcrypt::BcryptErro
 **Current:** Custom Dijkstra implementation in `server/src/kernel/route/implementations/`
 
 **Note:** Current implementation uses `bumpalo` for performance (excellent!). Only consider replacing if:
+
 - Maintenance burden becomes high
-- Need additional algorithms (A*, bidirectional search)
+- Need additional algorithms (A\*, bidirectional search)
 - Performance issues arise
 
 **Current assessment:** Keep existing implementation, it's well-optimized.
@@ -653,6 +681,7 @@ pub fn verify_password(&self, password: &str) -> Result<bool, bcrypt::BcryptErro
 **Solution:** Declarative macros or `#[cfg_attr]` attributes
 
 **Example:**
+
 ```rust
 macro_rules! impl_for_features {
     (
@@ -687,28 +716,33 @@ macro_rules! impl_for_features {
 ## 🛠️ IMPLEMENTATION ROADMAP
 
 ### Phase 1: Critical Security (Week 1)
+
 - [ ] #1: Fix bcrypt cost factor (30 min)
 - [ ] #2: Implement authorization checks (2-4 hours)
 - [ ] Review and deploy security patches
 
 ### Phase 2: High-Impact Refactoring (Weeks 2-3)
+
 - [ ] #4: Implement `thiserror` for all error types (3-4 hours)
 - [ ] #7: Create typed ID wrappers (1 day)
 - [ ] #3: Replace TOTP implementation (1-2 hours)
 - [ ] #9: Fix nonce generation (10 min)
 
 ### Phase 3: Code Quality (Weeks 4-5)
+
 - [ ] #11: Fix all `.unwrap()` calls (1-2 days)
 - [ ] #6: Integrate `geo` crate (2-3 hours)
 - [ ] #8: Centralize crypto challenge logic (4-6 hours)
 - [ ] #10: Add configurable RSSI parameters (1 hour)
 
 ### Phase 4: Major Refactoring (Week 6+)
+
 - [ ] #5: Evaluate and implement `postcard` for binary serialization (1-2 days + testing)
 - [ ] Test on ESP32-C3 hardware
 - [ ] Performance benchmarking
 
 ### Phase 5: Optional Improvements (Future)
+
 - [ ] #12: Extract indoor positioning library
 - [ ] #14: Macro-based feature flag reduction
 - [ ] #13: Evaluate pathfinding crate (only if needed)
@@ -718,6 +752,7 @@ macro_rules! impl_for_features {
 ## 📈 METRICS
 
 **Before Refactoring:**
+
 - **Lines of Code:** ~25,000+
 - **`.unwrap()` calls:** 72 in server
 - **Duplicate code:** ~2,000-3,000 lines (feature flags)
@@ -725,6 +760,7 @@ macro_rules! impl_for_features {
 - **Security issues:** 2 critical
 
 **After Refactoring (Estimated):**
+
 - **Lines of Code:** ~22,000-23,000 (10-12% reduction)
 - **`.unwrap()` calls:** 0 (or very few, well-justified)
 - **Duplicate code:** ~500-1,000 lines (75% reduction)
@@ -747,22 +783,28 @@ macro_rules! impl_for_features {
 ## ⚠️ RISKS AND CONSIDERATIONS
 
 ### Risk 1: Binary Protocol Breaking Changes
+
 **Impact:** High
 **Mitigation:**
+
 - Test `postcard` thoroughly on ESP32-C3
 - Keep manual implementation as fallback
 - Version protocol messages
 
 ### Risk 2: Performance Regression
+
 **Impact:** Medium
 **Mitigation:**
+
 - Benchmark before/after
 - Keep `bumpalo` for pathfinding
 - Profile on actual hardware
 
 ### Risk 3: Introduction of New Bugs
+
 **Impact:** Medium
 **Mitigation:**
+
 - Comprehensive testing for each change
 - One refactoring at a time
 - Code review for all changes
@@ -772,6 +814,7 @@ macro_rules! impl_for_features {
 ## 📝 NOTES
 
 ### Dependencies to Add
+
 ```toml
 # High priority
 thiserror = "2.0"              # Error handling
@@ -787,6 +830,7 @@ pathfinding = "4.11"           # Only if replacing custom Dijkstra
 ```
 
 ### Testing Strategy
+
 1. Unit tests for all refactored code
 2. Integration tests for binary protocol changes
 3. Hardware testing for beacon changes
@@ -794,6 +838,7 @@ pathfinding = "4.11"           # Only if replacing custom Dijkstra
 5. Security audit after auth changes
 
 ### Documentation Updates
+
 - Update CLAUDE.md with new patterns
 - Document typed ID usage
 - Add security best practices section

@@ -9,17 +9,20 @@ The Navign project employs multiple testing strategies across different componen
 ## Testing Strategies by Component
 
 ### Firmware Testing
+
 **[Firmware Testing Guide](./firmware-testing.md)** - Comprehensive testing for ESP32-C3 beacon firmware
 
 The firmware testing guide covers both mock-based tests (fast, runs on host) and QEMU simulation tests for the ESP32-C3 BLE beacons.
 
 **Coverage:**
+
 - Nonce management (6 tests, 95%+ coverage)
 - Cryptography - P-256 ECDSA (8 tests, 90%+ coverage)
 - Rate limiting (8 tests, 90%+ coverage)
 - GPIO/Peripherals (3 tests, 60%+ coverage)
 
 **Test Methods:**
+
 - Mock-based unit tests using `#[cfg(test)]` and `std` feature
 - QEMU simulation for full integration testing
 - Hardware-in-the-loop testing (planned)
@@ -33,6 +36,7 @@ The firmware testing guide covers both mock-based tests (fast, runs on host) and
 Unit tests are co-located with source code and run using `cargo test` or component-specific test commands.
 
 **Rust Components:**
+
 ```bash
 # Server
 cd server && cargo test
@@ -56,6 +60,7 @@ cd robot/network && cargo test
 ```
 
 **TypeScript Components:**
+
 ```bash
 # Mobile app
 cd mobile && pnpm test
@@ -65,6 +70,7 @@ cd docs && pnpm test
 ```
 
 **Python Components:**
+
 ```bash
 # Robot vision
 cd robot/vision && uv run pytest
@@ -93,11 +99,13 @@ Integration tests verify interactions between components:
 ### Simulation Testing
 
 **QEMU Firmware Simulation:**
+
 ```bash
 cd firmware && just test-firmware-qemu
 ```
 
 **Robot Simulation:**
+
 - Gazebo simulation (planned)
 - Virtual beacon network (planned)
 
@@ -116,14 +124,14 @@ End-to-end tests verify complete user workflows:
 
 ## Test Coverage Goals
 
-| Component | Current Coverage | Goal |
-|-----------|-----------------|------|
-| Server | 80%+ | 90%+ |
-| Firmware | 80%+ | 90%+ |
-| Mobile | 70%+ | 85%+ |
-| Shared | 90%+ | 95%+ |
-| Robot Components | 60%+ | 85%+ |
-| Admin Components | 70%+ | 85%+ |
+| Component        | Current Coverage | Goal |
+| ---------------- | ---------------- | ---- |
+| Server           | 80%+             | 90%+ |
+| Firmware         | 80%+             | 90%+ |
+| Mobile           | 70%+             | 85%+ |
+| Shared           | 90%+             | 95%+ |
+| Robot Components | 60%+             | 85%+ |
+| Admin Components | 70%+             | 85%+ |
 
 ---
 
@@ -181,21 +189,21 @@ mod tests {
 ### TypeScript Test Template
 
 ```typescript
-import { describe, it, expect } from 'vitest'
-import { myFunction } from './myModule'
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./myModule";
 
-describe('myFunction', () => {
-  it('should handle basic case', () => {
+describe("myFunction", () => {
+  it("should handle basic case", () => {
     // Arrange
-    const input = 'test'
+    const input = "test";
 
     // Act
-    const result = myFunction(input)
+    const result = myFunction(input);
 
     // Assert
-    expect(result).toBe('expected')
-  })
-})
+    expect(result).toBe("expected");
+  });
+});
 ```
 
 ---

@@ -82,22 +82,27 @@ cd robot/audio && uv run python service.py
 ### Environment Variables
 
 **Scheduler:**
+
 - `ZENOH_CONFIG` - Zenoh configuration file (optional)
 - `DATABASE_URL` - Task database connection
 
 **Serial:**
+
 - `SERIAL_PORT` - Default: `/dev/ttyUSB0`
 - `SERIAL_BAUD` - Default: `115200`
 
 **Network:**
+
 - `SERVER_URL` - Default: `http://localhost:3000`
 - `ENTITY_ID` - Robot's entity ID
 
 **Vision:**
+
 - `CAMERA_INDEX` - Default: `0`
 - `YOLO_MODEL` - Default: `yolo12n.pt`
 
 **Audio:**
+
 - `PORCUPINE_ACCESS_KEY` - Required for wake word
 
 ## Message Flow Example

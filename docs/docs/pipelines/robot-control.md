@@ -11,18 +11,21 @@ Mobile App → Orchestrator (Rust gRPC) → Tower (Go Socket.IO) → Robot Fleet
 ```
 
 **Orchestrator (Rust):**
+
 - Receives task requests from mobile apps
 - Maintains robot registry and state
 - Executes robot selection algorithm
 - Assigns tasks via gRPC streams
 
 **Tower (Go):**
+
 - Maintains persistent Socket.IO connections to robots
 - One goroutine per robot connection
 - Proxies task assignments from Orchestrator
 - Aggregates status updates from robots
 
 **Robots:**
+
 - Connect to Tower via Socket.IO WebSocket
 - Report position and status continuously
 - Execute assigned tasks autonomously
@@ -205,6 +208,7 @@ fn calculate_score(robot: &RobotInfo, task: &Task) -> f64 {
 ```
 
 This scoring function prioritizes:
+
 1. Robots with higher battery (to avoid mid-task charging)
 2. Robots closer to task source (reduces empty travel time)
 3. Robots with required capabilities (e.g., refrigerated compartment for food delivery)
@@ -290,6 +294,7 @@ func (s *SocketServer) SendTaskToRobot(robotID string, task *TaskAssignment) err
 **Why Socket.IO Instead of Direct gRPC?**
 
 Robots are resource-constrained devices (often Raspberry Pi, NVIDIA Jetson Nano). Socket.IO provides:
+
 - Automatic reconnection on network interruptions
 - Fallback to HTTP polling if WebSocket unavailable
 - Lower memory overhead than gRPC client libraries
@@ -310,6 +315,7 @@ The server returns turn-by-turn instructions (see Navigation Pipeline documentat
 **Why Server-Side Pathfinding?**
 
 Robots lack complete map data and pathfinding compute resources. Centralizing pathfinding on the server:
+
 - Reduces robot complexity
 - Enables dynamic routing (avoid congested areas)
 - Allows path optimization with global knowledge
@@ -410,6 +416,7 @@ func (s *SocketServer) HandleRobotConnection(socket socketio.Conn) {
 ```
 
 This per-robot goroutine model provides:
+
 - Isolation: One robot's slow connection doesn't block others
 - Simplicity: No complex multiplexing logic
 - Scalability: Go's goroutines are lightweight (2KB stack each)
@@ -516,24 +523,28 @@ The Orchestrator re-assigns the task to another robot.
 The system exposes metrics for operational monitoring:
 
 **Orchestrator Metrics:**
+
 - Tasks queued by priority
 - Average task assignment latency
 - Robot state distribution (idle/busy/charging/error)
 - Task success/failure rate
 
 **Tower Metrics:**
+
 - Active robot connections
 - Message throughput (tasks/second, status updates/second)
 - gRPC stream health
 - Socket.IO connection duration
 
 **Robot Metrics:**
+
 - Task completion time (P50, P95, P99)
 - Navigation accuracy (deviation from planned route)
 - Battery consumption per task
 - Hardware fault frequency
 
 These metrics enable:
+
 - Capacity planning (add robots if queue grows)
 - Performance optimization (identify slow robots)
 - Predictive maintenance (detect degrading robots)

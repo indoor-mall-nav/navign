@@ -9,6 +9,7 @@ Navign uses multiple interconnected pipelines to provide indoor navigation, acce
 ## Available Pipelines
 
 ### Navigation Pipeline
+
 **[Navigation](./navigation.md)** - Complete flow for indoor pathfinding and turn-by-turn navigation
 
 The navigation pipeline handles user requests for directions within buildings, calculating optimal routes across multiple floors and providing step-by-step instructions.
@@ -18,6 +19,7 @@ The navigation pipeline handles user requests for directions within buildings, c
 ---
 
 ### Localization Pipeline
+
 **[Localization](./localization.md)** - Indoor positioning using BLE beacons
 
 The localization pipeline enables real-time position tracking using BLE beacon triangulation, allowing the mobile app to determine the user's exact location within a building.
@@ -27,6 +29,7 @@ The localization pipeline enables real-time position tracking using BLE beacon t
 ---
 
 ### Access Control Pipeline
+
 **[Unlock](./unlock.md)** - Secure contactless door/gate access
 
 The unlock pipeline provides cryptographically secure access control, allowing users to unlock doors, gates, and turnstiles using their mobile device without physical contact.
@@ -36,6 +39,7 @@ The unlock pipeline provides cryptographically secure access control, allowing u
 ---
 
 ### Robot Control Pipeline
+
 **[Robot Control](./robot-control.md)** - Autonomous delivery robot coordination
 
 The robot control pipeline manages task assignment, pathfinding, and execution for delivery robots operating within buildings.
@@ -45,6 +49,7 @@ The robot control pipeline manages task assignment, pathfinding, and execution f
 ---
 
 ### OTA Update Pipeline
+
 **[OTA Updates](./ota.md)** - Over-the-air firmware updates for robots
 
 The OTA pipeline enables remote firmware updates for robot components without requiring physical access to the devices.
@@ -54,6 +59,7 @@ The OTA pipeline enables remote firmware updates for robot components without re
 ---
 
 ### Firmware OTA Pipeline
+
 **[Firmware OTA](./firmware-ota.md)** - Over-the-air updates for ESP32-C3 beacons
 
 The firmware OTA pipeline provides remote firmware updates for BLE beacon devices, enabling maintenance and feature updates without physical access.

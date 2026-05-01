@@ -1,9 +1,5 @@
 [project]
-dependencies = [
-  "psycopg2-binary>=2.9.11",
-  "pymongo>=4.15.4",
-  "python-dotenv>=1.2.1",
-]
+dependencies = ["psycopg2-binary>=2.9.11", "pymongo>=4.15.4", "python-dotenv>=1.2.1"]
 description = "Add your description here"
 name = "scripts"
 readme = "README.md"

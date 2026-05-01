@@ -42,6 +42,7 @@ An indoor navigation and access control system designed for large buildings such
 ## Quick Links
 
 ### Components
+
 - **[Server](./components/server/)** - Axum REST API server with MongoDB/PostgreSQL
 - **[Mobile](./components/mobile/)** - Cross-platform Vue 3 + Tauri mobile app
 - **[Beacon](./components/beacon)** - ESP32-C3 BLE firmware for positioning and access control
@@ -50,6 +51,7 @@ An indoor navigation and access control system designed for large buildings such
 - **[Shared](./components/shared)** - no_std Rust library shared across components
 
 ### Pipelines
+
 - **[Navigation](./pipelines/navigation)** - Indoor pathfinding and turn-by-turn directions
 - **[Localization](./pipelines/localization)** - BLE beacon triangulation for positioning
 - **[Access Control](./pipelines/unlock)** - Cryptographic door/gate unlocking
@@ -58,6 +60,7 @@ An indoor navigation and access control system designed for large buildings such
 - **[Firmware OTA](./pipelines/firmware-ota)** - Remote updates for ESP32-C3 beacons
 
 ### Development
+
 - **[Testing](./testing/)** - Testing strategies and guides (unit, integration, simulation)
 - **[Development](./development/)** - Development workflow, coding standards, best practices
 - **[Critical TODOs](./development/critical-todos)** - High-priority tasks and known issues
@@ -66,30 +69,36 @@ An indoor navigation and access control system designed for large buildings such
 ## Technology Stack
 
 ### Backend (Rust)
+
 - **Server:** Axum 0.8.6, Tokio 1.47.1, MongoDB 3.3.0, PostgreSQL (SQLx 0.8.6)
 - **Cryptography:** p256 0.13.2, bcrypt 0.17.1, jsonwebtoken 10.0.0
 - **Pathfinding:** Dijkstra with bump allocation (bumpalo 3.18)
 
 ### Embedded (Rust)
+
 - **Firmware:** ESP-HAL 1.0.0-rc.1, bleps (BLE stack), p256 0.13.2
 - **Hardware:** ESP32-C3 microcontroller (RISC-V, WiFi + BLE)
 
 ### Frontend (TypeScript/Vue)
+
 - **Mobile:** Vue 3.5.18, Tauri 2.8.1, Pinia 3.0.3, MapLibre GL 5.6.2
 - **UI:** Reka UI 2.4.1, Tailwind CSS 4.1.12, Konva 9.3.22
 
 ### Robot (Rust + Python)
+
 - **Upper Layer:** Scheduler (Rust), Serial (Rust), Network (Rust), Vision (Python), Audio (Python), Intelligence (Python)
 - **Lower Layer:** STM32F407 + Embassy async runtime
 - **Messaging:** Zenoh pub/sub, Protocol Buffers
 
 ### Admin (Rust + Go)
+
 - **Orchestrator:** Tonic 0.12 (gRPC server)
 - **Tower:** Socket.IO 1.7.0 (Go WebSocket server)
 
 ## Getting Started
 
 ### Prerequisites
+
 - Rust 1.83+ (nightly for some features)
 - Node.js 23.11.0+ with pnpm 10.15.0+
 - Python 3.13+ with uv package manager
@@ -148,4 +157,4 @@ MIT License - See LICENSE file for details.
 
 ---
 
-*For comprehensive development guidance, see [CLAUDE.md](../../CLAUDE.md) in the repository root.*
+_For comprehensive development guidance, see [CLAUDE.md](../../CLAUDE.md) in the repository root._

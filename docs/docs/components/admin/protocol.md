@@ -48,16 +48,13 @@ This document specifies the event-driven communication protocol between local ma
 **Endpoint:** `POST /api/orchestrators/register`
 
 **Request:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
   "orchestrator_id": "orch-001",
   "version": "0.1.0",
-  "capabilities": [
-    "task_assignment",
-    "firmware_distribution",
-    "beacon_management"
-  ],
+  "capabilities": ["task_assignment", "firmware_distribution", "beacon_management"],
   "public_key": "-----BEGIN PUBLIC KEY-----\n...",
   "heartbeat_interval": 60,
   "local_address": "https://orchestrator.mall-a.local:50051"
@@ -65,6 +62,7 @@ This document specifies the event-driven communication protocol between local ma
 ```
 
 **Response:**
+
 ```json
 {
   "token": "jwt-token-for-orchestrator",
@@ -89,6 +87,7 @@ This document specifies the event-driven communication protocol between local ma
 **Endpoint:** `GET /api/orchestrators/events`
 
 **Headers:**
+
 ```
 Authorization: Bearer {orchestrator_token}
 Accept: text/event-stream
@@ -99,6 +98,7 @@ X-Orchestrator-ID: orch-mall-a-001
 **Event Types:**
 
 #### 2.1 Data Update Event
+
 ```
 event: data_update
 id: evt-123456
@@ -117,12 +117,14 @@ data: {
 ```
 
 **Orchestrator Action:**
+
 1. Fetch changed data via `/api/orchestrators/sync/delta`
 2. Update local cache
 3. Notify affected beacons/robots
 4. Send acknowledgment
 
 #### 2.2 Firmware Update Event
+
 ```
 event: firmware_update
 id: evt-123457
@@ -142,6 +144,7 @@ data: {
 ```
 
 **Orchestrator Action:**
+
 1. Download firmware to local cache
 2. Verify checksum
 3. Announce to beacons via mDNS/BLE broadcast
@@ -149,6 +152,7 @@ data: {
 5. Report update status to central server
 
 #### 2.3 Task Creation Event
+
 ```
 event: task_create
 id: evt-123458
@@ -174,12 +178,14 @@ data: {
 ```
 
 **Orchestrator Action:**
+
 1. Add task to local queue
 2. Run robot selection algorithm
 3. Assign to robot via Tower/gRPC
 4. Report assignment to central server
 
 #### 2.4 Access Log Request
+
 ```
 event: access_log_request
 id: evt-123459
@@ -191,10 +197,12 @@ data: {
 ```
 
 **Orchestrator Action:**
+
 1. Query local access logs
 2. Upload to central server via `/api/orchestrators/logs/upload`
 
 #### 2.5 Configuration Update
+
 ```
 event: config_update
 id: evt-123460
@@ -214,11 +222,13 @@ data: {
 ```
 
 **Orchestrator Action:**
+
 1. Validate configuration
 2. Apply to local orchestrator
 3. Send acknowledgment
 
 #### 2.6 Connection Keep-Alive
+
 ```
 event: ping
 id: evt-123461
@@ -226,6 +236,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Orchestrator Action:**
+
 1. Respond with pong (no action needed, SSE handles this)
 
 ---
@@ -237,6 +248,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 **Endpoint:** `GET /api/orchestrators/sync/full`
 
 **Query Parameters:**
+
 ```
 ?entity_id=mall-a-uuid
 &include=areas,beacons,merchants,connections
@@ -244,6 +256,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Response:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
@@ -266,6 +279,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **When to use:**
+
 - Initial orchestrator startup
 - After prolonged disconnection (> 24 hours)
 - After checksum mismatch
@@ -276,6 +290,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 **Endpoint:** `GET /api/orchestrators/sync/delta`
 
 **Query Parameters:**
+
 ```
 ?entity_id=mall-a-uuid
 &since=2025-01-08T10:00:00Z
@@ -283,6 +298,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Response:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
@@ -318,6 +334,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Operations:**
+
 - `create`: New entity added
 - `update`: Existing entity modified
 - `delete`: Entity removed
@@ -327,11 +344,13 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 **Endpoint:** `GET /api/orchestrators/sync/checksum`
 
 **Query Parameters:**
+
 ```
 ?entity_id=mall-a-uuid
 ```
 
 **Response:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
@@ -347,6 +366,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Orchestrator Action:**
+
 1. Calculate local checksums
 2. Compare with server checksums
 3. Trigger delta sync if mismatch
@@ -361,6 +381,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 **Endpoint:** `GET /api/firmware/latest`
 
 **Query Parameters:**
+
 ```
 ?target=esp32c3
 &device_type=beacon
@@ -368,6 +389,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 ```
 
 **Response:**
+
 ```json
 {
   "firmware_id": "fw-beacon-v020",
@@ -381,11 +403,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
   "download_url": "https://server.navign.com/api/firmware/fw-beacon-v020/download",
   "fallback_url": "https://cdn.navign.com/firmware/beacon-v020.bin",
   "release_notes": "https://github.com/navign/navign/releases/tag/v0.2.0",
-  "changelog": [
-    "Fixed nonce expiration bug",
-    "Added OTA rollback support",
-    "Improved BLE range"
-  ],
+  "changelog": ["Fixed nonce expiration bug", "Added OTA rollback support", "Improved BLE range"],
   "compatible_hardware": ["esp32c3-rev3", "esp32c3-rev4"],
   "min_previous_version": "0.1.5"
 }
@@ -396,6 +414,7 @@ data: {"timestamp": "2025-01-08T10:40:00Z"}
 **Endpoint:** `GET /api/firmware/{firmware_id}/download`
 
 **Headers:**
+
 ```
 Authorization: Bearer {orchestrator_token}
 X-Entity-ID: mall-a-uuid
@@ -403,12 +422,14 @@ Range: bytes=0-1048575
 ```
 
 **Response:**
+
 - Binary firmware file
 - Supports HTTP range requests for resumable downloads
 - Content-Type: `application/octet-stream`
 - Content-Disposition: `attachment; filename="beacon-v020.bin"`
 
 **Orchestrator Action:**
+
 1. Download firmware to local cache directory
 2. Verify checksum
 3. Store metadata (version, target, checksum)
@@ -419,6 +440,7 @@ Range: bytes=0-1048575
 **Endpoint:** `POST /api/orchestrators/firmware/cache`
 
 **Request (Multipart Form):**
+
 ```
 firmware_id: fw-beacon-v020
 target: esp32c3
@@ -426,6 +448,7 @@ file: (binary firmware)
 ```
 
 **Response:**
+
 ```json
 {
   "cached": true,
@@ -435,6 +458,7 @@ file: (binary firmware)
 ```
 
 **When to use:**
+
 - Orchestrator received firmware from alternative source (USB, local build)
 - GitHub not accessible, used fallback CDN
 - Manual firmware upload
@@ -444,6 +468,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/firmware/status`
 
 **Request:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
@@ -460,6 +485,7 @@ file: (binary firmware)
 ```
 
 **Status Values:**
+
 - `downloading`: Beacon downloading firmware
 - `verifying`: Beacon verifying checksum
 - `installing`: Beacon writing to OTA partition
@@ -468,6 +494,7 @@ file: (binary firmware)
 - `rolled_back`: Beacon rolled back to previous version
 
 **Error Types:**
+
 - `download_failed`: Network error during download
 - `checksum_mismatch`: Downloaded file corrupted
 - `insufficient_space`: Flash partition too small
@@ -483,6 +510,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/tasks/assign`
 
 **Request:**
+
 ```json
 {
   "task_id": "task-delivery-001",
@@ -499,6 +527,7 @@ file: (binary firmware)
 ```
 
 **Response:**
+
 ```json
 {
   "acknowledged": true,
@@ -512,6 +541,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/tasks/status`
 
 **Request:**
+
 ```json
 {
   "task_id": "task-delivery-001",
@@ -531,6 +561,7 @@ file: (binary firmware)
 ```
 
 **Status Values:**
+
 - `queued`: Waiting for robot assignment
 - `assigned`: Robot assigned, not started
 - `in_progress`: Robot executing task
@@ -543,6 +574,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/tasks/complete`
 
 **Request:**
+
 ```json
 {
   "task_id": "task-delivery-001",
@@ -571,6 +603,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/beacons/register`
 
 **Request:**
+
 ```json
 {
   "entity_id": "mall-a-uuid",
@@ -582,13 +615,14 @@ file: (binary firmware)
   "hardware_revision": "esp32c3-rev3",
   "location": {
     "area_id": "area-gate-1",
-    "coordinates": {"x": 50.0, "y": 50.0, "z": 1.5, "floor": "L1"}
+    "coordinates": { "x": 50.0, "y": 50.0, "z": 1.5, "floor": "L1" }
   },
   "registered_at": "2025-01-08T10:00:00Z"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "beacon_id": "beacon-gate-5",
@@ -609,6 +643,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/beacons/heartbeat`
 
 **Request:**
+
 ```json
 {
   "beacon_id": "beacon-gate-5",
@@ -630,6 +665,7 @@ file: (binary firmware)
 ```
 
 **Response:**
+
 ```json
 {
   "acknowledged": true,
@@ -649,6 +685,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/beacons/access-logs`
 
 **Request:**
+
 ```json
 {
   "beacon_id": "beacon-gate-5",
@@ -678,6 +715,7 @@ file: (binary firmware)
 ```
 
 **Response:**
+
 ```json
 {
   "acknowledged": true,
@@ -694,17 +732,20 @@ file: (binary firmware)
 #### 7.1 SSE Reconnection Strategy
 
 **Initial Connection:**
+
 1. Orchestrator connects to `/api/orchestrators/events`
 2. Server sends `event: connected` with connection ID
 3. Orchestrator stores connection ID and last event ID
 
 **On Disconnection:**
+
 1. Wait 5 seconds
 2. Reconnect with `Last-Event-ID` header
 3. Server replays missed events from last ID
 4. Exponential backoff: 5s → 10s → 20s → 40s → 60s (max)
 
 **Timeout Handling:**
+
 - Server sends `event: ping` every 30 seconds
 - Orchestrator must reconnect if no event received in 90 seconds
 
@@ -713,6 +754,7 @@ file: (binary firmware)
 **Endpoint:** `POST /api/orchestrators/heartbeat`
 
 **Request:**
+
 ```json
 {
   "orchestrator_id": "orch-mall-a-001",
@@ -734,6 +776,7 @@ file: (binary firmware)
 ```
 
 **Response:**
+
 ```json
 {
   "acknowledged": true,
@@ -772,16 +815,19 @@ file: (binary firmware)
 #### 8.1 Authentication
 
 **Orchestrator Authentication:**
+
 - JWT token issued during registration
 - Token rotation every 7 days
 - ECDSA P-256 signature for registration
 
 **Beacon Authentication (to Orchestrator):**
+
 - Device ID + ECDSA signature
 - Nonce-based challenge-response
 - Rate limiting: 10 requests per minute per beacon
 
 **Robot Authentication (to Orchestrator):**
+
 - Handled by existing gRPC/Tower mechanism
 - JWT token or mTLS (to be specified)
 
@@ -789,38 +835,41 @@ file: (binary firmware)
 
 **Role-Based Access Control:**
 
-| Role | Permissions |
-|------|-------------|
+| Role         | Permissions                                                         |
+| ------------ | ------------------------------------------------------------------- |
 | Orchestrator | Read entity data, write logs, download firmware, report task status |
-| Beacon | Register, heartbeat, upload logs, download firmware |
-| Robot | Receive tasks, report status, query pathfinding |
-| Mobile | Create tasks, query entity data, unlock beacons |
+| Beacon       | Register, heartbeat, upload logs, download firmware                 |
+| Robot        | Receive tasks, report status, query pathfinding                     |
+| Mobile       | Create tasks, query entity data, unlock beacons                     |
 
 **Entity Isolation:**
+
 - Orchestrators can only access data for their assigned entity
 - Cross-entity access blocked at API level
 
 #### 8.3 Data Encryption
 
 **In Transit:**
+
 - TLS 1.3 for all HTTPS connections
 - mTLS for gRPC (optional, recommended)
 
 **At Rest:**
+
 - Orchestrator local cache: Encrypted with AES-256-GCM
 - Beacon firmware cache: Signed with ECDSA
 - Access logs: Encrypted before upload
 
 #### 8.4 Rate Limiting
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `/api/orchestrators/register` | 1 | 24 hours |
-| `/api/orchestrators/heartbeat` | 1 | 60 seconds |
-| `/api/orchestrators/sync/delta` | 10 | 1 minute |
-| `/api/orchestrators/firmware/status` | 100 | 1 minute |
-| `/api/orchestrators/tasks/*` | 100 | 1 minute |
-| `/api/orchestrators/beacons/*` | 1000 | 1 minute |
+| Endpoint                             | Limit | Window     |
+| ------------------------------------ | ----- | ---------- |
+| `/api/orchestrators/register`        | 1     | 24 hours   |
+| `/api/orchestrators/heartbeat`       | 1     | 60 seconds |
+| `/api/orchestrators/sync/delta`      | 10    | 1 minute   |
+| `/api/orchestrators/firmware/status` | 100   | 1 minute   |
+| `/api/orchestrators/tasks/*`         | 100   | 1 minute   |
+| `/api/orchestrators/beacons/*`       | 1000  | 1 minute   |
 
 ---
 
@@ -846,26 +895,28 @@ file: (binary firmware)
 
 #### 9.2 Error Codes
 
-| Code | Description | Suggested Action |
-|------|-------------|------------------|
-| `AUTH_TOKEN_EXPIRED` | JWT token expired | Re-register orchestrator |
-| `AUTH_INVALID_SIGNATURE` | ECDSA signature invalid | Check private key |
-| `SYNC_CHECKSUM_MISMATCH` | Data integrity error | Perform full sync |
-| `FIRMWARE_NOT_FOUND` | Requested firmware not available | Check firmware ID |
-| `ENTITY_NOT_FOUND` | Entity does not exist | Verify entity ID |
-| `RATE_LIMIT_EXCEEDED` | Too many requests | Wait and retry |
-| `BEACON_NOT_REGISTERED` | Beacon unknown to system | Register beacon first |
-| `TASK_ALREADY_ASSIGNED` | Task assigned to another robot | Query task status |
-| `NETWORK_TIMEOUT` | Request timed out | Retry with backoff |
+| Code                     | Description                      | Suggested Action         |
+| ------------------------ | -------------------------------- | ------------------------ |
+| `AUTH_TOKEN_EXPIRED`     | JWT token expired                | Re-register orchestrator |
+| `AUTH_INVALID_SIGNATURE` | ECDSA signature invalid          | Check private key        |
+| `SYNC_CHECKSUM_MISMATCH` | Data integrity error             | Perform full sync        |
+| `FIRMWARE_NOT_FOUND`     | Requested firmware not available | Check firmware ID        |
+| `ENTITY_NOT_FOUND`       | Entity does not exist            | Verify entity ID         |
+| `RATE_LIMIT_EXCEEDED`    | Too many requests                | Wait and retry           |
+| `BEACON_NOT_REGISTERED`  | Beacon unknown to system         | Register beacon first    |
+| `TASK_ALREADY_ASSIGNED`  | Task assigned to another robot   | Query task status        |
+| `NETWORK_TIMEOUT`        | Request timed out                | Retry with backoff       |
 
 #### 9.3 Retry Strategy
 
 **Idempotent Operations (GET, PUT):**
+
 - Immediate retry
 - Exponential backoff: 1s → 2s → 4s → 8s → 16s
 - Max retries: 5
 
 **Non-Idempotent Operations (POST):**
+
 - Include idempotency key: `X-Idempotency-Key: {uuid}`
 - Server deduplicates within 24-hour window
 - Retry with same idempotency key
@@ -877,6 +928,7 @@ file: (binary firmware)
 #### 10.1 Metrics
 
 **Orchestrator Metrics:**
+
 - Connection uptime percentage
 - Event processing latency (p50, p95, p99)
 - Sync operation duration
@@ -884,6 +936,7 @@ file: (binary firmware)
 - Task assignment success rate
 
 **Central Server Metrics:**
+
 - Active orchestrator connections
 - Event fanout latency
 - Data sync throughput (bytes/sec)
@@ -893,6 +946,7 @@ file: (binary firmware)
 #### 10.2 Logging
 
 **Log Format (JSON):**
+
 ```json
 {
   "timestamp": "2025-01-08T11:00:00Z",
@@ -908,6 +962,7 @@ file: (binary firmware)
 ```
 
 **Log Levels:**
+
 - `DEBUG`: Detailed operation logs
 - `INFO`: Normal operation events
 - `WARN`: Recoverable errors, degraded performance
@@ -919,6 +974,7 @@ file: (binary firmware)
 **Orchestrator Health Endpoint:** `GET /health`
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -940,6 +996,7 @@ file: (binary firmware)
 ```
 
 **Status Values:**
+
 - `healthy`: All systems operational
 - `degraded`: Some non-critical systems down
 - `unhealthy`: Critical systems down
@@ -951,16 +1008,19 @@ file: (binary firmware)
 #### 11.1 Network Requirements
 
 **Central Server:**
+
 - Public IP address
 - TLS certificate (Let's Encrypt or commercial CA)
 - Ports: 443 (HTTPS)
 
 **Orchestrator:**
+
 - Private IP (mall local network)
 - No inbound connections required (firewall-friendly)
 - Ports: 50051 (gRPC), 8080 (Tower), 443 (HTTPS for beacons)
 
 **Firewall Rules:**
+
 - Orchestrator outbound HTTPS to central server (443)
 - Orchestrator inbound gRPC from Tower (50051)
 - Orchestrator inbound HTTPS from beacons (443)
@@ -969,17 +1029,20 @@ file: (binary firmware)
 #### 11.2 Scaling
 
 **Horizontal Scaling (Central Server):**
+
 - Load balancer for multiple server instances
 - Redis for SSE connection state
 - MongoDB replica set for data persistence
 - CDN for firmware distribution
 
 **Vertical Scaling (Orchestrator):**
+
 - 2 CPU cores, 4 GB RAM recommended
 - 20 GB disk for firmware cache
 - SSD recommended for local database
 
 **Capacity Planning:**
+
 - 1 orchestrator per mall entity
 - Up to 500 beacons per orchestrator
 - Up to 50 robots per orchestrator
@@ -988,20 +1051,24 @@ file: (binary firmware)
 #### 11.3 Disaster Recovery
 
 **Central Server Backup:**
+
 - Daily MongoDB backups
 - Firmware repository mirrored to S3/GCS
 - Configuration stored in version control
 
 **Orchestrator Backup:**
+
 - Local cache backed up weekly
 - Configuration stored in persistent volume
 - Automatic failover to backup orchestrator (future)
 
 **Recovery Time Objective (RTO):**
+
 - Central server: < 1 hour
 - Orchestrator: < 15 minutes
 
 **Recovery Point Objective (RPO):**
+
 - Central server: < 1 hour (database replication)
 - Orchestrator: < 24 hours (daily backup)
 
@@ -1010,36 +1077,42 @@ file: (binary firmware)
 ## Implementation Roadmap
 
 ### Phase 1: Core Protocol (Week 1-2)
+
 - [ ] Implement orchestrator registration
 - [ ] Implement SSE event subscription
 - [ ] Implement heartbeat mechanism
 - [ ] Implement basic data sync (full + delta)
 
 ### Phase 2: Data Synchronization (Week 3-4)
+
 - [ ] Implement checksum verification
 - [ ] Implement conflict resolution
 - [ ] Implement batch sync for large entities
 - [ ] Add monitoring and metrics
 
 ### Phase 3: Firmware Distribution (Week 5-6)
+
 - [ ] Implement firmware metadata API
 - [ ] Implement firmware download caching
 - [ ] Implement beacon firmware update flow
 - [ ] Add rollback support
 
 ### Phase 4: Task Management (Week 7-8)
+
 - [ ] Implement task assignment reporting
 - [ ] Implement task status updates
 - [ ] Implement task completion flow
 - [ ] Add task analytics
 
 ### Phase 5: Beacon Integration (Week 9-10)
+
 - [ ] Implement beacon registration via orchestrator
 - [ ] Implement beacon heartbeat
 - [ ] Implement access log upload
 - [ ] Add beacon fleet management UI
 
 ### Phase 6: Production Hardening (Week 11-12)
+
 - [ ] Add comprehensive error handling
 - [ ] Implement rate limiting
 - [ ] Add security audit logging
@@ -1055,6 +1128,7 @@ file: (binary firmware)
 For high-throughput scenarios, consider using Protocol Buffers + gRPC instead of REST:
 
 **Example: Data Sync Service**
+
 ```protobuf
 service OrchestratorSync {
   rpc Register(RegisterRequest) returns (RegisterResponse);
@@ -1078,6 +1152,7 @@ For malls with restrictive firewalls that block SSE:
 **Endpoint:** `wss://server.navign.com/api/orchestrators/ws`
 
 **Message Format:**
+
 ```json
 {
   "type": "event",
@@ -1098,6 +1173,7 @@ When orchestrator cannot reach central server:
 5. **Access Control:** Beacons function independently
 
 **Queue Flush on Reconnection:**
+
 - Upload queued events in batches (100 per request)
 - Resume at last successful batch on failure
 

@@ -12,20 +12,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 version = "0.1.0"
 
-  [project.scripts]
-  navign-maintenance = "navign_maintenance.cli:main"
+[project.scripts]
+navign-maintenance = "navign_maintenance.cli:main"
 
-  [project.optional-dependencies]
-  dev = [
-    "pytest>=8.3.0",
-    "pytest-cov>=6.0.0",
-    "pytest-mock>=3.14.0",
-    "pytest-asyncio>=0.24.0",
-  ]
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0", "pytest-cov>=6.0.0", "pytest-mock>=3.14.0", "pytest-asyncio>=0.24.0"]
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires      = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 
 [tool.setuptools.packages.find]
 include = ["navign_maintenance*", "proto*"]
@@ -39,18 +34,14 @@ addopts = [
   "--cov-report=term-missing",
   "--cov-report=html",
 ]
-markers = [
-  "unit: Unit tests",
-  "integration: Integration tests",
-  "slow: Slow running tests",
-]
+markers = ["unit: Unit tests", "integration: Integration tests", "slow: Slow running tests"]
 python_classes = ["Test*"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-omit   = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
+omit = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
 source = ["navign_maintenance"]
 
 [tool.coverage.report]

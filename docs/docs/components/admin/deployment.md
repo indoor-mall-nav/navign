@@ -42,12 +42,14 @@ The admin system consists of three components that work together to manage robot
 ### System Requirements
 
 **Minimum:**
+
 - CPU: 2 cores
 - RAM: 2GB
 - Disk: 500MB
 - OS: Linux (Ubuntu 22.04+, Debian 12+, RHEL 9+)
 
 **Recommended:**
+
 - CPU: 4 cores
 - RAM: 4GB
 - Disk: 2GB
@@ -70,12 +72,14 @@ If you're using prebuilt binaries, you **only** need Python/uv (for Plot). Rust,
 **Required for Building from Source:**
 
 1. **Rust** (1.86+)
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    source "$HOME/.cargo/env"
    ```
 
 2. **Go** (1.25+)
+
    ```bash
    # Ubuntu/Debian
    wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz
@@ -85,6 +89,7 @@ If you're using prebuilt binaries, you **only** need Python/uv (for Plot). Rust,
    ```
 
 3. **Protocol Buffers Compiler**
+
    ```bash
    # Ubuntu/Debian
    sudo apt install -y protobuf-compiler
@@ -94,6 +99,7 @@ If you're using prebuilt binaries, you **only** need Python/uv (for Plot). Rust,
    ```
 
 4. **Protocol Buffers Go Plugins**
+
    ```bash
    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -340,6 +346,7 @@ Deploy all components on one server:
 ```
 
 **Configuration:**
+
 - Orchestrator: `[::1]:50051`
 - Tower: `--grpc localhost:50051`
 
@@ -399,10 +406,10 @@ Deploy on separate servers with reverse proxy:
 
 ### Ports
 
-| Component     | Port  | Protocol | Purpose           |
-|---------------|-------|----------|-------------------|
-| Orchestrator  | 50051 | gRPC     | Task management   |
-| Tower         | 8080  | HTTP/WS  | Robot connections |
+| Component    | Port  | Protocol | Purpose           |
+| ------------ | ----- | -------- | ----------------- |
+| Orchestrator | 50051 | gRPC     | Task management   |
+| Tower        | 8080  | HTTP/WS  | Robot connections |
 
 ### Firewall Rules
 
@@ -519,13 +526,13 @@ sudo systemctl is-active navign-tower
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'navign-orchestrator'
+  - job_name: "navign-orchestrator"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
 
-  - job_name: 'navign-tower'
+  - job_name: "navign-tower"
     static_configs:
-      - targets: ['localhost:9091']
+      - targets: ["localhost:9091"]
 ```
 
 ## Backup & Recovery

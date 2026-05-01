@@ -84,6 +84,7 @@ curl -O http://localhost:3000/api/firmwares/507f1f77bcf86cd799439011/download
 ```
 
 Response headers include:
+
 - `X-Firmware-Version`: Semantic version
 - `X-Firmware-Checksum`: SHA-256 checksum
 - `X-Firmware-Device`: Target device type
@@ -100,6 +101,7 @@ The orchestrator acts as a firmware distribution proxy and task scheduler.
 #### Configuration
 
 Environment variables:
+
 ```bash
 ORCHESTRATOR_GRPC_ADDR=[::1]:50051      # gRPC server address
 ORCHESTRATOR_HTTP_ADDR=0.0.0.0:8081     # HTTP server address
@@ -225,7 +227,7 @@ cargo run --release
 ### Docker Compose Example
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   mongodb:
     image: mongo:8.0
@@ -264,6 +266,7 @@ volumes:
 ## Future Enhancements
 
 ### Phase 1: Current Implementation ✅
+
 - [x] Server firmware storage and REST API
 - [x] Orchestrator firmware proxy API
 - [x] SHA-256 checksum verification
@@ -271,18 +274,21 @@ volumes:
 - [x] Version management
 
 ### Phase 2: Tower Integration (Planned)
+
 - [ ] Socket.IO events for firmware updates
 - [ ] Beacon firmware version reporting
 - [ ] OTA update task creation
 - [ ] Progress tracking
 
 ### Phase 3: Beacon OTA (Planned)
+
 - [ ] ESP-IDF OTA partition support
 - [ ] HTTP-based firmware download
 - [ ] Rollback mechanism
 - [ ] Signature verification
 
 ### Phase 4: Advanced Features (Planned)
+
 - [ ] Staged rollouts (percentage-based)
 - [ ] A/B testing
 - [ ] Automatic version checking
@@ -296,6 +302,7 @@ volumes:
 **Problem**: Firmware upload fails with "Failed to create storage directory"
 
 **Solution**: Ensure the server process has write permissions:
+
 ```bash
 mkdir -p firmware_storage
 chmod 750 firmware_storage
@@ -310,6 +317,7 @@ chmod 750 firmware_storage
 **Problem**: "protoc not found" error
 
 **Solution**: Install protobuf compiler:
+
 ```bash
 apt-get install protobuf-compiler
 ```
@@ -317,6 +325,7 @@ apt-get install protobuf-compiler
 **Problem**: Cannot fetch firmware from server
 
 **Solution**: Check `SERVER_URL` environment variable and ensure server is running:
+
 ```bash
 curl http://localhost:3000/health
 ```
@@ -371,6 +380,7 @@ cargo test
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: [navign/issues](https://github.com/your-org/navign/issues)
 - Documentation: See `/docs` directory
 - CLAUDE.md: Architecture overview

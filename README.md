@@ -60,28 +60,32 @@ navign/
 ### Quick Start
 
 1. **Clone the repository**:
+
    ```bash
    git clone <repository-url>
    cd navign
    ```
 
 2. **Install dependencies**:
+
    ```bash
    just init
    ```
 
    This will:
-    - Install Rust tools (cargo-deny, cargo-shear, typos-cli)
-    - Install pnpm dependencies for Node.js projects
-    - Sync Python virtual environments with uv
-    - Build all Rust components
+   - Install Rust tools (cargo-deny, cargo-shear, typos-cli)
+   - Install pnpm dependencies for Node.js projects
+   - Sync Python virtual environments with uv
+   - Build all Rust components
 
 3. **Format code**:
+
    ```bash
    just fmt
    ```
 
 4. **Lint and check**:
+
    ```bash
    just lint
    ```

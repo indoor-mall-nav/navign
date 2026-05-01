@@ -14,6 +14,7 @@ The mobile frontend now includes a full-featured admin panel that supports:
 ## Features
 
 ### 1. Beacons Management
+
 - Create/edit/delete BLE beacons
 - Assign beacons to areas
 - Configure beacon types (navigation, marketing)
@@ -23,6 +24,7 @@ The mobile frontend now includes a full-featured admin panel that supports:
 **Route**: `/admin/beacons`
 
 ### 2. Areas Management
+
 - Create/edit/delete areas (zones)
 - Define polygon boundaries for areas
 - Set floor information (floor/level/basement)
@@ -31,6 +33,7 @@ The mobile frontend now includes a full-featured admin panel that supports:
 **Route**: `/admin/areas`
 
 ### 3. Merchants Management
+
 - Create/edit/delete merchants (stores, restaurants, etc.)
 - Set merchant types and categories
 - Add tags for search and filtering
@@ -41,6 +44,7 @@ The mobile frontend now includes a full-featured admin panel that supports:
 **Route**: `/admin/merchants`
 
 ### 4. Connections Management
+
 - Create/edit/delete connections between areas
 - Support multiple connection types:
   - Gates (🚪)
@@ -61,6 +65,7 @@ The mobile frontend now includes a full-featured admin panel that supports:
 When running as a Tauri application, the admin panel uses native Tauri commands to communicate with the backend.
 
 **Setup:**
+
 ```bash
 cd mobile
 pnpm install
@@ -68,6 +73,7 @@ pnpm run tauri dev
 ```
 
 **Features:**
+
 - Native desktop/mobile experience
 - Direct Rust backend communication
 - No CORS issues
@@ -80,6 +86,7 @@ The admin panel can be deployed as a standalone web application for browser-base
 **Setup:**
 
 1. Create `.env` file:
+
 ```bash
 cp .env.example .env
 # Edit .env and set both VITE_API_BASE_URL and VITE_ORCHESTRATOR_URL
@@ -87,6 +94,7 @@ cp .env.example .env
 ```
 
 2. Build for production:
+
 ```bash
 cd mobile
 pnpm install
@@ -96,6 +104,7 @@ pnpm run build
 3. Deploy the `dist/` directory to your web server.
 
 **Features:**
+
 - Browser-based access
 - No installation required
 - Cross-platform (any device with a browser)
@@ -114,6 +123,7 @@ VITE_ORCHESTRATOR_URL=http://localhost:8081
 ```
 
 For production:
+
 ```env
 VITE_API_BASE_URL=https://api.yourserver.com
 VITE_ORCHESTRATOR_URL=https://orchestrator.yourserver.com
@@ -134,6 +144,7 @@ The admin panel routes all CRUD operations (Create, Read, Update, Delete) throug
 The admin panel is designed to use **gRPC-Web (WebRPC)** for communication with the orchestrator:
 
 **Architecture Flow:**
+
 ```
 Admin Panel → gRPC-Web → Orchestrator → REST API → Server → Database
 ```
@@ -149,8 +160,8 @@ The admin panel includes a smart API abstraction layer (`src/lib/api/client.ts`)
 ```typescript
 // Detects if running in Tauri or web mode
 const isTauriMode = (): boolean => {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-}
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+};
 ```
 
 ### API Functions
@@ -158,6 +169,7 @@ const isTauriMode = (): boolean => {
 All CRUD operations are available through the client API:
 
 **Beacons:**
+
 - `listBeacons(entityId, token)`
 - `getBeacon(entityId, beaconId, token)`
 - `createBeacon(entityId, beacon, token)`
@@ -165,6 +177,7 @@ All CRUD operations are available through the client API:
 - `deleteBeacon(entityId, beaconId, token)`
 
 **Areas:**
+
 - `listAreas(entityId, token)`
 - `getArea(entityId, areaId, token)`
 - `createArea(entityId, area, token)`
@@ -172,6 +185,7 @@ All CRUD operations are available through the client API:
 - `deleteArea(entityId, areaId, token)`
 
 **Merchants:**
+
 - `listMerchants(entityId, token)`
 - `getMerchant(entityId, merchantId, token)`
 - `createMerchant(entityId, merchant, token)`
@@ -179,6 +193,7 @@ All CRUD operations are available through the client API:
 - `deleteMerchant(entityId, merchantId, token)`
 
 **Connections:**
+
 - `listConnections(entityId, token)`
 - `getConnection(entityId, connectionId, token)`
 - `createConnection(entityId, connection, token)`
@@ -192,6 +207,7 @@ When running as a standalone web app, the admin panel makes HTTP requests to the
 **Important**: All CRUD operations are routed through the orchestrator, NOT the server. The orchestrator is the only service authorized to modify the central database.
 
 ### Beacons
+
 - `GET /api/entities/{entityId}/beacons` - List all beacons
 - `GET /api/entities/{entityId}/beacons/{beaconId}` - Get beacon details
 - `POST /api/entities/{entityId}/beacons` - Create beacon
@@ -199,6 +215,7 @@ When running as a standalone web app, the admin panel makes HTTP requests to the
 - `DELETE /api/entities/{entityId}/beacons/{beaconId}` - Delete beacon
 
 ### Areas
+
 - `GET /api/entities/{entityId}/areas` - List all areas
 - `GET /api/entities/{entityId}/areas/{areaId}` - Get area details
 - `POST /api/entities/{entityId}/areas` - Create area
@@ -206,6 +223,7 @@ When running as a standalone web app, the admin panel makes HTTP requests to the
 - `DELETE /api/entities/{entityId}/areas/{areaId}` - Delete area
 
 ### Merchants
+
 - `GET /api/entities/{entityId}/merchants` - List all merchants
 - `GET /api/entities/{entityId}/merchants/{merchantId}` - Get merchant details
 - `POST /api/entities/{entityId}/merchants` - Create merchant
@@ -213,6 +231,7 @@ When running as a standalone web app, the admin panel makes HTTP requests to the
 - `DELETE /api/entities/{entityId}/merchants/{merchantId}` - Delete merchant
 
 ### Connections
+
 - `GET /api/entities/{entityId}/connections` - List all connections
 - `GET /api/entities/{entityId}/connections/{connectionId}` - Get connection details
 - `POST /api/entities/{entityId}/connections` - Create connection
@@ -309,6 +328,7 @@ let cors = CorsLayer::new()
 ### Input Validation
 
 All forms include basic client-side validation, but **always validate on the server side** as well:
+
 - Polygon coordinates must be valid arrays
 - Required fields must be present
 - ObjectIds must be valid MongoDB ObjectIds
@@ -323,12 +343,14 @@ All forms include basic client-side validation, but **always validate on the ser
 ### Issue: "Not implemented in Tauri mode" errors
 
 **Solution**: Some CRUD operations may not have Tauri commands implemented yet. Either:
+
 1. Add the missing Tauri commands in `src-tauri/src/lib.rs`
 2. Deploy as a standalone web app instead
 
 ### Issue: Polygon parsing errors
 
 **Solution**: Ensure polygon JSON is valid:
+
 - Use double quotes for strings in JSON
 - Include at least 3 coordinate pairs for areas
 - Format: `[[x1, y1], [x2, y2], [x3, y3]]`

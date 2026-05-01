@@ -1,17 +1,14 @@
 [package]
 edition.workspace = true
 license.workspace = true
-name              = "navign-server"
+name = "navign-server"
 version.workspace = true
 
 [dependencies]
 anyhow = "1.0.100"
 async-trait = "0.1.89"
 axum = { version = "0.8.6", features = ["default", "macros", "multipart"] }
-axum-extra = { version = "0.12.2", features = [
-  "typed-header",
-  "typed-routing",
-] }
+axum-extra = { version = "0.12.2", features = ["typed-header", "typed-routing"] }
 base64 = "0.22.1"
 bcrypt = "0.17.1"
 bumpalo = { version = "3.18", features = ["collections", "boxed", "serde"] }

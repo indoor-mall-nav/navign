@@ -17,17 +17,20 @@ Admin Panel (Browser) → gRPC-Web → Orchestrator → REST API → Server → 
 ## Current Status
 
 ### ✅ Completed
+
 - Proto service definition (`admin/proto/admin.proto`)
 - Connect-ES dependencies installed (`@connectrpc/connect`, `@connectrpc/connect-web`)
 - Code generation tools installed (`@bufbuild/protoc-gen-es`, `@connectrpc/protoc-gen-connect-es`)
 - API client structure ready
 
 ### ⏳ Pending
+
 - **Orchestrator Implementation**: The orchestrator needs to implement the `AdminService` from `admin.proto`
 - **Proto Code Generation**: Generate TypeScript clients from proto files
 - **gRPC-Web Client Integration**: Replace HTTP calls with gRPC-Web calls
 
 ### 🔄 Temporary Solution
+
 Currently, the admin panel uses **HTTP REST** calls to the orchestrator endpoints. This is a temporary solution until the orchestrator implements the gRPC service.
 
 ## Proto Service Definition
@@ -60,6 +63,7 @@ chmod +x scripts/generate-proto.sh
 ```
 
 This will generate:
+
 - `src/lib/grpc/admin_pb.ts` - Message types
 - `src/lib/grpc/AdminServiceClientPb.ts` - Service client
 
@@ -68,39 +72,39 @@ This will generate:
 Once code is generated, update `src/lib/api/client.ts`:
 
 ```typescript
-import { createPromiseClient } from '@connectrpc/connect'
-import { createConnectTransport } from '@connectrpc/connect-web'
-import { AdminService } from '../grpc/admin_connect'
+import { createPromiseClient } from "@connectrpc/connect";
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { AdminService } from "../grpc/admin_connect";
 
 const transport = createConnectTransport({
   baseUrl: getOrchestratorUrl(),
-})
+});
 
-const client = createPromiseClient(AdminService, transport)
+const client = createPromiseClient(AdminService, transport);
 
 // Example usage
 export async function listBeacons(entityId: string, token: string) {
   if (isTauriMode()) {
-    return tauriApi.getAllBeacons(entityId)
+    return tauriApi.getAllBeacons(entityId);
   }
 
   try {
     const response = await client.listBeacons({
       entityId,
-    })
+    });
 
     // Parse JSON-encoded beacons
-    const beacons = response.beacons.map(b => JSON.parse(new TextDecoder().decode(b)))
+    const beacons = response.beacons.map((b) => JSON.parse(new TextDecoder().decode(b)));
 
     return {
-      status: 'success',
+      status: "success",
       data: beacons,
-    }
+    };
   } catch (error) {
     return {
-      status: 'error',
-      message: error instanceof Error ? error.message : 'gRPC error',
-    }
+      status: "error",
+      message: error instanceof Error ? error.message : "gRPC error",
+    };
   }
 }
 ```

@@ -17,11 +17,13 @@ Each stage handles specific aspects of the positioning problem, with failure mod
 The mobile application initiates localization by scanning for BLE advertisement packets from nearby beacons. This passive scanning requires no connection establishment, making it power-efficient and scalable.
 
 **Scan Parameters:**
+
 - Scan window: 100ms active, 400ms sleep (20% duty cycle)
 - Scan duration: 2-5 seconds per localization request
 - Filter: Service UUID `0x1819` (Location and Navigation)
 
 Each discovered beacon yields:
+
 - MAC address (48-bit hardware identifier)
 - RSSI value (signal strength in dBm, typically -90 to -30)
 - Advertisement payload (device name, service UUIDs)
@@ -69,6 +71,7 @@ This returns sub-millisecond, enabling real-time localization without server dep
 **Cache Management:**
 
 The beacon cache must handle:
+
 - **MAC Address Changes**: If beacon hardware is replaced, the MAC changes but database ID remains constant
 - **Position Updates**: Beacons might be physically relocated, requiring cache invalidation
 - **Deletion**: Beacons removed from deployment must be purged from cache
@@ -104,6 +107,7 @@ This approach avoids ambiguity during transitions—the user "jumps" from one ar
 Raw RSSI values are too noisy for direct use. The mobile applies Kalman filtering to smooth measurements:
 
 **Kalman Filter Model:**
+
 ```
 State: [estimated_RSSI, rate_of_change]
 Measurement: raw_RSSI_sample
@@ -127,6 +131,7 @@ d = distance in meters
 ```
 
 Solving for d:
+
 ```
 d = 10^((A - RSSI) / (10 * n))
 ```
@@ -134,6 +139,7 @@ d = 10^((A - RSSI) / (10 * n))
 **Calibration Process:**
 
 The path loss parameters (n, A) are environment-specific. Calibration involves:
+
 1. Place mobile at known distances from beacon (1m, 2m, 5m, 10m)
 2. Record RSSI measurements at each distance
 3. Perform least-squares regression to fit n and A
@@ -148,6 +154,7 @@ Given distance estimates to multiple beacons with known positions, trilateration
 **Mathematical Formulation:**
 
 For beacon i at position (x_i, y_i) with estimated distance d_i:
+
 ```
 (x - x_i)² + (y - y_i)² = d_i²
 ```
@@ -167,6 +174,7 @@ Iteration k:
 ```
 
 Where:
+
 - J is the Jacobian matrix (partial derivatives)
 - W is a diagonal weight matrix (inverse variance of distance estimates)
 - Δx is the position correction
@@ -192,11 +200,13 @@ Trilateration alone can produce positions outside area boundaries (due to RSSI e
 **Boundary Checking:**
 
 The polygon is represented as a sequence of vertices in WKT (Well-Known Text) format:
+
 ```
 POLYGON((x1 y1, x2 y2, ..., xn yn, x1 y1))
 ```
 
 Point-in-polygon testing uses the ray casting algorithm:
+
 ```
 Cast a ray from the estimated position to infinity
 Count how many polygon edges it crosses
@@ -206,6 +216,7 @@ If count is odd, point is inside; if even, point is outside
 **Constraint Projection:**
 
 If the trilateration result falls outside the polygon:
+
 1. Find the nearest polygon edge
 2. Project the position onto that edge
 3. Move the position inward by 0.5 meters (to avoid boundary flickering)
@@ -217,6 +228,7 @@ This ensures all position estimates lie within navigable space, preventing nonse
 Even after all filtering, position estimates exhibit small jumps between localization requests. The mobile applies temporal smoothing to produce smooth motion:
 
 **Exponential Moving Average:**
+
 ```
 smoothed_position = α * new_position + (1-α) * previous_smoothed_position
 
@@ -234,27 +246,32 @@ If the new position differs from the smoothed position by >3 meters, the system 
 The pipeline includes several failure handling strategies:
 
 **No Beacons Detected:**
+
 - Return last known position with timestamp
 - UI indicates "position unavailable"
 - Navigation continues with outdated position
 
 **Insufficient Beacons (<3):**
+
 - Cannot perform trilateration
 - Fall back to nearest beacon position
 - Accuracy degrades to ~5-10 meters
 
 **Database Cache Miss:**
+
 - Attempt online server query
 - If offline, exclude unknown beacons from trilateration
 - Reduced accuracy but system remains functional
 
 **Area Detection Ambiguity:**
+
 - If vote counts are tied, use previous area
 - Prevents oscillation between adjacent areas
 
 ## Performance Characteristics
 
 On typical mobile hardware (iPhone 12, Pixel 6):
+
 - BLE scan: 2-3 seconds
 - Device identification (cached): <1ms
 - Kalman filtering: ~5ms for 10 beacons
@@ -264,6 +281,7 @@ On typical mobile hardware (iPhone 12, Pixel 6):
 The localization can run at up to 0.3 Hz continuous (limited by BLE scan duration), but the mobile typically triggers it every 5 seconds during active navigation to conserve battery.
 
 **Accuracy:**
+
 - Ideal conditions (open space, 6+ beacons): ±1-2 meters
 - Typical conditions (hallways, 4-5 beacons): ±2-4 meters
 - Poor conditions (corners, 2-3 beacons): ±5-10 meters

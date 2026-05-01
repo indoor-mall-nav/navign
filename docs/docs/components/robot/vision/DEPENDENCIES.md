@@ -5,38 +5,46 @@ The C++ vision service requires several system libraries to be installed before 
 ## Required Dependencies
 
 ### 1. OpenCV (>= 4.5)
+
 Computer vision library for image processing and camera I/O.
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y libopencv-dev
 ```
 
 **macOS:**
+
 ```bash
 brew install opencv
 ```
 
 **Verify installation:**
+
 ```bash
 pkg-config --modversion opencv4
 ```
 
 ### 2. AprilTag
+
 C library for AprilTag detection and pose estimation.
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install -y libapriltag-dev
 ```
 
 **macOS:**
+
 ```bash
 brew install apriltag
 ```
 
 **Build from source (if not available):**
+
 ```bash
 git clone https://github.com/AprilRobotics/apriltag
 cd apriltag
@@ -46,32 +54,39 @@ sudo cmake --install build
 ```
 
 ### 3. Protocol Buffers (>= 3.0)
+
 Message serialization library.
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install -y libprotobuf-dev protobuf-compiler
 ```
 
 **macOS:**
+
 ```bash
 brew install protobuf
 ```
 
 **Verify installation:**
+
 ```bash
 protoc --version
 ```
 
 ### 4. CMake (>= 3.20)
+
 Build system generator.
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install -y cmake
 ```
 
 **macOS:**
+
 ```bash
 brew install cmake
 ```
@@ -79,9 +94,11 @@ brew install cmake
 ## Optional Dependencies
 
 ### 5. ONNX Runtime (Recommended)
+
 For faster YOLO inference (40% performance improvement).
 
 **Ubuntu/Debian:**
+
 ```bash
 # Download pre-built package
 wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/onnxruntime-linux-x64-1.16.0.tgz
@@ -92,14 +109,17 @@ sudo ldconfig
 ```
 
 **macOS:**
+
 ```bash
 brew install onnxruntime
 ```
 
 ### 6. Zenoh C++
+
 For pub/sub messaging (optional, work in progress).
 
 **Build from source:**
+
 ```bash
 git clone https://github.com/eclipse-zenoh/zenoh-cpp
 cd zenoh-cpp
@@ -108,6 +128,7 @@ sudo cmake --install build
 ```
 
 ### 7. MediaPipe C++ (Experimental)
+
 For hand tracking (not yet implemented).
 
 See: https://google.github.io/mediapipe/getting_started/cpp.html
@@ -161,6 +182,7 @@ cmake --build build -j$(nproc)
 ```
 
 If successful, you should see:
+
 ```
 [100%] Built target navign_vision
 ```
@@ -170,11 +192,13 @@ If successful, you should see:
 ### OpenCV not found
 
 **Error:**
+
 ```
 CMake Error: Could not find a package configuration file provided by "OpenCV"
 ```
 
 **Solution:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install libopencv-dev
@@ -186,12 +210,14 @@ export OpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4
 ### AprilTag not found
 
 **Error:**
+
 ```
 CMake Error: AprilTag library not found
 ```
 
 **Solution:**
 Build from source (see above) or check installation:
+
 ```bash
 # Check if library exists
 find /usr -name "libapriltag*" 2>/dev/null
@@ -203,11 +229,13 @@ export CMAKE_PREFIX_PATH=/usr/local:$CMAKE_PREFIX_PATH
 ### Protobuf version mismatch
 
 **Error:**
+
 ```
 Protobuf compiler version doesn't match library
 ```
 
 **Solution:**
+
 ```bash
 # Ensure compiler and library versions match
 sudo apt-get install --reinstall protobuf-compiler libprotobuf-dev
@@ -222,6 +250,7 @@ just ci-robot-vision
 ```
 
 This will:
+
 - Check for OpenCV using `pkg-config`
 - Build if available
 - Skip with a warning if not available

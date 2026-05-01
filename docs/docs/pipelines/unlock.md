@@ -93,6 +93,7 @@ Authorization: Bearer {jwt_token}
 ```
 
 The JWT token identifies the user making the unlock request. The server validates:
+
 1. Token is valid and not expired
 2. User has permission to access this beacon
 3. Beacon exists and is configured for access control
@@ -239,6 +240,7 @@ if !nonce_manager.check_and_mark_nonce(proof.nonce, proof.timestamp) {
 ```
 
 The nonce manager checks:
+
 1. **Nonce Exists**: The nonce was issued by this beacon
 2. **Not Used**: The nonce hasn't been marked as used previously
 3. **Not Expired**: `current_time - nonce_timestamp < 5 seconds`
@@ -258,6 +260,7 @@ The beacon tracks failed unlock attempts per device. After 5 failures within 5 m
 **Acceptance Criteria:**
 
 All of the following must be true for unlock to succeed:
+
 - ✅ Signature verifies correctly
 - ✅ Nonce is valid and not expired
 - ✅ Nonce hasn't been used before
@@ -350,6 +353,7 @@ struct UnlockAuditLog {
 ```
 
 This audit trail enables:
+
 - **Security monitoring**: Detect unusual patterns (many failures, unusual times)
 - **Compliance**: Prove who accessed what and when
 - **Debugging**: Investigate user reports of unlock failures
@@ -360,13 +364,14 @@ This audit trail enables:
 
 An attacker captures a valid unlock proof and tries to reuse it.
 
-*Defense*: Nonces are single-use. The beacon marks each nonce as used after successful unlock. Replayed proofs fail the `check_and_mark_nonce()` check.
+_Defense_: Nonces are single-use. The beacon marks each nonce as used after successful unlock. Replayed proofs fail the `check_and_mark_nonce()` check.
 
 **Relay Attacks:**
 
 An attacker positions themselves between the mobile and beacon, relaying communication to extend physical distance.
 
-*Defense*: The 5-second nonce expiration bounds the attack window. For a relay attack to succeed, the attacker must:
+_Defense_: The 5-second nonce expiration bounds the attack window. For a relay attack to succeed, the attacker must:
+
 1. Relay NonceRequest from mobile to beacon
 2. Relay NonceResponse from beacon to mobile
 3. Wait for mobile to contact server and generate proof
@@ -378,19 +383,20 @@ All within 5 seconds. This is impractical for most scenarios, especially conside
 
 An attacker deploys a rogue device pretending to be a legitimate beacon.
 
-*Defense*: The beacon signs its nonce with a private key stored in hardware efuse. Rogue devices cannot obtain this key. While the mobile doesn't fully verify the signature (lacks beacon's public key), the server does—unauthorized beacons aren't in the database and have no associated TOTP secrets.
+_Defense_: The beacon signs its nonce with a private key stored in hardware efuse. Rogue devices cannot obtain this key. While the mobile doesn't fully verify the signature (lacks beacon's public key), the server does—unauthorized beacons aren't in the database and have no associated TOTP secrets.
 
 **User Impersonation:**
 
 An attacker steals a user's device and attempts to unlock doors.
 
-*Defense*: The mobile's private key is stored in Tauri Stronghold, which requires biometric authentication (Face ID, Touch ID, fingerprint) to access. Even if the device is unlocked, the attacker cannot retrieve the key without the user's biometric.
+_Defense_: The mobile's private key is stored in Tauri Stronghold, which requires biometric authentication (Face ID, Touch ID, fingerprint) to access. Even if the device is unlocked, the attacker cannot retrieve the key without the user's biometric.
 
 **Man-in-the-Middle:**
 
 An attacker intercepts BLE communication between mobile and beacon.
 
-*Defense*: While BLE communication isn't encrypted at the application layer (relies on BLE Security Manager pairing, which isn't currently enforced), the cryptographic protocol prevents MITM attacks:
+_Defense_: While BLE communication isn't encrypted at the application layer (relies on BLE Security Manager pairing, which isn't currently enforced), the cryptographic protocol prevents MITM attacks:
+
 - Nonce signing proves beacon authenticity
 - Proof signing proves mobile authenticity
 - TOTP binding prevents proof reuse across sessions
@@ -399,7 +405,7 @@ An attacker intercepts BLE communication between mobile and beacon.
 
 An attacker observes signature verification timing to extract key bits.
 
-*Defense*: The `p256` crate uses constant-time implementations. Signature verification time is independent of secret key bits, preventing timing attacks.
+_Defense_: The `p256` crate uses constant-time implementations. Signature verification time is independent of secret key bits, preventing timing attacks.
 
 ## Performance Characteristics
 
@@ -432,6 +438,7 @@ The pipeline includes comprehensive error handling:
 **Network Failures:**
 
 If server is unreachable during Phase 2:
+
 - Mobile displays "Offline - cannot verify authorization"
 - Unlock fails gracefully
 - Alternative: Pre-fetch TOTP codes during online periods (future enhancement)
@@ -439,6 +446,7 @@ If server is unreachable during Phase 2:
 **BLE Disconnection:**
 
 If BLE connection drops during protocol:
+
 - Mobile retries connection once
 - If retry fails, display "Beacon unreachable"
 - User can tap again to restart from Phase 1
@@ -446,6 +454,7 @@ If BLE connection drops during protocol:
 **Cryptographic Failures:**
 
 If signature verification fails:
+
 - Beacon increments failure counter
 - Returns specific error code (InvalidSignature, ReplayDetected, RateLimited)
 - Mobile displays user-friendly error message
@@ -453,6 +462,7 @@ If signature verification fails:
 **Timeout Handling:**
 
 If any phase exceeds timeout:
+
 - Phase 1: 5 seconds → "Beacon not responding"
 - Phase 2: 10 seconds → "Server timeout"
 - Phase 4: 5 seconds → "Verification timeout"

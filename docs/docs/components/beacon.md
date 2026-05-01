@@ -56,6 +56,7 @@ In advertising mode, the beacon broadcasts BLE advertisement packets at regular 
 3. **Manufacturer Data**: Custom payload (future: encrypted position hints)
 
 The advertised UUIDs signal beacon capabilities to scanning devices:
+
 - `0x183D`: Authorization Control Service (access control capability)
 - `0x1819`: Location and Navigation Service
 - `0x1821`: Indoor Positioning Service
@@ -71,6 +72,7 @@ When a mobile device needs to identify a beacon or perform access control, it in
 **Characteristic UUID**: `99d92823-9e38-72ff-6cf1-d2d593316af8`
 
 This characteristic supports three operations:
+
 - **Read**: Returns the last response message (retained for characteristic discovery)
 - **Write**: Accepts request messages from the mobile
 - **Notify**: Pushes response messages to subscribed clients
@@ -82,6 +84,7 @@ The write-notify pattern enables bidirectional communication. The mobile writes 
 Messages use a compact binary protocol designed for BLE's 20-byte MTU limitations (though ESP32-C3 supports extended MTU up to 512 bytes). Each message starts with a single-byte identifier:
 
 **Message Types:**
+
 - `0x01`: DeviceRequest - Mobile queries beacon identity
 - `0x02`: DeviceResponse - Beacon sends type, capabilities, database ID (27 bytes)
 - `0x03`: NonceRequest - Mobile requests challenge nonce
@@ -108,6 +111,7 @@ The beacon's private key resides in ESP32-C3 efuse `BLOCK_KEY0`. Efuses are one-
 **Key Programming Procedure:**
 
 The `admin/maintenance` utility programs keys during beacon initialization:
+
 1. Generate 32-byte P-256 private key
 2. Write key to efuse `BLOCK_KEY0`
 3. Set read protection bits
@@ -149,6 +153,7 @@ The beacon operates as a cooperative multitasking system with a central state ma
 ### BeaconState Structure
 
 The `BeaconState` encapsulates all mutable state:
+
 - GPIO handles (button, sensor, relay, LED)
 - Unlock attempt counter
 - Nonce manager
@@ -174,6 +179,7 @@ loop {
 The `check_executors()` method implements the state machine logic for managing physical unlock:
 
 **Open State Machine:**
+
 1. **Initial State**: Relay off, door locked
 2. **Unlock Triggered**: Set `open` flag high, energize relay, record timestamp
 3. **Motion Detection**: If PIR sensor detects motion, extend timeout
@@ -187,6 +193,7 @@ This state machine ensures the door remains open only as long as necessary, prev
 When a GATT write event occurs, the firmware deserializes the message and dispatches to the appropriate handler:
 
 **DeviceRequest Handler:**
+
 ```rust
 BleMessage::DeviceRequest => {
     let response = BleMessage::DeviceResponse(
@@ -201,6 +208,7 @@ BleMessage::DeviceRequest => {
 The response includes the beacon's 24-character hex database ID, allowing the mobile to query the server for full beacon metadata.
 
 **NonceRequest Handler:**
+
 ```rust
 BleMessage::NonceRequest => {
     let nonce = executor.generate_nonce(&mut rng);
@@ -213,6 +221,7 @@ BleMessage::NonceRequest => {
 The signature fragment serves as proof of beacon authenticity without requiring the mobile to know the beacon's public key in advance.
 
 **UnlockRequest Handler:**
+
 ```rust
 BleMessage::UnlockRequest(proof) => {
     match executor.validate_proof(&proof, now()) {
@@ -236,6 +245,7 @@ The beacon supports over-the-air firmware updates using ESP-IDF's bootloader par
 ### Partition Layout
 
 The ESP32-C3 flash is partitioned into:
+
 - `0x000000-0x010000`: Bootloader
 - `0x010000-0x110000`: Factory partition (initial firmware)
 - `0x110000-0x210000`: OTA_0 (first update slot)
@@ -245,6 +255,7 @@ The ESP32-C3 flash is partitioned into:
 ### Dual-Bank Update Strategy
 
 The dual-bank design provides safe updates:
+
 1. Currently running firmware executes from one partition (e.g., Factory)
 2. New firmware downloads to an inactive partition (e.g., OTA_0)
 3. After complete download, OTA Data partition updates to mark OTA_0 as active

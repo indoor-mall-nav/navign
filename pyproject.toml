@@ -1,10 +1,10 @@
 [project]
-dependencies    = []
-description     = "Add your description here"
-name            = "navign"
-readme          = "README.md"
+dependencies = []
+description = "Add your description here"
+name = "navign"
+readme = "README.md"
 requires-python = ">=3.12"
-version         = "0.1.0"
+version = "0.1.0"
 
 [tool.uv.sources]
 

@@ -13,6 +13,7 @@ These animations are created with [Manim Community](https://www.manim.community/
 **Scene:** `NavignIntro`
 
 Introduces the Navign system with a problem/solution framework:
+
 - **Problem:** GPS failures indoors, complex multi-floor routing, insecure access control
 - **Solution:** BLE beacon localization, Dijkstra multi-floor routing, ECDSA + biometric auth
 
@@ -23,6 +24,7 @@ Introduces the Navign system with a problem/solution framework:
 **Scene:** `LocalizationVisualization`
 
 Visualizes the three-stage BLE localization process:
+
 1. **BLE Scan:** Discover beacons with RSSI values
 2. **Area Selection:** Group beacons by area and select current area
 3. **Position Calculation:** Weighted centroid trilateration using RSSI→distance conversion
@@ -36,6 +38,7 @@ Visualizes the three-stage BLE localization process:
 **Scene:** `PathfindingVisualization`
 
 Shows the two-tier pathfinding algorithm:
+
 1. **Area-Level Routing:** Dijkstra's algorithm on connectivity graph (elevators, stairs, escalators)
 2. **Inner-Area Routing:** Polygon quantification → bounded blocks → pathfinding
 
@@ -48,6 +51,7 @@ Shows the two-tier pathfinding algorithm:
 **Scene:** `BeaconUnlockLogic`
 
 Demonstrates beacon hardware unlock logic:
+
 - Human sensor detection (PIR)
 - Relay activation (HIGH signal)
 - Door unlock (5-second hold timer)
@@ -62,6 +66,7 @@ Demonstrates beacon hardware unlock logic:
 **Scene:** `FullUnlockPipeline`
 
 Complete end-to-end unlock protocol with BLE and HTTPS:
+
 1. **Device Discovery:** BLE scan → DeviceRequest/Response (0x01/0x02)
 2. **Nonce Challenge:** BLE NonceRequest/Response (0x03/0x04)
 3. **Server Challenge:** HTTPS POST to create unlock instance
@@ -79,6 +84,7 @@ Complete end-to-end unlock protocol with BLE and HTTPS:
 **Scene:** `OTAUpdatePipeline`
 
 Shows the beacon firmware over-the-air update system:
+
 1. **Flash Partition Layout:** Dual-bank system (OTA_0, OTA_1)
 2. **Download & Write:** WiFi download in 4KB chunks, write to inactive partition
 3. **Verification & Activation:** SHA-256 checksum, OTA Data partition update, reboot
@@ -93,6 +99,7 @@ Shows the beacon firmware over-the-air update system:
 **Scene:** `RobotTaskAssignment`
 
 Visualizes the distributed robot orchestration system:
+
 1. **Architecture:** Mobile App → Orchestrator (Rust gRPC) → Tower (Go Socket.IO) → Robots
 2. **Task Submission:** Delivery task with priority queuing
 3. **Robot Selection:** Scoring algorithm (battery + proximity + capability)
@@ -105,6 +112,7 @@ Visualizes the distributed robot orchestration system:
 ### 8. Robot Architecture (`robot.py`)
 
 **Scenes:**
+
 - `RobotArchitecture`: Dual-purpose robot dog with upper layer (Raspberry Pi/Jetson) and lower layer (STM32)
 - `DataFlowDetailed`: Guide scenario data flow ("Take me to Starbucks")
 - `LocalizationHierarchy`: Multi-tier localization (BLE, AprilTags, IMU+Odometry) with EKF fusion
@@ -119,6 +127,7 @@ Visualizes the distributed robot orchestration system:
 **Scene:** `DatabaseSchema`
 
 Visualizes the MongoDB database structure:
+
 - Collections: Entity, Area, Connection, Merchant, Beacon
 - Relationships: Entity → Areas/Beacons/Merchants, Area → Merchants/Beacons
 - WKT format for polygon geometries
@@ -132,6 +141,7 @@ Visualizes the MongoDB database structure:
 **Scene:** `NavignOutro`
 
 Closing scene with:
+
 - Three-tier architecture (Mobile, Server, Beacon)
 - Communication protocols (HTTPS, BLE)
 - Open source GitHub repository
@@ -208,12 +218,14 @@ Rendered videos are saved to `media/videos/<filename>/<quality>/`
 ### Technical Accuracy
 
 All animations are based on actual implementation in the codebase:
-- Pathfinding uses Dijkstra (not A*)
+
+- Pathfinding uses Dijkstra (not A\*)
 - BLE protocol matches `shared/src/ble/message.rs`
 - OTA matches `firmware/src/bin/ota.rs`
 - Robot architecture matches `docs/docs/components/robot/`
 
 When updating animations, verify against:
+
 - `CLAUDE.md` - Comprehensive technical documentation
 - `docs/docs/pipelines/` - Pipeline documentation
 - Source code in respective component directories

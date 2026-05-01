@@ -1,218 +1,218 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 // https://vitepress.vuejs.org/config/app-configs
 export default defineConfig({
   themeConfig: {
-    siteTitle: 'Navign',
+    siteTitle: "Navign",
     nav: [
       {
-        text: 'Home',
-        link: '/',
+        text: "Home",
+        link: "/",
       },
       {
-        text: 'Components',
+        text: "Components",
         items: [
-          { text: 'Overview', link: '/components/' },
-          { text: 'Admin', link: '/components/admin/' },
-          { text: 'Beacon', link: '/components/beacon' },
-          { text: 'Mobile', link: '/components/mobile/' },
-          { text: 'Robot', link: '/components/robot/' },
-          { text: 'Server', link: '/components/server/' },
-          { text: 'Shared', link: '/components/shared' },
+          { text: "Overview", link: "/components/" },
+          { text: "Admin", link: "/components/admin/" },
+          { text: "Beacon", link: "/components/beacon" },
+          { text: "Mobile", link: "/components/mobile/" },
+          { text: "Robot", link: "/components/robot/" },
+          { text: "Server", link: "/components/server/" },
+          { text: "Shared", link: "/components/shared" },
         ],
       },
       {
-        text: 'Pipelines',
-        link: '/pipelines/',
+        text: "Pipelines",
+        link: "/pipelines/",
       },
       {
-        text: 'Testing',
-        link: '/testing/',
+        text: "Testing",
+        link: "/testing/",
       },
       {
-        text: 'Development',
-        link: '/development/',
+        text: "Development",
+        link: "/development/",
       },
     ],
     sidebar: {
-      '/components/': [
+      "/components/": [
         {
-          text: 'Components Overview',
-          link: '/components/',
+          text: "Components Overview",
+          link: "/components/",
         },
         {
-          text: 'Admin',
-          link: '/components/admin/',
+          text: "Admin",
+          link: "/components/admin/",
           items: [
             {
-              text: 'Quick Start',
-              link: '/components/admin/quickstart',
+              text: "Quick Start",
+              link: "/components/admin/quickstart",
             },
             {
-              text: 'Deployment',
-              link: '/components/admin/deployment',
+              text: "Deployment",
+              link: "/components/admin/deployment",
             },
             {
-              text: 'Orchestrator',
-              link: '/components/admin/orchestrator',
+              text: "Orchestrator",
+              link: "/components/admin/orchestrator",
             },
             {
-              text: 'Tower',
-              link: '/components/admin/tower',
+              text: "Tower",
+              link: "/components/admin/tower",
             },
             {
-              text: 'Client',
-              link: '/components/admin/client',
+              text: "Client",
+              link: "/components/admin/client",
             },
             {
-              text: 'Protocol',
-              link: '/components/admin/protocol',
+              text: "Protocol",
+              link: "/components/admin/protocol",
             },
             {
-              text: 'Implementation Guide',
-              link: '/components/admin/implementation-guide',
+              text: "Implementation Guide",
+              link: "/components/admin/implementation-guide",
             },
             {
-              text: 'Vision',
-              link: '/components/admin/vision',
+              text: "Vision",
+              link: "/components/admin/vision",
             },
           ],
         },
         {
-          text: 'Beacon',
-          link: '/components/beacon',
+          text: "Beacon",
+          link: "/components/beacon",
         },
         {
-          text: 'Mobile',
-          link: '/components/mobile/',
+          text: "Mobile",
+          link: "/components/mobile/",
           items: [
             {
-              text: 'Admin Panel',
-              link: '/components/mobile/admin-panel',
+              text: "Admin Panel",
+              link: "/components/mobile/admin-panel",
             },
             {
-              text: 'gRPC-Web Integration',
-              link: '/components/mobile/grpc-web-integration',
+              text: "gRPC-Web Integration",
+              link: "/components/mobile/grpc-web-integration",
             },
           ],
         },
         {
-          text: 'Miniapp',
-          link: '/components/miniapp',
+          text: "Miniapp",
+          link: "/components/miniapp",
         },
         {
-          text: 'Robot',
-          link: '/components/robot/',
+          text: "Robot",
+          link: "/components/robot/",
           items: [
             {
-              text: 'Upper Layer',
-              link: '/components/robot/upper/',
+              text: "Upper Layer",
+              link: "/components/robot/upper/",
               items: [
                 {
-                  text: 'Audio',
-                  link: '/components/robot/upper/audio',
+                  text: "Audio",
+                  link: "/components/robot/upper/audio",
                 },
                 {
-                  text: 'Bluetooth',
-                  link: '/components/robot/upper/bluetooth',
+                  text: "Bluetooth",
+                  link: "/components/robot/upper/bluetooth",
                 },
                 {
-                  text: 'Navign',
-                  link: '/components/robot/upper/navign',
+                  text: "Navign",
+                  link: "/components/robot/upper/navign",
                 },
                 {
-                  text: 'Scheduler',
-                  link: '/components/robot/upper/scheduler',
+                  text: "Scheduler",
+                  link: "/components/robot/upper/scheduler",
                 },
                 {
-                  text: 'Serial',
-                  link: '/components/robot/upper/serial',
+                  text: "Serial",
+                  link: "/components/robot/upper/serial",
                 },
                 {
-                  text: 'Vision',
-                  link: '/components/robot/upper/vision',
+                  text: "Vision",
+                  link: "/components/robot/upper/vision",
                 },
               ],
             },
             {
-              text: 'Lower Layer',
-              link: '/components/robot/lower',
+              text: "Lower Layer",
+              link: "/components/robot/lower",
             },
           ],
         },
         {
-          text: 'Server',
-          link: '/components/server/',
+          text: "Server",
+          link: "/components/server/",
           items: [
             {
-              text: 'PostgreSQL Migration',
-              link: '/components/server/postgres-migration',
+              text: "PostgreSQL Migration",
+              link: "/components/server/postgres-migration",
             },
             {
-              text: 'Migration Summary',
-              link: '/components/server/postgres-migration-summary',
+              text: "Migration Summary",
+              link: "/components/server/postgres-migration-summary",
             },
           ],
         },
         {
-          text: 'Shared',
-          link: '/components/shared',
+          text: "Shared",
+          link: "/components/shared",
         },
       ],
-      '/pipelines/': [
+      "/pipelines/": [
         {
-          text: 'Pipelines Overview',
-          link: '/pipelines/',
+          text: "Pipelines Overview",
+          link: "/pipelines/",
         },
         {
-          text: 'Navigation',
-          link: '/pipelines/navigation',
+          text: "Navigation",
+          link: "/pipelines/navigation",
         },
         {
-          text: 'Localization',
-          link: '/pipelines/localization',
+          text: "Localization",
+          link: "/pipelines/localization",
         },
         {
-          text: 'Access Control (Unlock)',
-          link: '/pipelines/unlock',
+          text: "Access Control (Unlock)",
+          link: "/pipelines/unlock",
         },
         {
-          text: 'Robot Control',
-          link: '/pipelines/robot-control',
+          text: "Robot Control",
+          link: "/pipelines/robot-control",
         },
         {
-          text: 'OTA Updates',
-          link: '/pipelines/ota',
+          text: "OTA Updates",
+          link: "/pipelines/ota",
         },
         {
-          text: 'Firmware OTA',
-          link: '/pipelines/firmware-ota',
-        },
-      ],
-      '/testing/': [
-        {
-          text: 'Testing Overview',
-          link: '/testing/',
-        },
-        {
-          text: 'Firmware Testing',
-          link: '/testing/firmware-testing',
+          text: "Firmware OTA",
+          link: "/pipelines/firmware-ota",
         },
       ],
-      '/development/': [
+      "/testing/": [
         {
-          text: 'Development Overview',
-          link: '/development/',
+          text: "Testing Overview",
+          link: "/testing/",
         },
         {
-          text: 'Critical TODOs',
-          link: '/development/critical-todos',
+          text: "Firmware Testing",
+          link: "/testing/firmware-testing",
+        },
+      ],
+      "/development/": [
+        {
+          text: "Development Overview",
+          link: "/development/",
         },
         {
-          text: 'Refactoring Plan',
-          link: '/development/refactoring-plan',
+          text: "Critical TODOs",
+          link: "/development/critical-todos",
+        },
+        {
+          text: "Refactoring Plan",
+          link: "/development/refactoring-plan",
         },
       ],
     },
   },
-})
+});

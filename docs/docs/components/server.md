@@ -122,6 +122,7 @@ Each area associates with a single floor, establishing the vertical layering of 
 Beacons have both physical properties (MAC address, location coordinates) and logical properties (device type, capabilities). The system doesn't enforce a 1:1 mapping between physical beacons and database records—a single physical device could have multiple database entries if it serves multiple purposes (unlikely but permitted by the schema).
 
 Device types classify beacons functionally:
+
 - **Merchant**: Marks a store or service location
 - **Pathway**: Navigation waypoint in hallways or open spaces
 - **Connection**: Marks connection entry/exit points
@@ -166,7 +167,7 @@ This reduces pathfinding latency by approximately 30% compared to standard alloc
 
 **Polygon-Based Obstacle Avoidance:**
 
-Within-area pathfinding must respect polygon boundaries. The current implementation converts polygons to a grid-based representation, then applies A* search. This approach is fast but produces suboptimal (longer) paths due to grid discretization.
+Within-area pathfinding must respect polygon boundaries. The current implementation converts polygons to a grid-based representation, then applies A\* search. This approach is fast but produces suboptimal (longer) paths due to grid discretization.
 
 The planned enhancement uses visibility graphs: nodes are polygon vertices, edges connect mutually visible vertices. Shortest path through this graph yields an optimal route that hugs polygon boundaries. The trade-off is higher preprocessing cost (O(V²) visibility checks for V vertices) versus faster queries.
 
@@ -207,6 +208,7 @@ This time-binding prevents indefinite reuse of unlock credentials. Even if an at
 After the beacon grants or denies access, the mobile reports the outcome to the server. The server logs every unlock attempt—successful or failed—with timestamp, user ID, beacon ID, and outcome.
 
 This audit trail serves multiple purposes:
+
 - **Security monitoring**: Detect brute force attempts or unusual access patterns
 - **Compliance**: Regulatory requirements often mandate access logging
 - **Debugging**: Investigate user reports of unlock failures
@@ -235,6 +237,7 @@ Staged rollouts are managed through deployment flags—marking specific firmware
 **Pathfinding Latency:**
 
 Typical pathfinding requests complete in 5-15ms:
+
 - Graph construction: 2-5ms
 - Dijkstra's algorithm: 2-5ms
 - Instruction generation: 1-3ms
@@ -247,6 +250,7 @@ These are CPU-bound operations that benefit from server-class processors. Mobile
 MongoDB queries with proper indexing return in 1-5ms for typical datasets (thousands of entities, tens of thousands of areas). Without indexes, complex queries (like finding all beacons in an area) can take 100-500ms, degrading user experience.
 
 Critical indexes:
+
 - `entities.name` (text search)
 - `areas.entity + areas.floor` (compound, for floor-specific queries)
 - `beacons.entity + beacons.area` (compound, for area beacon listing)
@@ -261,6 +265,7 @@ The rate limiter consumes approximately 100 bytes per tracked IP address. At 100
 **Environment Variables:**
 
 The server requires several environment variables:
+
 - `DATABASE_URL`: MongoDB connection string
 - `DATABASE_NAME`: Database name
 - `SERVER_BIND_ADDR`: Listen address (default: 0.0.0.0:3000)
@@ -270,6 +275,7 @@ The server requires several environment variables:
 **Database Connectivity:**
 
 The MongoDB connection string supports replica sets for high availability:
+
 ```
 mongodb://host1:27017,host2:27017,host3:27017/?replicaSet=rs0
 ```

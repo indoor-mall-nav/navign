@@ -164,20 +164,20 @@ jobs:
         if: matrix.component == 'server'
         uses: supercharge/mongodb-github-action@1.12.0
         with:
-          mongodb-version: '8.0'
+          mongodb-version: "8.0"
 
       # Mobile-specific setup
       - name: Install pnpm
         if: matrix.component == 'mobile'
         uses: pnpm/action-setup@v4
         with:
-          version: '10.20.0'
+          version: "10.20.0"
 
       - name: Use Node.js
         if: matrix.component == 'mobile'
         uses: actions/setup-node@v4
         with:
-          node-version: '24.11.1'
+          node-version: "24.11.1"
           cache: "pnpm"
 
       - name: Install Tauri dependencies
@@ -195,7 +195,7 @@ jobs:
         if: matrix.component == 'tower'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.4'
+          go-version: "1.25.4"
           cache-dependency-path: go.work.sum
 
       # Protobuf compiler setup (needed for admin and robot components)
@@ -234,7 +234,7 @@ jobs:
         if: matrix.component == 'admin' || matrix.component == 'robot'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: "3.14"
 
       - name: Install uv
         if: matrix.component == 'admin' || matrix.component == 'robot'

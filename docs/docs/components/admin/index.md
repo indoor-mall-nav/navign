@@ -1,6 +1,6 @@
 # Admin
 
-The `admin` component is the administrative interface *within an entity* (mall, hospital, etc.) for managing beacons, robots, and system settings. It consists of several subcomponents that handle different aspects of robot fleet management and communication.
+The `admin` component is the administrative interface _within an entity_ (mall, hospital, etc.) for managing beacons, robots, and system settings. It consists of several subcomponents that handle different aspects of robot fleet management and communication.
 
 This document explains how the robot management system integrates with other Navign components.
 
@@ -43,6 +43,7 @@ message Location {
 ```
 
 **Coordinate System:**
+
 - X, Y are derived from the entity's longitude/latitude ranges
 - Floor string matches the Area floor format
 - Z coordinate can be used for altitude/elevation
@@ -104,7 +105,7 @@ Mobile app can display robot locations and status:
 const robots = await fetchRobotStatus(entityId);
 
 // Display on map using MapLibre GL
-robots.forEach(robot => {
+robots.forEach((robot) => {
   addRobotMarker(robot.current_location, robot.state);
 });
 ```
@@ -116,14 +117,14 @@ Users can request robot delivery:
 ```typescript
 // Submit delivery request
 const task = {
-  type: 'DELIVERY',
+  type: "DELIVERY",
   pickup: currentLocation,
   dropoff: merchantLocation,
-  priority: 'NORMAL'
+  priority: "NORMAL",
 };
 
 // Send to server, which forwards to orchestrator
-await api.post('/delivery/request', task);
+await api.post("/delivery/request", task);
 ```
 
 ## Integration with Beacon System
@@ -138,6 +139,7 @@ Robots use beacons for positioning:
 4. Tower forwards to orchestrator
 
 **Beacon Types for Robots:**
+
 - **Pathway beacons**: For navigation
 - **Merchant beacons**: For pickup/delivery verification
 - **Connection beacons**: For elevator/stair access
@@ -146,39 +148,41 @@ Robots use beacons for positioning:
 
 ```javascript
 // Robot sends status update
-socket.emit('status_update', {
-  robot_id: 'robot-001',
-  state: 'busy',
+socket.emit("status_update", {
+  robot_id: "robot-001",
+  state: "busy",
   current_location: {
     x: 125.5,
     y: 230.8,
     z: 0.0,
-    floor: '2F'
+    floor: "2F",
   },
   battery: 85.5,
-  current_task_id: 'task-456',
-  timestamp: Date.now()
+  current_task_id: "task-456",
+  timestamp: Date.now(),
 });
 ```
 
 ## Example: Complete Delivery Workflow
 
 ### 1. User Requests Delivery
+
 ```typescript
 // Mobile app (Vue + Tauri)
 const deliveryRequest = {
-  merchant_id: 'merchant-456',
-  pickup_area: 'A023',
+  merchant_id: "merchant-456",
+  pickup_area: "A023",
   pickup_coords: { x: 500, y: 600 },
-  dropoff_area: 'A001',
+  dropoff_area: "A001",
   dropoff_coords: { x: 100, y: 200 },
-  entity_id: 'mall-123'
+  entity_id: "mall-123",
 };
 
-await api.post('/delivery/request', deliveryRequest);
+await api.post("/delivery/request", deliveryRequest);
 ```
 
 ### 2. Server Creates Task
+
 ```rust
 // Server (Rust + Axum)
 let task = Task {
@@ -207,6 +211,7 @@ orchestrator_client.submit_task(task).await?;
 ```
 
 ### 3. Orchestrator Assigns Task
+
 ```rust
 // Orchestrator (Rust)
 let best_robot = registry.find_best_robot(&task).await
@@ -222,6 +227,7 @@ task_channel.send(Ok(assignment)).await?;
 ```
 
 ### 4. Tower Forwards to Robot
+
 ```go
 // Tower (Go)
 assignment, err := taskStream.Recv()
@@ -245,17 +251,18 @@ robotConn.Emit("task_assigned", packet)
 ```
 
 ### 5. Robot Executes Task
+
 ```javascript
 // Robot (Node.js or embedded system)
 socket.on('task_assigned', (task) => {
   console.log('Received task:', task.task_id);
-  
+
   // 1. Get path from server
   const path = await getNavigationPath(task.sources[0], task.terminals[0]);
-  
+
   // 2. Start navigation
   await navigatePath(path);
-  
+
   // 3. Report progress
   socket.emit('task_update', {
     task_id: task.task_id,
@@ -264,7 +271,7 @@ socket.on('task_assigned', (task) => {
     progress: 50,
     timestamp: Date.now()
   });
-  
+
   // 4. Complete task
   socket.emit('task_update', {
     task_id: task.task_id,
@@ -281,12 +288,14 @@ socket.on('task_assigned', (task) => {
 Configure integration points via environment variables:
 
 **Orchestrator (Rust):**
+
 ```bash
 RUST_LOG=info                    # Log level
 ORCHESTRATOR_ADDR=[::1]:50051    # gRPC listen address
 ```
 
 **Tower (Go):**
+
 ```bash
 ENTITY_ID=mall-123                      # Required: Entity identifier
 ORCHESTRATOR_ADDR=localhost:50051       # Orchestrator gRPC address
@@ -294,6 +303,7 @@ TOWER_ADDR=http://[::1]:8080            # Socket.IO server address
 ```
 
 **Robot:**
+
 ```bash
 TOWER_URL=http://tower.example.com:8080  # Tower Socket.IO endpoint
 ROBOT_ID=robot-001                       # Unique robot identifier
@@ -305,11 +315,13 @@ ENTITY_ID=mall-123                       # Entity to operate in
 ### Authentication
 
 **Robot Authentication:**
+
 - Robots should authenticate with tower using tokens
 - Consider using JWT or API keys
 - Validate robot_id matches authenticated identity
 
 **gRPC Security:**
+
 - Use TLS for production gRPC connections
 - Implement mTLS for orchestrator ↔ tower communication
 - Add authorization checks for sensitive RPCs
@@ -332,18 +344,21 @@ ENTITY_ID=mall-123                       # Entity to operate in
 ### Metrics to Track
 
 **Orchestrator:**
+
 - Active robot count by state
 - Task assignment latency
 - Task completion rate
 - Robot selection algorithm performance
 
 **Tower:**
+
 - Socket.IO connection count
 - gRPC stream health
 - Status report frequency
 - Failed message deliveries
 
 **Integration:**
+
 - End-to-end task latency (request → completion)
 - Robot location accuracy
 - Path deviation rate
@@ -374,6 +389,7 @@ log.Printf("Robot registered: id=%s, entity=%s, battery=%.1f%%",
 ### Unit Tests
 
 Test individual components:
+
 - Task assignment algorithm
 - Robot selection logic
 - Location coordinate conversions
@@ -381,6 +397,7 @@ Test individual components:
 ### Integration Tests
 
 Test component interactions:
+
 - Orchestrator ↔ Tower gRPC communication
 - Tower ↔ Robot Socket.IO messaging
 - Task lifecycle (creation → assignment → completion)
@@ -388,6 +405,7 @@ Test component interactions:
 ### End-to-End Tests
 
 Simulate complete workflows:
+
 1. Create test entity and areas
 2. Register mock robots
 3. Submit tasks

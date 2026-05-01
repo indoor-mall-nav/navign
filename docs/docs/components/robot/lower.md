@@ -45,11 +45,13 @@ Low-level motor control and sensor management for autonomous delivery robots.
 ### Message Types
 
 **Incoming (from upper layer):**
+
 - `MotorCommand` - Motor speed and direction
 - `SensorDataRequest` - Request specific sensor readings
 - `ConfigUpdate` - Update motor PID parameters
 
 **Outgoing (to upper layer):**
+
 - `SensorDataResponse` - IMU, encoders, ultrasonic
 - `StatusUpdate` - Battery, temperature, errors
 
@@ -70,6 +72,7 @@ openocd -f interface/stlink.cfg -f target/stm32h7x.cfg \
 ## Development Status
 
 **Current:**
+
 - ✅ Basic structure implemented
 - ✅ UART communication working
 - ✅ Embassy async runtime configured
@@ -77,6 +80,7 @@ openocd -f interface/stlink.cfg -f target/stm32h7x.cfg \
 - ✅ Sensor integration ongoing
 
 **Planned:**
+
 - PID motor control
 - Kalman filter for IMU
 - Collision avoidance

@@ -59,6 +59,7 @@ async fn upload_firmware(binary: Bytes, metadata: FirmwareMetadata) -> Result<Fi
 **Binary Validation:**
 
 The server checks that the uploaded binary is a valid ESP32 firmware:
+
 - Starts with ESP32 magic bytes (`0xE9`)
 - Contains valid segment headers
 - Total size < 2MB (fits in OTA partition)
@@ -68,6 +69,7 @@ Invalid binaries are rejected before storage to prevent distribution of corrupte
 **Version Management:**
 
 The system maintains multiple firmware versions simultaneously:
+
 - Latest stable release
 - Beta releases for testing
 - Previous stable (rollback target)
@@ -115,6 +117,7 @@ If a newer version is available, the beacon initiates the download process.
 **Staged Rollout:**
 
 To prevent mass bricking from bad firmware, updates roll out in stages:
+
 1. 10% of beacons (canary deployment)
 2. Wait 24 hours, monitor for failures
 3. 50% of remaining beacons
@@ -225,6 +228,7 @@ Mobile apps can display "Beacon updating: 47%" to inform users of ongoing update
 **Interruption Handling:**
 
 If download is interrupted (WiFi disconnection, power loss):
+
 - Partial firmware in OTA partition is discarded
 - Next connection attempt restarts from beginning
 - Beacon continues operating from current partition
@@ -314,6 +318,7 @@ fn verify_checksum(&self, expected_checksum: &[u8]) -> Result<()> {
 **Mismatch Handling:**
 
 If checksums don't match:
+
 - Log error to flash
 - Discard downloaded firmware
 - Report failure to orchestrator
@@ -340,6 +345,7 @@ struct OtaData {
 ```
 
 The sequence number increments:
+
 ```rust
 ota_data.seq_label_1 += 1;  // Assuming OTA_1 is target
 ```
@@ -424,20 +430,24 @@ The orchestrator tracks rollout progress and can halt deployment if failure rate
 The pipeline includes comprehensive failure handling:
 
 **Download Failures:**
+
 - Network errors: Retry with exponential backoff (2s, 4s, 8s, 16s, 32s)
 - Timeout: Abort after 5 minutes, retry later
 - Partial download: Discard and restart
 
 **Flash Errors:**
+
 - Write failure: Mark sector as bad, retry at different offset
 - Erase failure: Mark entire partition as failed, use alternate partition
 
 **Checksum Failures:**
+
 - Discard firmware, log error
 - Report to orchestrator (possible server-side corruption)
 - Retry download (server may have fixed the issue)
 
 **Boot Failures:**
+
 - Bootloader automatic rollback after 3 failed boots
 - Beacon resumes operation on previous firmware
 - Reports failure to orchestrator
@@ -449,6 +459,7 @@ The pipeline includes comprehensive failure handling:
 Currently, checksum verification ensures integrity but not authenticity. A malicious actor controlling the network could serve malicious firmware with correct checksums.
 
 Future enhancement: RSA signature verification
+
 ```rust
 let signature = firmware_metadata.signature;
 let server_pubkey = embedded_server_pubkey();
@@ -462,6 +473,7 @@ Only firmwares signed with the server's private key would be accepted.
 Firmware downloaded over HTTP is visible to network observers. While this doesn't compromise running beacons (they're already deployed), it reveals implementation details.
 
 Future enhancement: AES-encrypted firmware
+
 ```rust
 let encrypted_firmware = download_firmware();
 let decryption_key = derive_key_from_device_id();
@@ -473,6 +485,7 @@ let firmware = aes_decrypt(encrypted_firmware, decryption_key);
 An attacker could force beacons to downgrade to older firmware with known vulnerabilities by serving old firmware as "latest."
 
 Defense: Version monotonicity check
+
 ```rust
 if new_version <= current_version {
     return Err(Error::DowngradeNotAllowed);
@@ -536,6 +549,7 @@ Beacons install required updates immediately regardless of schedule.
 **Geographic Rollout:**
 
 For large deployments, updates roll out by building/region:
+
 - Building A: Week 1
 - Building B: Week 2
 - Remaining buildings: Week 3

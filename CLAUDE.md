@@ -69,12 +69,14 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Data Flow Examples
 
 **Indoor Positioning:**
+
 1. Beacon broadcasts BLE advertisement
 2. Mobile app receives RSSI signals from multiple beacons
 3. Mobile calculates position via triangulation
 4. Server provides pathfinding on demand
 
 **Access Control:**
+
 1. Mobile requests nonce from beacon via BLE
 2. Beacon generates nonce, signs with private key
 3. Mobile creates proof using user's private key + nonce
@@ -82,6 +84,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 5. Server logs access events
 
 **Robot Delivery:**
+
 1. Mobile app → Server: Delivery request
 2. Server → Orchestrator: Task creation
 3. Orchestrator: Robot selection algorithm
@@ -97,6 +100,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Backend (Rust)
 
 **Server:** `server/`
+
 - **Framework:** Axum 0.8.6 (async web framework)
 - **Runtime:** Tokio 1.47.1 (async runtime)
 - **Database:** PostgreSQL via SQLx 0.8.6 (primary)
@@ -106,11 +110,13 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **Geo:** wkt 0.14.0 (Well-Known Text for polygons), wkb for PostgreSQL spatial data
 
 **Admin Orchestrator:** `admin/orchestrator/`
+
 - **Framework:** Tonic 0.12 (gRPC server)
 - **Protocol:** Protocol Buffers (task.proto)
 - **Task Scheduling:** Custom robot selection algorithm
 
 **Admin Maintenance:** `admin/maintenance/` (Python)
+
 - **CLI Framework:** Click 8.1+
 - **Cryptography:** cryptography 45.0+ (P-256 ECDSA)
 - **gRPC:** grpcio 1.76.0, grpcio-tools 1.76.0
@@ -120,6 +126,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Embedded (Rust)
 
 **Firmware:** `firmware/`
+
 - **HAL:** esp-hal 1.0.0-rc.1 (bare-metal, no RTOS initially)
 - **Radio:** esp-radio 0.16.0 (WiFi + BLE + coexistence)
 - **RTOS:** esp-rtos 0.1.1 (Embassy wrapper)
@@ -131,6 +138,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Frontend (TypeScript/Vue)
 
 **Mobile:** `mobile/`
+
 - **Framework:** Vue 3.5.18 (reactive UI)
 - **Desktop/Mobile:** Tauri 2.8.1 (native wrapper)
 - **State:** Pinia 3.0.3 (state management)
@@ -152,6 +160,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Backend (Go)
 
 **Tower:** `admin/tower/`
+
 - **WebSocket:** go-socket.io 1.7.0
 - **gRPC Client:** google.golang.org/grpc 1.76.0
 - **Concurrency:** One goroutine per robot connection
@@ -159,6 +168,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Robot Upper Layer (Rust + C++ + Python)
 
 **Robot Components:** `robot/`
+
 - **Scheduler (Rust):** `robot/scheduler/` - Task coordination and management
 - **Serial (Rust):** `robot/serial/` - UART bridge to STM32 lower controller
 - **Network (Rust):** `robot/network/` - HTTP client for server communication
@@ -172,6 +182,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 ### Shared Libraries
 
 **Shared:** `shared/`
+
 - **no_std compatible** Rust library with multiple feature flags:
   - `heapless`: Embedded systems (mutually exclusive with `alloc`)
   - `alloc`: Heap allocation (mutually exclusive with `heapless`)
@@ -189,7 +200,8 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
   - `ts-rs`: TypeScript type generation (compile-time)
 
 **Pathfinding Module:** `shared/src/pathfinding/`
-- **Inner-area Routing:** A* pathfinding within polygon areas
+
+- **Inner-area Routing:** A\* pathfinding within polygon areas
 - **Inter-area Routing:** Dijkstra pathfinding between connected areas
 - **Triangulation:** Visibility graph construction for non-Manhattan polygons
 - **Polygon Operations:** Point-in-polygon tests, boundary detection, obstacle handling
@@ -197,6 +209,7 @@ Navign is a **polyglot monorepo** with multiple interconnected components:
 - **Use Cases:** Complex floor plans with irregular shapes, robot navigation
 
 **TypeScript Schema Generator:** `shared/src/bin/gen_ts_schema.rs`
+
 - **Purpose:** Automatic Rust→TypeScript type conversion
 - **Technology:** ts-rs derive macros
 - **Output:** TypeScript definitions in `mobile/src/schema/generated/`
@@ -384,6 +397,7 @@ navign/
 **Purpose:** Centralized backend for navigation, access control, and entity management.
 
 **Key Features:**
+
 - RESTful API on port 3000
 - OAuth2 authentication (GitHub, Google, WeChat)
 - Password-based authentication with bcrypt
@@ -393,6 +407,7 @@ navign/
 - CORS enabled for cross-origin requests
 
 **API Endpoints:**
+
 ```
 GET  /                                    # Health check
 GET  /health                              # Database ping
@@ -437,6 +452,7 @@ PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome # Record resul
 ```
 
 **Database Schema:**
+
 - `entities`: Buildings (malls, hospitals, etc.)
 - `areas`: Polygonal zones within entities
 - `beacons`: BLE devices for positioning/access
@@ -446,6 +462,7 @@ PUT  /api/entities/{eid}/beacons/{id}/unlocker/{instance}/outcome # Record resul
 - `beacon_secrets`: Private keys for beacons
 
 **Environment Variables:**
+
 ```bash
 DATABASE_URL=postgres://navign_user:password@localhost:5432/navign
 DATABASE_NAME=navign
@@ -459,6 +476,7 @@ RUST_LOG=info
 **Purpose:** ESP32-C3 firmware for BLE advertising and access control.
 
 **Hardware:**
+
 - ESP32-C3 microcontroller (RISC-V, WiFi + BLE)
 - DHT11 temperature/humidity sensor (GPIO 4)
 - Button input (GPIO 3)
@@ -467,12 +485,14 @@ RUST_LOG=info
 - Human body sensor (GPIO 1) - PIR motion detection
 
 **BLE Services:**
+
 - `0x183D`: Authorization Control Service (if `UnlockGate` capability)
 - `0x1819`: Location and Navigation Service
 - `0x1821`: Indoor Positioning Service
 - `0x181A`: Environmental Sensing Service (if `EnvironmentalData` capability)
 
 **GATT Characteristics:**
+
 ```
 Service UUID: 134b1d88-cd91-8134-3e94-5c4052743845
 Characteristic UUID: 99d92823-9e38-72ff-6cf1-d2d593316af8
@@ -482,12 +502,14 @@ Characteristic UUID: 99d92823-9e38-72ff-6cf1-d2d593316af8
 ```
 
 **BLE Protocol:**
+
 1. **DeviceRequest** → **DeviceResponse**: Beacon type, capabilities, device ID
 2. **NonceRequest** → **NonceResponse**: Fresh nonce + signature identifier
 3. **UnlockRequest (proof)** → **UnlockResponse**: Success/failure + error code
 4. **DebugRequest** → **DebugResponse**: Random data for testing
 
 **Security:**
+
 - Private key stored in ESP32 efuse `BLOCK_KEY0` (write-once, read-protected)
 - P-256 ECDSA signature verification
 - Nonce-based challenge-response (prevents replay attacks)
@@ -495,6 +517,7 @@ Characteristic UUID: 99d92823-9e38-72ff-6cf1-d2d593316af8
 - Nonce expiration: 5 seconds
 
 **Device Types:**
+
 ```rust
 enum DeviceType {
     Merchant,   // Commercial establishment
@@ -505,6 +528,7 @@ enum DeviceType {
 ```
 
 **Unlock Methods:**
+
 ```rust
 enum UnlockMethod {
     Relay(Output),  // Digital relay control
@@ -514,6 +538,7 @@ enum UnlockMethod {
 ```
 
 **Flashing Instructions:**
+
 ```bash
 # Requires esp-idf toolchain
 cd firmware
@@ -522,6 +547,7 @@ espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 ```
 
 **Setting Private Key:**
+
 ```bash
 cd admin/maintenance
 uv run navign-maintenance fuse-priv-key --output-dir ./keys --port /dev/ttyUSB0
@@ -534,12 +560,14 @@ The beacon firmware includes OTA update capability for remote firmware upgrades 
 **Location:** `firmware/src/bin/ota.rs`
 
 **Architecture:**
+
 - Uses ESP-IDF bootloader OTA partition system
 - Supports dual-bank updates (OTA0/OTA1 partitions)
 - Automatic rollback on boot failure (if bootloader configured)
 - WiFi and HTTP download code NOT included (to be implemented separately)
 
 **Partition Layout:**
+
 ```
 0x000000  Bootloader
 0x010000  Factory (initial firmware)
@@ -549,6 +577,7 @@ The beacon firmware includes OTA update capability for remote firmware upgrades 
 ```
 
 **Usage Example:**
+
 ```rust
 use crate::ota::{OtaManager, OtaError, OtaState};
 use esp_storage::FlashStorage;
@@ -574,11 +603,13 @@ esp_hal::reset::software_reset();
 ```
 
 **OTA State Machine:**
+
 1. `Idle` - No update in progress
 2. `Writing { bytes_written, total_size }` - Receiving firmware
 3. `ReadyToActivate` - Write complete, ready to reboot
 
 **Integration with Server:**
+
 1. Server stores firmware binaries at `/api/firmwares/upload`
 2. Orchestrator proxies firmware download at `/firmwares/:id/download`
 3. Beacon WiFi implementation (future) downloads from orchestrator
@@ -586,6 +617,7 @@ esp_hal::reset::software_reset();
 5. Reboot activates new firmware from OTA partition
 
 **Security Considerations:**
+
 - ⚠️ Firmware signature verification NOT yet implemented
 - ⚠️ Checksum verification recommended before activation
 - ⚠️ Encrypted firmware download recommended
@@ -593,6 +625,7 @@ esp_hal::reset::software_reset();
 - Rollback: Bootloader reverts if new firmware fails to boot
 
 **WiFi/HTTP Integration (To Be Implemented):**
+
 ```rust
 // Future WiFi-based OTA (not yet implemented)
 async fn download_and_update(
@@ -625,11 +658,13 @@ async fn download_and_update(
 ```
 
 **BLE-Based OTA (Alternative):**
+
 - Firmware can be pushed via BLE chunks
 - Slower than WiFi but works without network infrastructure
 - Requires BLE message protocol extension (not yet implemented)
 
 **Dependencies:**
+
 ```toml
 esp-bootloader-esp-idf = "0.1"
 esp-storage = "0.8"
@@ -645,6 +680,7 @@ embedded-storage = "0.3"
 **Purpose:** Cross-platform mobile/desktop app for navigation and access control.
 
 **Platforms:**
+
 - iOS (planned)
 - Android (planned)
 - macOS (tested)
@@ -652,6 +688,7 @@ embedded-storage = "0.3"
 - Linux (planned)
 
 **Architecture:**
+
 - **Frontend:** Vue 3 SPA with TypeScript
 - **Backend:** Rust (Tauri commands)
 - **State Management:** Pinia stores
@@ -660,6 +697,7 @@ embedded-storage = "0.3"
 - **Secure Storage:** Stronghold (encrypted credential vault)
 
 **Key Features:**
+
 1. **Indoor Positioning:**
    - Scans BLE beacons via tauri-plugin-blec
    - RSSI triangulation for position calculation
@@ -683,6 +721,7 @@ embedded-storage = "0.3"
    - Local pathfinding fallback (planned)
 
 **Tauri Commands:**
+
 ```rust
 // BLE operations
 #[tauri::command]
@@ -701,6 +740,7 @@ async fn sync_entities(db: State<'_, Database>) -> Result<()>;
 ```
 
 **State Management:**
+
 ```typescript
 // session.ts
 interface SessionState {
@@ -713,6 +753,7 @@ interface SessionState {
 ```
 
 **Build Commands:**
+
 ```bash
 cd mobile
 pnpm install
@@ -751,6 +792,7 @@ All admin components share protocol buffer definitions:
 **Location:** `admin/orchestrator/`
 
 **Responsibilities:**
+
 - Task queue management
 - Robot registry and state tracking
 - Robot selection algorithm
@@ -758,6 +800,7 @@ All admin components share protocol buffer definitions:
 - gRPC server for Tower communication
 
 **gRPC Service (from task.proto):**
+
 ```protobuf
 service OrchestratorService {
   rpc ReportRobotStatus(RobotReportRequest) returns (RobotReportResponse);
@@ -784,6 +827,7 @@ message Location {
 ```
 
 **Robot Selection Algorithm:**
+
 1. Filter robots by entity_id
 2. Filter by state == IDLE
 3. Filter by battery > 20%
@@ -796,12 +840,14 @@ message Location {
 **Location:** `admin/tower/`
 
 **Responsibilities:**
+
 - Socket.IO WebSocket server for robots
 - gRPC client to Orchestrator
 - One goroutine per robot connection
 - Status reporting aggregation
 
 **Socket.IO Events:**
+
 ```go
 // Client → Server
 socket.On("robot_register", RobotRegisterPacket)
@@ -814,6 +860,7 @@ socket.Emit("task_cancelled", TaskCancelledPacket)
 ```
 
 **Proto Generation:**
+
 ```bash
 # From root justfile
 just proto-tower
@@ -828,16 +875,19 @@ cd admin/tower && make proto
 **Purpose:** Floor plan polygon extraction using computer vision.
 
 **Responsibilities:**
+
 - Extract polygons from floor plan images using OpenCV
 - Local processing (does not require a gRPC server)
 - Defines PlotService interface in plot.proto for future service integration
 
 **Current Implementation:**
+
 - Client performs local polygon extraction using OpenCV
 - Implements `_extract_polygons_opencv()` method (placeholder - to be implemented)
 - Can be extended to call a remote PlotService in the future
 
 **Proto Generation:**
+
 ```bash
 # From root justfile
 just proto-plot
@@ -846,6 +896,7 @@ cd admin/plot && ./generate_proto.sh
 ```
 
 **Usage:**
+
 ```bash
 cd admin/plot
 uv sync
@@ -859,24 +910,28 @@ uv run python plot_client.py <floor_plan_image.png> [entity_id] [floor_id]
 **Purpose:** ESP32-C3 eFuse key management and beacon registration CLI tool.
 
 **Responsibilities:**
+
 - Generate P-256 ECDSA key pairs for beacons
 - Program private keys to ESP32-C3 eFuse (BLOCK_KEY0)
 - Register beacons with orchestrator via gRPC (sync.proto)
 - Flash firmware to ESP32-C3 devices
 
 **Key Features:**
+
 - **Cryptography:** Uses Python `cryptography` library for P-256 ECDSA
 - **eFuse Programming:** Wraps `espefuse.py` for hardware key burning
 - **gRPC Integration:** Connects to OrchestratorSync service
 - **Firmware Flashing:** Supports both `espflash` and `esptool.py`
 
 **Installation:**
+
 ```bash
 cd admin/maintenance
 uv sync
 ```
 
 **Proto Generation:**
+
 ```bash
 cd admin/maintenance
 bash generate_proto.sh
@@ -885,6 +940,7 @@ bash generate_proto.sh
 **Usage Examples:**
 
 Generate and fuse key to ESP32-C3:
+
 ```bash
 uv run navign-maintenance fuse-priv-key \
   --output-dir ./keys \
@@ -893,6 +949,7 @@ uv run navign-maintenance fuse-priv-key \
 ```
 
 Generate key and register with orchestrator:
+
 ```bash
 uv run navign-maintenance fuse-priv-key \
   --output-dir ./keys \
@@ -905,6 +962,7 @@ uv run navign-maintenance fuse-priv-key \
 ```
 
 Flash firmware:
+
 ```bash
 uv run navign-maintenance flash-firmware \
   --firmware path/to/firmware.bin \
@@ -915,6 +973,7 @@ uv run navign-maintenance flash-firmware \
 **Note:** The old Rust version is archived in `admin/maintenance_rust_deprecated/`.
 
 **Environment Variables:**
+
 ```bash
 # Orchestrator
 RUST_LOG=info
@@ -933,6 +992,7 @@ TOWER_ADDR=http://[::1]:8080
 **Purpose:** no_std compatible Rust library for cross-component schemas.
 
 **Feature Flags:**
+
 ```toml
 [features]
 default = ["std"]
@@ -954,6 +1014,7 @@ ts-rs = ["serde"]       # TypeScript type generation
 **Critical:** `heapless` and `alloc` are mutually exclusive.
 
 **Schemas:**
+
 ```rust
 // Core schemas (alloc feature)
 pub struct Entity { /* ... */ }
@@ -1045,6 +1106,7 @@ The robot upper layer consists of multiple specialized components that communica
 Unified message definitions for inter-component communication:
 
 **Files:**
+
 - `common.proto` - Shared types (`Location`, `Timestamp`, `RobotStatus`)
 - `vision.proto` - Vision service (`ObjectDetection`, `AprilTagPose`, `HandGesture`)
 - `audio.proto` - Audio service (`WakeWordEvent`, `SpeechRecognition`, `TTSRequest`)
@@ -1053,6 +1115,7 @@ Unified message definitions for inter-component communication:
 - `network.proto` - External comms (`PathfindingRequest`, `EntityDataRequest`)
 
 **Generation:**
+
 ```bash
 just proto-robot         # Generate all protobuf code (Rust + Python)
 just proto-robot-python  # Generate Python code only
@@ -1064,6 +1127,7 @@ just proto-robot-python  # Generate Python code only
 **Purpose:** Central coordinator for robot operations
 
 **Responsibilities:**
+
 - Task queue management with priority scheduling
 - Inter-component coordination via Zenoh
 - Robot state tracking and monitoring
@@ -1071,16 +1135,19 @@ just proto-robot-python  # Generate Python code only
 - Task history persistence in database
 
 **Key Dependencies:**
+
 - `zenoh` - Distributed pub/sub messaging
 - `tokio` - Async runtime
 - `tonic` - gRPC client (for Tower communication)
 - `prost` - Protocol buffer serialization
 
 **Zenoh Topics (Published):**
+
 - `robot/scheduler/status` - Robot state updates
 - `robot/scheduler/task/ack` - Task acknowledgments
 
 **Zenoh Topics (Subscribed):**
+
 - `robot/scheduler/task/submit` - Incoming tasks from Tower
 - `robot/network/pathfinding/response` - Navigation paths
 - `robot/serial/sensors` - Sensor data from lower layer
@@ -1088,12 +1155,14 @@ just proto-robot-python  # Generate Python code only
 - `robot/audio/events` - Wake word events
 
 **Run:**
+
 ```bash
 cd robot/scheduler
 cargo run
 ```
 
 **Environment Variables:**
+
 - `ZENOH_CONFIG` - Zenoh configuration file (optional)
 - `DATABASE_URL` - Task database connection string
 
@@ -1103,6 +1172,7 @@ cargo run
 **Purpose:** UART bridge to STM32 lower controller
 
 **Features:**
+
 - Bidirectional communication with lower controller
 - Postcard binary serialization for efficiency
 - Async serial I/O with `tokio_serial`
@@ -1110,30 +1180,36 @@ cargo run
 - Publishes sensor data to Zenoh
 
 **Protocol:**
+
 - **Baud Rate:** 115200
 - **Serialization:** Postcard (binary, compatible with firmware)
 - **Frame Format:** Length-prefixed messages
 
 **Key Messages:**
+
 - `MotorCommand` - Motor speed/direction control
 - `SensorDataRequest` - Request sensor readings
 - `SensorDataResponse` - IMU, encoders, ultrasonic data
 - `StatusUpdate` - Robot health/battery status
 
 **Zenoh Topics (Published):**
+
 - `robot/serial/sensors` - Sensor data from STM32
 - `robot/serial/status` - Lower controller health
 
 **Zenoh Topics (Subscribed):**
+
 - `robot/serial/command` - Motor commands from scheduler
 
 **Run:**
+
 ```bash
 cd robot/serial
 SERIAL_PORT=/dev/ttyUSB0 cargo run
 ```
 
 **Environment Variables:**
+
 - `SERIAL_PORT` - Default: `/dev/ttyUSB0`
 - `SERIAL_BAUD` - Default: `115200`
 
@@ -1143,6 +1219,7 @@ SERIAL_PORT=/dev/ttyUSB0 cargo run
 **Purpose:** External HTTP communication with Navign server
 
 **Features:**
+
 - RESTful API client for server
 - Pathfinding request/response handling
 - Entity and area data fetching
@@ -1150,26 +1227,31 @@ SERIAL_PORT=/dev/ttyUSB0 cargo run
 - Future: BLE operations for beacon interaction
 
 **API Integration:**
+
 - `GET /api/entities/{id}/route` - Pathfinding queries
 - `GET /api/entities/{id}` - Entity metadata
 - `GET /api/entities/{eid}/areas` - Area polygons
 - `GET /api/entities/{eid}/beacons` - Beacon locations
 
 **Zenoh Topics (Published):**
+
 - `robot/network/pathfinding/response` - Navigation paths from server
 - `robot/network/entity/data` - Entity/area data
 
 **Zenoh Topics (Subscribed):**
+
 - `robot/network/pathfinding/request` - Pathfinding requests from scheduler
 - `robot/network/entity/request` - Entity data requests
 
 **Run:**
+
 ```bash
 cd robot/network
 SERVER_URL=http://localhost:3000 cargo run
 ```
 
 **Environment Variables:**
+
 - `SERVER_URL` - Default: `http://localhost:3000`
 - `ENTITY_ID` - Robot's entity ID for navigation
 
@@ -1179,6 +1261,7 @@ SERVER_URL=http://localhost:3000 cargo run
 **Purpose:** High-performance computer vision processing
 
 **Capabilities:**
+
 - **AprilTag Detection:** Marker-based pose estimation using apriltag C library
 - **Object Detection:** YOLO via OpenCV DNN or ONNX Runtime
 - **Camera Calibration:** Chessboard-based calibration with persistence
@@ -1195,6 +1278,7 @@ SERVER_URL=http://localhost:3000 cargo run
 | Startup Time | ~5 seconds | <1 second |
 
 **Dependencies:**
+
 - CMake >= 3.20
 - OpenCV >= 4.5
 - apriltag C library
@@ -1202,11 +1286,13 @@ SERVER_URL=http://localhost:3000 cargo run
 - Optional: ONNX Runtime, Zenoh C++
 
 **Zenoh Topics (Published):**
+
 - `robot/vision/apriltags` - AprilTag detections
 - `robot/vision/objects` - Detected objects with bounding boxes
 - `robot/vision/status` - Component status
 
 **Build:**
+
 ```bash
 cd robot/vision
 mkdir build && cd build
@@ -1215,12 +1301,14 @@ make -j$(nproc)
 ```
 
 **Build with ONNX Runtime (faster YOLO):**
+
 ```bash
 cmake -DUSE_ONNXRUNTIME=ON ..
 make -j$(nproc)
 ```
 
 **Run:**
+
 ```bash
 ./navign_vision --camera 0 --fps 30 --tag-size 0.02
 ```
@@ -1233,6 +1321,7 @@ make -j$(nproc)
 **Purpose:** Voice interaction and audio feedback
 
 **Capabilities:**
+
 - **Wake Word Detection:** Porcupine-based activation (migrating to OpenWakeWord)
 - **Speech Recognition:** Wav2Vec2 speech-to-text
 - **Text-to-Speech:** Edge TTS voice synthesis
@@ -1240,6 +1329,7 @@ make -j$(nproc)
 - **Audio Playback:** Cross-platform with pygame
 
 **Technologies:**
+
 - pvporcupine for wake word detection
 - transformers (Wav2Vec2) for speech recognition
 - edge-tts for text-to-speech synthesis
@@ -1247,11 +1337,13 @@ make -j$(nproc)
 - pygame for playback
 
 **Zenoh Topics (Published):**
+
 - `robot/audio/wake_word` - Wake word detected events
 - `robot/audio/transcription` - Speech recognition results
 - `robot/audio/events` - Audio state changes
 
 **Configuration:**
+
 ```bash
 cd robot/audio
 cp config.example.py config.py
@@ -1260,6 +1352,7 @@ cp config.example.py config.py
 ```
 
 **Run:**
+
 ```bash
 cd robot/audio
 uv sync
@@ -1267,6 +1360,7 @@ uv run python service.py
 ```
 
 **Environment Variables:**
+
 - `PORCUPINE_ACCESS_KEY` - Required for wake word detection
 
 **See:** `robot/audio/README.md` for complete documentation
@@ -1277,6 +1371,7 @@ uv run python service.py
 **Purpose:** AI-powered natural language interaction for accessibility
 
 **Capabilities:**
+
 - **Local LLM Inference:** Qwen3-0.6B for fast, offline responses
 - **Remote LLM Fallback:** GPT-4o (OpenAI) or DeepSeek for complex queries
 - **Scene Description:** Converts 3D object coordinates into natural language descriptions for visually impaired users
@@ -1284,12 +1379,14 @@ uv run python service.py
 - **Geo-aware API Selection:** Automatically selects appropriate API based on geographic availability
 
 **Technologies:**
+
 - transformers (Hugging Face) for local LLM inference
 - OpenAI API for GPT-4o remote inference
 - DeepSeek API as fallback for restricted regions
 - Qwen3-0.6B as lightweight local model
 
 **Architecture:**
+
 ```python
 # Local-first approach
 response = generate_local_response(scene_data, user_query)
@@ -1300,6 +1397,7 @@ if response == "<remote>":
 
 **Use Case:**
 Robot describes surroundings to visually impaired users by:
+
 1. Vision service detects objects and provides 3D coordinates
 2. Intelligence service receives object list with coordinates
 3. Local LLM generates natural language description using spatial relationships
@@ -1307,12 +1405,14 @@ Robot describes surroundings to visually impaired users by:
 5. Description is sent to audio service for TTS output
 
 **Dependencies:**
+
 - `transformers>=4.57.1` - Hugging Face models
 - `openai>=2.8.0` - OpenAI API client
 - `eclipse-zenoh>=1.6.2` - Message bus integration
 - `protobuf>=6.33.1` - Protocol buffer support
 
 **Configuration:**
+
 ```bash
 cd robot/intelligence
 cp config.example.py config.py
@@ -1322,6 +1422,7 @@ cp config.example.py config.py
 ```
 
 **Run:**
+
 ```bash
 cd robot/intelligence
 uv sync
@@ -1329,6 +1430,7 @@ uv run python service.py  # (service wrapper to be implemented)
 ```
 
 **Environment Variables:**
+
 - `OPENAI_KEY` - Required for GPT-4o remote inference
 - `DEEPSEEK_KEY` - Required for DeepSeek fallback
 
@@ -1368,6 +1470,7 @@ uv run python service.py  # (service wrapper to be implemented)
 **Deployment:**
 
 **Development (all components):**
+
 ```bash
 # Terminal 1 - Scheduler
 cd robot/scheduler && cargo run
@@ -1394,12 +1497,14 @@ cd robot/audio && uv run python service.py
 **Purpose:** Low-level motor control and sensor management for autonomous delivery robots.
 
 **Hardware:**
+
 - STM32F407ZG microcontroller (ARM Cortex-M4F, 168 MHz)
 - Motor drivers for differential drive
 - Sensor interfaces (encoders, IMU, ultrasonic)
 - Serial communication with upper controller
 
 **Software Architecture:**
+
 - **Runtime:** Embassy async executor (async embedded Rust)
 - **HAL:** embassy-stm32 0.4.0
 - **Features:**
@@ -1410,6 +1515,7 @@ cd robot/audio && uv run python service.py
   - defmt logging for debugging
 
 **Key Dependencies:**
+
 ```toml
 embassy-executor = { version = "0.9.1", features = ["arch-cortex-m"] }
 embassy-stm32 = { version = "0.4.0", features = ["stm32f407zg"] }
@@ -1419,6 +1525,7 @@ cortex-m-rt = "0.7.0"
 ```
 
 **Build & Flash:**
+
 ```bash
 cd robot/lower
 cargo build --release
@@ -1460,6 +1567,7 @@ just fmt
 ```
 
 **Check formatting without modifying:**
+
 ```bash
 just fmt-check
 ```
@@ -1488,6 +1596,7 @@ just test
 ```
 
 **Run specific component tests:**
+
 ```bash
 cd server && cargo test
 cd mobile && just test
@@ -1519,6 +1628,7 @@ just ci-robot-upper # Robot/upper (scheduler, serial, network, vision, audio)
 ### Running Components
 
 **Server:**
+
 ```bash
 cd server
 cargo run
@@ -1526,12 +1636,14 @@ cargo run
 ```
 
 **Mobile:**
+
 ```bash
 cd mobile
 pnpm run tauri dev
 ```
 
 **Firmware:**
+
 ```bash
 cd firmware
 cargo build --release
@@ -1539,6 +1651,7 @@ espflash flash target/riscv32imc-esp-espidf/release/navign-firmware
 ```
 
 **Admin Orchestrator:**
+
 ```bash
 cd admin/orchestrator
 cargo run
@@ -1546,6 +1659,7 @@ cargo run
 ```
 
 **Admin Tower:**
+
 ```bash
 cd admin/tower
 go run cmd/tower/main.go
@@ -1559,6 +1673,7 @@ go run cmd/tower/main.go
 ### Cryptography
 
 **Algorithms:**
+
 - **P-256 ECDSA:** Public-key cryptography for beacons and mobile
 - **SHA-256:** Hashing for integrity checks
 - **HMAC-SHA1:** Message authentication (legacy TOTP)
@@ -1567,6 +1682,7 @@ go run cmd/tower/main.go
 - **RSA:** Server key exchange (future)
 
 **Key Storage:**
+
 - **Beacon:** ESP32 efuse blocks (hardware-protected, write-once)
 - **Mobile:** Tauri Stronghold (encrypted vault with OS keychain)
 - **Server:** Environment variables (should use secret management in production)
@@ -1574,6 +1690,7 @@ go run cmd/tower/main.go
 ### Access Control
 
 **Nonce-Based Challenge-Response:**
+
 ```
 1. Mobile → Beacon: NonceRequest
 2. Beacon: nonce = random_bytes(32)
@@ -1592,6 +1709,7 @@ go run cmd/tower/main.go
 ```
 
 **Rate Limiting:**
+
 - Max 5 unlock attempts per 5 minutes per beacon
 - Implemented in beacon firmware
 - Uses rolling window with timestamps
@@ -1599,6 +1717,7 @@ go run cmd/tower/main.go
 ### Authentication
 
 **OAuth2 Flow (GitHub, Google, WeChat):**
+
 ```
 1. Client → Server: GET /api/auth/{provider}/authorize
 2. Server → Client: Redirect to provider
@@ -1611,6 +1730,7 @@ go run cmd/tower/main.go
 ```
 
 **Password Authentication:**
+
 ```
 1. Client → Server: POST /api/auth/register
    { username, email, password }
@@ -1627,6 +1747,7 @@ Login:
 ```
 
 **JWT Claims:**
+
 ```rust
 pub struct TokenClaims {
     pub sub: String,        // User ID
@@ -1639,6 +1760,7 @@ pub struct TokenClaims {
 ### Input Validation
 
 **Always validate:**
+
 - Entity bounds for coordinates
 - Floor identifiers match entity floors
 - Polygon coordinates are valid
@@ -1652,16 +1774,19 @@ pub struct TokenClaims {
 ### Unit Tests
 
 **Server:** `server/src/`
+
 ```bash
 just test-server
 ```
 
 **Shared:** `shared/src/`
+
 ```bash
 just test-shared
 ```
 
 **Mobile:** `mobile/src/`
+
 ```bash
 just test-mobile
 ```
@@ -1671,6 +1796,7 @@ just test-mobile
 **Not yet implemented**
 
 Planned workflow:
+
 1. Start PostgreSQL
 2. Start server
 3. Seed database with test entities/areas/beacons
@@ -1686,6 +1812,7 @@ Planned workflow:
 ### Adding a New API Endpoint
 
 1. **Define schema and Implement Database CRUD Trait** in `shared/schema/`:
+
 ```rust
 // shared/src/schema/my_entity.rs
 use serde::{Deserialize, Serialize};
@@ -1707,12 +1834,14 @@ impl UuidRepository<sqlx::Postgres> for MyEntity {
 ```
 
 2. **Add route** in `server/src/main.rs`:
+
 ```rust
 .route("/api/my-entities", get(MyEntity::crud_get_by_id))
 .route("/api/my-entities", post(MyEntity::crud_create))
 ```
 
 3. **Run code generation** for TypeScript:
+
 ```bash
 just gen-ts-schema
 just fmt
@@ -1722,6 +1851,7 @@ just fmt
 ### Adding a BLE Message Type
 
 1. **Define in shared:**
+
 ```rust
 // shared/src/ble/message.rs
 pub enum BleMessage {
@@ -1732,6 +1862,7 @@ pub enum BleMessage {
 ```
 
 2. **Update beacon handler:**
+
 ```rust
 // firmware/src/bin/main.rs
 match message {
@@ -1744,6 +1875,7 @@ match message {
 ```
 
 3. **Update mobile Tauri command:**
+
 ```rust
 // mobile/src-tauri/src/lib.rs
 #[tauri::command]
@@ -1793,6 +1925,7 @@ Always run the corresponding just tasks before committing.
 ### Git Commit Messages
 
 Follow conventional commits:
+
 ```
 <type>(<scope>): <subject>
 
@@ -1802,6 +1935,7 @@ Follow conventional commits:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -1812,9 +1946,11 @@ Follow conventional commits:
 - `chore`: Maintenance tasks
 
 **Scopes:**
+
 - `server`, `beacon`, `mobile`, `shared`, `admin`, `gesture_space`, `docs`
 
 **Examples:**
+
 ```
 feat(beacon): add servo motor unlock support
 
@@ -1959,6 +2095,7 @@ When adding dependencies to mobile or other pnpm packages, use `catalog:`:
 The robot upper layer uses **Zenoh pub/sub messaging** for inter-component communication.
 
 **Architecture:**
+
 - Components are loosely coupled via message bus
 - Each service publishes/subscribes to specific topics
 - Protocol Buffers for type-safe serialization
@@ -1990,6 +2127,7 @@ The robot upper layer uses **Zenoh pub/sub messaging** for inter-component commu
 ### API Reference
 
 Generate Rust API docs:
+
 ```bash
 cargo doc --open --no-deps
 ```
@@ -2053,6 +2191,7 @@ When making changes:
 6. Submit pull request with description of changes
 
 **Before committing:**
+
 - [ ] Code is formatted (`just fmt`)
 - [ ] No linter errors (`just lint`)
 - [ ] Tests pass (`just test`)
@@ -2071,10 +2210,11 @@ MIT License - See `LICENSE` file for details.
 ## Contact
 
 For questions about this codebase, refer to:
+
 - GitHub Issues: (repository issues page)
 - Documentation: `docs/` directory
 - This file: `CLAUDE.md`
 
 ---
 
-*This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-22*
+_This CLAUDE.md was generated from actual source code analysis and is maintained alongside the codebase. Last updated: 2025-11-22_

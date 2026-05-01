@@ -17,13 +17,13 @@ members = [
 # This is useful since firmware needs special cross-compilation
 default-members = ["shared"]
 
-  [workspace.package]
-  edition = "2024"
-  license = "MIT"
-  version = "0.1.0"
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
 
-  [workspace.dependencies]
-  navign-shared = { path = "shared" }
+[workspace.dependencies]
+navign-shared = { path = "shared" }
 
 
 [profile.dev.package.navign-firmware]
@@ -32,19 +32,19 @@ default-members = ["shared"]
 opt-level = "s"
 
 [profile.release.package.navign-firmware]
-codegen-units    = 1     # LLVM can perform better optimizations using a single thread
-debug            = 2
+codegen-units = 1 # LLVM can perform better optimizations using a single thread
+debug = 2
 debug-assertions = false
-incremental      = false
-opt-level        = 's'
-overflow-checks  = false
+incremental = false
+opt-level = 's'
+overflow-checks = false
 
 [profile.dev.package.navign-robot-firmware]
-debug       = true
+debug = true
 incremental = true
-opt-level   = "z"
+opt-level = "z"
 
 [profile.release.package.navign-robot-firmware]
-debug       = false
+debug = false
 incremental = true
-opt-level   = "z"
+opt-level = "z"

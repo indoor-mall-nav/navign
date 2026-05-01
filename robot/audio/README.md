@@ -20,6 +20,7 @@ uv sync
 ## Configuration
 
 1. Copy the example configuration:
+
    ```bash
    cp config.example.py config.py
    ```
@@ -55,6 +56,7 @@ uv run python example_usage.py
 ```
 
 Select from available examples:
+
 1. Wake Word Detection
 2. Speech Recognition
 3. Text-to-Speech
@@ -132,13 +134,13 @@ while True:
 
 ## File Overview
 
-| File | Purpose |
-|------|---------|
-| `waking.py` | Porcupine wake word detection initialization |
-| `recognition.py` | Wav2Vec2 speech recognition |
-| `play.py` | Edge TTS text-to-speech and playback |
-| `config.example.py` | Example configuration file |
-| `example_usage.py` | Usage examples and demos |
+| File                | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `waking.py`         | Porcupine wake word detection initialization |
+| `recognition.py`    | Wav2Vec2 speech recognition                  |
+| `play.py`           | Edge TTS text-to-speech and playback         |
+| `config.example.py` | Example configuration file                   |
+| `example_usage.py`  | Usage examples and demos                     |
 
 ## Dependencies
 
@@ -171,23 +173,27 @@ pub.put(transcription)
 ## Troubleshooting
 
 ### Porcupine Error: Invalid API Key
+
 - Verify you've copied the correct API key from https://console.picovoice.ai/
 - Update `PORCUPINE_KEY` in config.py
 - Check that the key hasn't expired
 
 ### Wake Word Not Detected
+
 - Speak clearly and directly to the microphone
 - Adjust `WAKE_WORD_SENSITIVITY` in config.py (0.0-1.0)
 - Check microphone input levels
 - Ensure correct wake word model path
 
 ### Poor Speech Recognition
+
 - Speak clearly and at a normal pace
 - Reduce background noise
 - Adjust `SILENCE_THRESHOLD` in config.py
 - Try a larger Wav2Vec2 model
 
 ### Audio Input/Output Errors
+
 - Check `INPUT_DEVICE_INDEX` in config.py
 - List available devices:
   ```python
@@ -199,11 +205,13 @@ pub.put(transcription)
 - Update config with correct device index
 
 ### TTS Not Playing
+
 - Check `ENABLE_PLAYBACK` in config.py
 - Verify pygame is installed correctly
 - Check system audio output
 
 ### Recording Doesn't Stop
+
 - Adjust `SILENCE_THRESHOLD` (try higher values like 30-35)
 - Adjust `SILENCE_DURATION` (try longer like 3-4 seconds)
 - Ensure quiet environment when not speaking
@@ -211,14 +219,17 @@ pub.put(transcription)
 ## Assets Required
 
 Create an `assets/` directory with:
+
 - Custom wake word `.ppn` files (optional)
 
 Temporary files (auto-generated):
+
 - `output.mp3`: TTS output (auto-deleted after playback)
 
 ## Available TTS Voices
 
 Common English voices:
+
 - `en-US-JennyNeural` (Female, US)
 - `en-US-GuyNeural` (Male, US)
 - `en-GB-SoniaNeural` (Female, UK)

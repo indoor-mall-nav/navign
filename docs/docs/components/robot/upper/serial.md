@@ -61,12 +61,14 @@ SERIAL_PORT=/dev/ttyUSB0 cargo run
 ## Troubleshooting
 
 **Port not found:**
+
 ```bash
 ls /dev/ttyUSB*
 sudo chmod 666 /dev/ttyUSB0
 ```
 
 **Permission denied:**
+
 ```bash
 sudo usermod -a -G dialout $USER
 # Logout and login

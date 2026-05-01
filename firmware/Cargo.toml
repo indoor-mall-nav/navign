@@ -1,19 +1,19 @@
 [package]
 edition.workspace = true
 license.workspace = true
-name              = "navign-firmware"
-rust-version      = "1.86"
+name = "navign-firmware"
+rust-version = "1.86"
 version.workspace = true
 
 [[bin]]
 bench = false
-name  = "navign-firmware"
-path  = "./src/bin/main.rs"
-test  = false
+name = "navign-firmware"
+path = "./src/bin/main.rs"
+test = false
 
 [[test]]
 harness = false
-name    = "unit-tests"
+name = "unit-tests"
 
 [dependencies]
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5148d8ae679e021b78f53fd33afb8bb35d0b62e", features = [
@@ -36,11 +36,7 @@ esp-radio = { version = "0.16.0", features = [
   "unstable",
 ] }
 esp-radio-rtos-driver = { version = "0.1.0" }
-esp-rtos = { version = "0.1.1", features = [
-  "esp32c3",
-  "esp-radio",
-  "esp-alloc",
-] }
+esp-rtos = { version = "0.1.1", features = ["esp32c3", "esp-radio", "esp-alloc"] }
 smoltcp = { version = "0.12.0", default-features = false, features = [
   "medium-ethernet",
   "multicast",
@@ -61,21 +57,10 @@ defmt = "0.3.9"
 embedded-dht-rs = { version = "0.5.0", features = ["dht11"] }
 embedded-nal = "0.9.0"
 embedded-storage = "0.3.1"
-esp-backtrace = { version = "0.18.0", features = [
-  "esp32c3",
-  "defmt",
-  "panic-handler",
-] }
-esp-println = { version = "0.16.0", features = [
-  "auto",
-  "esp32c3",
-  "defmt-espflash",
-] }
+esp-backtrace = { version = "0.18.0", features = ["esp32c3", "defmt", "panic-handler"] }
+esp-println = { version = "0.16.0", features = ["auto", "esp32c3", "defmt-espflash"] }
 esp-storage = { version = "0.8.0", features = ["esp32c3"] }
-futures = { version = "0.3.31", default-features = false, features = [
-  "alloc",
-  "async-await",
-] }
+futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"] }
 heapless = { version = "0.9.1" }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 navign-shared = { path = "../shared", default-features = false, features = [
@@ -86,10 +71,7 @@ navign-shared = { path = "../shared", default-features = false, features = [
   "serde",
 ] }
 nb = "1.1.0"
-p256 = { version = "0.13.2", default-features = false, features = [
-  "sha256",
-  "ecdsa",
-] }
+p256 = { version = "0.13.2", default-features = false, features = ["sha256", "ecdsa"] }
 reqwless = { version = "0.13.0", features = ["log"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.6.0", features = ["heapless"] }

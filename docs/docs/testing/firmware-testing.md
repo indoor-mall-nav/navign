@@ -19,17 +19,20 @@ This document provides comprehensive guidance for testing the ESP32-C3 firmware 
 ## Current Limitations
 
 **Mock-Based Tests Non-Functional (as of 2025-01-14):**
+
 - Firmware is structured as binary-only crate (`src/bin/main.rs` only)
 - Integration tests require library target (`src/lib.rs`)
 - ESP-specific dependencies don't compile for x86_64 host target
 - Test code in `tests/` directory is complete but can't execute
 
 **Required Fixes:**
+
 1. Extract testable modules to `src/lib.rs`
 2. Make ESP dependencies conditional: `[target.'cfg(target_arch = "riscv32")'.dependencies]`
 3. Re-enable tests in `justfile` ci-firmware target
 
 **Currently Working:**
+
 - QEMU simulation (manual execution only, requires setup)
 - Hardware-in-the-loop testing (requires physical device)
 - Code compilation checks (runs in CI)
@@ -40,12 +43,12 @@ This document provides comprehensive guidance for testing the ESP32-C3 firmware 
 
 The firmware can be tested using multiple approaches, each with different tradeoffs:
 
-| Approach | Speed | Accuracy | Setup | Use Case |
-|----------|-------|----------|-------|----------|
-| Mock Unit Tests | ⚡ Fast | Medium | Easy | Development, CI/CD (DISABLED) |
-| QEMU | Fast | High | Medium | Security, crypto testing (MANUAL ONLY) |
-| Wokwi | Medium | High | Easy | BLE, peripheral testing |
-| Real Hardware | Slow | Perfect | Hard | Integration, final validation |
+| Approach        | Speed   | Accuracy | Setup  | Use Case                               |
+| --------------- | ------- | -------- | ------ | -------------------------------------- |
+| Mock Unit Tests | ⚡ Fast | Medium   | Easy   | Development, CI/CD (DISABLED)          |
+| QEMU            | Fast    | High     | Medium | Security, crypto testing (MANUAL ONLY) |
+| Wokwi           | Medium  | High     | Easy   | BLE, peripheral testing                |
+| Real Hardware   | Slow    | Perfect  | Hard   | Integration, final validation          |
 
 **Recommendation:** Use QEMU for security features validation (manual), Wokwi for BLE protocol testing, and real hardware for final acceptance testing.
 
@@ -178,12 +181,12 @@ id = "esp"
     { "type": "wokwi-led", "id": "led1", "top": 100, "left": 100, "attrs": { "color": "blue" } }
   ],
   "connections": [
-    [ "esp:GPIO7", "relay1:IN", "green", [ "v0" ] ],
-    [ "esp:GPIO4", "dht1:SDA", "yellow", [ "v0" ] ],
-    [ "esp:GPIO8", "led1:A", "red", [ "v0" ] ],
-    [ "relay1:GND", "esp:GND", "black", [ "v0" ] ],
-    [ "dht1:GND", "esp:GND", "black", [ "v0" ] ],
-    [ "led1:C", "esp:GND", "black", [ "v0" ] ]
+    ["esp:GPIO7", "relay1:IN", "green", ["v0"]],
+    ["esp:GPIO4", "dht1:SDA", "yellow", ["v0"]],
+    ["esp:GPIO8", "led1:A", "red", ["v0"]],
+    ["relay1:GND", "esp:GND", "black", ["v0"]],
+    ["dht1:GND", "esp:GND", "black", ["v0"]],
+    ["led1:C", "esp:GND", "black", ["v0"]]
   ]
 }
 ```
@@ -580,6 +583,7 @@ For final validation with real ESP32-C3 hardware.
 ### Test Harness Setup
 
 You'll need:
+
 - ESP32-C3 DevKit
 - USB-to-Serial adapter for logging
 - Another ESP32 or computer with BLE capability for testing unlock
@@ -648,6 +652,7 @@ if __name__ == "__main__":
 ```
 
 Run with:
+
 ```bash
 cd firmware/tests/hil
 python3 unlock_test.py
@@ -707,29 +712,32 @@ jobs:
 
 ## Test Coverage Goals
 
-| Component | Target Coverage | Priority |
-|-----------|----------------|----------|
-| Crypto (signing, verification) | 90% | High |
-| Nonce management | 95% | High |
-| Rate limiting | 90% | High |
-| BLE protocol | 80% | High |
-| Storage (eFuse, nonce) | 85% | Medium |
-| GPIO/peripherals | 60% | Low |
-| OTA | 70% | Medium |
+| Component                      | Target Coverage | Priority |
+| ------------------------------ | --------------- | -------- |
+| Crypto (signing, verification) | 90%             | High     |
+| Nonce management               | 95%             | High     |
+| Rate limiting                  | 90%             | High     |
+| BLE protocol                   | 80%             | High     |
+| Storage (eFuse, nonce)         | 85%             | Medium   |
+| GPIO/peripherals               | 60%             | Low      |
+| OTA                            | 70%             | Medium   |
 
 ---
 
 ## Troubleshooting
 
 ### QEMU doesn't start
+
 - Ensure ESP-IDF QEMU fork is used, not mainline QEMU
 - Check RISC-V toolchain is installed
 
 ### Wokwi simulation crashes
+
 - Verify `wokwi.toml` paths are correct
 - Check firmware size < 4MB
 
 ### Mock tests fail on real hardware
+
 - Mock tests use deterministic RNG; real hardware uses TRNG
 - Timing differences may cause race conditions
 

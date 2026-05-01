@@ -76,6 +76,7 @@ uv run python service.py
 ## Configuration
 
 Edit `config.py`:
+
 - Camera index and resolution
 - YOLO model selection
 - AprilTag positions (known world coordinates)

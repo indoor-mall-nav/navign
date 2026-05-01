@@ -12,13 +12,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 version = "0.1.0"
 
-  [project.optional-dependencies]
-  dev = [
-    "pytest>=8.3.0",
-    "pytest-cov>=6.0.0",
-    "pytest-mock>=3.14.0",
-    "pytest-asyncio>=0.24.0",
-  ]
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0", "pytest-cov>=6.0.0", "pytest-mock>=3.14.0", "pytest-asyncio>=0.24.0"]
 
 [tool.pytest.ini_options]
 addopts = [
@@ -29,18 +24,14 @@ addopts = [
   "--cov-report=term-missing",
   "--cov-report=html",
 ]
-markers = [
-  "unit: Unit tests",
-  "integration: Integration tests",
-  "slow: Slow running tests",
-]
+markers = ["unit: Unit tests", "integration: Integration tests", "slow: Slow running tests"]
 python_classes = ["Test*"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-omit   = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
+omit = ["tests/*", "proto/*_pb2.py", "*/__pycache__/*"]
 source = ["."]
 
 [tool.coverage.report]

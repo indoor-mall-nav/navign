@@ -83,6 +83,32 @@ async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(config);
     info!("Initialized peripherals.");
 
+    let mut i2s_config = embassy_stm32::i2s::Config::default();
+
+    i2s_config.format = embassy_stm32::i2s::Format::Data32Channel32;
+    i2s_config.standard = embassy_stm32::i2s::Standard::Philips;
+
+    let mut dma_buffers = [0u16; 2048];
+    let mut i2s = embassy_stm32::i2s::I2S::new_rxonly(
+        p.SPI3,
+        p.PC11,
+        p.PA15,
+        p.PB3,
+        p.PC7,
+        p.DMA1_CH0,
+        &mut dma_buffers,
+        i2s_config,
+    );
+
+    info!("Initialized I2S3 for audio input.");
+
+    loop {
+        info!("Starting I2S read...");
+        let mut buf = [0u16; 4];
+        let n = i2s.read(&mut buf).await;
+        info!("Received {} samples", n);
+    }
+
     let uart = match Uart::new(
         p.USART1,
         p.PA10,
