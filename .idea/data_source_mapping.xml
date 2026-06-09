@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/server/src/pg/repository.rs" value="362ef3bf-fe99-442b-94ab-37ea0b26018c" />
+    <file url="file://$PROJECT_DIR$/shared/src/schema/entity.rs" value="362ef3bf-fe99-442b-94ab-37ea0b26018c" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/5b0cb72b-3de3-46e0-be2c-885fd7d43126/console.sql" value="5b0cb72b-3de3-46e0-be2c-885fd7d43126" />
+  </component>
+</project>

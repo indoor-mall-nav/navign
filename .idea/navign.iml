@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/admin/maintenance/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/admin/maintenance/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/admin/orchestrator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/admin/orchestrator/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/firmware/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/firmware/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/mobile/src-tauri/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/proc_macros/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/proc_macros/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/robot/firmware/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/robot/network/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/robot/scheduler/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/robot/serial/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/server/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/server/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/shared/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/ts-schema/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
